@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-business" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background gradient -->
+  <rect width="600" height="900" fill="url(#grad-business)" />
+  
+  <!-- Dark overlay -->
+  <rect width="600" height="900" fill="rgba(0,0,0,0.3)" />
+  
+  <!-- Icon (using text as emoji) -->
+  <text x="300" y="400" font-size="180" text-anchor="middle" fill="rgba(255,255,255,0.9)">💼</text>
+  
+  <!-- Category name -->
+  <text x="300" y="750" font-size="60" font-weight="bold" text-anchor="middle" fill="white" style="text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Business</text>
+</svg>

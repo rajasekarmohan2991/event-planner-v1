@@ -1,0 +1,472 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { SeatSelector } from '@/components/events/SeatSelector'
+import { IndianRupee, Clock, CheckCircle } from 'lucide-react'
+
+type Seat = {
+  id: string
+  section: string
+  rowNumber: string
+  seatNumber: string
+  basePrice: number
+}
+
+export default function RegisterWithSeatsPage() {
+  const params = useParams()
+  const router = useRouter()
+  const eventId = params?.id as string
+
+  if (!eventId) {
+    return <div>Loading...</div>
+  }
+
+  const [step, setStep] = useState(1) // 1: Seat Selection, 2: Details, 3: Payment, 4: Success
+  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
+  const [totalPrice, setTotalPrice] = useState(0)
+  const [reservationExpiry, setReservationExpiry] = useState<Date | null>(null)
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+  const [numberOfAttendees, setNumberOfAttendees] = useState(1)
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'razorpay' | 'dummy'>('dummy')
+  
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    company: '',
+    jobTitle: '',
+    gender: '',
+    emergencyContact: '',
+    parking: '',
+    dietaryRestrictions: [] as string[],
+    activities: [] as string[]
+  })
+
+  const [loading, setLoading] = useState(false)
+  const [reservationId, setReservationId] = useState<string | null>(null)
+  const [registrationId, setRegistrationId] = useState<string | null>(null)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoDiscount, setPromoDiscount] = useState<any>(null)
+  const [promoError, setPromoError] = useState('')
+  const [validatingPromo, setValidatingPromo] = useState(false)
+
+  // Load saved form data from localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem(`registration:${eventId}:formData`)
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        setFormData(prev => ({ ...prev, ...parsed }))
+        if (parsed.promoDiscount) {
+          setPromoDiscount(parsed.promoDiscount)
+          setPromoCode(parsed.promoDiscount.code)
+        }
+      } catch (error) {
+        console.error('Failed to load saved form data:', error)
+      }
+    }
+  }, [eventId])
+
+  // Timer for reservation expiry
+  useEffect(() => {
+    if (!reservationExpiry) return
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime()
+      const expiry = new Date(reservationExpiry).getTime()
+      const remaining = Math.max(0, expiry - now)
+      
+      setTimeRemaining(Math.floor(remaining / 1000))
+
+      if (remaining <= 0) {
+        alert('Your seat reservation has expired. Please select seats again.')
+        setStep(1)
+        setReservationExpiry(null)
+        setSelectedSeats([])
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [reservationExpiry])
+
+  const handleSeatsSelected = (seats: Seat[]) => {
+    setSelectedSeats(seats)
+    calculateTotalPrice(seats, numberOfAttendees, promoDiscount)
+  }
+
+  const calculateTotalPrice = (seats: Seat[], attendees: number, discount: any = null) => {
+    const seatsTotal = seats.reduce((sum, seat) => sum + seat.basePrice, 0)
+    const subtotal = seatsTotal * attendees
+    const finalTotal = discount ? discount.finalAmount * attendees : subtotal
+    setTotalPrice(finalTotal)
+  }
+
+  // Recalculate when attendees or promo changes
+  useEffect(() => {
+    if (selectedSeats.length > 0) {
+      calculateTotalPrice(selectedSeats, numberOfAttendees, promoDiscount)
+    }
+  }, [numberOfAttendees, promoDiscount])
+
+  const validatePromoCode = async () => {
+    if (!promoCode.trim()) return
+    setValidatingPromo(true)
+    setPromoError("")
+    try {
+      const res = await fetch(`/api/events/${eventId}/promo-codes/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, orderAmount: totalPrice })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPromoDiscount(data)
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Invalid promo code' }))
+        setPromoError(err.error || 'Invalid promo code')
+        setPromoDiscount(null)
+      }
+    } catch (error) {
+      setPromoError('Failed to validate promo code')
+      setPromoDiscount(null)
+    } finally {
+      setValidatingPromo(false)
+    }
+  }
+
+  const handleReserveSeats = async () => {
+    if (selectedSeats.length === 0) {
+      alert('Please select at least one seat')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/events/${eventId}/seats/reserve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seatIds: selectedSeats.map(s => s.id)
+        })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setReservationExpiry(new Date(data.expiresAt))
+        setReservationId(data.reservations[0]?.id)
+        setStep(2) // Move to details step
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Failed to reserve seats')
+      }
+    } catch (error) {
+      alert('Error reserving seats')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleProceedToPayment = () => {
+    // Validate form
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+      alert('Please fill all required fields')
+      return
+    }
+    setStep(3) // Move to payment selection
+  }
+
+  const handlePayment = async () => {
+    setLoading(true)
+    try {
+      // Create registration with payment info
+      const regRes = await fetch(`/api/events/${eventId}/registrations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          numberOfAttendees,
+          seats: selectedSeats.map(s => ({
+            id: s.id,
+            section: s.section,
+            row: s.rowNumber,
+            seat: s.seatNumber,
+            price: s.basePrice
+          })),
+          priceInr: totalPrice,
+          promoCode: promoDiscount?.code,
+          paymentMethod,
+          paymentStatus: paymentMethod === 'dummy' ? 'PAID' : 'PENDING',
+          type: 'SEATED'
+        })
+      })
+
+      if (!regRes.ok) {
+        throw new Error('Failed to create registration')
+      }
+
+      const registration = await regRes.json()
+      setRegistrationId(registration.id)
+      
+      // For dummy payment, auto-confirm
+      if (paymentMethod === 'dummy') {
+        // Confirm seat reservations
+        await fetch(`/api/events/${eventId}/seats/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seatIds: selectedSeats.map(s => s.id),
+            registrationId: registration.id,
+            paymentStatus: 'PAID'
+          })
+        })
+
+        // Generate QR code
+        const qrData = {
+          registrationId: registration.id,
+          eventId,
+          attendeeName: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          seats: selectedSeats.map(s => `${s.section}-${s.rowNumber}${s.seatNumber}`).join(', '),
+          attendees: numberOfAttendees,
+          amount: totalPrice
+        }
+        const qrString = JSON.stringify(qrData)
+        setQrCode(qrString)
+        
+        setStep(4) // Success
+      } else {
+        // For Stripe/Razorpay, show message (not implemented)
+        alert(`${paymentMethod} integration coming soon! Use Dummy payment for now.`)
+        setLoading(false)
+      }
+
+    } catch (error: any) {
+      alert(error.message || 'Error completing registration')
+      setLoading(false)
+    } finally {
+      if (paymentMethod === 'dummy') {
+        setLoading(false)
+      }
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-4">
+            {[1, 2, 3].map(num => (
+              <div key={num} className="flex items-center">
+                <div className={`
+                  w-10 h-10 rounded-full flex items-center justify-center font-bold
+                  ${step >= num ? 'bg-indigo-600 text-white' : 'bg-gray-300 text-gray-600'}
+                `}>
+                  {num}
+                </div>
+                {num < 3 && (
+                  <div className={`w-24 h-1 ${step > num ? 'bg-indigo-600' : 'bg-gray-300'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-center gap-32 mt-2 text-sm">
+            <span className={step >= 1 ? 'text-indigo-600 font-medium' : 'text-gray-500'}>Select Seats</span>
+            <span className={step >= 2 ? 'text-indigo-600 font-medium' : 'text-gray-500'}>Your Details</span>
+            <span className={step >= 3 ? 'text-indigo-600 font-medium' : 'text-gray-500'}>Confirmation</span>
+          </div>
+        </div>
+
+        {/* Timer (when seats are reserved) */}
+        {reservationExpiry && step === 2 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-center gap-2 text-yellow-800">
+              <Clock className="w-5 h-5" />
+              <span className="font-semibold">
+                Time remaining: {formatTime(timeRemaining)}
+              </span>
+            </div>
+            <p className="text-center text-sm text-yellow-700 mt-1">
+              Complete your registration before the timer expires
+            </p>
+          </div>
+        )}
+
+        {/* Step 1: Seat Selection */}
+        {step === 1 && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h1 className="text-2xl font-bold mb-6">Select Your Seats</h1>
+            
+            <SeatSelector
+              eventId={eventId}
+              onSeatSelect={handleSeatsSelected}
+              maxSeats={10}
+            />
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleReserveSeats}
+                disabled={selectedSeats.length === 0 || loading}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? 'Reserving...' : `Reserve ${selectedSeats.length} Seat(s) - ₹${totalPrice}`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Registration Details */}
+        {step === 2 && (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h1 className="text-2xl font-bold mb-6">Your Details</h1>
+
+            {/* Selected Seats Summary */}
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-indigo-900 mb-2">Your Selected Seats:</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {selectedSeats.map(seat => (
+                  <div key={seat.id} className="text-sm">
+                    <span className="font-medium">{seat.section}</span> - Row {seat.rowNumber}, Seat {seat.seatNumber}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-indigo-200 flex items-center justify-between">
+                <span className="font-bold text-indigo-900">Total Amount:</span>
+                <span className="text-xl font-bold text-indigo-900 flex items-center gap-1">
+                  <IndianRupee className="w-5 h-5" />
+                  {totalPrice}
+                </span>
+              </div>
+            </div>
+
+            {/* Registration Form */}
+            <form className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone *</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company</label>
+                  <input
+                    type="text"
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Job Title</label>
+                  <input
+                    type="text"
+                    value={formData.jobTitle}
+                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+              </div>
+            </form>
+
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={() => setStep(1)}
+                className="px-6 py-3 border rounded-lg font-semibold hover:bg-gray-50"
+              >
+                Back to Seats
+              </button>
+              <button
+                onClick={handleSubmitRegistration}
+                disabled={loading}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-300 flex items-center gap-2"
+              >
+                {loading ? 'Processing...' : `Pay ₹${totalPrice} & Complete Registration`}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Success */}
+        {step === 3 && (
+          <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-green-600 mb-4">Registration Successful!</h1>
+            <p className="text-gray-600 mb-6">
+              Your seats have been confirmed. A confirmation email has been sent to {formData.email}
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold mb-3">Your Seats:</h3>
+              <div className="space-y-2">
+                {selectedSeats.map(seat => (
+                  <div key={seat.id} className="text-sm">
+                    {seat.section} - Row {seat.rowNumber}, Seat {seat.seatNumber}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push(`/events/${eventId}`)}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
+            >
+              Back to Event
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

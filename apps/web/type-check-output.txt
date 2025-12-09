@@ -1,0 +1,134 @@
+
+> event-planner-web@0.1.0 type-check
+> tsc --noEmit
+
+app/(admin)/super-admin/companies/[id]/events/create/page.tsx(25,61): error TS18047: 'params' is possibly 'null'.
+app/(admin)/super-admin/companies/[id]/events/create/page.tsx(33,47): error TS18047: 'params' is possibly 'null'.
+app/(admin)/super-admin/companies/[id]/page.tsx(70,27): error TS18047: 'params' is possibly 'null'.
+app/(admin)/super-admin/companies/[id]/page.tsx(73,9): error TS18047: 'params' is possibly 'null'.
+app/(admin)/super-admin/companies/[id]/page.tsx(74,7): error TS18047: 'params' is possibly 'null'.
+app/(admin)/super-admin/companies/[id]/page.tsx(79,45): error TS18047: 'params' is possibly 'null'.
+app/api/admin/fix-seat-numbering/route.ts(10,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/fix-seat-numbering/route.ts(15,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/fix-seat-numbering/route.ts(113,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/fix-seats/route.ts(11,30): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/lookup/categories/[id]/items/route.ts(44,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/lookup/categories/route.ts(14,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/lookup/items/[id]/route.ts(18,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/lookup/items/[id]/route.ts(60,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/users/route.ts(19,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/users/route.ts(23,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/users/route.ts(24,38): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/users/route.ts(216,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/admin/users/route.ts(220,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/company/settings/route.ts(11,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/company/settings/route.ts(15,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/company/settings/route.ts(66,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/company/settings/route.ts(70,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/company/settings/route.ts(71,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/events/[id]/promo-codes/[codeId]/route.ts(19,16): error TS2322: Type 'string' is not assignable to type 'number | bigint | undefined'.
+app/api/events/[id]/promo-codes/[codeId]/route.ts(24,9): error TS2353: Object literal may only specify known properties, and 'currency' does not exist in type '(Without<PromoCodeUpdateInput, PromoCodeUncheckedUpdateInput> & PromoCodeUncheckedUpdateInput) | (Without<...> & PromoCodeUpdateInput)'.
+app/api/events/[id]/promo-codes/[codeId]/route.ts(42,26): error TS2551: Property 'redemptions' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'. Did you mean 'maxRedemptions'?
+app/api/events/[id]/promo-codes/[codeId]/route.ts(47,25): error TS2339: Property 'status' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'.
+app/api/events/[id]/promo-codes/[codeId]/route.ts(64,46): error TS2322: Type 'string' is not assignable to type 'number | bigint | undefined'.
+app/api/events/[id]/seats/generate/route.ts(17,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/events/[id]/seats/generate/route.ts(156,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/events/[id]/seats/reserve/route.ts(13,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/events/[id]/tickets/simple-create/route.ts(14,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/events/check-limits/route.ts(16,25): error TS2339: Property 'currentTenantId' does not exist on type '{ id: string; role: UserRole; gender?: Gender | undefined; } & { name?: string | null | undefined; email?: string | null | undefined; image?: string | null | undefined; }'.
+app/api/events/check-limits/route.ts(23,35): error TS2339: Property 'currentTenantId' does not exist on type '{ id: string; role: UserRole; gender?: Gender | undefined; } & { name?: string | null | undefined; email?: string | null | undefined; image?: string | null | undefined; }'.
+app/api/offline-queue/route.ts(17,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/offline-queue/route.ts(44,26): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/payments/stripe/route.ts(7,3): error TS2322: Type '"2024-06-20"' is not assignable to type '"2023-10-16"'.
+app/api/payments/stripe/route.ts(30,26): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/promocodes/route.ts(15,5): error TS2322: Type '{ redemptions: true; }' is not assignable to type 'never'.
+app/api/promocodes/route.ts(20,20): error TS2339: Property 'createdById' does not exist on type '{ redemptions: never; } & { description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; ... 6 more ...; isActive: boolean; }'.
+app/api/promocodes/route.ts(20,36): error TS2339: Property 'createdById' does not exist on type '{ redemptions: never; } & { description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; ... 6 more ...; isActive: boolean; }'.
+app/api/promocodes/route.ts(21,32): error TS2339: Property 'map' does not exist on type 'never'.
+app/api/promocodes/route.ts(21,37): error TS7006: Parameter 'r' implicitly has an 'any' type.
+app/api/promocodes/route.ts(63,9): error TS2353: Object literal may only specify known properties, and 'currency' does not exist in type '(Without<PromoCodeCreateInput, PromoCodeUncheckedCreateInput> & PromoCodeUncheckedCreateInput) | (Without<...> & PromoCodeCreateInput)'.
+app/api/promocodes/route.ts(77,48): error TS2339: Property 'createdById' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'.
+app/api/promocodes/route.ts(77,70): error TS2339: Property 'createdById' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'.
+app/api/registration-drafts/route.ts(24,18): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/registration-drafts/route.ts(56,26): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/registration-drafts/route.ts(57,29): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/subscription/current/route.ts(10,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/subscription/current/route.ts(14,29): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/subscription/current/route.ts(15,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/companies/[id]/events/route.ts(13,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/companies/[id]/events/route.ts(17,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/companies/[id]/events/route.ts(26,32): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+app/api/super-admin/companies/[id]/events/route.ts(37,37): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/settings/currency/route.ts(10,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/settings/currency/route.ts(14,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/settings/currency/route.ts(40,19): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/super-admin/settings/currency/route.ts(44,31): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/test-sidebar/route.ts(10,23): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/test-sidebar/route.ts(11,23): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/test-sidebar/route.ts(12,22): error TS2339: Property 'user' does not exist on type '{}'.
+app/api/test-sidebar/route.ts(13,28): error TS2339: Property 'user' does not exist on type '{}'.
+app/events/[id]/design/floor-plan/FloorPlanForm.tsx(137,16): error TS2367: This comparison appears to be unintentional because the types '"round" | "square" | "rectangular"' and '"seats-only"' have no overlap.
+app/events/[id]/design/floor-plan/FloorPlanForm.tsx(144,12): error TS2367: This comparison appears to be unintentional because the types '"round" | "square" | "rectangular"' and '"seats-only"' have no overlap.
+app/events/[id]/exhibitor-registration/page.tsx(12,26): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/page.tsx(19,7): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/page.tsx(23,28): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/page.tsx(34,30): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/register/page.tsx(100,51): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/register/page.tsx(104,21): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/exhibitor-registration/register/page.tsx(117,30): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/invite-response/page.tsx(33,46): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/invite-response/page.tsx(47,51): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/invite-response/page.tsx(63,46): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/register/page.tsx(277,83): error TS2322: Type '{ eventId: string; inviteData: InviteData | null; }' is not assignable to type 'IntrinsicAttributes & { eventId: string; }'.
+  Property 'inviteData' does not exist on type 'IntrinsicAttributes & { eventId: string; }'.
+app/events/[id]/registrations/ticket-class/page.tsx(451,16): error TS2367: This comparison appears to be unintentional because the types '"General" | "Offers"' and '"Visibility"' have no overlap.
+app/events/[id]/registrations/ticket-class/page.tsx(552,70): error TS2345: Argument of type '"Visibility"' is not assignable to parameter of type 'SetStateAction<"General" | "Offers">'.
+app/events/[id]/rsvp-interests/page.tsx(17,19): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/rsvp-reports/page.tsx(8,19): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/select-seat/page.tsx(43,52): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/select-seat/page.tsx(56,51): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/select-seat/page.tsx(73,46): error TS18047: 'params' is possibly 'null'.
+app/events/[id]/select-seat/page.tsx(90,30): error TS18047: 'params' is possibly 'null'.
+app/rsvp/error/page.tsx(9,19): error TS18047: 'searchParams' is possibly 'null'.
+app/rsvp/success/page.tsx(9,20): error TS18047: 'searchParams' is possibly 'null'.
+app/rsvp/success/page.tsx(10,21): error TS18047: 'searchParams' is possibly 'null'.
+app/rsvp/success/page.tsx(11,21): error TS18047: 'searchParams' is possibly 'null'.
+app/rsvp/success/page.tsx(12,17): error TS18047: 'searchParams' is possibly 'null'.
+components/admin/AdminSidebar.tsx(93,24): error TS2339: Property 'setIsCollapsed' does not exist on type 'SidebarContextType'.
+components/admin/AdminSidebar.tsx(96,66): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+components/NotificationBell.tsx(85,49): error TS2352: Conversion of type '(event: CustomEvent<Omit<Notification, "id" | "timestamp" | "read">>) => Promise<void>' to type 'EventListener' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of parameters 'event' and 'evt' are incompatible.
+    Type 'Event' is missing the following properties from type 'CustomEvent<Omit<Notification, "id" | "timestamp" | "read">>': detail, initCustomEvent
+components/NotificationBell.tsx(86,65): error TS2352: Conversion of type '(event: CustomEvent<Omit<Notification, "id" | "timestamp" | "read">>) => Promise<void>' to type 'EventListener' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of parameters 'event' and 'evt' are incompatible.
+    Type 'Event' is missing the following properties from type 'CustomEvent<Omit<Notification, "id" | "timestamp" | "read">>': detail, initCustomEvent
+contexts/SidebarContext.tsx(57,52): error TS2561: Object literal may only specify known properties, but 'setIsCollapsed' does not exist in type 'SidebarContextType'. Did you mean to write 'isCollapsed'?
+lib/activity.ts(1,10): error TS2724: '"@/lib/prisma"' has no exported member named 'prisma'. Did you mean 'Prisma'?
+lib/activity.ts(62,27): error TS7006: Parameter 'activity' implicitly has an 'any' type.
+lib/activity.ts(86,27): error TS7006: Parameter 'activity' implicitly has an 'any' type.
+lib/activity.ts(109,27): error TS7006: Parameter 'activity' implicitly has an 'any' type.
+lib/permission-checker.ts(155,35): error TS2345: Argument of type '`${string}.view`' is not assignable to parameter of type 'Permission'.
+lib/permission-checker.ts(156,37): error TS2345: Argument of type '`${string}.create`' is not assignable to parameter of type 'Permission'.
+lib/permission-checker.ts(157,35): error TS2345: Argument of type '`${string}.edit`' is not assignable to parameter of type 'Permission'.
+lib/permission-checker.ts(158,37): error TS2345: Argument of type '`${string}.delete`' is not assignable to parameter of type 'Permission'.
+lib/permission-checker.ts(204,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Permission'.
+lib/permission-checker.ts(251,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Permission'.
+lib/permission-middleware.ts(25,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Permission'.
+lib/permission-middleware.ts(27,46): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'Permission[]'.
+  Type 'string' is not assignable to type 'Permission'.
+lib/permission-middleware.ts(112,45): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Permission'.
+lib/promo.ts(22,13): error TS2339: Property 'status' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'.
+lib/promo.ts(34,32): error TS2339: Property 'promoRedemption' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+lib/promo.ts(40,36): error TS2339: Property 'promoRedemption' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+lib/promo.ts(57,5): error TS2322: Type 'string' is not assignable to type '"FIXED" | "PERCENT" | undefined'.
+lib/promo.ts(59,21): error TS2339: Property 'currency' does not exist on type '{ description: string | null; id: bigint; code: string; type: string; eventId: bigint; createdAt: Date; updatedAt: Date; amount: number; maxRedemptions: number; usedCount: number; ... 5 more ...; isActive: boolean; }'.
+lib/promo.ts(71,16): error TS2339: Property 'promoRedemption' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+lib/subscription-check.ts(20,5): error TS2741: Property 'canAddUser' is missing in type '{ canCreateEvent: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(30,5): error TS2741: Property 'canAddUser' is missing in type '{ canCreateEvent: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(49,5): error TS2741: Property 'canAddUser' is missing in type '{ canCreateEvent: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(57,3): error TS2741: Property 'canAddUser' is missing in type '{ canCreateEvent: true; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(78,5): error TS2741: Property 'canCreateEvent' is missing in type '{ canAddUser: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(88,5): error TS2741: Property 'canCreateEvent' is missing in type '{ canAddUser: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(100,5): error TS2741: Property 'canCreateEvent' is missing in type '{ canAddUser: false; reason: string; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.
+lib/subscription-check.ts(108,3): error TS2741: Property 'canCreateEvent' is missing in type '{ canAddUser: true; currentCount: number; maxAllowed: number; }' but required in type 'SubscriptionLimits'.

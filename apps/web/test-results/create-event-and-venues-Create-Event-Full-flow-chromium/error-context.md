@@ -1,0 +1,110 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "Event Planner" [ref=e6] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e7]:
+            - img [ref=e8]
+            - img [ref=e10]
+            - img [ref=e12]
+        - button "Toggle theme" [ref=e15] [cursor=pointer]:
+          - img
+          - img
+          - generic [ref=e16]: Toggle theme
+    - main [ref=e17]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - heading "Create Event" [level=1] [ref=e23]
+            - paragraph [ref=e24]: Start creating your event by providing the basic details. You can edit everything later.
+          - generic [ref=e26]:
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - img [ref=e32]
+                - generic [ref=e36]:
+                  - generic [ref=e37]: STEP 1
+                  - generic [ref=e38]: Basic Info
+                  - generic [ref=e39]: Completed
+              - generic [ref=e40]:
+                - img [ref=e43]
+                - generic [ref=e47]:
+                  - generic [ref=e48]: STEP 2
+                  - generic [ref=e49]: Event Details
+                  - generic [ref=e50]: Completed
+              - generic [ref=e51]:
+                - generic [ref=e54]: "3"
+                - generic [ref=e56]:
+                  - generic [ref=e57]: STEP 3
+                  - generic [ref=e58]: Date & Time
+                  - generic [ref=e59]: In Progress
+              - generic [ref=e60]:
+                - generic [ref=e63]: "4"
+                - generic [ref=e65]:
+                  - generic [ref=e66]: STEP 4
+                  - generic [ref=e67]: Media & Extras
+                  - generic [ref=e68]: Pending
+              - generic [ref=e69]:
+                - generic [ref=e72]: "5"
+                - generic [ref=e74]:
+                  - generic [ref=e75]: STEP 5
+                  - generic [ref=e76]: Terms & Manager
+                  - generic [ref=e77]: Pending
+              - generic [ref=e78]:
+                - generic [ref=e81]: "6"
+                - generic [ref=e82]:
+                  - generic [ref=e83]: STEP 6
+                  - generic [ref=e84]: Review & Submit
+                  - generic [ref=e85]: Pending
+            - generic [ref=e86]:
+              - heading "Date & Time" [level=3] [ref=e88]
+              - generic [ref=e92]:
+                - generic [ref=e93]:
+                  - generic [ref=e94]: Start Date
+                  - button "Start Date" [ref=e95] [cursor=pointer]:
+                    - text: December 1st, 2025
+                    - img
+                - generic [ref=e96]:
+                  - generic [ref=e97]: End Date
+                  - button "End Date" [ref=e98] [cursor=pointer]:
+                    - generic [ref=e99]: Pick a date
+                    - img
+                - generic [ref=e100]:
+                  - text: Timezone
+                  - combobox "Timezone" [ref=e101] [cursor=pointer]:
+                    - generic: UTC
+                    - img [ref=e102]
+                  - combobox [ref=e104]
+                - generic [ref=e105]:
+                  - text: Start Time
+                  - combobox "Start Time" [ref=e106] [cursor=pointer]:
+                    - generic: 6:00 PM
+                    - img [ref=e107]
+                  - combobox [ref=e109]
+                - generic [ref=e110]:
+                  - text: End Time
+                  - combobox "End Time" [ref=e111] [cursor=pointer]:
+                    - generic: 8:00 PM
+                    - img [ref=e112]
+                  - combobox [ref=e114]
+              - generic [ref=e115]:
+                - button "Previous" [ref=e116] [cursor=pointer]
+                - button "Next" [active] [ref=e118] [cursor=pointer]
+        - complementary [ref=e119]:
+          - generic [ref=e120]:
+            - img [ref=e123]
+            - generic [ref=e127]:
+              - heading "Playwright Test Conference" [level=2] [ref=e128]
+              - paragraph [ref=e129]: Provide event basics now and fill in more details later like tickets, schedule and speakers.
+    - contentinfo [ref=e130]:
+      - generic [ref=e131]: © 2025 EventPlanner. All rights reserved.
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications (F8)":
+    - list
+  - alert [ref=e132]
+```

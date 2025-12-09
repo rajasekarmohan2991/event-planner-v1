@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install only the required dependencies for the animation server
+RUN npm install express cors --save
+
+# Copy the animation server script
+COPY scripts/serve-animations.js .
+
+# Copy animation files
+COPY public/animations ./public/animations
+
+# Expose the port the app runs on
+EXPOSE 3002
+
+# Start the server
+CMD ["node", "serve-animations.js"]

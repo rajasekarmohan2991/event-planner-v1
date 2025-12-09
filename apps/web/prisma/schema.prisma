@@ -1,0 +1,1238 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-1.0.x", "debian-openssl-1.1.x", "linux-musl-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================
+// Multi-Tenant Enums
+// ==============================
+
+enum SystemRole {
+  SUPER_ADMIN
+  USER
+}
+
+enum TenantRole {
+  TENANT_ADMIN        // Full control of organization
+  EVENT_MANAGER       // Creates and manages events
+  VENUE_MANAGER       // Manages venue operations
+  FINANCE_ADMIN       // Handles payments and financial reports
+  MARKETING_ADMIN     // Controls branding and communications
+  SUPPORT_STAFF       // On-ground event support
+  EXHIBITOR_MANAGER   // Manages exhibitor relationships
+  ATTENDEE            // Public event registration (read-only)
+  VIEWER              // Read-only access to reports
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            BigInt
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        BigInt?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       BigInt
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                BigInt              @id @default(autoincrement())
+  name              String
+  email             String              @unique
+  emailVerified     DateTime?           @map("email_verified")
+  password          String?             @map("password_hash")
+  role              String              @default("USER") // Will migrate to SystemRole enum
+  image             String?
+  selectedCity      String?             @map("selected_city")
+  currentTenantId   String?             @map("current_tenant_id") // Active tenant context
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  accounts          Account[]
+  sessions          Session[]
+  memberships       TenantMember[]
+  
+  // Social Feed
+  posts             FeedPost[]
+  likes             FeedLike[]
+  comments          FeedComment[]
+
+  // Verification relations
+  organizerProfile  OrganizerProfile?
+  individualKYC     IndividualVerification?
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("VerificationToken")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// ==============================
+// Multi-tenancy
+// ==============================
+
+model Tenant {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  subdomain       String          @unique
+  domain          String?         @unique
+  
+  // Branding
+  logo            String?
+  primaryColor    String?         @default("#3B82F6")
+  secondaryColor  String?         @default("#10B981")
+  faviconUrl      String?
+  
+  // Settings
+  timezone        String          @default("UTC")
+  currency        String          @default("USD")
+  dateFormat      String          @default("MM/DD/YYYY")
+  locale          String          @default("en")
+  
+  // Subscription & Billing
+  plan            String          @default("FREE")
+  status          String          @default("TRIAL")
+  billingEmail    String?
+  maxEvents       Int             @default(10)
+  maxUsers        Int             @default(5)
+  maxStorage      Int             @default(1024)
+  
+  // Trial & Subscription
+  trialEndsAt         DateTime?
+  subscriptionStartedAt DateTime?
+  subscriptionEndsAt    DateTime?
+  
+  // Email Configuration
+  emailFromName   String?
+  emailFromAddress String?
+  emailReplyTo    String?
+  
+  // Feature Flags
+  features        Json?
+  metadata        Json?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  
+  members         TenantMember[]
+  events          Event[]
+  
+  @@index([status])
+  @@index([plan])
+  @@index([subdomain])
+  @@map("tenants")
+}
+
+model TenantMember {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    BigInt
+  role      String   @default("MEMBER") // OWNER, ADMIN, MANAGER, MEMBER, VIEWER
+  
+  // Permissions
+  permissions Json?
+  
+  // Status
+  status    String   @default("ACTIVE") // ACTIVE, INVITED, SUSPENDED
+  invitedBy BigInt?
+  invitedAt DateTime?
+  joinedAt  DateTime?
+  lastAccessAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId, role])
+  @@index([tenantId, status])
+  @@map("tenant_members")
+}
+
+
+// Promo codes MVP (no FKs to external models for compatibility)
+enum PromoType {
+  PERCENT
+  FIXED
+}
+
+model PromoCode {
+  id               BigInt     @id @default(autoincrement())
+  eventId          BigInt     @map("event_id")
+  code             String     @unique
+  type             String     @map("discount_type") @default("PERCENT")
+  amount           Int        @map("discount_amount")
+  maxRedemptions   Int        @map("max_uses") @default(-1)
+  usedCount        Int        @map("used_count") @default(0)
+  perUserLimit     Int        @map("max_uses_per_user") @default(1)
+  minOrderAmount   Int        @map("min_order_amount") @default(0)
+  applicableTicketIds String? @map("applicable_ticket_ids")
+  startsAt         DateTime?  @map("start_date")
+  endsAt           DateTime?  @map("end_date")
+  isActive         Boolean    @map("is_active") @default(true)
+  description      String?
+  createdAt        DateTime   @map("created_at") @default(now())
+  updatedAt        DateTime   @map("updated_at") @updatedAt
+
+  @@map("promo_codes")
+  @@index([eventId], map: "idx_promo_codes_event")
+  @@index([code], map: "idx_promo_codes_code")
+  @@index([isActive], map: "idx_promo_codes_active")
+}
+
+
+// Generic key-value storage for settings or caches
+model KeyValue {
+  id        String   @id @default(cuid())
+  namespace String
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([namespace, key])
+}
+
+// ==============================
+// Organizer/Individual Verification
+// ==============================
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model OrganizerProfile {
+  id          String             @id @default(cuid())
+  userId      BigInt             @unique
+  companyName String
+  croNumber   String
+  croData     Json?
+  riskFlags   String?
+  status      VerificationStatus @default(PENDING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IndividualVerification {
+  id        String             @id @default(cuid())
+  userId    BigInt             @unique
+  idType    String
+  docUrl    String
+  status    VerificationStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==============================
+// Registrations & Orders
+// ==============================
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+model Registration {
+  id             String              @id @default(cuid())
+  eventId        String
+  userId         BigInt?
+  email          String?
+  ticketId       String?
+  priceInr       Int?
+  status         RegistrationStatus  @default(PENDING)
+  approvedAt     DateTime?
+  approvedBy     String?
+  approvalMode   String?             // MANUAL or AUTOMATIC
+  approvalNotes  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  tenantId       String?
+
+  @@index([eventId, status, createdAt])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  eventId       String
+  userId        BigInt?
+  email         String?
+  buyerEmail    String?
+  status        OrderStatus @default(CREATED)
+  paymentStatus String      @default("PENDING")
+  totalInr      Int         @default(0)
+  meta          Json?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  // Tenant scope
+  tenantId      String?
+
+  @@index([eventId, status, createdAt])
+  @@index([eventId, paymentStatus])
+  @@index([tenantId])
+}
+
+// Tickets for an event
+enum TicketStatus {
+  ACTIVE
+  INACTIVE
+  HIDDEN
+}
+
+model Ticket {
+  id         String       @id @default(cuid())
+  eventId    String
+  name       String
+  description String?
+  priceInr   Int          @default(0)
+  currency   String       @default("INR")
+  capacity   Int          @default(0)
+  sold       Int          @default(0)
+  status     TicketStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  // Tenant scope
+  tenantId   String?
+
+  @@index([eventId, status])
+  @@index([tenantId])
+}
+
+model CancellationPolicy {
+  id               String   @id @default(cuid())
+  eventId          String   @unique
+  freeWindowHours  Int      @default(0) // hours before start that cancellation is free
+  feeType          String   @default("PERCENT") // PERCENT or FIXED
+  feeValue         Float    @default(0)
+  cutoffHours      Int      @default(0) // no cancellations allowed after this
+  policyText       String?  // markdown/plain text
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  tenantId         String?
+}
+
+model MissedRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  email     String?
+  step      String?
+  snapshot  Json?
+  createdAt DateTime @default(now())
+  tenantId  String?
+
+  @@index([eventId, createdAt])
+}
+
+model Prospect {
+  id        String   @id @default(cuid())
+  eventId   String
+  email     String
+  name      String?
+  source    String? // e.g., landing, import
+  notes     String?
+  createdAt DateTime @default(now())
+  tenantId  String?
+
+  @@index([eventId, email])
+}
+
+// Attendee model for event attendees
+enum AttendeeStatus {
+  REGISTERED
+  CONFIRMED
+  CHECKED_IN
+  CANCELLED
+}
+
+model Attendee {
+  id         String         @id @default(cuid())
+  eventId    String
+  userId     BigInt?
+  name       String
+  email      String
+  phone      String?
+  ticketId   String?
+  status     AttendeeStatus @default(REGISTERED)
+  answersJson String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  tenantId   String?
+
+  @@index([eventId, status])
+  @@index([eventId, email])
+  @@index([tenantId])
+}
+
+// Registration custom fields per event
+enum FieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  SELECT
+  MULTISELECT
+  DATE
+  EMAIL
+  PHONE
+  CHECKBOX
+}
+
+model CustomField {
+  id        String    @id @default(cuid())
+  eventId   String
+  key       String
+  label     String
+  type      FieldType @default(TEXT)
+  required  Boolean   @default(false)
+  helpText  String?
+  options   Json?     // for select-like fields
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([eventId, key])
+  @@index([eventId, order])
+}
+
+// Event-level RBAC
+enum EventRole {
+  OWNER
+  ORGANIZER
+  STAFF
+  VIEWER
+}
+
+
+model EventRoleAssignment {
+  id        String    @id @default(cuid())
+  eventId   String
+  userId    BigInt
+  role      EventRole  // Event website
+  siteId    String?
+  site      EventSite?      @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+  tenantId  String?
+
+  @@unique([eventId, userId])
+  @@index([eventId, role])
+  @@index([siteId])
+  @@index([tenantId])
+}
+
+// Event RSVPs
+enum RSVPStatus {
+  GOING
+  INTERESTED
+  NOT_GOING
+  YET_TO_RESPOND
+}
+
+model RSVP {
+  id        String     @id @default(cuid())
+  eventId   String
+  userId    BigInt?
+  email     String?
+  status    RSVPStatus @default(INTERESTED)
+  waitlisted Boolean   @default(false)
+  createdAt DateTime   @default(now())
+  tenantId  String?
+  
+  responses RsvpResponse[]
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+  @@index([tenantId])
+}
+
+// RSVP Settings per event
+model RSVPSettings {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  enabled         Boolean  @default(true)
+  approvalRequired Boolean @default(false)
+  maxAttendees    Int      @default(0)
+  openAt          DateTime?
+  closeAt         DateTime?
+  questions       Json?    // array of custom questions
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenantId        String?
+}
+
+// RSVP Guests list for admin UI
+model RsvpGuest {
+  id         String      @id @default(cuid())
+  eventId    String
+  name       String
+  email      String
+  company    String?
+  phone      String?
+  notes      String?
+  status     RSVPStatus  @default(YET_TO_RESPOND)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  deletedAt  DateTime?
+  tenantId   String?
+
+  @@index([eventId, status, createdAt])
+  @@index([eventId, email])
+  @@index([tenantId])
+}
+
+// Registration Settings per event
+model RegistrationSettings {
+  id                        String   @id @default(cuid())
+  eventId                   String   @unique
+  timeLimitMinutes          Int      @default(15)
+  noTimeLimit               Boolean  @default(false)
+  allowTransfer             Boolean  @default(false)
+  allowAppleWallet          Boolean  @default(true)
+  showTicketAvailability    Boolean  @default(false)
+  restrictDuplicates        String   @default("event") // event, ticket, none
+  registrationApproval      Boolean  @default(false)
+  cancellationApproval      Boolean  @default(false)
+  allowCheckinUnpaidOffline Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+// ==============================
+// Exhibitors & Booths
+// ==============================
+
+enum BoothType {
+  STANDARD
+  PREMIUM
+  ISLAND
+  CUSTOM
+}
+
+enum BoothStatus {
+  AVAILABLE
+  RESERVED
+  ASSIGNED
+}
+
+model Exhibitor {
+  id                  String   @id @default(cuid())
+  eventId             String   @map("event_id")
+  name                String
+  contactName         String?  @map("contact_name")
+  contactEmail        String?  @map("contact_email")
+  contactPhone        String?  @map("contact_phone")
+  website             String?
+  notes               String?
+  // Extended profile fields
+  prefix              String?
+  firstName           String?  @map("first_name")
+  lastName            String?  @map("last_name")
+  preferredPronouns   String?  @map("preferred_pronouns")
+  workPhone           String?  @map("work_phone")
+  cellPhone           String?  @map("cell_phone")
+  jobTitle            String?  @map("job_title")
+  company             String?
+  businessAddress     String?  @map("business_address")
+  companyDescription  String?  @map("company_description")
+  productsServices    String?  @map("products_services")
+  boothType           String?  @map("booth_type")
+  staffList           String?  @map("staff_list")
+  competitors         String?
+  // Booth selection
+  boothOption         String?  @map("booth_option")
+  boothNumber         String?  @map("booth_number")
+  boothArea           String?  @map("booth_area")
+  // Additional fees
+  electricalAccess    Boolean  @default(false) @map("electrical_access")
+  displayTables       Boolean  @default(false) @map("display_tables")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  booths              Booth[]
+  tenantId            String?  @map("tenant_id")
+
+  @@index([eventId, name])
+  @@map("exhibitors")
+}
+
+model Booth {
+  id          String      @id @default(cuid())
+  eventId     String      @map("event_id")
+  exhibitorId String?     @map("exhibitor_id")
+  boothNumber String      @map("booth_number")
+  sizeSqm     Int         @default(9) @map("size_sqm")
+  type        BoothType   @default(STANDARD)
+  status      BoothStatus @default(AVAILABLE)
+  priceInr    Int         @default(0) @map("price_inr")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  exhibitor   Exhibitor?  @relation(fields: [exhibitorId], references: [id], onDelete: SetNull)
+  assets      BoothAsset[]
+  tenantId    String?     @map("tenant_id")
+
+  @@index([eventId, boothNumber])
+  @@map("booths")
+}
+
+enum AssetKind {
+  IMAGE
+  DOC
+  URL
+}
+
+model BoothAsset {
+  id       String   @id @default(cuid())
+  boothId  String   @map("booth_id")
+  kind     AssetKind @default(URL)
+  url      String
+  title    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  booth    Booth    @relation(fields: [boothId], references: [id], onDelete: Cascade)
+  tenantId String?  @map("tenant_id")
+
+  @@index([boothId])
+  @@map("booth_assets")
+}
+
+// ==============================
+// Event Website Design
+// ==============================
+
+enum SiteStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model EventSite {
+  id              String     @id @default(cuid())
+  eventId         String     @unique
+  status          SiteStatus @default(DRAFT)
+  themeId         String     @default("glow")
+  draftJson       Json?
+  publishedJson   Json?
+  seoJson         Json?
+  integrationsJson Json?
+  publishedAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  tenantId        String?
+  roleAssignments EventRoleAssignment[]
+}
+
+model EventSession {
+  id          BigInt    @id @default(autoincrement())
+  eventId     BigInt    @map("event_id")
+  tenantId    String?   @map("tenant_id") @db.VarChar(255)
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  startTime   DateTime  @map("start_time") @db.Timestamptz(6)
+  endTime     DateTime  @map("end_time") @db.Timestamptz(6)
+  room        String?   @db.VarChar(255)
+  track       String?   @db.VarChar(255)
+  capacity    Int?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("sessions")
+}
+
+// ==============================
+// Scheduled Notifications & Campaign Analytics
+// ==============================
+
+enum NotificationType {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum NotificationTrigger {
+  MANUAL
+  EVENT_REMINDER_1WEEK
+  EVENT_REMINDER_1DAY
+  EVENT_REMINDER_1HOUR
+  POST_EVENT_THANKYOU
+  REGISTRATION_CONFIRMATION
+  PAYMENT_CONFIRMATION
+  CUSTOM
+}
+
+model ScheduledNotification {
+  id              String              @id @default(cuid())
+  eventId         String
+  type            NotificationType
+  trigger         NotificationTrigger @default(MANUAL)
+  status          NotificationStatus  @default(PENDING)
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  
+  // Content
+  subject         String?
+  message         String
+  htmlContent     String?
+  
+  // Recipients
+  recipientFilter Json?               // Filter criteria for recipients
+  recipientCount  Int                 @default(0)
+  
+  // Campaign tracking
+  campaignId      String?
+  
+  // Metadata
+  createdById     BigInt?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  tenantId        String?
+  
+  deliveries      NotificationDelivery[]
+  
+  @@index([eventId, status, scheduledFor])
+  @@index([campaignId])
+  @@index([tenantId])
+}
+
+model NotificationDelivery {
+  id                      String              @id @default(cuid())
+  scheduledNotificationId String
+  recipientEmail          String?
+  recipientPhone          String?
+  recipientUserId         BigInt?
+  
+  status                  NotificationStatus  @default(PENDING)
+  sentAt                  DateTime?
+  deliveredAt             DateTime?
+  openedAt                DateTime?
+  clickedAt               DateTime?
+  bouncedAt               DateTime?
+  
+  errorMessage            String?
+  metadata                Json?
+  
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  
+  scheduledNotification   ScheduledNotification @relation(fields: [scheduledNotificationId], references: [id], onDelete: Cascade)
+  
+  @@index([scheduledNotificationId, status])
+  @@index([recipientEmail])
+  @@index([recipientUserId])
+}
+
+model EmailCampaign {
+  id              String   @id @default(cuid())
+  eventId         String
+  name            String
+  subject         String
+  htmlContent     String
+  textContent     String?
+  
+  // Stats
+  totalSent       Int      @default(0)
+  totalDelivered  Int      @default(0)
+  totalOpened     Int      @default(0)
+  totalClicked    Int      @default(0)
+  totalBounced    Int      @default(0)
+  totalUnsubscribed Int    @default(0)
+  
+  // Metadata
+  createdById     BigInt?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenantId        String?
+  
+  @@index([eventId, createdAt])
+  @@index([tenantId])
+}
+
+// ==============================
+// Lookup System - Universal Dropdown Values
+// ==============================
+
+enum LookupCategory {
+  EVENT_TYPE
+  EVENT_CATEGORY
+  EVENT_MODE
+  TIMEZONE
+  USER_ROLE
+}
+
+model Lookup {
+  id          String         @id @default(cuid())
+  category    LookupCategory
+  code        String         // Unique code (e.g., "CONFERENCE", "PENDING")
+  label       String         // Display name
+  description String?        // Optional description
+  colorCode   String?        // Hex color for UI (#3498db)
+  icon        String?        // Optional icon name
+  sortOrder   Int            @default(0)
+  isActive    Boolean        @default(true)
+  isSystem    Boolean        @default(false) // System values can't be deleted
+  metadata    Json?          // Additional custom data
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tenantId    String?
+  
+  @@unique([category, code])
+  @@index([category, isActive, sortOrder])
+  @@index([tenantId])
+}
+
+// ==============================
+// Design Module - Floor Plans & Banners
+// ==============================
+
+model FloorPlan {
+  id              String   @id @default(cuid())
+  eventId         String
+  name            String
+  config          Json     // Stores all form data (hall specs, seating, etc.)
+  imageData       String   @db.Text // Base64 encoded PNG image
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenantId        String?
+  
+  @@index([eventId])
+  @@index([tenantId])
+}
+
+model EventBanner {
+  id              String   @id @default(cuid())
+  eventId         String
+  name            String
+  config          Json     // Design configuration (colors, fonts, text, etc.)
+  imageData       String   @db.Text // Base64 encoded image
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenantId        String?
+  
+  @@index([eventId])
+  @@index([tenantId])
+}
+
+// Activity Tracking
+model Activity {
+  id              String   @id @default(cuid())
+  userId          BigInt?
+  userName        String?
+  userEmail       String?
+  action          String   // e.g., "EVENT_CREATED", "REGISTRATION_COMPLETED"
+  entityType      String   // e.g., "EVENT", "REGISTRATION", "USER"
+  entityId        String?
+  entityName      String?  // Event name, user name, etc.
+  description     String   // Human-readable description
+  metadata        Json?    // Additional data
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime @default(now())
+  tenantId        String?
+  
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+  @@index([tenantId])
+  @@map("activities")
+}
+
+// Lookup Data Management (Admin Configurable)
+model LookupGroup {
+  id              String        @id @default(cuid())
+  name            String        @unique // e.g., "event_category", "event_type", "ticket_type"
+  label           String        // Display name
+  description     String?
+  isActive        Boolean       @default(true) @map("is_active")
+  
+  options         LookupOption[]
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  tenantId        String?       @map("tenant_id")
+  
+  @@index([tenantId])
+  @@map("lookup_groups")
+}
+
+model LookupOption {
+  id              String          @id @default(cuid())
+  groupId         String          @map("group_id")
+  group           LookupGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  value           String          // Internal value
+  label           String          // Display label
+  description     String?
+  sortOrder       Int             @default(0) @map("sort_order")
+  isActive        Boolean         @default(true) @map("is_active")
+  isDefault       Boolean         @default(false) @map("is_default")
+  isSystem        Boolean         @default(false) @map("is_system") // System-protected, cannot be deleted
+  metadata        Json?           // Additional properties
+  
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  tenantId        String?         @map("tenant_id")
+  
+  @@unique([groupId, value])
+  @@index([groupId])
+  @@index([tenantId])
+  @@map("lookup_options")
+}
+
+// User Preferences (replaces localStorage)
+model UserPreference {
+  id                    String   @id @default(cuid())
+  userId                BigInt   @unique
+  
+  // UI Preferences
+  language              String   @default("en")
+  sidebarCollapsed      Boolean  @default(false)
+  theme                 String   @default("light")
+  
+  // Notification Settings
+  emailNotifications    Boolean  @default(true)
+  pushNotifications     Boolean  @default(true)
+  
+  // Other preferences stored as JSON
+  preferences           Json?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("user_preferences")
+}
+
+// Offline Check-in Queue (replaces localStorage queue)
+model OfflineQueue {
+  id                String   @id @default(cuid())
+  eventId           BigInt
+  userId            BigInt?
+  
+  action            String   // "checkin", "checkout", etc.
+  data              Json     // Queue item data
+  idempotencyKey    String   @unique
+  status            String   @default("pending") // pending, processing, completed, failed
+  error             String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@index([idempotencyKey])
+  @@map("offline_queue")
+}
+
+// Registration Drafts (replaces localStorage pending registrations)
+model RegistrationDraft {
+  id                String   @id @default(cuid())
+  eventId           BigInt
+  userId            BigInt?
+  sessionId         String?  // For anonymous users
+  
+  type              String   // general, vip, virtual, speaker
+  formData          Json     // All form fields
+  ticketPrice       Float?
+  promoCode         String?
+  
+  expiresAt         DateTime // Auto-delete after 24 hours
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([eventId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@map("registration_drafts")
+}
+
+// Geocoding Cache (replaces localStorage geo cache)
+model GeocodingCache {
+  id                String   @id @default(cuid())
+  city              String   @unique
+  lat               Float
+  lon               Float
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([city])
+  @@map("geocoding_cache")
+}
+
+// User Notifications (replaces localStorage notifications)
+model UserNotification {
+  id                String   @id @default(cuid())
+  userId            BigInt
+  
+  type              String   // info, success, warning, error
+  title             String
+  message           String
+  link              String?
+  
+  isRead            Boolean  @default(false)
+  isArchived        Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  readAt            DateTime?
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("user_notifications")
+}
+
+// Team Invitations for company staff
+model TeamInvite {
+  id                String   @id @default(cuid())
+  tenantId          String
+  name              String
+  email             String
+  role              String   // EVENT_MANAGER, STAFF, VIEWER
+  status            String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  invitedBy         BigInt
+  invitedAt         DateTime @default(now())
+  respondedAt       DateTime?
+  
+  @@index([tenantId])
+  @@index([email])
+  @@index([status])
+  @@map("team_invites")
+}
+
+// ==============================
+// Social Feed
+// ==============================
+
+model FeedPost {
+  id          String   @id @default(cuid())
+  userId      BigInt
+  tenantId    String
+  content     String
+  attachments Json?    // Array of URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes       FeedLike[]
+  comments    FeedComment[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("feed_posts")
+}
+
+model FeedLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    BigInt
+  createdAt DateTime @default(now())
+  
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("feed_likes")
+}
+
+model FeedComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    BigInt
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@map("feed_comments")
+}
+
+// ==============================
+// RSVP Responses
+// ==============================
+
+model RsvpResponse {
+  id        String   @id @default(cuid())
+  rsvpId    String
+  questionId String
+  answer    String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  rsvp      RSVP     @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+
+  @@index([rsvpId])
+  @@map("rsvp_responses")
+}
+
+model Event {
+  id                 BigInt    @id @default(autoincrement())
+  name               String
+  description        String?
+  startsAt           DateTime  @map("starts_at")
+  endsAt             DateTime  @map("ends_at")
+  status             String
+  venue              String?
+  address            String?
+  city               String?
+  latitude           Float?
+  longitude          Float?
+  priceInr           Int?      @map("price_inr")
+  bannerUrl          String?   @map("banner_url")
+  category           String?
+  eventMode          String    @map("event_mode")
+  budgetInr          Int?      @map("budget_inr")
+  expectedAttendees  Int?      @map("expected_attendees")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  tenantId           String?   @map("tenant_id")
+
+  // Legal & Manager Info
+  termsAndConditions String?   @map("terms_and_conditions")
+  disclaimer         String?
+  eventManagerName   String?   @map("event_manager_name")
+  eventManagerContact String?  @map("event_manager_contact")
+  eventManagerEmail  String?   @map("event_manager_email")
+
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@map("events")
+}
+
+// ==============================
+// Session & Speaker Management
+// ==============================
+
+model Speaker {
+  id          BigInt    @id @default(autoincrement())
+  name        String
+  title       String?
+  bio         String?
+  photoUrl    String?   @map("photo_url")
+  email       String?
+  linkedin    String?
+  twitter     String?
+  website     String?
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  tenantId    String?   @map("tenant_id")
+
+  sessions    SessionSpeaker[]
+
+  @@map("speakers")
+  @@index([tenantId])
+}
+
+model SessionSpeaker {
+  id        BigInt    @id @default(autoincrement())
+  sessionId BigInt    @map("session_id")
+  speakerId BigInt    @map("speaker_id")
+  
+  speaker   Speaker   @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, speakerId])
+  @@map("session_speakers")
+}
+
+model CalendarEvent {
+  id          BigInt    @id @default(autoincrement())
+  eventId     BigInt    @map("event_id")
+  sessionId   BigInt?   @map("session_id")
+  title       String
+  description String?
+  startTime   DateTime  @map("start_time")
+  endTime     DateTime  @map("end_time")
+  location    String?
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@index([eventId])
+  @@map("calendar_events")
+}

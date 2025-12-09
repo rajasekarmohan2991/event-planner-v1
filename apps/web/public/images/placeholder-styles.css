@@ -1,0 +1,28 @@
+/* 
+ * Category placeholder styles
+ * These CSS classes provide fallback styling when actual images are not available
+ */
+
+.category-comedy {
+  background: linear-gradient(135deg, #FF66B2 0%, #9933FF 100%);
+}
+
+.category-amusement {
+  background: linear-gradient(135deg, #33CCFF 0%, #3366FF 100%);
+}
+
+.category-theatre {
+  background: linear-gradient(135deg, #009999 0%, #006699 100%);
+}
+
+.category-kids {
+  background: linear-gradient(135deg, #66CCFF 0%, #3399FF 100%);
+}
+
+.category-music {
+  background: linear-gradient(135deg, #CC99FF 0%, #9933CC 100%);
+}
+
+.category-sports {
+  background: linear-gradient(135deg, #33CC99 0%, #009966 100%);
+}

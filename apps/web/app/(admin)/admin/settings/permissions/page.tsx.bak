@@ -1,0 +1,298 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+export const dynamic = 'force-dynamic'
+import { useSession } from 'next-auth/react'
+import { Shield, Users, Settings, Save, RefreshCw } from 'lucide-react'
+type Permission = {
+  id: string
+  name: string
+  description: string
+  module: string
+}
+type Role = {
+  permissions: string[]
+type User = {
+  email: string
+  role: string
+  tenantId?: string
+export default function PermissionsManagementPage() {
+  const { data: session } = useSession()
+  const [permissions, setPermissions] = useState<Permission[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState<'roles' | 'users'>('roles')
+  const [selectedRole, setSelectedRole] = useState<string>('')
+  const [rolePermissions, setRolePermissions] = useState<string[]>([])
+  useEffect(() => {
+    fetchData()
+  }, [])
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch permissions, roles, and users in parallel
+      const [permissionsRes, rolesRes, usersRes] = await Promise.all([
+        fetch('/api/admin/permissions', { credentials: 'include' }),
+        fetch('/api/admin/roles', { credentials: 'include' }),
+        fetch('/api/admin/users', { credentials: 'include' })
+      ])
+      if (permissionsRes.ok) {
+        const permissionsData = await permissionsRes.json()
+        setPermissions(permissionsData)
+      }
+      if (rolesRes.ok) {
+        const rolesData = await rolesRes.json()
+        setRoles(rolesData)
+      if (usersRes.ok) {
+        const usersData = await usersRes.json()
+        setUsers(usersData)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  const handleRoleSelect = (roleId: string) => {
+    setSelectedRole(roleId)
+    const role = roles.find(r => r.id === roleId)
+    setRolePermissions(role?.permissions || [])
+  const handlePermissionToggle = (permissionId: string) => {
+    setRolePermissions(prev => 
+      prev.includes(permissionId)
+        ? prev.filter(p => p !== permissionId)
+        : [...prev, permissionId]
+    )
+  const saveRolePermissions = async () => {
+    if (!selectedRole) return
+      setSaving(true)
+      const response = await fetch(`/api/admin/roles/${selectedRole}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ permissions: rolePermissions })
+      })
+      if (response.ok) {
+        // Update local state
+        setRoles(prev => prev.map(role => 
+          role.id === selectedRole 
+            ? { ...role, permissions: rolePermissions }
+            : role
+        ))
+        alert('Role permissions updated successfully!')
+      } else {
+        const error = await response.json()
+        alert(error.message || 'Failed to update permissions')
+      alert('Error updating permissions')
+      setSaving(false)
+  const updateUserRole = async (userId: string, newRole: string) => {
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
+        body: JSON.stringify({ role: newRole })
+        setUsers(prev => prev.map(user => 
+          user.id === userId 
+            ? { ...user, role: newRole }
+            : user
+        alert('User role updated successfully!')
+        alert(error.message || 'Failed to update user role')
+      alert('Error updating user role')
+  // Group permissions by module
+  const permissionsByModule = permissions.reduce((acc, permission) => {
+    if (!acc[permission.module]) {
+      acc[permission.module] = []
+    acc[permission.module].push(permission)
+    return acc
+  }, {} as Record<string, Permission[]>)
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6 text-red-600" />
+            Permission Management
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage role-based permissions and user access control
+          </p>
+        <button
+          onClick={fetchData}
+          className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </button>
+      {/* Warning Banner */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-yellow-600" />
+          <span className="font-medium text-yellow-800">Super Admin Access Required</span>
+        <p className="text-yellow-700 text-sm mt-1">
+          Only Super Admins can modify permissions. Changes affect system-wide access control.
+        </p>
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('roles')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'roles'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Settings className="h-4 w-4 inline mr-2" />
+            Role Permissions
+          </button>
+            onClick={() => setActiveTab('users')}
+              activeTab === 'users'
+            <Users className="h-4 w-4 inline mr-2" />
+            User Roles
+        </nav>
+      {activeTab === 'roles' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Role Selection */}
+          <div className="bg-white rounded-lg border p-4">
+            <h3 className="text-lg font-semibold mb-4">Select Role</h3>
+            <div className="space-y-2">
+              {roles.map((role) => (
+                <button
+                  key={role.id}
+                  onClick={() => handleRoleSelect(role.id)}
+                  className={`w-full text-left p-3 rounded-md border transition-colors ${
+                    selectedRole === role.id
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-900'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="font-medium">{role.name}</div>
+                  <div className="text-sm text-gray-600">{role.description}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {role.permissions.length} permissions
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Permission Management */}
+          <div className="lg:col-span-2 bg-white rounded-lg border p-4">
+            {selectedRole ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Permissions for {roles.find(r => r.id === selectedRole)?.name}
+                  </h3>
+                  <button
+                    onClick={saveRolePermissions}
+                    disabled={saving}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+                <div className="space-y-6">
+                  {Object.entries(permissionsByModule).map(([module, modulePermissions]) => (
+                    <div key={module} className="border rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-3 capitalize">
+                        {module.replace('_', ' ')} Module
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {modulePermissions.map((permission) => (
+                          <label
+                            key={permission.id}
+                            className="flex items-start gap-3 p-2 rounded hover:bg-gray-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rolePermissions.includes(permission.id)}
+                              onChange={() => handlePermissionToggle(permission.id)}
+                              className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{permission.name}</div>
+                              <div className="text-xs text-gray-600">{permission.description}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Role</h3>
+                <p className="text-gray-600">Choose a role from the left to manage its permissions.</p>
+              </div>
+            )}
+      ) : (
+        /* User Role Management */
+        <div className="bg-white rounded-lg border">
+          <div className="p-4 border-b">
+            <h3 className="text-lg font-semibold">User Role Assignment</h3>
+          
+          {users.length === 0 ? (
+            <div className="p-8 text-center">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
+              <p className="text-gray-600">No users available for role management.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Role</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assign Role</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tenant</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div>
+                          <div className="font-medium text-gray-900">{user.name || 'N/A'}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </td>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.role === 'SUPER_ADMIN' 
+                            ? 'bg-red-100 text-red-800'
+                            : user.role === 'ADMIN'
+                            ? 'bg-blue-100 text-blue-800'
+                            : user.role === 'EVENT_MANAGER'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.role}
+                        </span>
+                        <select
+                          value={user.role}
+                          onChange={(e) => updateUserRole(user.id, e.target.value)}
+                          className="text-sm border rounded px-2 py-1"
+                        >
+                          {roles.map((role) => (
+                            <option key={role.id} value={role.name}>
+                              {role.name}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-sm text-gray-600">
+                          {user.tenantId || 'Global'}
+                    </tr>
+                </tbody>
+              </table>
+          )}
+      )}
+    </div>
+  )
