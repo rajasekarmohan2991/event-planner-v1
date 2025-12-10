@@ -51,6 +51,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                .requestMatchers("/api/health", "/health").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 // IMPORTANT: Spring matchers are relative to contextPath ('/api'), so use '/events/**'
                 .requestMatchers(HttpMethod.GET, "/events", "/events/**", "/api/events", "/api/events/**").permitAll()
