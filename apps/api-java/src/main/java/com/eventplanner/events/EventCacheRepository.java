@@ -1,5 +1,6 @@
 package com.eventplanner.events;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -13,11 +14,13 @@ public class EventCacheRepository {
 
     private final RedisTemplate<String, Event> redisTemplate;
 
-    public EventCacheRepository(RedisTemplate<String, Event> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public EventCacheRepository(ObjectProvider<RedisTemplate<String, Event>> redisTemplateProvider) {
+        // Allow running without Redis: getIfAvailable returns null when Redis is not configured
+        this.redisTemplate = redisTemplateProvider.getIfAvailable();
     }
 
     public void cacheEvent(Event event) {
+        if (redisTemplate == null) return; // No-op when Redis is unavailable
         if (event != null && event.getId() != null) {
             try {
                 String key = CACHE_KEY_PREFIX + event.getId();
@@ -29,7 +32,7 @@ public class EventCacheRepository {
     }
 
     public Optional<Event> getCachedEvent(Long id) {
-        if (id == null) {
+        if (redisTemplate == null || id == null) {
             return Optional.empty();
         }
         try {
@@ -43,13 +46,12 @@ public class EventCacheRepository {
     }
 
     public void evictEventFromCache(Long id) {
-        if (id != null) {
-            try {
-                String key = CACHE_KEY_PREFIX + id;
-                redisTemplate.delete(key);
-            } catch (Exception e) {
-                System.err.println("[EventCacheRepository] evictEventFromCache failed: " + e.getMessage());
-            }
+        if (redisTemplate == null || id == null) return; // No-op
+        try {
+            String key = CACHE_KEY_PREFIX + id;
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            System.err.println("[EventCacheRepository] evictEventFromCache failed: " + e.getMessage());
         }
     }
 }
