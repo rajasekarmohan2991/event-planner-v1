@@ -18,8 +18,9 @@ COPY --from=build /app/target/api-java-*.jar app.jar
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Set JVM options
+# Set JVM options and Spring profile
 ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:MaxRAMPercentage=75.0"
+ENV SPRING_PROFILES_ACTIVE=prod
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
