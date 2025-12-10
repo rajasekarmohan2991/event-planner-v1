@@ -1,10 +1,13 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Calendar,
   MapPin,
@@ -21,7 +24,7 @@ import {
 } from 'lucide-react'
 import EventList from '@/components/home/EventList'
 import Sidebar from '@/components/home/Sidebar'
-import LottieAnimation from '@/components/ui/LottieAnimation'
+const LottieAnimation = dynamic(() => import('@/components/ui/LottieAnimation'), { ssr: false })
 
 export default function HomePage() {
   // Always show landing page - authenticated users should go to /dashboard
