@@ -11,7 +11,7 @@
 
 **Problem:**  
 - Floor plan generator only had table options (Round, Rectangular, Square)
-- Tables require minimum 2 seats per table
+- Tables require minimum 1 seats per table
 - Theater-style events need individual seats without tables
 
 **Solution:**  

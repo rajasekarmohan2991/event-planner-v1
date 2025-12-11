@@ -129,13 +129,15 @@ export async function POST(req: NextRequest) {
     
     // Create user and optional tenant in transaction
     const user = await prisma.$transaction(async (tx) => {
+      const totalUsers = await tx.user.count()
+      const effectiveRole = totalUsers === 0 ? 'SUPER_ADMIN' : role
       // Create user
       const newUser = await tx.user.create({
         data: {
           name,
           email: email.toLowerCase(),
           password: hashedPassword,
-          role: role,
+          role: effectiveRole,
           emailVerified: null, // Will be verified via email
         }
       })

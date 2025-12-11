@@ -231,14 +231,18 @@ export const authOptions: NextAuthOptions = {
           } else {
             // Create new user from OAuth profile
             const email = user.email!.toLowerCase()
-            const newUser = await prisma.user.create({
-              data: {
-                email,
-                name: user.name || '',
-                image: user.image,
-                emailVerified: new Date(),
-                role: 'USER',
-              }
+            const newUser = await prisma.$transaction(async (tx) => {
+              const total = await tx.user.count()
+              const bootstrapRole = total === 0 ? 'SUPER_ADMIN' : 'USER'
+              return tx.user.create({
+                data: {
+                  email,
+                  name: user.name || '',
+                  image: user.image,
+                  emailVerified: new Date(),
+                  role: bootstrapRole,
+                }
+              })
             })
 
             // Create Account record for OAuth provider
