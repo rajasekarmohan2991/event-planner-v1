@@ -38,14 +38,13 @@ jobs:
         working-directory: apps/web
         run: npx prisma generate
 
-      - name: Check secret configured
-        if: ${{ secrets.PRISMA_DATABASE_URL == '' || secrets.PRISMA_DATABASE_URL == null }}
-        run: |
-          echo "PRISMA_DATABASE_URL secret is not set; skipping migrate deploy." && exit 0
-
-      - name: Run Prisma migrate deploy (production)
-        if: ${{ secrets.PRISMA_DATABASE_URL != '' }}
+      - name: Run Prisma migrate deploy (production if secret is present)
         working-directory: apps/web
         env:
           DATABASE_URL: ${{ secrets.PRISMA_DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "PRISMA_DATABASE_URL not set; skipping migrate deploy.";
+          else
+            npx prisma migrate deploy;
+          fi

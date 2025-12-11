@@ -24,7 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final Optional<RedisTemplate<String, Object>> redisTemplateOpt;
 
     private static final long ACCESS_TOKEN_TTL = 60L * 60L * 24L; // 24h
     private static final Duration RESET_TOKEN_TTL = Duration.ofMinutes(30);
@@ -90,14 +90,14 @@ public class AuthService {
         }
         String token = UUID.randomUUID().toString().replace("-", "");
         String key = resetKey(token);
-        redisTemplate.opsForValue().set(key, request.getEmail(), RESET_TOKEN_TTL);
+        redisTemplateOpt.ifPresent(rt -> rt.opsForValue().set(key, request.getEmail(), RESET_TOKEN_TTL));
         return token;
     }
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         String key = resetKey(request.getToken());
-        Object emailObj = redisTemplate.opsForValue().get(key);
+        Object emailObj = redisTemplateOpt.map(rt -> rt.opsForValue().get(key)).orElse(null);
         if (emailObj == null) {
             throw new RuntimeException("Invalid or expired token");
         }
@@ -107,7 +107,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
-        redisTemplate.delete(key);
+        redisTemplateOpt.ifPresent(rt -> rt.delete(key));
     }
 
     private String resetKey(String token) {
