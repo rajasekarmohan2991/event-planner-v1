@@ -38,6 +38,21 @@ declare module 'next-auth/jwt' {
   }
 }
 
+async function ensureSuperAdminTenantForUser(userIdInput: any) {
+  const uid = typeof userIdInput === 'bigint' ? userIdInput : BigInt(userIdInput)
+  let tenant = await prisma.tenant.findUnique({ where: { slug: 'super-admin' } })
+  if (!tenant) {
+    tenant = await prisma.tenant.create({ data: { name: 'Super Admin', slug: 'super-admin', subdomain: 'super-admin' } })
+  }
+  await prisma.tenantMember.upsert({
+    where: { tenantId_userId: { tenantId: tenant.id, userId: uid } },
+    update: { role: 'TENANT_ADMIN', status: 'ACTIVE' },
+    create: { tenantId: tenant.id, userId: uid, role: 'TENANT_ADMIN', status: 'ACTIVE', joinedAt: new Date() }
+  })
+  await prisma.user.update({ where: { id: uid }, data: { currentTenantId: tenant.id } })
+  return tenant.id
+}
+
 export const authOptions: NextAuthOptions = {
   // Note: Not using PrismaAdapter to allow custom account linking logic
   session: {
@@ -130,7 +145,7 @@ export const authOptions: NextAuthOptions = {
           console.log('🔍 Looking up user:', credentials.email.toLowerCase())
 
           // Try to authenticate directly with database
-          const user = await prisma.user.findUnique({
+          let user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase() }
           })
 
@@ -155,6 +170,13 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('✅ Login successful for:', user.email)
+
+          if ((user as any).role === 'SUPER_ADMIN' && !(user as any).currentTenantId) {
+            try {
+              await ensureSuperAdminTenantForUser(user.id)
+              user = (await prisma.user.findUnique({ where: { id: user.id } }))!
+            } catch (e) {}
+          }
 
           // Generate a simple accessToken (JWT-like) for the backend
           // In production, you'd call your backend auth service to get a proper JWT
@@ -228,6 +250,12 @@ export const authOptions: NextAuthOptions = {
                 // Continue anyway - user can still sign in
               }
             }
+
+            try {
+              if (existingUser.role === 'SUPER_ADMIN' && !existingUser.currentTenantId) {
+                await ensureSuperAdminTenantForUser(existingUser.id)
+              }
+            } catch (e) {}
           } else {
             // Create new user from OAuth profile
             const email = user.email!.toLowerCase()
@@ -269,6 +297,12 @@ export const authOptions: NextAuthOptions = {
             } catch (accountError) {
               console.error(`❌ Failed to create account record:`, accountError)
             }
+
+            try {
+              if (newUser.role === 'SUPER_ADMIN') {
+                await ensureSuperAdminTenantForUser(newUser.id)
+              }
+            } catch (e) {}
 
             console.log(`✅ Created new user from ${account.provider}: ${user.email}`)
           }
