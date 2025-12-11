@@ -35,11 +35,27 @@ export async function getCurrentUserWithPermissions(): Promise<User | null> {
     
     // Check for tenant context and get tenant-specific permissions
     if (user.currentTenantId) {
+      let userIdBigInt: bigint
+      try {
+        userIdBigInt = BigInt(user.id)
+      } catch (e) {
+        console.error(`[Permission Check] Invalid user ID for BigInt: ${user.id}`, e)
+        // Fallback to system role
+        const userPermissions = await getUserPermissions(user.role)
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          permissions: userPermissions
+        }
+      }
+
       const tenantMember = await prisma.tenantMember.findUnique({
         where: {
           tenantId_userId: {
             tenantId: user.currentTenantId,
-            userId: BigInt(user.id)
+            userId: userIdBigInt
           }
         },
         select: {

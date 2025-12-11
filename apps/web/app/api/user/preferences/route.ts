@@ -16,8 +16,9 @@ export async function GET(req: NextRequest) {
     let userId: bigint
     try {
       userId = BigInt((session as any).user.id)
-    } catch {
-      userId = (session as any).user.id
+    } catch (e) {
+      console.error('Invalid user ID format:', (session as any).user.id)
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
     let userPref = await prisma.userPreference.findUnique({
@@ -26,14 +27,25 @@ export async function GET(req: NextRequest) {
 
     // Create default preferences if not exists
     if (!userPref) {
-      userPref = await prisma.userPreference.create({
-        data: {
-          userId,
-          language: 'en',
-          sidebarCollapsed: false,
-          theme: 'light',
-        }
-      })
+      try {
+        userPref = await prisma.userPreference.create({
+          data: {
+            userId,
+            language: 'en',
+            sidebarCollapsed: false,
+            theme: 'light',
+          }
+        })
+      } catch (createError) {
+        // Handle race condition where it might have been created in parallel
+        userPref = await prisma.userPreference.findUnique({
+          where: { userId }
+        })
+      }
+    }
+
+    if (!userPref) {
+        return NextResponse.json({ error: 'Could not fetch or create preferences' }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -64,9 +76,10 @@ export async function POST(req: NextRequest) {
     let userId: bigint
     try {
       userId = BigInt((session as any).user.id)
-    } catch {
-      userId = (session as any).user.id
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
+    
     const body = await req.json()
 
     const { language, sidebarCollapsed, theme, emailNotifications, pushNotifications, ...otherPrefs } = body
