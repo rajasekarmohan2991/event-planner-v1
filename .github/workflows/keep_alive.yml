@@ -1,0 +1,29 @@
+name: Keep Alive (Render & Vercel)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # every 15 minutes
+  workflow_dispatch:
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping Production Endpoints
+    runs-on: ubuntu-latest
+    env:
+      PROD_WEB_URL: ${{ secrets.PROD_WEB_URL }}
+      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL }}
+    steps:
+      - name: Ping Web
+        if: ${{ env.PROD_WEB_URL != '' }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_WEB_URL");
+          echo "Web status: $code";
+      - name: Ping API Health
+        if: ${{ env.PROD_API_HEALTH_URL != '' }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+          echo "API status: $code";

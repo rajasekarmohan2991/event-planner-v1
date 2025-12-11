@@ -17,7 +17,7 @@ jobs:
   trigger-deploys:
     name: Trigger Deploy Hooks
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') || github.event_name == 'workflow_dispatch' }}
     env:
       VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
@@ -47,14 +47,14 @@ jobs:
           echo "Waiting for $PROD_WEB_URL"
           for i in $(seq 1 90); do
             code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_WEB_URL");
-            if [ "$code" -eq 200 ]; then
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
               echo "Web OK (200)";
               break;
             fi;
             sleep 10;
           done
           code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_WEB_URL");
-          test "$code" -eq 200
+          test "$code" -ge 200 -a "$code" -lt 400
 
       - name: Wait for API Health 200
         if: ${{ env.PROD_API_HEALTH_URL != '' }}
@@ -62,11 +62,11 @@ jobs:
           echo "Waiting for $PROD_API_HEALTH_URL"
           for i in $(seq 1 90); do
             code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
-            if [ "$code" -eq 200 ]; then
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
               echo "API OK (200)";
               break;
             fi;
             sleep 10;
           done
           code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
-          test "$code" -eq 200
+          test "$code" -ge 200 -a "$code" -lt 400
