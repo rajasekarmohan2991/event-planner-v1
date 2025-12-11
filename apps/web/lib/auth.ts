@@ -42,7 +42,32 @@ async function ensureSuperAdminTenantForUser(userIdInput: any) {
   const uid = typeof userIdInput === 'bigint' ? userIdInput : BigInt(userIdInput)
   let tenant = await prisma.tenant.findUnique({ where: { slug: 'super-admin' } })
   if (!tenant) {
-    tenant = await prisma.tenant.create({ data: { name: 'Super Admin', slug: 'super-admin', subdomain: 'super-admin' } })
+    tenant = await prisma.tenant.create({ 
+      data: { 
+        name: 'Super Admin', 
+        slug: 'super-admin', 
+        subdomain: 'super-admin',
+        plan: 'ENTERPRISE',
+        status: 'ACTIVE',
+        maxEvents: 1000000,
+        maxUsers: 1000000,
+        maxStorage: 1000000
+      } 
+    })
+  } else {
+    // Ensure existing super-admin tenant has high limits
+    if (tenant.maxEvents < 1000000 || tenant.plan !== 'ENTERPRISE') {
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          plan: 'ENTERPRISE',
+          status: 'ACTIVE',
+          maxEvents: 1000000,
+          maxUsers: 1000000,
+          maxStorage: 1000000
+        }
+      })
+    }
   }
   await prisma.tenantMember.upsert({
     where: { tenantId_userId: { tenantId: tenant.id, userId: uid } },
@@ -171,11 +196,13 @@ export const authOptions: NextAuthOptions = {
 
           console.log('✅ Login successful for:', user.email)
 
-          if ((user as any).role === 'SUPER_ADMIN' && !(user as any).currentTenantId) {
+          if ((user as any).role === 'SUPER_ADMIN') {
             try {
               await ensureSuperAdminTenantForUser(user.id)
               user = (await prisma.user.findUnique({ where: { id: user.id } }))!
-            } catch (e) {}
+            } catch (e) {
+              console.error('Failed to ensure super admin tenant:', e)
+            }
           }
 
           // Generate a simple accessToken (JWT-like) for the backend
@@ -252,7 +279,7 @@ export const authOptions: NextAuthOptions = {
             }
 
             try {
-              if (existingUser.role === 'SUPER_ADMIN' && !existingUser.currentTenantId) {
+              if (existingUser.role === 'SUPER_ADMIN') {
                 await ensureSuperAdminTenantForUser(existingUser.id)
               }
             } catch (e) {}
