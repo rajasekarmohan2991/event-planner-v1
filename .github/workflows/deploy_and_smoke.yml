@@ -1,0 +1,72 @@
+name: Deploy Hooks and Smoke Tests
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-and-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-deploys:
+    name: Trigger Deploy Hooks
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    env:
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Trigger Vercel Deploy Hook
+        if: ${{ env.VERCEL_DEPLOY_HOOK_URL != '' }}
+        run: |
+          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL" -H 'Content-Type: application/json' || true
+
+      - name: Trigger Render Deploy Hook
+        if: ${{ env.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: |
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" -H 'Content-Type: application/json' || true
+
+  smoke-tests:
+    name: Post-deploy Smoke Tests
+    needs: trigger-deploys
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROD_WEB_URL: ${{ secrets.PROD_WEB_URL }}
+      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL }}
+    steps:
+      - name: Wait for Web 200
+        if: ${{ env.PROD_WEB_URL != '' }}
+        run: |
+          echo "Waiting for $PROD_WEB_URL"
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_WEB_URL");
+            if [ "$code" -eq 200 ]; then
+              echo "Web OK (200)";
+              break;
+            fi;
+            sleep 10;
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_WEB_URL");
+          test "$code" -eq 200
+
+      - name: Wait for API Health 200
+        if: ${{ env.PROD_API_HEALTH_URL != '' }}
+        run: |
+          echo "Waiting for $PROD_API_HEALTH_URL"
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+            if [ "$code" -eq 200 ]; then
+              echo "API OK (200)";
+              break;
+            fi;
+            sleep 10;
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+          test "$code" -eq 200
