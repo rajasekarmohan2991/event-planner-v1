@@ -27,7 +27,10 @@
     "playwright:install": "npx playwright install --with-deps",
     "stripe:test": "node scripts/test-stripe.js",
     "stripe:health": "node scripts/stripe-health-check.js",
-    "stripe:listen": "stripe listen --forward-to localhost:3001/api/payments/stripe/webhook"
+    "stripe:listen": "stripe listen --forward-to localhost:3001/api/payments/stripe/webhook",
+    "ui:init": "npx shadcn-ui@latest init -y",
+    "ui:add": "npx shadcn-ui add",
+    "ui:diff": "npx shadcn-ui diff"
   },
   "dependencies": {
     "@auth/prisma-adapter": "1.6.0",
