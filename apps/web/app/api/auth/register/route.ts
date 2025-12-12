@@ -219,7 +219,8 @@ export async function POST(req: NextRequest) {
     try {
       const encEmail = encodeURIComponent(email)
       const encName = encodeURIComponent(name)
-      const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}&email=${encEmail}&name=${encName}`
+      const baseUrl = (process.env.NEXTAUTH_URL || 'http://localhost:3001').replace(/\/$/, '')
+      const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}&email=${encEmail}&name=${encName}`
       await sendVerificationEmail({ to: email, name, verificationUrl })
     } catch (e) {
       console.warn('Email send skipped:', e)

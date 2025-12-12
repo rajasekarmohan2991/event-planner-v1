@@ -218,20 +218,26 @@ export const sendVerificationEmail = async ({
   verificationUrl,
 }: SendVerificationEmailParams) => {
   const transporter = await createTransporter()
+  const dbCfg = await getSmtpConfigFromDb()
+  console.log('📧 Sending verification email', {
+    to,
+    hasEnvHost: !!process.env.EMAIL_SERVER_HOST,
+    hasEnvUser: !!process.env.EMAIL_SERVER_USER,
+    dbConfigured: !!dbCfg,
+  })
   const template = emailTemplates.verification(name, verificationUrl)
-  
+  const from = `"Event Planner" <${process.env.EMAIL_FROM || process.env.SMTP_FROM || dbCfg?.from || 'noreply@eventplanner.com'}>`
   const info = await transporter.sendMail({
-    from: `"Event Planner" <${process.env.EMAIL_FROM || 'noreply@eventplanner.com'}>`,
+    from,
     to,
     subject: template.subject,
     html: template.html,
     text: template.text,
   })
 
-  // Log the preview URL when using Ethereal (getTestMessageUrl returns a URL only for test accounts)
   const preview = nodemailer.getTestMessageUrl(info)
   if (preview) {
-    console.log('Preview URL:', preview)
+    console.log('📧 Preview URL (Ethereal):', preview)
   }
 
   return info

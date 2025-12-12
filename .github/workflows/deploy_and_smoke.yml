@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') || github.event_name == 'workflow_dispatch' }}
     env:
-      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
-      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL || '' }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL || '' }}
     steps:
       - name: Trigger Vercel Deploy Hook
         if: ${{ env.VERCEL_DEPLOY_HOOK_URL != '' }}
@@ -38,8 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PROD_WEB_URL: ${{ secrets.PROD_WEB_URL }}
-      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL }}
+      PROD_WEB_URL: ${{ secrets.PROD_WEB_URL || '' }}
+      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL || '' }}
     steps:
       - name: Wait for Web 200
         if: ${{ env.PROD_WEB_URL != '' }}

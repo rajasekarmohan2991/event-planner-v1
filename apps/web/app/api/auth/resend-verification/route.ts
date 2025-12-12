@@ -56,13 +56,12 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      // Send verification email
-      const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`
-      await sendVerificationEmail({
-        to: email,
-        name: user.name || 'User',
-        verificationUrl
-      })
+      // Send verification email (include email & name for verify page params)
+      const encEmail = encodeURIComponent(email)
+      const encName = encodeURIComponent(user.name || 'User')
+      const baseUrl = (process.env.NEXTAUTH_URL || 'http://localhost:3001').replace(/\/$/, '')
+      const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}&email=${encEmail}&name=${encName}`
+      await sendVerificationEmail({ to: email, name: user.name || 'User', verificationUrl })
 
       return NextResponse.json(
         { message: 'Verification email sent successfully' },

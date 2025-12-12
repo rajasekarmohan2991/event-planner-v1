@@ -28,7 +28,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
     )
   }
   try {
-    const apiUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/api/auth/verify`
+    const apiUrl = `/api/auth/verify`
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
