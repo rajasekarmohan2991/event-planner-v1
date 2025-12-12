@@ -29,7 +29,11 @@ public class PaymentSettingsService {
         PaymentSettings ps = repo.findByEvent(e).orElseGet(() -> PaymentSettings.builder().event(e).build());
         if (input.getTaxRatePercent() != null) {
             int v = Math.max(0, Math.min(100, input.getTaxRatePercent()));
-            ps.setTaxRatePercent(v);
+            if (v == 0 || v == 12 || v == 18 || v == 28) {
+                ps.setTaxRatePercent(v);
+            } else {
+                ps.setTaxRatePercent(18);
+            }
         }
         return repo.save(ps);
     }

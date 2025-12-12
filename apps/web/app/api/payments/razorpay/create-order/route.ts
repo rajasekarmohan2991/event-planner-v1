@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Determine tax rate from payment settings (fallback 18)
     let taxRate = 18
     try {
       const settingsRes = await fetch(`${process.env.NEXTAUTH_URL}/api/events/${eventId}/payment-settings`, { cache: 'no-store' })
@@ -24,7 +23,6 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    // Determine currency from company settings (fallback INR)
     let currency = 'inr'
     try {
       const cfg = await fetch(`${process.env.NEXTAUTH_URL}/api/company/settings`, { cache: 'no-store' })
@@ -34,13 +32,10 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    // Compute amounts (incoming amount is minor units or major?)
-    // In our UI, we pass major units for Razorpay; convert to minor here
     const subtotalInMinor = Math.round(Number(amount) * 100)
     const taxAmountInMinor = Math.round(subtotalInMinor * (taxRate / 100))
     const totalInMinor = subtotalInMinor + taxAmountInMinor
 
-    // Create Razorpay order with total
     const result = await createPaymentOrder({
       amount: totalInMinor,
       currency,
