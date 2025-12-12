@@ -4,11 +4,13 @@ import com.eventplanner.events.Event;
 import com.eventplanner.events.EventRepository;
 import com.eventplanner.registration.tickets.Ticket;
 import com.eventplanner.registration.tickets.TicketRepository;
+import com.eventplanner.payments.PaymentSettingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -20,6 +22,7 @@ public class PaymentService {
     private final EventRepository events;
     private final TicketRepository tickets;
     private final ObjectMapper objectMapper;
+    private final PaymentSettingsService paymentSettingsService;
 
     @Value("${stripe.secret.key:}")
     private String stripeSecretKey;
@@ -27,11 +30,12 @@ public class PaymentService {
     @Value("${stripe.webhook.secret:}")
     private String stripeWebhookSecret;
 
-    public PaymentService(PaymentRepository repo, EventRepository events, TicketRepository tickets, ObjectMapper objectMapper) {
+    public PaymentService(PaymentRepository repo, EventRepository events, TicketRepository tickets, ObjectMapper objectMapper, PaymentSettingsService paymentSettingsService) {
         this.repo = repo;
         this.events = events;
         this.tickets = tickets;
         this.objectMapper = objectMapper;
+        this.paymentSettingsService = paymentSettingsService;
     }
 
     @Transactional(readOnly = true)
@@ -61,8 +65,12 @@ public class PaymentService {
             throw new IllegalArgumentException("Cannot create payment for free ticket");
         }
 
-        // Calculate total amount (price * quantity)
-        int totalAmount = t.getPriceInMinor() * quantity;
+        int subtotal = t.getPriceInMinor() * quantity;
+        Integer rate = paymentSettingsService.get(eventId).getTaxRatePercent();
+        if (rate == null) rate = 18;
+        if (!(rate == 0 || rate == 12 || rate == 18 || rate == 28)) rate = 18;
+        int tax = (int) Math.round(subtotal * (rate / 100.0));
+        int totalAmount = subtotal + tax;
 
         try {
             // Create Stripe Payment Intent
@@ -76,10 +84,21 @@ public class PaymentService {
                     .putMetadata("quantity", quantity.toString())
                     .putMetadata("eventName", e.getName())
                     .putMetadata("ticketName", t.getName())
+                    .putMetadata("subtotalInMinor", String.valueOf(subtotal))
+                    .putMetadata("taxAmountInMinor", String.valueOf(tax))
+                    .putMetadata("taxRatePercent", String.valueOf(rate))
+                    .putMetadata("totalInMinor", String.valueOf(totalAmount))
                     .build()
             );
 
             // Save payment record
+            Map<String, Object> meta = new HashMap<>();
+            if (metadata != null) meta.putAll(metadata);
+            meta.put("subtotalInMinor", subtotal);
+            meta.put("taxAmountInMinor", tax);
+            meta.put("taxRatePercent", rate);
+            meta.put("totalInMinor", totalAmount);
+
             Payment payment = Payment.builder()
                     .event(e)
                     .ticket(t)
@@ -87,7 +106,10 @@ public class PaymentService {
                     .amountInMinor(totalAmount)
                     .currency(t.getCurrency())
                     .status("PENDING")
-                    .metadataJson(objectMapper.writeValueAsString(metadata))
+                    .metadataJson(objectMapper.writeValueAsString(meta))
+                    .subtotalInMinor(subtotal)
+                    .taxAmountInMinor(tax)
+                    .taxRatePercent(rate)
                     .build();
 
             Payment saved = repo.save(payment);

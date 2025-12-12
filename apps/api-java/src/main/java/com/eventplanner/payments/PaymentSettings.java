@@ -19,7 +19,7 @@ public class PaymentSettings {
 
     @Column(name = "tax_rate_percent")
     @Builder.Default
-    private Integer taxRatePercent = 0; // 0-100
+    private Integer taxRatePercent = 18; // 12, 18, 28 (default 18)
 
     @Column(name = "created_at", nullable = false)
     @Builder.Default

@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
+    // Extract tax breakdown from metadata if available
+    const md = (paymentIntent as any)?.metadata || {}
+    const subtotalInMinor = Number(md?.subtotalInMinor) || Number(paymentIntent.amount)
+    const taxAmountInMinor = Number(md?.taxAmountInMinor) || 0
+    const taxRatePercent = Number(md?.taxRatePercent) || 18
+    const totalInMinor = Number(md?.totalInMinor) || Number(paymentIntent.amount)
+
     // Update registration with payment info
     const updated = await prisma.$queryRaw`
       UPDATE registrations 
@@ -48,7 +55,7 @@ export async function POST(req: NextRequest) {
           jsonb_build_object(
             'method', 'stripe',
             'status', 'completed',
-            'amount', ${paymentIntent.amount},
+            'amount', ${totalInMinor},
             'currency', ${paymentIntent.currency},
             'stripe_payment_intent_id', ${paymentIntentId},
             'paidAt', ${new Date().toISOString()},
@@ -114,7 +121,9 @@ export async function POST(req: NextRequest) {
               <p><strong>Event:</strong> ${eventData?.name || `Event #${eventId}`}</p>
               <p><strong>Registration ID:</strong> #${registration.id}</p>
               <p><strong>Payment ID:</strong> ${paymentIntentId}</p>
-              <p><strong>Amount:</strong> ${paymentIntent.currency.toUpperCase()} ${(Number(paymentIntent.amount) / 100).toFixed(2)}</p>
+              <p><strong>Subtotal:</strong> ${paymentIntent.currency.toUpperCase()} ${(subtotalInMinor / 100).toFixed(2)}</p>
+              <p><strong>Tax (${taxRatePercent}%):</strong> ${paymentIntent.currency.toUpperCase()} ${(taxAmountInMinor / 100).toFixed(2)}</p>
+              <p><strong>Total:</strong> ${paymentIntent.currency.toUpperCase()} ${(totalInMinor / 100).toFixed(2)}</p>
               <p><strong>Status:</strong> <span style="color: #16a34a;">Successful</span></p>
               
               <div class="qr-section">
@@ -162,9 +171,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       paymentId: paymentIntentId,
-      amount: paymentIntent.amount,
+      amount: totalInMinor,
       currency: paymentIntent.currency,
       status: paymentIntent.status,
+      subtotalInMinor,
+      taxAmountInMinor,
+      taxRatePercent,
+      totalInMinor,
       qrCode,
       checkInUrl,
       registration

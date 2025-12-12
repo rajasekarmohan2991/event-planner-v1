@@ -14,6 +14,8 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   const [processing, setProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [paymentProvider, setPaymentProvider] = useState("stripe") // stripe or razorpay
+  const [taxRatePercent, setTaxRatePercent] = useState<number>(18)
+  const [currencyCode, setCurrencyCode] = useState<string>('INR')
 
   const registrationId = searchParams?.get('registrationId')
 
@@ -26,6 +28,23 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
           const event = await eventRes.json()
           setEventData(event)
         }
+
+        try {
+          const ps = await fetch(`/api/events/${params.id}/payment-settings`, { cache: 'no-store' })
+          if (ps.ok) {
+            const json = await ps.json()
+            const r = Number(json?.taxRatePercent)
+            if ([0,12,18,28].includes(r)) setTaxRatePercent(r)
+          }
+        } catch {}
+
+        try {
+          const cfg = await fetch(`/api/company/settings`, { cache: 'no-store' })
+          if (cfg.ok) {
+            const json = await cfg.json()
+            if (json?.currency) setCurrencyCode(String(json.currency).toUpperCase())
+          }
+        } catch {}
 
         // Fetch registration data if registrationId is provided
         if (registrationId) {
@@ -145,6 +164,10 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   }
 
   const amount = registrationData?.priceInr || eventData?.priceInr || 50
+  const subtotal = Math.round(Number(amount))
+  const taxAmount = Math.round(subtotal * (taxRatePercent / 100))
+  const totalAmount = subtotal + taxAmount
+  const symbol = currencyCode === 'INR' ? '₹' : currencyCode + ' '
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
@@ -164,8 +187,12 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                 <span className="font-medium">{registrationData?.type || 'General'}</span>
               </div>
               <div className="flex justify-between">
-                <span>Ticket Price:</span>
-                <span className="font-medium">₹{amount}</span>
+                <span>Subtotal:</span>
+                <span className="font-medium">{symbol}{subtotal}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tax ({taxRatePercent}%):</span>
+                <span className="font-medium">{symbol}{taxAmount}</span>
               </div>
               {registrationData?.promoCode && (
                 <div className="flex justify-between text-green-600">
@@ -176,7 +203,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Amount:</span>
-                <span>₹{amount}</span>
+                <span>{symbol}{totalAmount}</span>
               </div>
             </div>
           </div>
@@ -355,7 +382,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
               disabled={processing}
               className="flex-1 rounded-md bg-indigo-600 px-4 py-3 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
             >
-              {processing ? 'Processing...' : `Pay ₹${amount}`}
+              {processing ? 'Processing...' : `Pay ${symbol}${totalAmount}`}
             </button>
           </div>
 

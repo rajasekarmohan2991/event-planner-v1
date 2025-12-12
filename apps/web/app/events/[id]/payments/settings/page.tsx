@@ -87,14 +87,16 @@ export default function PaymentSettingsPage({ params }: { params: { id: string }
       <div className="rounded-lg border bg-white p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Tax Rate (%)</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
+          <select
             value={settings.taxRatePercent}
-            onChange={e => setSettings({ ...settings, taxRatePercent: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })}
+            onChange={e => setSettings({ ...settings, taxRatePercent: parseInt(e.target.value) })}
             className="w-40 rounded-md border px-3 py-2 text-sm"
-          />
+          >
+            <option value={0}>0%</option>
+            <option value={12}>12%</option>
+            <option value={18}>18% (default)</option>
+            <option value={28}>28%</option>
+          </select>
         </div>
 
         <div className="rounded-md border bg-slate-50 p-4 text-sm">

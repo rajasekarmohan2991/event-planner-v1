@@ -39,6 +39,15 @@ public class Payment {
     @Column(name = "metadata")
     private String metadataJson;
 
+    @Column(name = "subtotal_in_minor")
+    private Integer subtotalInMinor;
+
+    @Column(name = "tax_amount_in_minor")
+    private Integer taxAmountInMinor;
+
+    @Column(name = "tax_rate_percent")
+    private Integer taxRatePercent;
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();
