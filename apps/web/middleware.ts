@@ -100,6 +100,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
   
+  if (pathname.startsWith('/auth/login')) {
+    const token = await getToken({ 
+      req, 
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
+    })
+    if (token) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+    return NextResponse.next()
+  }
+  
   // Skip public routes
   if (isPublicRoute(pathname)) {
     return NextResponse.next()
