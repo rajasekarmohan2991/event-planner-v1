@@ -2,19 +2,11 @@
   "name": "event-planner-web",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "schema": "./prisma/schema.prisma",
-    "seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "prisma generate",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "lint": "next lint"
   },
   "dependencies": {
     "@prisma/client": "^7.0.1",
