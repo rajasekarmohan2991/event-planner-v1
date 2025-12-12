@@ -146,10 +146,13 @@ const createTestAccount = async () => {
 const createTransporter = async () => {
   // 1) ENV-configured SMTP
   if (process.env.EMAIL_SERVER_HOST) {
+    const port = parseInt(process.env.EMAIL_SERVER_PORT || '587')
+    const sec = String(process.env.EMAIL_SERVER_SECURE || '').toLowerCase()
+    const secure = sec === 'true' || sec === '1' || sec === 'yes' || port === 465
     return nodemailer.createTransport({
       host: process.env.EMAIL_SERVER_HOST,
-      port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-      secure: process.env.EMAIL_SERVER_SECURE === 'true',
+      port,
+      secure,
       auth: {
         user: process.env.EMAIL_SERVER_USER,
         pass: process.env.EMAIL_SERVER_PASSWORD,
