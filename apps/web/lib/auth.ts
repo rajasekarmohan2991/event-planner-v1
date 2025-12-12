@@ -141,13 +141,20 @@ export const authOptions: NextAuthOptions = {
                   name: 'Dev User',
                   role: 'SUPER_ADMIN',
                   password: await hash(devPassword, 10),
-                  currentTenantId: process.env.DEFAULT_TENANT_ID || 'default-tenant'
+                  currentTenantId: process.env.DEFAULT_TENANT_ID || 'default-tenant',
+                  emailVerified: new Date()
                 }
               })
             } else if (!user.password) {
               try {
                 await prisma.user.update({ where: { id: user.id }, data: { password: await hash(devPassword, 10) } })
               } catch { }
+              // Ensure dev user is treated as verified
+              try {
+                if (!user.emailVerified) {
+                  await prisma.user.update({ where: { id: user.id }, data: { emailVerified: new Date() } })
+                }
+              } catch {}
             }
             const accessToken = Buffer.from(JSON.stringify({
               sub: String(user.id),
@@ -195,6 +202,12 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('✅ Login successful for:', user.email)
+
+          // Enforce email verification for credentials login
+          if (!user.emailVerified) {
+            console.error('❌ Email not verified')
+            throw new Error('Please verify your email. Check your inbox for the verification link.')
+          }
 
           if ((user as any).role === 'SUPER_ADMIN') {
             try {
