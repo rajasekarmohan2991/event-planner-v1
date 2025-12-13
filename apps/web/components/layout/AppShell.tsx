@@ -23,13 +23,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const hideHeaderActions = isAuth || (isHome && status === 'unauthenticated')
   // Route logo to dashboard if authenticated, otherwise to landing page
   const logoHref = status === 'authenticated' ? '/dashboard' : '/'
-  
-  const handleLogoClick = (e: React.MouseEvent) => {
-    if (status === 'authenticated' && !isHome && !isAuth) {
-      e.preventDefault()
-      router.back()
-    }
-  }
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,8 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <>
                 {/* Navigate back when authenticated; landing page otherwise */}
                 <Link 
-                  href={logoHref} 
-                  onClick={handleLogoClick}
+                  href={logoHref}
                   className="hover:opacity-80 transition-opacity duration-300 ml-0"
                 >
                   <BrandLogo variant="light" />

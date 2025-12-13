@@ -75,6 +75,7 @@ export default function CompanyVendorsPage() {
   const [perEventBudget, setPerEventBudget] = useState<Record<string, { budgetTotal: number; spentTotal: number; remaining: number }>>({})
   const [budgets, setBudgets] = useState<Record<string, number>>({})
   const [budgetsOpen, setBudgetsOpen] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   const loadEvents = async () => {
     try {
@@ -115,7 +116,12 @@ export default function CompanyVendorsPage() {
   }
 
   useEffect(() => { loadEvents() }, [])
-  useEffect(() => { if (events.length>0) loadVendors(selectedEvent) }, [selectedEvent, events])
+  useEffect(() => {
+    // Avoid triggering an expensive All Events load on first mount before default event is selected
+    if (!initialized && !selectedEvent) return
+    loadVendors(selectedEvent)
+    if (!initialized) setInitialized(true)
+  }, [selectedEvent])
 
   const loadBudgets = async (eventId: string) => {
     if (!eventId) { setBudgets({}); return }

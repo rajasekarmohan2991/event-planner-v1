@@ -117,13 +117,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
   
-  // Get authentication token
-  const token = await getToken({ 
+  // Get authentication token (robust to cookie name/prefix differences)
+  const isHttps = req.nextUrl.protocol === 'https:' || (req.headers.get('x-forwarded-proto') || '').includes('https') || !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
+  let token = await getToken({ 
     req, 
     secret: process.env.NEXTAUTH_SECRET,
-    // Use HTTPS detection (same as NextAuth cookie config) instead of NODE_ENV
-    secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
+    secureCookie: isHttps,
   })
+  if (!token) {
+    // Fallback to explicit default cookie names
+    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: 'next-auth.session-token' })
+  }
+  if (!token) {
+    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: '__Secure-next-auth.session-token' })
+  }
   
   // Redirect to login if not authenticated
   if (!token) {

@@ -34,7 +34,7 @@ export default function Header() {
       <div className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <Link href={'/dashboard/roles/user'} className="flex items-center gap-2">
+            <Link href={status === 'authenticated' ? '/dashboard' : '/'} className="flex items-center gap-2">
               <BrandLogo variant="light" />
             </Link>
 
