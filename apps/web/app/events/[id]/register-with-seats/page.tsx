@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { SeatSelector } from '@/components/events/SeatSelector'
 import { IndianRupee, Clock, CheckCircle, CreditCard, Smartphone } from 'lucide-react'
@@ -60,6 +60,11 @@ export default function RegisterWithSeatsPage() {
   const [loadingPromoCodes, setLoadingPromoCodes] = useState(false)
   const [inviteInfo, setInviteInfo] = useState<any | null>(null)
   const [inviteError, setInviteError] = useState<string | null>(null)
+
+  // Track lifecycle for auto-extend and cleanup
+  const lastExtendedAtRef = useRef<number>(0)
+  const extendingRef = useRef<boolean>(false)
+  const releaseScheduledRef = useRef<boolean>(false)
 
   // Load saved form data from localStorage
   useEffect(() => {
@@ -147,6 +152,62 @@ export default function RegisterWithSeatsPage() {
 
     return () => clearInterval(interval)
   }, [reservationExpiry])
+
+  // Warn at 60s and auto-extend near expiry when on details/payment step
+  useEffect(() => {
+    if (!reservationExpiry) return
+    if (timeRemaining === 60) {
+      try { alert('Your reservation will expire in 1 minute. Completing payment will auto-extend if needed.') } catch {}
+    }
+    const shouldExtend = (step === 2 || step === 3) && timeRemaining > 0 && timeRemaining <= 120
+    const now = Date.now()
+    const recentlyExtended = now - lastExtendedAtRef.current < 120000 // 2 minutes throttle
+    if (shouldExtend && !extendingRef.current && !recentlyExtended && selectedSeats.length > 0) {
+      extendingRef.current = true
+      ;(async () => {
+        try {
+          const res = await fetch(`/api/events/${eventId}/seats/extend`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.expiresAt) setReservationExpiry(new Date(data.expiresAt))
+            lastExtendedAtRef.current = Date.now()
+          }
+        } catch {}
+        extendingRef.current = false
+      })()
+    }
+  }, [timeRemaining, step, reservationExpiry, selectedSeats, eventId])
+
+  // Release seats on tab close/navigation if not completed
+  useEffect(() => {
+    const releaseSeats = () => {
+      if (!selectedSeats.length || step >= 4) return
+      const payload = JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
+      try {
+        // Prefer keepalive fetch for reliability
+        fetch(`/api/events/${eventId}/seats/reserve`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+          credentials: 'include'
+        }).catch(() => {})
+      } catch {}
+    }
+    const onBeforeUnload = () => { releaseSeats() }
+    const onPageHide = () => { releaseSeats() }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [selectedSeats, step, eventId])
 
   const handleSeatsSelected = (seats: Seat[], price: number) => {
     setSelectedSeats(seats)

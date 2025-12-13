@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getTenantId } from '@/lib/tenant-context'
+import { publish } from '@/lib/seatEvents'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const eventId = parseInt(params.id)
     const body = await req.json()
     const { seatIds, reservationKey } = body || {}
-
     if (!seatIds || !Array.isArray(seatIds) || seatIds.length === 0) {
       return NextResponse.json({ error: 'seatIds array is required' }, { status: 400 })
     }
@@ -106,6 +106,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       reservations.push((reservation as any[])[0])
     }
 
+    // Notify listeners
+    try { publish(eventId, { type: 'reserved', seatIds }) } catch {}
+
     return NextResponse.json({
       success: true,
       reservations,
@@ -147,6 +150,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         AND seat_id IN (${seatIdsStr})
         AND status IN ('RESERVED', 'LOCKED')
     `)
+
+    // Notify listeners on release
+    try { publish(eventId, { type: 'released', seatIds }) } catch {}
 
     return NextResponse.json({
       success: true,

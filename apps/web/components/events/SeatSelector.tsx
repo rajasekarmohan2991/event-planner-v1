@@ -47,6 +47,20 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
   }, [eventId, ticketClassFilter])
 
   useEffect(() => {
+    try {
+      const es = new EventSource(`/api/events/${eventId}/seats/stream`)
+      const onUpdate = () => fetchSeats(true)
+      es.addEventListener('update', onUpdate)
+      es.addEventListener('hello', () => {})
+      es.addEventListener('ping', () => {})
+      return () => {
+        try { es.removeEventListener('update', onUpdate) } catch {}
+        try { es.close() } catch {}
+      }
+    } catch {}
+  }, [eventId])
+
+  useEffect(() => {
     if (!autoRefresh) return
     const id = setInterval(() => {
       fetchSeats(true)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { publish } from '@/lib/seatEvents'
 import { getTenantId } from '@/lib/tenant-context'
 
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         AND sr.seat_id IN (${seatIdsStr})
         AND sr.status = 'CONFIRMED'
     `)
+
+    try { publish(eventId, { type: 'confirmed', seatIds }) } catch {}
 
     return NextResponse.json({
       success: true,

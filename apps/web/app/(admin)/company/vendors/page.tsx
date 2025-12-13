@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
 const CATEGORIES = ['Catering','Venue','Photography','Entertainment','Decoration','Other'] as const
-const STATUSES = ['booked','pending'] as const
+const STATUSES = ['booked','pending','cancelled'] as const
 
 type VendorFormValues = {
   eventId: string
@@ -70,6 +71,10 @@ export default function CompanyVendorsPage() {
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string>('')
+  const [perEventStats, setPerEventStats] = useState<Record<string, Stats>>({})
+  const [perEventBudget, setPerEventBudget] = useState<Record<string, { budgetTotal: number; spentTotal: number; remaining: number }>>({})
+  const [budgets, setBudgets] = useState<Record<string, number>>({})
+  const [budgetsOpen, setBudgetsOpen] = useState(false)
 
   const loadEvents = async () => {
     try {
@@ -83,20 +88,65 @@ export default function CompanyVendorsPage() {
   }
 
   const loadVendors = async (eventId: string) => {
-    if (!eventId) return
     setLoading(true)
     try {
+      if (!eventId) {
+        if (events.length === 0) return
+        const results = await Promise.all(events.map(async e => {
+          const r = await fetch(`/api/events/${e.id}/vendors`, { credentials: 'include' })
+          const d = await r.json()
+          return { id: e.id, name: e.name, vendors: (d.vendors||[]).map((v: any)=>({ ...v, eventId: String(e.id) })), stats: d.stats||{ total:0, booked:0, totalCost:0 } }
+        }))
+        const allVendors = results.flatMap(r => r.vendors)
+        const total = results.reduce((a,r)=>a+r.stats.total,0)
+        const booked = results.reduce((a,r)=>a+r.stats.booked,0)
+        const totalCost = results.reduce((a,r)=>a+r.stats.totalCost,0)
+        const pes: Record<string, Stats> = {}
+        results.forEach(r => { pes[r.id] = r.stats })
+        setVendors(allVendors)
+        setStats({ total, booked, totalCost })
+        setPerEventStats(pes)
+        // Budgets per event
+        const budgetResults = await Promise.all(events.map(async e => {
+          try {
+            const br = await fetch(`/api/events/${e.id}/vendors/budgets`, { credentials: 'include' })
+            const bd = await br.json()
+            const eventVendors = allVendors.filter(v => v.eventId === String(e.id))
+            const spentTotal = eventVendors.reduce((s, v) => s + Number(v.costInr || 0), 0)
+            const budgetTotal = Object.values(bd?.budgets || {}).reduce((s: number, n: any) => s + Number(n || 0), 0)
+            const remaining = budgetTotal - spentTotal
+            return { id: String(e.id), budgetTotal, spentTotal, remaining }
+          } catch { return { id: String(e.id), budgetTotal: 0, spentTotal: 0, remaining: 0 } }
+        }))
+        const peb: Record<string, { budgetTotal: number; spentTotal: number; remaining: number }> = {}
+        budgetResults.forEach(b => { peb[b.id] = { budgetTotal: b.budgetTotal, spentTotal: b.spentTotal, remaining: b.remaining } })
+        setPerEventBudget(peb)
+        setBudgets({})
+        return
+      }
       const res = await fetch(`/api/events/${eventId}/vendors`, { credentials: 'include' })
       const data = await res.json()
       if (res.ok) {
-        setVendors(data.vendors || [])
+        setVendors((data.vendors || []).map((v: any)=>({ ...v, eventId: String(eventId) })))
         setStats(data.stats || { total: 0, booked: 0, totalCost: 0 })
+        setPerEventStats({})
+        setPerEventBudget({})
       }
-    } catch {} finally { setLoading(false) }
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { loadEvents() }, [])
-  useEffect(() => { if (selectedEvent) loadVendors(selectedEvent) }, [selectedEvent])
+  useEffect(() => { if (events.length>0) loadVendors(selectedEvent) }, [selectedEvent, events])
+
+  const loadBudgets = async (eventId: string) => {
+    if (!eventId) { setBudgets({}); return }
+    try {
+      const res = await fetch(`/api/events/${eventId}/vendors/budgets`, { credentials: 'include' })
+      const data = await res.json()
+      if (res.ok) setBudgets(data.budgets || {})
+    } catch { setBudgets({}) }
+  }
+  useEffect(()=>{ if (selectedEvent) loadBudgets(selectedEvent) }, [selectedEvent])
 
   const filtered = useMemo(() => {
     let list = vendors
@@ -107,6 +157,15 @@ export default function CompanyVendorsPage() {
     if (category) list = list.filter(v => v.category === category)
     return list
   }, [vendors, search, category])
+
+  const spendByCategory = useMemo(() => {
+    if (!selectedEvent) return {}
+    const map: Record<string, number> = {}
+    vendors.filter(v => v.eventId === selectedEvent).forEach(v => {
+      map[v.category] = (map[v.category] || 0) + Number(v.costInr || 0)
+    })
+    return map
+  }, [vendors, selectedEvent])
 
   const form = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
@@ -140,6 +199,7 @@ export default function CompanyVendorsPage() {
           <h1 className="text-2xl font-bold">Vendor Management</h1>
           <p className="text-sm text-gray-600">Manage vendors and service providers</p>
         </div>
+        <div className="flex items-center gap-2">
         <Dialog open={open} onOpenChange={(o)=>{ setOpen(o); if (o) form.setValue('eventId', selectedEvent || events[0]?.id || '') }}>
           <DialogTrigger asChild>
             <Button className="gap-2"><Plus className="w-4 h-4"/> Add Vendor</Button>
@@ -194,6 +254,7 @@ export default function CompanyVendorsPage() {
                         <SelectContent>
                           <SelectItem value="booked">Booked</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -264,6 +325,44 @@ export default function CompanyVendorsPage() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {selectedEvent && (
+          <Dialog open={budgetsOpen} onOpenChange={setBudgetsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary">Manage Budgets</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Budgets</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-3">
+                {CATEGORIES.map(cat => (
+                  <div key={cat} className="grid grid-cols-2 gap-2 items-center">
+                    <div className="text-sm">{cat}</div>
+                    <Input type="number" value={budgets[cat] ?? ''} onChange={e=>setBudgets(prev=>({ ...prev, [cat]: Number(e.target.value||0) }))} />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button onClick={async()=>{
+                  await fetch(`/api/events/${selectedEvent}/vendors/budgets`, { method:'PUT', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ budgets }) })
+                  setBudgetsOpen(false)
+                }}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+        {selectedEvent && (
+          <>
+            <a href={`/api/events/${selectedEvent}/vendors/export`}>
+              <Button variant="outline">Export Vendors CSV</Button>
+            </a>
+            <a href={`/api/events/${selectedEvent}/vendors/budgets/export`}>
+              <Button variant="outline">Export Budgets CSV</Button>
+            </a>
+          </>
+        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,6 +370,81 @@ export default function CompanyVendorsPage() {
         <Card className="bg-green-50 border-green-200"><CardContent className="p-4"><div className="text-xs text-green-700">Booked/Paid</div><div className="text-2xl font-bold text-green-900">{stats.booked}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-gray-500">Total Cost</div><div className="text-2xl font-bold flex items-center gap-1"><IndianRupee className="w-5 h-5"/>{stats.totalCost}</div></CardContent></Card>
       </div>
+
+      {!selectedEvent && (
+        <div className="flex gap-2">
+          <a href={`/api/company/vendors/export`}>
+            <Button variant="outline">Export All Vendors CSV</Button>
+          </a>
+          <a href={`/api/company/vendors/budgets/export`}>
+            <Button variant="outline">Export All Budgets CSV</Button>
+          </a>
+        </div>
+      )}
+
+      {selectedEvent && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Budgets</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              {CATEGORIES.map(cat => {
+                const budget = budgets[cat] ?? 0
+                const spent = spendByCategory[cat] ?? 0
+                const remaining = budget - spent
+                const bad = remaining < 0
+                return (
+                  <div key={cat} className={`border rounded p-3 ${bad?'border-red-300 bg-red-50':'border-gray-200'}`}>
+                    <div className="font-semibold">{cat}</div>
+                    <div>Budget: ₹{budget}</div>
+                    <div>Spent: ₹{spent}</div>
+                    <div className={`font-semibold ${bad?'text-red-600':'text-green-700'}`}>Remaining: ₹{remaining}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!selectedEvent && Object.keys(perEventStats).length>0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Per-event totals</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              {events.map(e => (
+                <div key={e.id} className="border rounded p-3">
+                  <div className="font-semibold mb-1">{e.name}</div>
+                  <div>Total Vendors: {perEventStats[e.id]?.total || 0}</div>
+                  <div>Booked: {perEventStats[e.id]?.booked || 0}</div>
+                  <div className="flex items-center gap-1">Cost: <IndianRupee className="w-4 h-4" />{perEventStats[e.id]?.totalCost || 0}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!selectedEvent && Object.keys(perEventBudget).length>0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Per-event budgets</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              {events.map(e => {
+                const b = perEventBudget[e.id] || { budgetTotal: 0, spentTotal: 0, remaining: 0 }
+                const bad = b.remaining < 0
+                return (
+                  <div key={e.id} className={`border rounded p-3 ${bad?'border-red-300 bg-red-50':'border-gray-200'}`}>
+                    <div className="font-semibold mb-1">{e.name}</div>
+                    <div>Budget: ₹{b.budgetTotal}</div>
+                    <div>Spent: ₹{b.spentTotal}</div>
+                    <div className={`font-semibold ${bad?'text-red-600':'text-green-700'}`}>Remaining: ₹{b.remaining}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
         <div className="flex-1 flex items-center gap-2 border rounded px-3">
@@ -287,6 +461,7 @@ export default function CompanyVendorsPage() {
         <Select value={selectedEvent} onValueChange={setSelectedEvent}>
           <SelectTrigger className="w-56"><SelectValue placeholder="All Events"/></SelectTrigger>
           <SelectContent>
+            <SelectItem value="">All Events</SelectItem>
             {events.map(e => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
           </SelectContent>
         </Select>
@@ -301,7 +476,9 @@ export default function CompanyVendorsPage() {
                   <div className="font-semibold text-lg">{v.name}</div>
                   <div className="text-sm text-gray-600">{v.category}</div>
                 </div>
-                <Badge variant="secondary" className={v.status==='booked' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                <Badge variant="secondary" className={
+                  v.status==='booked' ? 'bg-green-100 text-green-700' :
+                  v.status==='cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}>
                   {v.status}
                 </Badge>
               </div>
@@ -327,7 +504,9 @@ export default function CompanyVendorsPage() {
               </div>
 
               <div>
-                <Button variant="secondary" className="w-full">View Details</Button>
+                <Link href={`/company/vendors/${v.eventId}/${v.id}`} className="block">
+                  <Button variant="secondary" className="w-full">View Details</Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
