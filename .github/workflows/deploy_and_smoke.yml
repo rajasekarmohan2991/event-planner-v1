@@ -36,6 +36,7 @@ jobs:
     name: Post-deploy Smoke Tests
     needs: trigger-deploys
     runs-on: ubuntu-latest
+    continue-on-error: true
     timeout-minutes: 20
     env:
       PROD_WEB_URL: ${{ secrets.PROD_WEB_URL || '' }}

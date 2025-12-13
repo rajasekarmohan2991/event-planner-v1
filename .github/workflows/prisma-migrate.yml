@@ -32,7 +32,7 @@ jobs:
 
       - name: Install deps (web)
         working-directory: apps/web
-        run: npm ci
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Generate Prisma Client
         working-directory: apps/web
@@ -42,6 +42,7 @@ jobs:
         working-directory: apps/web
         env:
           DATABASE_URL: ${{ secrets.PRISMA_DATABASE_URL }}
+          NEXT_TELEMETRY_DISABLED: "1"
         run: |
           if [ -z "${DATABASE_URL}" ]; then
             echo "PRISMA_DATABASE_URL not set; skipping migrate deploy.";

@@ -43,6 +43,7 @@ export default function FloorPlannerV3() {
 
   const [showGrid, setShowGrid] = useState<boolean>(true)
   const [gridSize, setGridSize] = useState<number>(20)
+  const [presetKey, setPresetKey] = useState<string>("")
 
   const width = 1000
   const height = 640
@@ -68,6 +69,56 @@ export default function FloorPlannerV3() {
     const clickedOnEmpty = e.target === e.target.getStage()
     if (clickedOnEmpty) {
       setSelectedId(null)
+    }
+  }
+
+  const applyPreset = (key: string) => {
+    if (planType === 'THEATER_V3') {
+      if (key === 'theater-small') {
+        setTheaterRows(10); setTheaterCols(16); setTheaterAisleEvery(4); setTheaterPrice(200); setRowBands([])
+      } else if (key === 'theater-medium') {
+        setTheaterRows(18); setTheaterCols(24); setTheaterAisleEvery(6); setTheaterPrice(300);
+        setRowBands([{ startRowIndex: 0, endRowIndex: 4, basePrice: 500, seatType: 'VIP' }])
+      } else if (key === 'theater-large') {
+        setTheaterRows(26); setTheaterCols(30); setTheaterAisleEvery(6); setTheaterPrice(350);
+        setRowBands([
+          { startRowIndex: 0, endRowIndex: 5, basePrice: 600, seatType: 'VIP' },
+          { startRowIndex: 6, endRowIndex: 12, basePrice: 450, seatType: 'PREMIUM' },
+        ])
+      }
+    } else if (planType === 'STADIUM_V3') {
+      if (key === 'stadium-cricket') {
+        setStadiumCenter({ x: 500, y: 320 })
+        setRings([
+          { radius: 120, sectors: 6, seatsPerSector: 40, basePrice: 800, name: 'Inner VIP', seatType: 'VIP' },
+          { radius: 180, sectors: 8, seatsPerSector: 50, basePrice: 500, name: 'Premium', seatType: 'PREMIUM' },
+          { radius: 240, sectors: 10, seatsPerSector: 60, basePrice: 250, name: 'Standard', seatType: 'STANDARD' },
+        ])
+      }
+    } else if (planType === 'BANQUET_V3') {
+      if (key === 'banquet-20x10') {
+        const rows = 4, cols = 5
+        const gapX = 160, gapY = 120
+        const startX = 160, startY = 140
+        const newTables: typeof tables = []
+        let count = 0
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            count++
+            newTables.push({
+              id: `t${Date.now()}_${r}_${c}`,
+              x: startX + c * gapX,
+              y: startY + r * gapY,
+              radius: 36,
+              seats: 10,
+              basePrice: 200,
+              section: banquetSection,
+              seatType: 'STANDARD',
+            })
+          }
+        }
+        setTables(newTables)
+      }
     }
   }
 
@@ -192,6 +243,34 @@ export default function FloorPlannerV3() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium">Presets</label>
+              <select
+                value={presetKey}
+                onChange={(e) => { setPresetKey(e.target.value); if (e.target.value) applyPreset(e.target.value) }}
+                className="w-full border rounded px-3 py-2"
+              >
+                <option value="">Choose preset (optional)</option>
+                {planType === 'THEATER_V3' && (
+                  <>
+                    <option value="theater-small">Theater: Small</option>
+                    <option value="theater-medium">Theater: Medium</option>
+                    <option value="theater-large">Theater: Large</option>
+                  </>
+                )}
+                {planType === 'STADIUM_V3' && (
+                  <>
+                    <option value="stadium-cricket">Stadium: Cricket Default</option>
+                  </>
+                )}
+                {planType === 'BANQUET_V3' && (
+                  <>
+                    <option value="banquet-20x10">Banquet: 20 tables x 10 seats</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium">Canvas</label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="inline-flex items-center gap-2 text-sm">
@@ -283,12 +362,13 @@ export default function FloorPlannerV3() {
                   </div>
                   <div className="space-y-2">
                     {rings.map((r, idx) => (
-                      <div key={idx} className="grid grid-cols-5 gap-2">
+                      <div key={idx} className="grid grid-cols-6 gap-2">
                         <input type="number" value={r.radius} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, radius: parseInt(e.target.value)||0 }: x))} className="border rounded px-2 py-1" />
                         <input type="number" value={r.sectors} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, sectors: parseInt(e.target.value)||1 }: x))} className="border rounded px-2 py-1" />
                         <input type="number" value={r.seatsPerSector} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, seatsPerSector: parseInt(e.target.value)||1 }: x))} className="border rounded px-2 py-1" />
                         <input type="number" value={r.basePrice} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, basePrice: parseFloat(e.target.value)||0 }: x))} className="border rounded px-2 py-1" />
                         <input type="text" value={r.name} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, name: e.target.value }: x))} className="border rounded px-2 py-1" />
+                        <input type="text" value={r.seatType || 'STANDARD'} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, seatType: e.target.value || 'STANDARD' }: x))} className="border rounded px-2 py-1" />
                       </div>
                     ))}
                   </div>
@@ -347,6 +427,39 @@ export default function FloorPlannerV3() {
                     ))}
                   </div>
                 </div>
+
+                {selectedId && tables.find(t => t.id===selectedId) && (
+                  <div className="space-y-2 border-t pt-3">
+                    <div className="text-sm font-medium">Selected Table Properties</div>
+                    {tables.filter(t => t.id===selectedId).map(t => (
+                      <div key={t.id} className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-500">Seats</label>
+                          <input type="number" min={1} max={20} value={t.seats} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, seats: parseInt(e.target.value)||1 } : x))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Radius</label>
+                          <input type="number" min={8} max={100} value={t.radius} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, radius: parseInt(e.target.value)||8 } : x))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Base Price</label>
+                          <input type="number" min={0} value={t.basePrice} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, basePrice: parseFloat(e.target.value)||0 } : x))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Section</label>
+                          <input type="text" value={t.section} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, section: e.target.value } : x))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Seat Type</label>
+                          <input type="text" value={t.seatType || 'STANDARD'} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, seatType: e.target.value || 'STANDARD' } : x))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div className="flex items-end">
+                          <Button variant="outline" onClick={() => setTables(ts => [...ts, { ...t, id: `t${Date.now()}` }])}>Duplicate</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
