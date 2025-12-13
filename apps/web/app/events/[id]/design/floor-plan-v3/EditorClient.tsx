@@ -34,6 +34,7 @@ export default function FloorPlannerV3() {
   const [banquetDefaultSeats, setBanquetDefaultSeats] = useState<number>(6)
   const [banquetDefaultPrice, setBanquetDefaultPrice] = useState<number>(150)
   const [banquetSection, setBanquetSection] = useState<string>("Banquet")
+  const [rowBands, setRowBands] = useState<Array<{ startRowIndex: number; endRowIndex: number | null; basePrice: number; seatType?: string }>>([])
 
   const [dragId, setDragId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -119,6 +120,7 @@ export default function FloorPlannerV3() {
         basePrice: theaterPrice,
         section: theaterSection,
         seatType: "STANDARD",
+        rowBands: rowBands,
       }
     }
     if (planType === "STADIUM_V3") {
@@ -223,6 +225,41 @@ export default function FloorPlannerV3() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Section</label>
                   <input type="text" value={theaterSection} onChange={e => setTheaterSection(e.target.value)} className="w-full border rounded px-3 py-2" />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Price Bands (Rows)</span>
+                    <Button variant="outline" onClick={() => setRowBands(b => [...b, { startRowIndex: 0, endRowIndex: null, basePrice: theaterPrice, seatType: 'STANDARD' }])}>+ Add Band</Button>
+                  </div>
+                  {rowBands.length === 0 && (
+                    <div className="text-xs text-gray-600">Optional: define row ranges with different prices or seat types.</div>
+                  )}
+                  <div className="space-y-2">
+                    {rowBands.map((band, i) => (
+                      <div key={i} className="grid grid-cols-5 gap-2 items-center">
+                        <div>
+                          <label className="block text-xs text-gray-500">Start Row Index</label>
+                          <input type="number" min={0} value={band.startRowIndex} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, startRowIndex: parseInt(e.target.value)||0 } : b))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">End Row Index</label>
+                          <input type="number" min={-1} placeholder="-1 for no end" value={band.endRowIndex ?? ''} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, endRowIndex: e.target.value==='' ? null : (parseInt(e.target.value)||0) } : b))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Base Price</label>
+                          <input type="number" min={0} value={band.basePrice} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, basePrice: parseFloat(e.target.value)||0 } : b))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Seat Type</label>
+                          <input type="text" value={band.seatType || 'STANDARD'} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, seatType: e.target.value } : b))} className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" onClick={() => setRowBands(bs => bs.filter((_, idx) => idx !== i))}>Delete</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

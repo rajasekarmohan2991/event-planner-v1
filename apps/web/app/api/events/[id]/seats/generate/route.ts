@@ -139,17 +139,35 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const rows = Math.max(1, Number(plan.rows || 0))
         const cols = Math.max(1, Number(plan.cols || 0))
         const aisleEvery = Math.max(0, Number(plan.aisleEvery || 0))
-        const basePrice = Number(plan.basePrice || 100)
+        const defaultBasePrice = Number(plan.basePrice || 100)
         const sectionName = String(plan.section || 'Theater')
-        const seatType = String(plan.seatType || 'STANDARD')
+        const defaultSeatType = String(plan.seatType || 'STANDARD')
+        const rowBands: any[] = Array.isArray(plan.rowBands) ? plan.rowBands : []
+
+        const resolveRowBand = (rowIndex: number) => {
+          for (const band of rowBands) {
+            const start = Number(band.startRowIndex ?? 0)
+            const end = Number(band.endRowIndex ?? -1)
+            if (end >= 0) {
+              if (rowIndex >= start && rowIndex <= end) return band
+            } else {
+              if (rowIndex >= start) return band
+            }
+          }
+          return null
+        }
+
         // grid with aisles: skip columns that are aisle boundaries
         for (let r = 0; r < rows; r++) {
           const rowLabel = String.fromCharCode(65 + (r % 26)) + (r >= 26 ? Math.floor(r / 26) : '')
+          const band = resolveRowBand(r)
+          const rowBasePrice = band?.basePrice != null ? Number(band.basePrice) : defaultBasePrice
+          const rowSeatType = band?.seatType ? String(band.seatType) : defaultSeatType
           for (let c = 1; c <= cols; c++) {
             if (aisleEvery > 0 && c % aisleEvery === 0) continue // aisle gap
             const x = c * 40
             const y = r * 40
-            await insertSeat(sectionName, rowLabel, c, seatType, basePrice, x, y)
+            await insertSeat(sectionName, rowLabel, c, rowSeatType, rowBasePrice, x, y)
           }
         }
       } else if (type === 'STADIUM_V3') {

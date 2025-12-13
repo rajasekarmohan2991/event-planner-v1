@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npx prisma generate && next build",
-  "installCommand": "npm install",
+  "buildCommand": "NEXT_TELEMETRY_DISABLED=1 npx prisma generate && NEXT_TELEMETRY_DISABLED=1 next build",
+  "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["bom1"]
