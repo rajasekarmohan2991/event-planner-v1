@@ -57,8 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    if (!plan || !plan.sections) {
-      return NextResponse.json({ error: 'Floor plan with sections is required' }, { status: 400 })
+    if (!plan) {
+      return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
     }
 
     // Delete existing seats for this event
@@ -95,59 +95,122 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         updated_at = NOW()
     `
 
-    // Generate seats from floor plan
+    // Generate seats from floor plan (supports legacy sections or V3 typed plans)
     let totalSeatsGenerated = 0
     let globalSeatNumber = 1 // Sequential numbering across entire venue
-    const seats = []
+    const seats: any[] = []
 
-    for (const section of plan.sections) {
-      const sectionName = section.name || 'General'
-      const rows = section.rows || []
-      const basePrice = section.basePrice || 100
+    const insertSeat = async (sectionName: string, rowLabel: string, seatNum: number, seatType: string, basePrice: number, xCoord: number, yCoord: number) => {
+      await prisma.$executeRaw`
+        INSERT INTO seat_inventory (
+          event_id,
+          section,
+          row_number,
+          seat_number,
+          seat_type,
+          base_price,
+          x_coordinate,
+          y_coordinate,
+          is_available,
+          tenant_id
+        ) VALUES (
+          ${eventId},
+          ${sectionName},
+          ${String(rowLabel)},
+          ${String(seatNum)},
+          ${seatType},
+          ${basePrice},
+          ${xCoord},
+          ${yCoord},
+          true,
+          ${tenantId}
+        )
+      `
+      totalSeatsGenerated++
+      seats.push({ section: sectionName, row: rowLabel, seat: seatNum, price: basePrice })
+      globalSeatNumber++
+    }
 
-      for (const row of rows) {
-        const rowNumber = row.number || row.label
-        const seatsInRow = row.seats || row.count || 10
+    const hasV3Type = typeof plan.type === 'string' && plan.type.endsWith('_V3')
 
-        for (let seatNum = 1; seatNum <= seatsInRow; seatNum++) {
-          // Calculate position (simple grid layout)
-          const xCoord = row.xOffset || 0 + (seatNum * 50)
-          const yCoord = row.yOffset || 0
-
-          await prisma.$executeRaw`
-            INSERT INTO seat_inventory (
-              event_id,
-              section,
-              row_number,
-              seat_number,
-              seat_type,
-              base_price,
-              x_coordinate,
-              y_coordinate,
-              is_available,
-              tenant_id
-            ) VALUES (
-              ${eventId},
-              ${sectionName},
-              ${String(rowNumber)},
-              ${String(seatNum)},
-              ${section.type || 'Standard'},
-              ${basePrice},
-              ${xCoord},
-              ${yCoord},
-              true,
-              ${tenantId}
-            )
-          `
-
-          totalSeatsGenerated++
-          seats.push({
-            section: sectionName,
-            row: rowNumber,
-            seat: seatNum,
-            price: basePrice
-          })
-          globalSeatNumber++ // Keep global counter for ID continuity if needed
+    if (hasV3Type) {
+      const type = String(plan.type)
+      if (type === 'THEATER_V3') {
+        const rows = Math.max(1, Number(plan.rows || 0))
+        const cols = Math.max(1, Number(plan.cols || 0))
+        const aisleEvery = Math.max(0, Number(plan.aisleEvery || 0))
+        const basePrice = Number(plan.basePrice || 100)
+        const sectionName = String(plan.section || 'Theater')
+        const seatType = String(plan.seatType || 'STANDARD')
+        // grid with aisles: skip columns that are aisle boundaries
+        for (let r = 0; r < rows; r++) {
+          const rowLabel = String.fromCharCode(65 + (r % 26)) + (r >= 26 ? Math.floor(r / 26) : '')
+          for (let c = 1; c <= cols; c++) {
+            if (aisleEvery > 0 && c % aisleEvery === 0) continue // aisle gap
+            const x = c * 40
+            const y = r * 40
+            await insertSeat(sectionName, rowLabel, c, seatType, basePrice, x, y)
+          }
+        }
+      } else if (type === 'STADIUM_V3') {
+        const rings: any[] = Array.isArray(plan.rings) ? plan.rings : []
+        const centerX = Number(plan.centerX || 500)
+        const centerY = Number(plan.centerY || 300)
+        for (let ri = 0; ri < rings.length; ri++) {
+          const ring = rings[ri] || {}
+          const radius = Number(ring.radius || 100 + ri * 30)
+          const sectors = Math.max(1, Number(ring.sectors || 6))
+          const seatsPerSector = Math.max(1, Number(ring.seatsPerSector || 30))
+          const basePrice = Number(ring.basePrice || 200)
+          const sectionName = String(ring.name || `Ring ${ri + 1}`)
+          const seatType = String(ring.seatType || 'STANDARD')
+          const totalSeats = sectors * seatsPerSector
+          for (let s = 0; s < totalSeats; s++) {
+            const angle = (2 * Math.PI * s) / totalSeats
+            const x = centerX + radius * Math.cos(angle)
+            const y = centerY + radius * Math.sin(angle)
+            const rowLabel = `R${ri + 1}`
+            await insertSeat(sectionName, rowLabel, s + 1, seatType, basePrice, x, y)
+          }
+        }
+      } else if (type === 'BANQUET_V3') {
+        const tables: any[] = Array.isArray(plan.tables) ? plan.tables : []
+        for (let ti = 0; ti < tables.length; ti++) {
+          const t = tables[ti]
+          const x0 = Number(t.x || 100 + (ti % 10) * 80)
+          const y0 = Number(t.y || 100 + Math.floor(ti / 10) * 80)
+          const seatsN = Math.max(1, Number(t.seats || plan.seatsPerTable || 6))
+          const basePrice = Number(t.basePrice || plan.basePrice || 150)
+          const sectionName = String(t.section || plan.section || 'Banquet')
+          const seatType = String(t.seatType || 'STANDARD')
+          const radius = Number(t.radius || 30)
+          const rowLabel = `T${ti + 1}`
+          for (let sn = 0; sn < seatsN; sn++) {
+            const ang = (2 * Math.PI * sn) / seatsN
+            const x = x0 + radius * Math.cos(ang)
+            const y = y0 + radius * Math.sin(ang)
+            await insertSeat(sectionName, rowLabel, sn + 1, seatType, basePrice, x, y)
+          }
+        }
+      } else {
+        return NextResponse.json({ error: `Unknown plan.type ${type}` }, { status: 400 })
+      }
+    } else {
+      if (!plan.sections) {
+        return NextResponse.json({ error: 'Floor plan with sections is required' }, { status: 400 })
+      }
+      for (const section of plan.sections) {
+        const sectionName = section.name || 'General'
+        const rows = section.rows || []
+        const basePrice = section.basePrice || 100
+        for (const row of rows) {
+          const rowNumber = row.number || row.label
+          const seatsInRow = row.seats || row.count || 10
+          for (let seatNum = 1; seatNum <= seatsInRow; seatNum++) {
+            const xCoord = (row.xOffset || 0) + (seatNum * 50)
+            const yCoord = row.yOffset || 0
+            await insertSeat(sectionName, String(rowNumber), seatNum, section.type || 'Standard', basePrice, xCoord, yCoord)
+          }
         }
       }
     }
