@@ -213,7 +213,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
             <p className="font-semibold">Unable to load seat map</p>
             <p className="text-sm text-gray-600">{error}</p>
           </div>
-          <Button onClick={fetchSeats} variant="outline">
+          <Button onClick={() => fetchSeats()} variant="outline">
             Try Again
           </Button>
         </CardContent>
