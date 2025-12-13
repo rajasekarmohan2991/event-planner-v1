@@ -78,7 +78,7 @@ export default function CompanyVendorsPage() {
 
   const loadEvents = async () => {
     try {
-      const res = await fetch('/api/company/dashboard', { credentials: 'include' })
+      const res = await fetch('/api/company/events-lite', { credentials: 'include' })
       if (!res.ok) return
       const data = await res.json()
       const evts: EventLite[] = (data?.events || []).map((e: any) => ({ id: String(e.id), name: e.name }))
@@ -92,36 +92,15 @@ export default function CompanyVendorsPage() {
     try {
       if (!eventId) {
         if (events.length === 0) return
-        const results = await Promise.all(events.map(async e => {
-          const r = await fetch(`/api/events/${e.id}/vendors`, { credentials: 'include' })
-          const d = await r.json()
-          return { id: e.id, name: e.name, vendors: (d.vendors||[]).map((v: any)=>({ ...v, eventId: String(e.id) })), stats: d.stats||{ total:0, booked:0, totalCost:0 } }
-        }))
-        const allVendors = results.flatMap(r => r.vendors)
-        const total = results.reduce((a,r)=>a+r.stats.total,0)
-        const booked = results.reduce((a,r)=>a+r.stats.booked,0)
-        const totalCost = results.reduce((a,r)=>a+r.stats.totalCost,0)
-        const pes: Record<string, Stats> = {}
-        results.forEach(r => { pes[r.id] = r.stats })
-        setVendors(allVendors)
-        setStats({ total, booked, totalCost })
-        setPerEventStats(pes)
-        // Budgets per event
-        const budgetResults = await Promise.all(events.map(async e => {
-          try {
-            const br = await fetch(`/api/events/${e.id}/vendors/budgets`, { credentials: 'include' })
-            const bd = await br.json()
-            const eventVendors = allVendors.filter(v => v.eventId === String(e.id))
-            const spentTotal = eventVendors.reduce((s, v) => s + Number(v.costInr || 0), 0)
-            const budgetTotal = Object.values(bd?.budgets || {}).reduce((s: number, n: any) => s + Number(n || 0), 0)
-            const remaining = budgetTotal - spentTotal
-            return { id: String(e.id), budgetTotal, spentTotal, remaining }
-          } catch { return { id: String(e.id), budgetTotal: 0, spentTotal: 0, remaining: 0 } }
-        }))
-        const peb: Record<string, { budgetTotal: number; spentTotal: number; remaining: number }> = {}
-        budgetResults.forEach(b => { peb[b.id] = { budgetTotal: b.budgetTotal, spentTotal: b.spentTotal, remaining: b.remaining } })
-        setPerEventBudget(peb)
-        setBudgets({})
+        const r = await fetch('/api/company/vendors/summary', { credentials: 'include' })
+        const d = await r.json()
+        if (r.ok) {
+          setVendors((d.vendors||[]).map((v: any)=>({ ...v, eventId: String(v.eventId) })))
+          setStats(d.stats || { total: 0, booked: 0, totalCost: 0 })
+          setPerEventStats(d.perEventStats || {})
+          setPerEventBudget(d.perEventBudget || {})
+          setBudgets({})
+        }
         return
       }
       const res = await fetch(`/api/events/${eventId}/vendors`, { credentials: 'include' })
