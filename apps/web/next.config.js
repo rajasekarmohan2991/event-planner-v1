@@ -16,6 +16,19 @@ const nextConfig = {
   images: {
     domains: ['localhost', 'api.qrserver.com'],
   },
+  webpack: (config, { isServer }) => {
+    // Avoid pulling in Node-only canvas dependency from konva during build
+    config.resolve = config.resolve || {}
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false,
+      'konva/lib/index-node': 'konva/lib/index',
+    }
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'canvas']
+    }
+    return config
+  },
   // Disable all caching for real-time data
   async headers() {
     return [
