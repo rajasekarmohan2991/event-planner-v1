@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import VerifyEmailClient from './VerifyEmailClient'
+import { headers } from 'next/headers'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { XCircle } from 'lucide-react'
@@ -28,7 +29,12 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
     )
   }
   try {
-    const apiUrl = `/api/auth/verify`
+    const h = headers()
+    const host = h.get('x-forwarded-host') || h.get('host') || ''
+    const proto = h.get('x-forwarded-proto') || 'https'
+    const envBase = (process.env.NEXTAUTH_URL || '').replace(/\/$/, '')
+    const baseUrl = envBase || (host ? `${proto}://${host}` : '')
+    const apiUrl = `${baseUrl}/api/auth/verify`
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

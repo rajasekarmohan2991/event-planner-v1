@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       console.warn('Role assignment meta not processed:', e)
     }
 
-    return NextResponse.json({ success: true, userId: user.id })
+    return NextResponse.json({ success: true, userId: String(user.id) })
   } catch (err) {
     console.error('Verify error:', err)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
