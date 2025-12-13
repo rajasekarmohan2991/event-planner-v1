@@ -1,0 +1,45 @@
+name: Deploy Backend (Render)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-render-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-render-deploy:
+    name: Trigger Render Backend Deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL || '' }}
+      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL || '' }}
+    steps:
+      - name: Trigger Render Deploy Hook
+        if: ${{ env.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: |
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" -H 'Content-Type: application/json' || true
+
+      - name: Wait for API Health 200 (Post-deploy)
+        if: ${{ env.PROD_API_HEALTH_URL != '' }}
+        run: |
+          echo "Waiting for $PROD_API_HEALTH_URL"
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              echo "API OK (200)";
+              break;
+            fi;
+            sleep 10;
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+          test "$code" -ge 200 -a "$code" -lt 400
+
+      - name: Skip (Secrets missing)
+        if: ${{ env.RENDER_DEPLOY_HOOK_URL == '' }}
+        run: |
+          echo "Skipping Render deploy: set RENDER_DEPLOY_HOOK_URL repo secret to enable."

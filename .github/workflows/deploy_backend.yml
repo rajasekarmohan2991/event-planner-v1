@@ -1,0 +1,68 @@
+name: Deploy Backend (Railway)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-railway-api:
+    name: Deploy Java API to Railway
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') || github.event_name == 'workflow_dispatch' }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || '' }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID || '' }}
+      RAILWAY_SERVICE_NAME: ${{ secrets.RAILWAY_SERVICE_NAME || 'api-java' }}
+      PROD_API_HEALTH_URL: ${{ secrets.PROD_API_HEALTH_URL || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        if: ${{ env.RAILWAY_TOKEN != '' && env.RAILWAY_PROJECT_ID != '' }}
+        run: |
+          npm i -g @railway/cli
+
+      - name: Link Railway Project/Service
+        if: ${{ env.RAILWAY_TOKEN != '' && env.RAILWAY_PROJECT_ID != '' }}
+        working-directory: apps/api-java
+        env:
+          RAILWAY_TOKEN: ${{ env.RAILWAY_TOKEN }}
+        run: |
+          railway link --project "$RAILWAY_PROJECT_ID" --service "$RAILWAY_SERVICE_NAME"
+
+      - name: Deploy Backend to Railway
+        if: ${{ env.RAILWAY_TOKEN != '' && env.RAILWAY_PROJECT_ID != '' }}
+        working-directory: apps/api-java
+        env:
+          RAILWAY_TOKEN: ${{ env.RAILWAY_TOKEN }}
+        run: |
+          railway up --ci
+
+      - name: Wait for API Health 200 (Post-deploy)
+        if: ${{ env.PROD_API_HEALTH_URL != '' && env.RAILWAY_TOKEN != '' && env.RAILWAY_PROJECT_ID != '' }}
+        run: |
+          echo "Waiting for $PROD_API_HEALTH_URL"
+          for i in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              echo "API OK (200)";
+              break;
+            fi;
+            sleep 10;
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_HEALTH_URL");
+          test "$code" -ge 200 -a "$code" -lt 400
+
+      - name: Skip (Secrets missing)
+        if: ${{ env.RAILWAY_TOKEN == '' || env.RAILWAY_PROJECT_ID == '' }}
+        run: |
+          echo "Skipping Railway deploy: set RAILWAY_TOKEN and RAILWAY_PROJECT_ID repo secrets to enable."

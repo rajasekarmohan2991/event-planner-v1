@@ -22,15 +22,8 @@ jobs:
       VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL || '' }}
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL || '' }}
     steps:
-      - name: Trigger Vercel Deploy Hook
-        if: ${{ env.VERCEL_DEPLOY_HOOK_URL != '' }}
-        run: |
-          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL" -H 'Content-Type: application/json' || true
-
-      - name: Trigger Render Deploy Hook
-        if: ${{ env.RENDER_DEPLOY_HOOK_URL != '' }}
-        run: |
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" -H 'Content-Type: application/json' || true
+      - name: No-op (Providers auto-deploy from Git)
+        run: echo "Skipping deploy hooks; Vercel and Render are set to auto-deploy on Git push."
 
   smoke-tests:
     name: Post-deploy Smoke Tests
