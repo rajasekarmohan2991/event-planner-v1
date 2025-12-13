@@ -83,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         ${plan.name || 'Default Floor Plan'},
         ${JSON.stringify(plan)}::jsonb,
         ${plan.totalSeats || 0},
-        ${JSON.stringify(plan.sections)}::jsonb,
+        ${JSON.stringify(plan.sections ?? [])}::jsonb,
         ${tenantId}
       )
       ON CONFLICT (event_id, plan_name)
