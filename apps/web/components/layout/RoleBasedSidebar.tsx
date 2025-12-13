@@ -74,6 +74,12 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'EVENT_MANAGER', 'FINANCE_ADMIN', 'MARKETING_ADMIN', 'SUPPORT_STAFF', 'VIEWER']
   },
   {
+    name: 'Vendors',
+    href: '/company/vendors',
+    icon: Building2,
+    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'EVENT_MANAGER', 'FINANCE_ADMIN', 'MARKETING_ADMIN', 'EXHIBITOR_MANAGER']
+  },
+  {
     name: 'Design',
     href: '/design',
     icon: Palette,

@@ -21,7 +21,7 @@ export default function EventWorkspaceLayout({ children, params }: { children: R
   const [eventTitle, setEventTitle] = useState<string>('')
   const items = [
     { href: `${base}`, label: 'Dashboard', icon: LayoutGrid },
-    { href: `${base}/manage`, label: 'Manage', icon: ClipboardList },
+    { href: `${base}/info`, label: 'Manage', icon: ClipboardList },
     { href: `${base}/registrations`, label: 'Registrations', icon: Users },
     { href: `${base}/design`, label: 'Design', icon: PencilRuler },
     { href: `${base}/communicate`, label: 'Communicate', icon: MessageSquare },
