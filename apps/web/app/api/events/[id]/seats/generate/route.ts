@@ -28,8 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // Tables likely exist
     }
 
-    const body = await req.json()
-    const { floorPlan, pricingRules } = body
+    const body = await req.json().catch(() => ({}))
+    const { floorPlan, pricingRules } = body || {}
 
     // Support v2 payload { rows, cols, seatPrefix, basePrice, ticketClass }
     let plan = floorPlan
@@ -58,7 +58,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (!plan) {
-      return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
+      // Try loading the latest saved plan for this event
+      const rows = await prisma.$queryRaw`
+        SELECT layout_data
+        FROM floor_plan_configs
+        WHERE event_id = ${eventId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      ` as any[]
+      if (rows.length > 0 && rows[0]?.layout_data) {
+        plan = rows[0].layout_data as any
+      } else {
+        return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
+      }
     }
 
     // Delete existing seats for this event

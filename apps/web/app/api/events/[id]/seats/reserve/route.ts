@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const totalPrice = (seats as any[]).reduce((sum, seat) => sum + parseFloat(seat.basePrice), 0)
 
     // Create reservations (15-minute lock)
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
     const reservations = []
 
     for (const seatId of seatIds) {
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       totalPrice,
       expiresAt,
       owner: userEmail || null,
-      message: `${seatIds.length} seat(s) reserved for 15 minutes`
+      message: `${seatIds.length} seat(s) reserved for 10 minutes`
     }, { status: 201 })
 
   } catch (error: any) {
@@ -128,30 +128,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 // DELETE /api/events/[id]/seats/reserve - Release reserved seats
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions as any)
-    if (!session || !(session as any)?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const eventId = parseInt(params.id)
     const { seatIds } = await req.json()
-    const userEmail = (session as any).user?.email
     const tenantId = getTenantId()
 
-    if (!seatIds || !Array.isArray(seatIds)) {
+    if (!seatIds || !Array.isArray(seatIds) || seatIds.length === 0) {
       return NextResponse.json({ error: 'seatIds array is required' }, { status: 400 })
     }
 
-    const seatIdsStr = seatIds.map(id => `'${id}'`).join(',')
+    const seatIdsStr = seatIds.map((id: string) => `'${id}'`).join(',')
 
-    // Release reservations (only if owned by current user and not confirmed)
+    // Release reservations for these seats if not confirmed
     await prisma.$executeRawUnsafe(`
       UPDATE seat_reservations
       SET status = 'CANCELLED', updated_at = NOW()
       WHERE event_id = ${eventId}
-        AND tenant_id = '${tenantId}'
+        ${tenantId ? `AND tenant_id = '${tenantId}'` : ''}
         AND seat_id IN (${seatIdsStr})
-        AND user_email = '${userEmail}'
         AND status IN ('RESERVED', 'LOCKED')
     `)
 

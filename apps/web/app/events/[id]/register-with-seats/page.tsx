@@ -27,6 +27,8 @@ export default function RegisterWithSeatsPage() {
   const [step, setStep] = useState(1) // 1: Seat Selection, 2: Details, 3: Payment, 4: Success
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
   const [totalPrice, setTotalPrice] = useState(0)
+  const [convenienceFee, setConvenienceFee] = useState(0)
+  const [taxAmount, setTaxAmount] = useState(0)
   const [reservationExpiry, setReservationExpiry] = useState<Date | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [numberOfAttendees, setNumberOfAttendees] = useState(1)
@@ -150,17 +152,22 @@ export default function RegisterWithSeatsPage() {
     setSelectedSeats(seats)
     // Price from selector is already calculated, just use it
     const numPrice = Number(price) || 0
-    const finalPrice = promoDiscount ? Number(promoDiscount.finalAmount) * numberOfAttendees : numPrice
-    setTotalPrice(finalPrice)
+    const discounted = promoDiscount ? Number(promoDiscount.finalAmount) : numPrice
+    const conv = Math.round(discounted * 0.02) + 15
+    const tax = Math.round((discounted + conv) * 0.18)
+    setConvenienceFee(conv)
+    setTaxAmount(tax)
+    setTotalPrice(discounted + conv + tax)
   }
 
   const calculateTotalPrice = (seats: Seat[], attendees: number, discount: any = null) => {
-    // Ensure numeric values
-    const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0)
-    const attendeesNum = Number(attendees) || 1
-    const subtotal = seatsTotal * attendeesNum
-    const finalTotal = discount ? Number(discount.finalAmount) * attendeesNum : subtotal
-    setTotalPrice(Math.round(finalTotal * 100) / 100) // Round to 2 decimal places
+    const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(attendees) || 1)
+    const discounted = discount ? Number(discount.finalAmount) : seatsTotal
+    const conv = Math.round(discounted * 0.02) + 15
+    const tax = Math.round((discounted + conv) * 0.18)
+    setConvenienceFee(conv)
+    setTaxAmount(tax)
+    setTotalPrice(Math.round((discounted + conv + tax) * 100) / 100)
   }
 
   // Recalculate when attendees or promo changes
@@ -283,28 +290,34 @@ export default function RegisterWithSeatsPage() {
           })
         })
 
-        // Generate QR code
-        const qrData = {
-          registrationId: registration.id,
-          eventId,
-          attendeeName: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          seats: selectedSeats.map(s => `${s.section}-${s.rowNumber}${s.seatNumber}`).join(', '),
-          attendees: numberOfAttendees,
-          amount: totalPrice
-        }
-        const qrString = JSON.stringify(qrData)
-        setQrCode(qrString)
+        // Generate QR code as a check-in URL (to be scanned by staff device)
+        const qrUrl = `${window.location.origin}/events/${eventId}/checkin/${registration.id}`
+        setQrCode(qrUrl)
         
         setStep(4) // Success
       } else {
-        // For Stripe/Razorpay, show message (not implemented)
-        alert(`${paymentMethod} integration coming soon! Use Dummy payment for now.`)
+        // For Stripe/Razorpay (not implemented): release seats and show error
+        try {
+          await fetch(`/api/events/${eventId}/seats/reserve`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
+          })
+        } catch {}
+        alert(`${paymentMethod} integration coming soon! Seats released. Use Dummy payment for now.`)
         setLoading(false)
       }
 
     } catch (error: any) {
       alert(error.message || 'Error completing registration')
+      // Release seats on error
+      try {
+        await fetch(`/api/events/${eventId}/seats/reserve`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
+        })
+      } catch {}
       setLoading(false)
     } finally {
       if (paymentMethod === 'dummy') {
@@ -634,6 +647,10 @@ export default function RegisterWithSeatsPage() {
               <div className="text-xs text-indigo-700 mt-2">
                 {selectedSeats.length} seat(s) × {numberOfAttendees} attendee(s)
                 {promoDiscount && ` - Promo: ${promoDiscount.code}`}
+                <div className="mt-2 text-gray-700">
+                  <div>Convenience fee: ₹{convenienceFee}</div>
+                  <div>Tax (GST): ₹{taxAmount}</div>
+                </div>
               </div>
             </div>
 

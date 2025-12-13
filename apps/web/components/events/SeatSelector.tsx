@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { toast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,34 +38,79 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
   const [error, setError] = useState<string | null>(null)
   const [selectedSection, setSelectedSection] = useState<string>('')
   const [viewMode, setViewMode] = useState<'sectors' | 'table'>('sectors')
+  const [ticketClassFilter, setTicketClassFilter] = useState<'' | 'VIP' | 'PREMIUM' | 'STANDARD'>('')
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true)
+  const triedGenerateRef = useRef<boolean>(false)
 
   useEffect(() => {
     fetchSeats()
-  }, [eventId])
+  }, [eventId, ticketClassFilter])
+
+  useEffect(() => {
+    if (!autoRefresh) return
+    const id = setInterval(() => {
+      fetchSeats(true)
+    }, 10000)
+    return () => clearInterval(id)
+  }, [eventId, ticketClassFilter, autoRefresh])
 
   useEffect(() => {
     const totalPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
     onSeatSelect(selectedSeats, totalPrice)
   }, [selectedSeats, onSeatSelect])
 
-  const fetchSeats = async () => {
+  const fetchSeats = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/events/${eventId}/seats/availability`)
+      const qs = new URLSearchParams()
+      if (ticketClassFilter) qs.set('ticketClass', ticketClassFilter)
+      const response = await fetch(`/api/events/${eventId}/seats/availability${qs.toString() ? `?${qs.toString()}` : ''}`)
       if (!response.ok) {
         throw new Error(`Failed to fetch seats: ${response.status}`)
       }
       
       const data = await response.json()
-      setSeats(data.seats || [])
+      const newSeats: Seat[] = data.seats || []
+      setSeats(newSeats)
       setGroupedSeats(data.groupedSeats || {})
       
       // Auto-select first section if available
       const sections = Object.keys(data.groupedSeats || {})
       if (sections.length > 0 && !selectedSection) {
         setSelectedSection(sections[0])
+      }
+
+      // If no seats but floor plan exists, trigger generation once
+      if (!triedGenerateRef.current && newSeats.length === 0 && data.floorPlan && (data.floorPlan.layoutData || data.floorPlan.sections)) {
+        triedGenerateRef.current = true
+        await fetch(`/api/events/${eventId}/seats/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({})
+        }).catch(()=>{})
+        await fetchSeats(true)
+      }
+
+      // Reconcile selected seats if they became unavailable
+      if (selectedSeats.length > 0) {
+        const newAvailableById = new Map(newSeats.map(s => [s.id, s]))
+        const stillValid: Seat[] = []
+        const removed: Seat[] = []
+        for (const s of selectedSeats) {
+          const ns = newAvailableById.get(s.id)
+          if (ns && ns.available && !ns.reservationStatus) {
+            stillValid.push(ns)
+          } else {
+            removed.push(s)
+          }
+        }
+        if (removed.length > 0) {
+          setSelectedSeats(stillValid)
+          toast({ title: 'Seats updated', description: `${removed.length} seat(s) became unavailable and were removed from your selection.` })
+        }
       }
     } catch (err: any) {
       console.error('Error fetching seats:', err)
@@ -76,7 +121,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
         variant: "destructive"
       })
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -114,7 +159,14 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
     
     if (isSelected) return 'bg-white text-green-600 border-green-600 ring-2 ring-green-400'
     if (!seat.available || seat.reservationStatus) return 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
-    return 'bg-white text-gray-800 border-gray-300 hover:border-green-400'
+    switch (seat.seatType) {
+      case 'VIP':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-500 hover:border-yellow-600'
+      case 'PREMIUM':
+        return 'bg-blue-50 text-blue-700 border-blue-500 hover:border-blue-600'
+      default:
+        return 'bg-white text-gray-800 border-gray-300 hover:border-green-400'
+    }
   }
 
   const getSeatTypeLabel = (seatType: string) => {
@@ -207,7 +259,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
         </CardContent>
       </Card>
 
-      {/* View toggle and Section filter */}
+      {/* View toggle, Ticket Class filter and Section filter */}
       {(sections.length > 1) && (
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2">
@@ -222,9 +274,21 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
               </Button>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant={viewMode==='sectors'?'default':'outline'} onClick={()=>setViewMode('sectors')}>Sectors</Button>
-            <Button size="sm" variant={viewMode==='table'?'default':'outline'} onClick={()=>setViewMode('table')}>Table</Button>
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1">
+              <Button size="sm" variant={viewMode==='sectors'?'default':'outline'} onClick={()=>setViewMode('sectors')}>Sectors</Button>
+              <Button size="sm" variant={viewMode==='table'?'default':'outline'} onClick={()=>setViewMode('table')}>Table</Button>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant={ticketClassFilter===''?'default':'outline'} onClick={()=>setTicketClassFilter('')}>All</Button>
+              <Button size="sm" variant={ticketClassFilter==='VIP'?'default':'outline'} onClick={()=>setTicketClassFilter('VIP')}>VIP</Button>
+              <Button size="sm" variant={ticketClassFilter==='PREMIUM'?'default':'outline'} onClick={()=>setTicketClassFilter('PREMIUM')}>Premium</Button>
+              <Button size="sm" variant={ticketClassFilter==='STANDARD'?'default':'outline'} onClick={()=>setTicketClassFilter('STANDARD')}>Standard</Button>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant={autoRefresh?'default':'outline'} onClick={()=>setAutoRefresh(v=>!v)}>{autoRefresh?'Live':'Paused'}</Button>
+              <Button size="sm" variant="outline" onClick={()=>fetchSeats()}>Refresh</Button>
+            </div>
           </div>
         </div>
       )}
