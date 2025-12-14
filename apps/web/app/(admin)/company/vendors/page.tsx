@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -64,6 +65,7 @@ type Stats = { total: number; booked: number; totalCost: number }
 type EventLite = { id: string; name: string }
 
 export default function CompanyVendorsPage() {
+  const searchParams = useSearchParams()
   const [events, setEvents] = useState<EventLite[]>([])
   const [selectedEvent, setSelectedEvent] = useState<string>('')
   const [vendors, setVendors] = useState<Vendor[]>([])
@@ -84,7 +86,11 @@ export default function CompanyVendorsPage() {
       const data = await res.json()
       const evts: EventLite[] = (data?.events || []).map((e: any) => ({ id: String(e.id), name: e.name }))
       setEvents(evts)
-      if (!selectedEvent && evts[0]) setSelectedEvent(evts[0].id)
+      const qEvent = searchParams?.get('eventId')
+      if (!selectedEvent) {
+        if (qEvent && evts.find(e => e.id === qEvent)) setSelectedEvent(qEvent)
+        else if (evts[0]) setSelectedEvent(evts[0].id)
+      }
     } catch {}
   }
 
