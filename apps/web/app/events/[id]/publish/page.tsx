@@ -43,7 +43,7 @@ export default function PublishEventPage({ params }: { params: { id: string } })
       const data = await res.json()
       setEvent(data)
       setMessage('Event published successfully! 🎉')
-      
+
       // Redirect to event overview after 2 seconds
       setTimeout(() => {
         router.push(`/events/${params.id}`)
@@ -59,8 +59,9 @@ export default function PublishEventPage({ params }: { params: { id: string } })
     return <div className="p-6">Loading...</div>
   }
 
-  const isPublished = event?.status === 'LIVE'
-  const publicUrl = typeof window !== 'undefined' 
+
+  const isPublished = event?.status === 'LIVE' || event?.status === 'PUBLISHED'
+  const publicUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/events/${params.id}/public`
     : ''
 
@@ -74,11 +75,10 @@ export default function PublishEventPage({ params }: { params: { id: string } })
       </div>
 
       {message && (
-        <div className={`p-4 rounded-lg ${
-          message.includes('successfully') 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
+        <div className={`p-4 rounded-lg ${message.includes('successfully')
+            ? 'bg-green-50 text-green-800 border border-green-200'
             : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
+          }`}>
           {message}
         </div>
       )}
@@ -103,11 +103,10 @@ export default function PublishEventPage({ params }: { params: { id: string } })
               )}
             </div>
           </div>
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            isPublished 
-              ? 'bg-green-100 text-green-800' 
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${isPublished
+              ? 'bg-green-100 text-green-800'
               : 'bg-yellow-100 text-yellow-800'
-          }`}>
+            }`}>
             {isPublished ? 'Published' : 'Draft'}
           </div>
         </div>
@@ -123,21 +122,21 @@ export default function PublishEventPage({ params }: { params: { id: string } })
       <div className="bg-white rounded-lg border p-6 space-y-4">
         <h3 className="text-lg font-semibold">Pre-publish Checklist</h3>
         <div className="space-y-3">
-          <ChecklistItem 
-            checked={!!event?.name} 
-            label="Event name is set" 
+          <ChecklistItem
+            checked={!!event?.name}
+            label="Event name is set"
           />
-          <ChecklistItem 
-            checked={!!event?.startTime} 
-            label="Event date and time configured" 
+          <ChecklistItem
+            checked={!!event?.startTime}
+            label="Event date and time configured"
           />
-          <ChecklistItem 
-            checked={!!event?.venue} 
-            label="Venue information added" 
+          <ChecklistItem
+            checked={!!event?.venue}
+            label="Venue information added"
           />
-          <ChecklistItem 
-            checked={!!event?.description} 
-            label="Event description provided" 
+          <ChecklistItem
+            checked={!!event?.description}
+            label="Event description provided"
           />
         </div>
       </div>
@@ -210,7 +209,7 @@ export default function PublishEventPage({ params }: { params: { id: string } })
       {/* Info Box */}
       <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
         <p>
-          <strong>Note:</strong> Publishing your event will make it visible to the public. 
+          <strong>Note:</strong> Publishing your event will make it visible to the public.
           Attendees will be able to view event details and register through the public event page.
         </p>
       </div>
@@ -221,9 +220,8 @@ export default function PublishEventPage({ params }: { params: { id: string } })
 function ChecklistItem({ checked, label }: { checked: boolean; label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-        checked ? 'bg-green-100' : 'bg-gray-100'
-      }`}>
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${checked ? 'bg-green-100' : 'bg-gray-100'
+        }`}>
         {checked && <CheckCircle className="w-4 h-4 text-green-600" />}
       </div>
       <span className={checked ? 'text-gray-900' : 'text-gray-500'}>{label}</span>

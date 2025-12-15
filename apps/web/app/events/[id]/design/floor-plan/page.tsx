@@ -1,528 +1,585 @@
+
 "use client"
 
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Download, Printer, Save } from 'lucide-react'
-import { FloorPlanGenerator, FloorPlanConfig, COLORS } from '@/lib/floorPlanGenerator'
-import FloorPlanForm from './FloorPlanForm'
+import { DndProvider, useDrag, useDrop } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
+import { Save, Plus, Grid, Circle, Square, Trash2, ZoomIn, ZoomOut, Move } from 'lucide-react'
+import { toast } from 'sonner' // Assuming sonner is installed, or fallback to alert
 
-interface DraggableItem {
+// Types
+type SectionType = 'GRID' | 'TABLE' | 'GA'
+
+interface Section {
   id: string
-  type: 'entry' | 'exit' | 'restroom-m' | 'restroom-w' | 'bar' | 'dj' | 'reception'
+  name: string
+  type: SectionType
   x: number
   y: number
-  label: string
+  width: number
+  height: number
+  price: number
+  // Grid specific
+  rows?: number
+  cols?: number
+  // Table specific
+  seatsPerTable?: number
+  // GA specific
+  capacity?: number
+  color: string
 }
 
-export default function FloorPlanDesigner() {
-  const params = useParams<{ id: string }>()
-  const router = useRouter()
-  const eventId = String(params?.id || '')
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  
-  const [showCanvas, setShowCanvas] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [autoUpdate, setAutoUpdate] = useState(false)
-  const [draggableItems, setDraggableItems] = useState<DraggableItem[]>([])
-  const [draggedItem, setDraggedItem] = useState<DraggableItem | null>(null)
-  const [currentEventId, setCurrentEventId] = useState<string>('')
-  const [formData, setFormData] = useState<FloorPlanConfig>({
-    hallName: '',
-    hallLength: 100,
-    hallWidth: 50,
-    eventType: 'conference',
-    guestCount: 500,
-    tableType: 'round',
-    seatsPerTable: 6,
-    tableSize: 4,
-    layoutStyle: 'banquet',
-    vipSeats: 50,
-    premiumSeats: 150,
-    generalSeats: 300,
-    stageRequired: true,
-    stagePosition: 'front',
-    stageWidth: 30,
-    stageDepth: 8,
-    bannerRequired: true,
-    entryPoints: 2,
-    exitPoints: 2,
-    restroomsRequired: true,
-    mensRestrooms: 2,
-    womensRestrooms: 2,
-    danceFloor: false,
-    barArea: false,
-    receptionDesk: false,
-    djArea: false,
-    specialNotes: ''
-  })
+const SECTION_COLORS = [
+  '#ef4444', // red
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+]
 
-  // Reset canvas when event ID changes
-  useEffect(() => {
-    if (eventId && eventId !== currentEventId) {
-      // Clear canvas and reset state for new event
-      setShowCanvas(false)
-      setAutoUpdate(false)
-      setDraggableItems([])
-      setDraggedItem(null)
-      setCurrentEventId(eventId)
-      
-      // Clear canvas if it exists
-      const canvas = canvasRef.current
-      if (canvas) {
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-        }
-      }
-    }
-  }, [eventId, currentEventId])
+export default function FloorPlanDesignerPage({ params }: { params: { id: string } }) {
+  const [sections, setSections] = useState<Section[]>([])
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
+  const [scale, setScale] = useState(1)
+  const [isSaving, setIsSaving] = useState(false)
 
-  // Fetch event data and populate capacity
+
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  // Load existing plan
   useEffect(() => {
-    const fetchEventData = async () => {
+    const loadPlan = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}`)
+        const res = await fetch(`/api/events/${params.id}/seats/generate`)
         if (res.ok) {
-          const event = await res.json()
-          // Check for various capacity field names that might come from the backend
-          const capacity = event.capacity || event.maxAttendees || event.totalCapacity || 500
-          
-          if (capacity) {
-            // First set capacity and a temporary distribution
-            const tmpVip = Math.floor(capacity * 0.1)
-            const tmpPremium = Math.floor(capacity * 0.3)
-            const tmpGeneral = capacity - tmpVip - tmpPremium
-            setFormData(prev => ({
-              ...prev,
-              guestCount: capacity,
-              vipSeats: tmpVip,
-              premiumSeats: tmpPremium,
-              generalSeats: tmpGeneral
-            }))
-
-            // Then try to load saved seat counts and ticket prices to override
-            try {
-              const [seatCountsRes, ticketRes] = await Promise.all([
-                fetch(`/api/events/${eventId}/settings/seat-counts`, { credentials: 'include' }),
-                fetch(`/api/events/${eventId}/settings/tickets`, { credentials: 'include' })
-              ])
-
-              if (seatCountsRes.ok) {
-                const seatCounts = await seatCountsRes.json()
-                const v = Number(seatCounts.vipSeats || 0)
-                const p = Number(seatCounts.premiumSeats || 0)
-                const g = Number(seatCounts.generalSeats || 0)
-                if (v + p + g > 0) {
-                  setFormData(prev => ({
-                    ...prev,
-                    vipSeats: v,
-                    premiumSeats: p,
-                    generalSeats: g
-                  }))
+          const data = await res.json()
+          if (data.floorPlan && data.floorPlan.layoutData && data.floorPlan.layoutData.sections) {
+            // Restore sections from visualData if available, or try to infer
+            const loadedSections = data.floorPlan.layoutData.sections.map((s: any) => {
+              if (s.visualData) {
+                return {
+                  id: s.visualData.id || `section-${Math.random()}`, // Fallback ID
+                  name: s.name,
+                  type: s.visualData.type || s.type || 'GRID',
+                  x: s.visualData.x || 100,
+                  y: s.visualData.y || 100,
+                  width: s.visualData.width || 200,
+                  height: s.visualData.height || 150,
+                  price: s.basePrice || 100,
+                  color: s.visualData.color || '#6366f1',
+                  // Restore properties
+                  rows: s.type === 'GRID' ? (s.rows?.length || 5) : undefined,
+                  cols: s.type === 'GRID' ? (s.rows?.[0]?.seats || 10) : undefined,
+                  seatsPerTable: s.type === 'TABLE' ? (s.rows?.[0]?.seats || 8) : undefined,
+                  capacity: s.type === 'GA' ? (s.rows?.[0]?.seats || 100) : undefined,
                 }
               }
-              // Ticket prices are fetched for completeness; not used directly in the form yet
-              if (ticketRes.ok) {
-                await ticketRes.json().catch(() => null)
+              // Fallback for plans created outside this designer (e.g. via API directly)
+              return {
+                id: `section-${Math.random()}`,
+                name: s.name,
+                type: 'GRID', // Default to grid
+                x: 100,
+                y: 100,
+                width: 200,
+                height: 150,
+                price: s.basePrice || 100,
+                rows: s.rows?.length || 5,
+                cols: s.rows?.[0]?.seats || 10,
+                color: '#94a3b8'
               }
-            } catch (e) {
-              console.warn('Failed to fetch saved seat counts or ticket settings', e)
-            }
+            })
+            setSections(loadedSections)
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch event data:', error)
+      } catch (e) {
+        console.error('Failed to load existing plan', e)
+        toast.error('Could not load existing floor plan')
       }
     }
-    
-    if (eventId) {
-      fetchEventData()
-    }
-  }, [eventId])
+    loadPlan()
+  }, [params.id])
 
-  // Auto-regenerate when event type or layout style changes
-  useEffect(() => {
-    if (autoUpdate && showCanvas) {
-      generateFloorPlan()
-    }
-  }, [formData.eventType, formData.layoutStyle, formData.tableType, autoUpdate, showCanvas])
-
-  const generateFloorPlan = () => {
-    const canvas = canvasRef.current
-    if (!canvas) {
-      console.error('Canvas ref not found')
-      return
-    }
-
-    // Validate required fields
-    if (!formData.hallLength || formData.hallLength < 20) {
-      alert('Please enter a valid hall length (minimum 20 ft)')
-      return
-    }
-    if (!formData.hallWidth || formData.hallWidth < 20) {
-      alert('Please enter a valid hall width (minimum 20 ft)')
-      return
-    }
-    if (!formData.guestCount || formData.guestCount < 10) {
-      alert('Please enter a valid guest count (minimum 10)')
-      return
-    }
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      console.error('Canvas context not available')
-      return
-    }
-
-    canvas.width = formData.hallLength * 6
-    canvas.height = formData.hallWidth * 6
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    try {
-      const generator = new FloorPlanGenerator(ctx, formData, draggableItems)
-      generator.generate()
-      setShowCanvas(true)
-      setAutoUpdate(true) // Enable auto-update after first generation
-      console.log('Floor plan generated successfully')
-    } catch (error) {
-      console.error('Error generating floor plan:', error)
-      alert('Failed to generate floor plan. Please check the console for details.')
-    }
-  }
-
-  // Drag and drop handlers
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    // Check if clicking on existing item
-    const clickedItem = draggableItems.find(item => {
-      const distance = Math.sqrt(Math.pow(item.x - x, 2) + Math.pow(item.y - y, 2))
-      return distance < 20
-    })
-    
-    if (clickedItem) {
-      setDraggedItem(clickedItem)
-    }
-  }
-
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!draggedItem) return
-    
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    setDraggableItems(items =>
-      items.map(item =>
-        item.id === draggedItem.id ? { ...item, x, y } : item
-      )
-    )
-  }
-
-  const handleCanvasMouseUp = () => {
-    if (draggedItem) {
-      setDraggedItem(null)
-      generateFloorPlan() // Regenerate with new positions
-    }
-  }
-
-  const addDraggableItem = (type: DraggableItem['type']) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const newItem: DraggableItem = {
-      id: `${type}-${Date.now()}`,
+  const addSection = (type: SectionType) => {
+    const newSection: Section = {
+      id: `section-${Date.now()}`,
+      name: `New ${type === 'GRID' ? 'Seating' : type === 'TABLE' ? 'Table' : 'Area'}`,
       type,
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      label: type.replace('-', ' ').toUpperCase()
+      x: 100,
+      y: 100,
+      width: type === 'TABLE' ? 120 : 200,
+      height: type === 'TABLE' ? 120 : 150,
+      price: 100,
+      rows: type === 'GRID' ? 5 : undefined,
+      cols: type === 'GRID' ? 10 : undefined,
+      seatsPerTable: type === 'TABLE' ? 8 : undefined,
+      capacity: type === 'GA' ? 50 : undefined,
+      color: SECTION_COLORS[Math.floor(Math.random() * SECTION_COLORS.length)]
     }
-    
-    setDraggableItems([...draggableItems, newItem])
-    setTimeout(() => generateFloorPlan(), 100)
+    setSections([...sections, newSection])
+    setSelectedSectionId(newSection.id)
   }
 
-  const removeDraggableItem = (id: string) => {
-    setDraggableItems(items => items.filter(item => item.id !== id))
-    setTimeout(() => generateFloorPlan(), 100)
+  const updateSection = (id: string, updates: Partial<Section>) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s))
   }
 
-  const downloadPlan = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const link = document.createElement('a')
-    link.download = `${formData.hallName || 'floor-plan'}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
-  }
-
-  const printPlan = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const win = window.open()
-    if (win) {
-      win.document.write(`<html><head><title>${formData.hallName} Floor Plan</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f3f4f6;"><img src="${canvas.toDataURL()}" style="max-width:90%;height:auto;" /></body></html>`)
-      win.document.close()
-      win.print()
+  const deleteSection = (id: string) => {
+    if (confirm('Are you sure you want to delete this section?')) {
+      setSections(prev => prev.filter(s => s.id !== id))
+      setSelectedSectionId(null)
     }
   }
 
-  const saveFloorPlan = async () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    setSaving(true)
+  const handleSave = async () => {
+    setIsSaving(true)
     try {
-      const imageData = canvas.toDataURL('image/png')
-      
-      // Step 1: Save floor plan config and image
-      const res = await fetch(`/api/events/${eventId}/design/floor-plan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: formData, imageData })
-      })
-      
-      if (!res.ok) {
-        alert('Failed to save floor plan')
-        return
-      }
-      
-      // Step 2: Generate seat inventory from floor plan
+      // Transform our visual sections into the format expected by the generator API
       const floorPlan = {
-        name: formData.hallName || 'Event Floor Plan',
-        totalSeats: formData.vipSeats + formData.premiumSeats + formData.generalSeats,
-        sections: []
-      }
-      
-      // Add VIP section if seats exist
-      if (formData.vipSeats > 0) {
-        const vipRows = Math.ceil(formData.vipSeats / formData.seatsPerTable)
-        floorPlan.sections.push({
-          name: 'VIP',
-          type: 'VIP',
-          basePrice: 500, // Default VIP price
-          rows: Array.from({ length: vipRows }).map((_, rIdx) => ({
-            number: `V${rIdx + 1}`,
-            seats: Math.min(formData.seatsPerTable, formData.vipSeats - (rIdx * formData.seatsPerTable)),
-            xOffset: 50,
-            yOffset: rIdx * 50
-          }))
+        name: `Designed Plan ${new Date().toLocaleDateString()}`,
+        totalSeats: sections.reduce((acc, s) => {
+          if (s.type === 'GRID') return acc + ((s.rows || 0) * (s.cols || 0))
+          if (s.type === 'TABLE') return acc + (s.seatsPerTable || 0)
+          if (s.type === 'GA') return acc + (s.capacity || 0)
+          return acc
+        }, 0),
+        sections: sections.map(s => {
+          // Generalize structure for the API
+          // We need to map our "Canvas visual properties" to "Seat Rows" for the generator
+
+          let generatedRows: any[] = []
+
+          if (s.type === 'GRID') {
+            generatedRows = Array.from({ length: s.rows || 0 }).map((_, rIdx) => ({
+              number: String.fromCharCode(65 + rIdx), // A, B, C...
+              seats: s.cols || 10,
+              xOffset: s.x,
+              yOffset: s.y + (rIdx * 30), // Simple visual spacing
+              rowSpacing: 30
+            }))
+          } else if (s.type === 'TABLE') {
+            // For a single table section, we might want multiple tables or just one?
+            // "Table" usually means a cluster of tables.
+            // For simplicity in this v1, let's assume it represents ONE table group (e.g. Table 1)
+            // But usually a "Section" contains multiple tables.
+            // Let's treat "Grid" as standard rows.
+            // Let's treat "Table" as just a single row with special numbering?
+            // Actually, the generator API expects `rows`.
+
+            // Allow "Table" sections to just be "1 Table" or "Cluster"?
+            // Let's map it to a single row named "Table 1" with X seats.
+            generatedRows = [{
+              number: s.name,
+              seats: s.seatsPerTable || 8,
+              xOffset: s.x,
+              yOffset: s.y
+            }]
+          } else if (s.type === 'GA') {
+            // GA is just capacity. 
+            // We can model this as 1 massive row, or multiple rows.
+            // Let's model as 1 row for now.
+            generatedRows = [{
+              number: 'GA',
+              seats: s.capacity || 100,
+              xOffset: s.x,
+              yOffset: s.y
+            }]
+          }
+
+          return {
+            name: s.name,
+            type: s.type,
+            basePrice: s.price,
+            rows: generatedRows,
+            visualData: { // Save visual state to restore later
+              x: s.x,
+              y: s.y,
+              width: s.width,
+              height: s.height,
+              color: s.color,
+              type: s.type
+            }
+          }
         })
       }
-      
-      // Add Premium section if seats exist
-      if (formData.premiumSeats > 0) {
-        const premiumRows = Math.ceil(formData.premiumSeats / formData.seatsPerTable)
-        floorPlan.sections.push({
-          name: 'Premium',
-          type: 'Premium',
-          basePrice: 300, // Default Premium price
-          rows: Array.from({ length: premiumRows }).map((_, rIdx) => ({
-            number: `P${rIdx + 1}`,
-            seats: Math.min(formData.seatsPerTable, formData.premiumSeats - (rIdx * formData.seatsPerTable)),
-            xOffset: 250,
-            yOffset: rIdx * 50
-          }))
-        })
-      }
-      
-      // Add General section if seats exist
-      if (formData.generalSeats > 0) {
-        const generalRows = Math.ceil(formData.generalSeats / formData.seatsPerTable)
-        floorPlan.sections.push({
-          name: 'General',
-          type: 'General',
-          basePrice: 150, // Default General price
-          rows: Array.from({ length: generalRows }).map((_, rIdx) => ({
-            number: `G${rIdx + 1}`,
-            seats: Math.min(formData.seatsPerTable, formData.generalSeats - (rIdx * formData.seatsPerTable)),
-            xOffset: 450,
-            yOffset: rIdx * 50
-          }))
-        })
-      }
-      
-      // Generate seats in database
-      const seatsRes = await fetch(`/api/events/${eventId}/seats/generate`, {
+
+      const res = await fetch(`/api/events/${params.id}/seats/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ floorPlan })
       })
-      
-      if (seatsRes.ok) {
-        const seatsData = await seatsRes.json()
-        alert(`Floor plan saved successfully!\n${seatsData.totalSeatsGenerated} seats generated and ready for registration.`)
-      } else {
-        const error = await seatsRes.json().catch(() => ({ error: 'Unknown error' }))
-        alert(`Floor plan saved, but seat generation failed: ${error.error || 'Unknown error'}`)
-      }
+
+      if (!res.ok) throw new Error('Failed to generate seats')
+      const data = await res.json()
+      alert('Floor plan saved and seats generated successfully!')
     } catch (e: any) {
-      alert(`Failed to save floor plan: ${e.message || 'Unknown error'}`)
+      alert(`Error saving floor plan: ${e.message}`)
     } finally {
-      setSaving(false)
+      setIsSaving(false)
     }
   }
 
-  const tablesNeeded = Math.ceil(formData.guestCount / formData.seatsPerTable)
+  const selectedSection = sections.find(s => s.id === selectedSectionId)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white p-6">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-white/80 hover:text-white mb-4">
-              <ArrowLeft className="w-4 h-4" />Back to Design
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="text-4xl">🏢</div>
-              <div>
-                <h1 className="text-2xl font-bold">Dynamic Floor Plan Generator</h1>
-                <p className="text-white/80 text-sm">Create custom 2D floor plans for events, conferences, and venues</p>
-              </div>
+    <DndProvider backend={HTML5Backend}>
+      <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-slate-50">
+        {/* Toolbar */}
+        <header className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              Venue Designer
+            </h1>
+            <div className="h-6 w-px bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-medium w-12 text-center">{Math.round(scale * 100)}%</span>
+              <button onClick={() => setScale(s => Math.min(2, s + 0.1))} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+                <ZoomIn className="w-4 h-4" />
+              </button>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              disabled={isSaving || sections.length === 0}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Save Configuration
+            </button>
+          </div>
+        </header>
 
-          <div className="grid lg:grid-cols-[400px_1fr] gap-0 min-h-[calc(100vh-200px)]">
-            <div className="bg-gray-50 border-r p-6 overflow-y-auto h-full">
-              <FloorPlanForm formData={formData} setFormData={setFormData} onGenerate={generateFloorPlan} />
-            </div>
-
-            <div className="p-6 flex flex-col bg-white h-full">
-              <div className="bg-gray-100 border-2 border-gray-200 rounded-lg p-6 flex-1 overflow-auto flex items-center justify-center min-h-[500px] relative">
-                {!showCanvas && (
-                  <div className="text-center text-gray-400">
-                    <div className="text-6xl mb-4">👈</div>
-                    <h2 className="text-2xl font-semibold mb-2">Fill in the form</h2>
-                    <p className="text-sm">Complete the form on the left and click "Generate Floor Plan"</p>
-                  </div>
-                )}
-                <canvas 
-                  ref={canvasRef} 
-                  className={`bg-white shadow-lg max-w-full h-auto cursor-move ${!showCanvas ? 'hidden' : ''}`}
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Palette */}
+          <aside className="w-64 bg-white border-r flex flex-col z-10">
+            <div className="p-4 border-b">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Toolkit</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <ToolButton
+                  icon={Grid}
+                  label="Seating Grid"
+                  onClick={() => addSection('GRID')}
+                  description="Theater/Stadium"
+                />
+                <ToolButton
+                  icon={Circle}
+                  label="Round Table"
+                  onClick={() => addSection('TABLE')}
+                  description="Banquet/Dinner"
+                />
+                <ToolButton
+                  icon={Square}
+                  label="Standing"
+                  onClick={() => addSection('GA')}
+                  description="General Admission"
                 />
               </div>
+            </div>
 
-              {showCanvas && (
-                <>
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">{formData.hallLength}' × {formData.hallWidth}'</div>
-                      <div className="text-xs text-gray-600">HALL DIMENSIONS</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">{formData.guestCount}</div>
-                      <div className="text-xs text-gray-600">TOTAL GUESTS</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">{tablesNeeded}</div>
-                      <div className="text-xs text-gray-600">TOTAL TABLES</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">{formData.seatsPerTable}</div>
-                      <div className="text-xs text-gray-600">GUESTS PER TABLE</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600 capitalize">{formData.eventType}</div>
-                      <div className="text-xs text-gray-600">EVENT TYPE</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 bg-white p-4 rounded-lg mt-4 border">
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.stage}}></div>
-                      <span>Stage</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.table}}></div>
-                      <span>Tables</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.entry}}></div>
-                      <span>Entry</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.exit}}></div>
-                      <span>Exit</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.restroom}}></div>
-                      <span>Restrooms</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <div className="w-5 h-5 rounded border-2 border-gray-800" style={{backgroundColor: COLORS.banner}}></div>
-                      <span>Banner</span>
-                    </div>
-                  </div>
-
-                  {/* Draggable Items Panel */}
-                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mt-4">
-                    <h3 className="font-bold text-sm mb-3 text-yellow-900">🎯 Drag & Drop Features</h3>
-                    <p className="text-xs text-yellow-700 mb-3">Click to add, then drag items on the floor plan</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <button onClick={() => addDraggableItem('entry')} className="px-3 py-2 bg-green-100 hover:bg-green-200 border border-green-300 rounded text-xs font-medium">
-                        + Entry Point
-                      </button>
-                      <button onClick={() => addDraggableItem('exit')} className="px-3 py-2 bg-red-100 hover:bg-red-200 border border-red-300 rounded text-xs font-medium">
-                        + Exit Point
-                      </button>
-                      <button onClick={() => addDraggableItem('restroom-m')} className="px-3 py-2 bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded text-xs font-medium">
-                        + Men's Restroom
-                      </button>
-                      <button onClick={() => addDraggableItem('restroom-w')} className="px-3 py-2 bg-pink-100 hover:bg-pink-200 border border-pink-300 rounded text-xs font-medium">
-                        + Women's Restroom
-                      </button>
-                      <button onClick={() => addDraggableItem('bar')} className="px-3 py-2 bg-teal-100 hover:bg-teal-200 border border-teal-300 rounded text-xs font-medium">
-                        + Bar Area
-                      </button>
-                      <button onClick={() => addDraggableItem('dj')} className="px-3 py-2 bg-purple-100 hover:bg-purple-200 border border-purple-300 rounded text-xs font-medium">
-                        + DJ Area
-                      </button>
-                      <button onClick={() => addDraggableItem('reception')} className="px-3 py-2 bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 rounded text-xs font-medium">
-                        + Reception
-                      </button>
-                    </div>
-                    {draggableItems.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        <p className="text-xs font-semibold text-yellow-900">Added Items:</p>
-                        {draggableItems.map(item => (
-                          <div key={item.id} className="flex items-center justify-between bg-white px-2 py-1 rounded text-xs">
-                            <span>{item.label}</span>
-                            <button onClick={() => removeDraggableItem(item.id)} className="text-red-600 hover:text-red-800 font-bold">×</button>
-                          </div>
-                        ))}
+            <div className="flex-1 overflow-y-auto p-4">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Sections ({sections.length})</h2>
+              <div className="space-y-2">
+                {sections.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => setSelectedSectionId(s.id)}
+                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${selectedSectionId === s.id ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300 bg-white'}`}
+                  >
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{s.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {s.type === 'GRID' ? `${s.rows}x${s.cols} Seats` : s.type === 'TABLE' ? `${s.seatsPerTable} Seats` : `Capacity: ${s.capacity}`}
                       </div>
-                    )}
+                    </div>
                   </div>
+                ))}
+                {sections.length === 0 && (
+                  <div className="text-center py-8 text-xs text-slate-400 border-2 border-dashed rounded-lg">
+                    No sections added.<br />Click a tool above to start.
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
 
-                  <div className="flex gap-3 mt-4 flex-wrap">
-                    <button onClick={downloadPlan} className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center gap-2 font-semibold">
-                      <Download className="w-4 h-4" />Download
-                    </button>
-                    <button onClick={printPlan} className="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 font-semibold">
-                      <Printer className="w-4 h-4" />Print
-                    </button>
-                    <button onClick={saveFloorPlan} disabled={saving} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 font-semibold disabled:opacity-50">
-                      <Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save'}
-                    </button>
-                  </div>
-                </>
-              )}
+          {/* Canvas */}
+          <div className="flex-1 bg-slate-100 overflow-hidden relative">
+            <div className="absolute inset-0 overflow-auto">
+              <div
+                ref={canvasRef}
+                className="relative min-w-[2000px] min-h-[2000px] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]"
+                style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
+              >
+                {sections.map(section => (
+                  <DraggableSection
+                    key={section.id}
+                    section={section}
+                    isSelected={selectedSectionId === section.id}
+                    onSelect={() => setSelectedSectionId(section.id)}
+                    onMove={(x, y) => updateSection(section.id, { x, y })}
+                  />
+                ))}
+
+                {/* Stage Marker (Visual Reference) */}
+                <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[600px] h-24 bg-slate-800 rounded-b-[100px] flex items-center justify-center text-white/20 font-bold text-4xl uppercase tracking-[1em] pointer-events-none select-none">
+                  Stage
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Properties Panel */}
+          {selectedSection ? (
+            <aside className="w-80 bg-white border-l p-4 overflow-y-auto animate-in slide-in-from-right duration-200 z-10 shadow-xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-bold text-slate-900">Properties</h2>
+                <button onClick={() => deleteSection(selectedSection.id)} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Section Name</label>
+                  <input
+                    type="text"
+                    value={selectedSection.name}
+                    onChange={e => updateSection(selectedSection.id, { name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Price (₹)</label>
+                    <input
+                      type="number"
+                      value={selectedSection.price}
+                      onChange={e => updateSection(selectedSection.id, { price: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Color</label>
+                    <div className="flex items-center gap-1">
+                      {SECTION_COLORS.slice(0, 4).map(c => (
+                        <button
+                          key={c}
+                          onClick={() => updateSection(selectedSection.id, { color: c })}
+                          className={`w-6 h-6 rounded-full border-2 ${selectedSection.color === c ? 'border-slate-900' : 'border-transparent'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-slate-100 my-2" />
+
+                {/* Type Specific Controls */}
+                {selectedSection.type === 'GRID' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500 uppercase">Rows</label>
+                        <input
+                          type="number"
+                          min="1" max="100"
+                          value={selectedSection.rows}
+                          onChange={e => updateSection(selectedSection.id, { rows: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-500 uppercase">Columns</label>
+                        <input
+                          type="number"
+                          min="1" max="100"
+                          value={selectedSection.cols}
+                          onChange={e => updateSection(selectedSection.id, { cols: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
+                      Total Seats: <span className="font-semibold text-slate-900">{(selectedSection.rows || 0) * (selectedSection.cols || 0)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {selectedSection.type === 'TABLE' && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-500 uppercase">Seats per Table</label>
+                      <input
+                        type="number"
+                        min="1" max="20"
+                        value={selectedSection.seatsPerTable}
+                        onChange={e => updateSection(selectedSection.id, { seatsPerTable: parseInt(e.target.value) || 1 })}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedSection.type === 'GA' && (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-500 uppercase">Capacity</label>
+                      <input
+                        type="number"
+                        min="1" max="100000"
+                        value={selectedSection.capacity}
+                        onChange={e => updateSection(selectedSection.id, { capacity: parseInt(e.target.value) || 1 })}
+                        className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 mt-auto">
+                  <p className="text-xs text-slate-400">
+                    Drag the section in the preview to position it.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          ) : (
+            <aside className="w-80 bg-white border-l p-8 flex flex-col items-center justify-center text-center text-slate-400">
+              <Move className="w-12 h-12 mb-4 opacity-20" />
+              <p className="font-medium">No Section Selected</p>
+              <p className="text-sm mt-1">Select a section to edit its properties or add a new one.</p>
+            </aside>
+          )}
         </div>
       </div>
+    </DndProvider>
+  )
+}
+
+function ToolButton({ icon: Icon, label, onClick, description }: { icon: any, label: string, onClick: () => void, description: string }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center justify-center p-3 border rounded-xl hover:bg-slate-50 hover:border-indigo-300 hover:shadow-sm transition-all text-center h-24 group bg-white">
+      <Icon className="w-6 h-6 mb-2 text-slate-600 group-hover:text-indigo-600" />
+      <div className="text-xs font-bold text-slate-900">{label}</div>
+      <div className="text-[10px] text-slate-400 scale-90">{description}</div>
+    </button>
+  )
+}
+
+function DraggableSection({ section, isSelected, onSelect, onMove }: { section: Section, isSelected: boolean, onSelect: () => void, onMove: (x: number, y: number) => void }) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'section',
+    item: { id: section.id, x: section.x, y: section.y },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    end: (item, monitor) => {
+      const delta = monitor.getDifferenceFromInitialOffset()
+      if (delta && item) {
+        const newX = Math.round(item.x + delta.x)
+        const newY = Math.round(item.y + delta.y)
+        onMove(newX, newY)
+      }
+    },
+  }), [section.x, section.y])
+
+  // Visual Rendering logic based on type
+  const renderVisuals = () => {
+    if (section.type === 'GRID') {
+      const rows = section.rows || 1
+      const cols = section.cols || 1
+      // Simple visual grid preview
+      return (
+        <div
+          className="grid gap-[2px]"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            width: '100%',
+            height: '100%',
+            padding: '10px'
+          }}
+        >
+          {Array.from({ length: rows * cols }).slice(0, 100).map((_, i) => ( // Cap prev at 100 for performance
+            <div key={i} className="bg-current opacity-20 rounded-sm" />
+          ))}
+        </div>
+      )
+    }
+    if (section.type === 'TABLE') {
+      return (
+        <div className="w-full h-full relative flex items-center justify-center">
+          <div className="w-[60%] h-[60%] rounded-full border-4 border-current opacity-30"></div>
+          {Array.from({ length: section.seatsPerTable || 4 }).map((_, i) => {
+            const angle = (i / (section.seatsPerTable || 4)) * Math.PI * 2
+            const radius = 40 // percentage
+            const left = 50 + Math.cos(angle) * radius
+            const top = 50 + Math.sin(angle) * radius
+            return (
+              <div
+                key={i}
+                className="absolute w-[15%] h-[15%] rounded-full bg-current opacity-40"
+                style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+              />
+            )
+          })}
+        </div>
+      )
+    }
+    if (section.type === 'GA') {
+      return (
+        <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-current opacity-30 rounded-lg">
+          <span className="font-bold text-2xl opacity-50">GA</span>
+        </div>
+      )
+    }
+  }
+
+  return (
+    <div
+      ref={drag as any}
+      onClick={(e) => { e.stopPropagation(); onSelect(); }}
+      className={`absolute rounded-xl shadow-lg cursor-move transition-shadow group overflow-hidden bg-white
+                ${isSelected ? 'ring-2 ring-indigo-500 shadow-xl z-20' : 'ring-1 ring-slate-200 hover:ring-indigo-300 z-10'}
+                ${isDragging ? 'opacity-50' : 'opacity-100'}
+            `}
+      style={{
+        left: section.x,
+        top: section.y,
+        width: section.width,
+        height: section.height,
+        color: section.color || '#6366f1'
+      }}
+    >
+      {/* Header */}
+      <div className="h-6 w-full absolute top-0 left-0 bg-current opacity-10 pointer-events-none" />
+      <div className="absolute top-1 left-2 text-[10px] font-bold text-slate-900 pointer-events-none uppercase tracking-wide opacity-50 truncate max-w-[90%]">
+        {section.name}
+      </div>
+
+      {/* Content */}
+      <div className="w-full h-full pt-6">
+        {renderVisuals()}
+      </div>
+
+      {/* Resize Handle (Visual only for now) */}
+      {isSelected && (
+        <div className="absolute bottom-0 right-0 w-4 h-4 bg-indigo-500 rounded-tl cursor-se-resize flex items-center justify-center">
+          <div className="w-1.5 h-1.5 bg-white rounded-full opacity-50" />
+        </div>
+      )}
     </div>
   )
 }

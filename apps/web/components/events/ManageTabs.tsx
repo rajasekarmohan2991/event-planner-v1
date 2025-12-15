@@ -12,7 +12,9 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
     { href: `${base}/speakers`, label: 'Speakers' },
     { href: `${base}/sessions`, label: 'Sessions' },
     { href: `${base}/team`, label: 'Team' },
+
     { href: `${base}/sponsors`, label: 'Sponsors' },
+    { href: `${base}/design/floor-plan`, label: 'Floor Plan' },
     { href: vendorsHref, label: 'Vendors' },
     { href: `${base}/exhibitor-registration`, label: 'Exhibitor Registration' },
     { href: `${base}/promote`, label: 'Promote' },
@@ -28,11 +30,10 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
               <Link
                 key={href}
                 href={href}
-                className={`relative text-sm px-3 py-1.5 rounded-md border transition-all duration-200 ${
-                  active
+                className={`relative text-sm px-3 py-1.5 rounded-md border transition-all duration-200 ${active
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-950/20 dark:text-indigo-300'
                     : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                  }`}
               >
                 {label}
                 <span className={`pointer-events-none absolute left-3 right-3 -bottom-0.5 h-0.5 rounded-full bg-indigo-500 transition-transform duration-200 ${active ? 'scale-x-100' : 'scale-x-0'} origin-left`} />

@@ -303,22 +303,30 @@ enum OrderStatus {
   CANCELLED
 }
 
+
 model Registration {
   id             String              @id @default(cuid())
-  eventId        String
-  userId         BigInt?
+  eventId        BigInt              @map("event_id")
+  userId         BigInt?             @map("user_id")
   email          String?
-  ticketId       String?
-  priceInr       Int?
+  ticketId       String?             @map("ticket_id")
+  priceInr       Int?                @map("price_inr")
   status         RegistrationStatus  @default(PENDING)
-  approvedAt     DateTime?
-  approvedBy     String?
-  approvalMode   String?             // MANUAL or AUTOMATIC
-  approvalNotes  String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  tenantId       String?
+  approvedAt     DateTime?           @map("approved_at")
+  approvedBy     String?             @map("approved_by")
+  approvalMode   String?             @map("approval_mode")// MANUAL or AUTOMATIC
+  approvalNotes  String?             @map("approval_notes")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  tenantId       String?             @map("tenant_id")
+  
+  // Fields required by current API implementation
+  dataJson       Json?               @map("data_json")
+  type           String              @default("GENERAL")
+  checkInStatus  String?             @map("check_in_status")
+  checkInTime    DateTime?           @map("check_in_time")
 
+  @@map("registrations")
   @@index([eventId, status, createdAt])
 }
 

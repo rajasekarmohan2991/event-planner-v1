@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-const CATEGORIES = ['Catering','Venue','Photography','Entertainment','Decoration','Other'] as const
-const STATUSES = ['booked','pending','cancelled'] as const
+const CATEGORIES = ['Catering', 'Venue', 'Photography', 'Entertainment', 'Decoration', 'Other'] as const
+const STATUSES = ['booked', 'pending', 'cancelled'] as const
 
 type VendorFormValues = {
   eventId: string
@@ -54,7 +54,7 @@ type Vendor = {
   phone?: string
   costInr?: number
   contract?: boolean
-  status: 'booked'|'pending'|'cancelled'
+  status: 'booked' | 'pending' | 'cancelled'
   notes?: string
   createdAt: string
   updatedAt: string
@@ -91,7 +91,7 @@ export default function CompanyVendorsPage() {
         if (qEvent && evts.find(e => e.id === qEvent)) setSelectedEvent(qEvent)
         else if (evts[0]) setSelectedEvent(evts[0].id)
       }
-    } catch {}
+    } catch { }
   }
 
   const loadVendors = async (eventId: string) => {
@@ -102,7 +102,7 @@ export default function CompanyVendorsPage() {
         const r = await fetch('/api/company/vendors/summary', { credentials: 'include' })
         const d = await r.json()
         if (r.ok) {
-          setVendors((d.vendors||[]).map((v: any)=>({ ...v, eventId: String(v.eventId) })))
+          setVendors((d.vendors || []).map((v: any) => ({ ...v, eventId: String(v.eventId) })))
           setStats(d.stats || { total: 0, booked: 0, totalCost: 0 })
           setPerEventStats(d.perEventStats || {})
           setPerEventBudget(d.perEventBudget || {})
@@ -113,7 +113,7 @@ export default function CompanyVendorsPage() {
       const res = await fetch(`/api/events/${eventId}/vendors`, { credentials: 'include' })
       const data = await res.json()
       if (res.ok) {
-        setVendors((data.vendors || []).map((v: any)=>({ ...v, eventId: String(eventId) })))
+        setVendors((data.vendors || []).map((v: any) => ({ ...v, eventId: String(eventId) })))
         setStats(data.stats || { total: 0, booked: 0, totalCost: 0 })
         setPerEventStats({})
         setPerEventBudget({})
@@ -137,13 +137,13 @@ export default function CompanyVendorsPage() {
       if (res.ok) setBudgets(data.budgets || {})
     } catch { setBudgets({}) }
   }
-  useEffect(()=>{ if (selectedEvent) loadBudgets(selectedEvent) }, [selectedEvent])
+  useEffect(() => { if (selectedEvent) loadBudgets(selectedEvent) }, [selectedEvent])
 
   const filtered = useMemo(() => {
     let list = vendors
     if (search.trim()) {
       const q = search.toLowerCase()
-      list = list.filter(v => v.name.toLowerCase().includes(q) || v.category.toLowerCase().includes(q) || (v.contactName||'').toLowerCase().includes(q))
+      list = list.filter(v => v.name.toLowerCase().includes(q) || v.category.toLowerCase().includes(q) || (v.contactName || '').toLowerCase().includes(q))
     }
     if (category) list = list.filter(v => v.category === category)
     return list
@@ -191,175 +191,175 @@ export default function CompanyVendorsPage() {
           <p className="text-sm text-gray-600">Manage vendors and service providers</p>
         </div>
         <div className="flex items-center gap-2">
-        <Dialog open={open} onOpenChange={(o)=>{ setOpen(o); if (o) form.setValue('eventId', selectedEvent || events[0]?.id || '') }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2"><Plus className="w-4 h-4"/> Add Vendor</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Vendor</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-                <FormField control={form.control} name="eventId" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Event</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Select event"/></SelectTrigger>
-                      <SelectContent>
-                        {events.map(e => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Elegant Catering Co." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="category" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger><SelectValue placeholder="Select"/></SelectTrigger>
-                        <SelectContent>
-                          {CATEGORIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger><SelectValue placeholder="Select"/></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="booked">Booked</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="contactName" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Name</FormLabel>
-                      <FormControl><Input placeholder="Maria Rodriguez" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="phone" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl><Input placeholder="+1-555-0201" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-
-                <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl><Input placeholder="maria@vendor.com" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="costInr" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost (₹)</FormLabel>
-                      <FormControl><Input type="number" min={0} step="100" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="contract" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract</FormLabel>
-                      <Select value={String(field.value||'false')} onValueChange={(v)=>field.onChange(v==='true')}>
-                        <SelectTrigger><SelectValue placeholder="No"/></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">Yes</SelectItem>
-                          <SelectItem value="false">No</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-
-                <FormField control={form.control} name="notes" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes</FormLabel>
-                    <FormControl><Input placeholder="Special requirements, timings, etc." {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <DialogFooter>
-                  <Button type="submit">Save Vendor</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {selectedEvent && (
-          <Dialog open={budgetsOpen} onOpenChange={setBudgetsOpen}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) form.setValue('eventId', selectedEvent || events[0]?.id || '') }}>
             <DialogTrigger asChild>
-              <Button variant="secondary">Manage Budgets</Button>
+              <Button className="gap-2"><Plus className="w-4 h-4" /> Add Vendor</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Budgets</DialogTitle>
+                <DialogTitle>Add Vendor</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-3">
-                {CATEGORIES.map(cat => (
-                  <div key={cat} className="grid grid-cols-2 gap-2 items-center">
-                    <div className="text-sm">{cat}</div>
-                    <Input type="number" value={budgets[cat] ?? ''} onChange={e=>setBudgets(prev=>({ ...prev, [cat]: Number(e.target.value||0) }))} />
+              <Form {...form}>
+                <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+                  <FormField control={form.control} name="eventId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
+                        <SelectContent>
+                          {events.map(e => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Elegant Catering Co." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="category" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="booked">Booked</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
                   </div>
-                ))}
-              </div>
-              <DialogFooter>
-                <Button onClick={async()=>{
-                  await fetch(`/api/events/${selectedEvent}/vendors/budgets`, { method:'PUT', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify({ budgets }) })
-                  setBudgetsOpen(false)
-                }}>Save</Button>
-              </DialogFooter>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="contactName" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Name</FormLabel>
+                        <FormControl><Input placeholder="Maria Rodriguez" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="phone" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl><Input placeholder="+1-555-0201" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl><Input placeholder="maria@vendor.com" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="costInr" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cost (₹)</FormLabel>
+                        <FormControl><Input type="number" min={0} step="100" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="contract" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contract</FormLabel>
+                        <Select value={String(field.value || 'false')} onValueChange={(v) => field.onChange(v === 'true')}>
+                          <SelectTrigger><SelectValue placeholder="No" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <FormField control={form.control} name="notes" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl><Input placeholder="Special requirements, timings, etc." {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <DialogFooter>
+                    <Button type="submit">Save Vendor</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
-        )}
-        {selectedEvent && (
-          <>
-            <a href={`/api/events/${selectedEvent}/vendors/export`}>
-              <Button variant="outline">Export Vendors CSV</Button>
-            </a>
-            <a href={`/api/events/${selectedEvent}/vendors/budgets/export`}>
-              <Button variant="outline">Export Budgets CSV</Button>
-            </a>
-          </>
-        )}
+
+          {selectedEvent && (
+            <Dialog open={budgetsOpen} onOpenChange={setBudgetsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="secondary">Manage Budgets</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Budgets</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-3">
+                  {CATEGORIES.map(cat => (
+                    <div key={cat} className="grid grid-cols-2 gap-2 items-center">
+                      <div className="text-sm">{cat}</div>
+                      <Input type="number" value={budgets[cat] ?? ''} onChange={e => setBudgets(prev => ({ ...prev, [cat]: Number(e.target.value || 0) }))} />
+                    </div>
+                  ))}
+                </div>
+                <DialogFooter>
+                  <Button onClick={async () => {
+                    await fetch(`/api/events/${selectedEvent}/vendors/budgets`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ budgets }) })
+                    setBudgetsOpen(false)
+                  }}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+          {selectedEvent && (
+            <>
+              <a href={`/api/events/${selectedEvent}/vendors/export`}>
+                <Button variant="outline">Export Vendors CSV</Button>
+              </a>
+              <a href={`/api/events/${selectedEvent}/vendors/budgets/export`}>
+                <Button variant="outline">Export Budgets CSV</Button>
+              </a>
+            </>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card><CardContent className="p-4"><div className="text-xs text-gray-500">Total Vendors</div><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
         <Card className="bg-green-50 border-green-200"><CardContent className="p-4"><div className="text-xs text-green-700">Booked/Paid</div><div className="text-2xl font-bold text-green-900">{stats.booked}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-gray-500">Total Cost</div><div className="text-2xl font-bold flex items-center gap-1"><IndianRupee className="w-5 h-5"/>{stats.totalCost}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-gray-500">Total Cost</div><div className="text-2xl font-bold flex items-center gap-1"><IndianRupee className="w-5 h-5" />{stats.totalCost}</div></CardContent></Card>
       </div>
 
       {!selectedEvent && (
@@ -384,11 +384,11 @@ export default function CompanyVendorsPage() {
                 const remaining = budget - spent
                 const bad = remaining < 0
                 return (
-                  <div key={cat} className={`border rounded p-3 ${bad?'border-red-300 bg-red-50':'border-gray-200'}`}>
+                  <div key={cat} className={`border rounded p-3 ${bad ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
                     <div className="font-semibold">{cat}</div>
                     <div>Budget: ₹{budget}</div>
                     <div>Spent: ₹{spent}</div>
-                    <div className={`font-semibold ${bad?'text-red-600':'text-green-700'}`}>Remaining: ₹{remaining}</div>
+                    <div className={`font-semibold ${bad ? 'text-red-600' : 'text-green-700'}`}>Remaining: ₹{remaining}</div>
                   </div>
                 )
               })}
@@ -397,7 +397,7 @@ export default function CompanyVendorsPage() {
         </Card>
       )}
 
-      {!selectedEvent && Object.keys(perEventStats).length>0 && (
+      {!selectedEvent && Object.keys(perEventStats).length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Per-event totals</CardTitle></CardHeader>
           <CardContent>
@@ -415,7 +415,7 @@ export default function CompanyVendorsPage() {
         </Card>
       )}
 
-      {!selectedEvent && Object.keys(perEventBudget).length>0 && (
+      {!selectedEvent && Object.keys(perEventBudget).length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Per-event budgets</CardTitle></CardHeader>
           <CardContent>
@@ -424,11 +424,11 @@ export default function CompanyVendorsPage() {
                 const b = perEventBudget[e.id] || { budgetTotal: 0, spentTotal: 0, remaining: 0 }
                 const bad = b.remaining < 0
                 return (
-                  <div key={e.id} className={`border rounded p-3 ${bad?'border-red-300 bg-red-50':'border-gray-200'}`}>
+                  <div key={e.id} className={`border rounded p-3 ${bad ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
                     <div className="font-semibold mb-1">{e.name}</div>
                     <div>Budget: ₹{b.budgetTotal}</div>
                     <div>Spent: ₹{b.spentTotal}</div>
-                    <div className={`font-semibold ${bad?'text-red-600':'text-green-700'}`}>Remaining: ₹{b.remaining}</div>
+                    <div className={`font-semibold ${bad ? 'text-red-600' : 'text-green-700'}`}>Remaining: ₹{b.remaining}</div>
                   </div>
                 )
               })}
@@ -439,20 +439,21 @@ export default function CompanyVendorsPage() {
 
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
         <div className="flex-1 flex items-center gap-2 border rounded px-3">
-          <Search className="w-4 h-4 text-gray-500"/>
-          <input className="flex-1 h-10 outline-none" placeholder="Search vendors..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <Search className="w-4 h-4 text-gray-500" />
+          <input className="flex-1 h-10 outline-none" placeholder="Search vendors..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="All Categories"/></SelectTrigger>
+
+        <Select value={category || 'all'} onValueChange={(v) => setCategory(v === 'all' ? '' : v)}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="All Categories" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Categories</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem>
             {CATEGORIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
           </SelectContent>
         </Select>
-        <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-          <SelectTrigger className="w-56"><SelectValue placeholder="All Events"/></SelectTrigger>
+        <Select value={selectedEvent || 'all'} onValueChange={(v) => setSelectedEvent(v === 'all' ? '' : v)}>
+          <SelectTrigger className="w-56"><SelectValue placeholder="All Events" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Events</SelectItem>
+            <SelectItem value="all">All Events</SelectItem>
             {events.map(e => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
           </SelectContent>
         </Select>
@@ -468,14 +469,14 @@ export default function CompanyVendorsPage() {
                   <div className="text-sm text-gray-600">{v.category}</div>
                 </div>
                 <Badge variant="secondary" className={
-                  v.status==='booked' ? 'bg-green-100 text-green-700' :
-                  v.status==='cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}>
+                  v.status === 'booked' ? 'bg-green-100 text-green-700' :
+                    v.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}>
                   {v.status}
                 </Badge>
               </div>
 
               <div className="text-sm space-y-1">
-                {v.contactName && <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-gray-500"/>{v.contactName}</div>}
+                {v.contactName && <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-gray-500" />{v.contactName}</div>}
                 {v.email && <div className="flex items-center gap-2"><span className="text-gray-500">✉️</span>{v.email}</div>}
                 {v.phone && <div className="flex items-center gap-2"><span className="text-gray-500">📞</span>{v.phone}</div>}
               </div>
@@ -487,9 +488,9 @@ export default function CompanyVendorsPage() {
                 </div>
                 <div className="flex items-center gap-1 text-xs">
                   {v.contract ? (
-                    <span className="flex items-center gap-1 text-green-700"><FileText className="w-4 h-4"/> Contract</span>
+                    <span className="flex items-center gap-1 text-green-700"><FileText className="w-4 h-4" /> Contract</span>
                   ) : (
-                    <span className="flex items-center gap-1 text-gray-500"><FileText className="w-4 h-4"/> No Contract</span>
+                    <span className="flex items-center gap-1 text-gray-500"><FileText className="w-4 h-4" /> No Contract</span>
                   )}
                 </div>
               </div>
