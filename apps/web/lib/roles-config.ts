@@ -1,8 +1,9 @@
 // Comprehensive Role-Based Access Control Configuration
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'TENANT_ADMIN' | 'EVENT_MANAGER' | 'ORGANIZER' | 'USER' | 'STAFF' | 'VIEWER'
 
-export type Permission = 
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'TENANT_ADMIN' | 'EVENT_MANAGER' | 'ORGANIZER' | 'USER' | 'STAFF' | 'VIEWER' | 'EXHIBITOR_MANAGER'
+
+export type Permission =
   // User Management
   | 'users.view' | 'users.create' | 'users.edit' | 'users.delete' | 'users.assign_roles'
   // Event Management  
@@ -63,11 +64,11 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     ],
     dashboardRoute: '/admin',
     allowedRoutes: [
-      '/admin/*', '/events/*', '/dashboard/*', '/users/*', '/analytics/*', 
+      '/admin/*', '/events/*', '/dashboard/*', '/users/*', '/analytics/*',
       '/settings/*', '/verifications/*', '/permissions/*'
     ],
     navigationItems: [
-      'admin-dashboard', 'user-management', 'event-management', 'verifications', 
+      'admin-dashboard', 'user-management', 'event-management', 'verifications',
       'permissions', 'analytics', 'system-settings'
     ],
     color: 'red'
@@ -220,6 +221,26 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'view-events'
     ],
     color: 'gray'
+  },
+
+
+  EXHIBITOR_MANAGER: {
+    name: 'EXHIBITOR_MANAGER',
+    displayName: 'Exhibitor Manager',
+    description: 'Manage exhibitors and vendors for events',
+    permissions: [
+      'events.view', 'events.edit',
+      'communication.send_email',
+      'design.branding'
+    ],
+    dashboardRoute: '/company/vendors',
+    allowedRoutes: [
+      '/company/vendors', '/events/*', '/dashboard/*'
+    ],
+    navigationItems: [
+      'event-dashboard', 'vendors', 'registrations'
+    ],
+    color: 'orange'
   },
 
   USER: {
