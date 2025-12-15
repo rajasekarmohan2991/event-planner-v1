@@ -123,6 +123,33 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Subscription Settings */}
+        <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-lg border border-indigo-100/50 shadow-sm p-6 hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <CreditCard className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Subscription</h3>
+              <p className="text-sm text-gray-600">Plan and billing</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Current Plan</span>
+              <span className="text-sm text-indigo-600 font-medium">Enterprise</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Status</span>
+              <span className="text-sm text-green-600 font-medium">Active</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Renewal</span>
+              <span className="text-sm text-gray-500">Dec 31, 2025</span>
+            </div>
+          </div>
+        </div>
+
         {/* Email Settings */}
         <div className="bg-gradient-to-br from-white to-purple-50/30 rounded-lg border border-purple-100/50 shadow-sm p-6 hover:shadow-md transition-all">
           <div className="flex items-center gap-3 mb-4">
