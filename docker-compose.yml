@@ -38,6 +38,10 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
       # Point to dockerized Postgres service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/event_planner
       SPRING_DATASOURCE_USERNAME: postgres

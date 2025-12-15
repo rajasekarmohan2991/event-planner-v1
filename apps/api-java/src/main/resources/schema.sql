@@ -43,11 +43,18 @@ CREATE TABLE IF NOT EXISTS payments (
   currency VARCHAR(10) NOT NULL DEFAULT 'INR',
   status VARCHAR(24) NOT NULL DEFAULT 'PENDING',
   metadata TEXT,
+  subtotal_in_minor INTEGER,
+  tax_amount_in_minor INTEGER,
+  tax_rate_percent INTEGER,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_payments_stripe ON payments(stripe_payment_intent_id);
+
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS subtotal_in_minor INTEGER;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS tax_amount_in_minor INTEGER;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS tax_rate_percent INTEGER;
 
 -- Promo codes table
 CREATE TABLE IF NOT EXISTS promo_codes (
