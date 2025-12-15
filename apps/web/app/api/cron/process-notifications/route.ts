@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { sendSMS, sendWhatsApp } from '@/lib/messaging'
 
+export const dynamic = 'force-dynamic'
+
 // This endpoint should be called by a cron job (e.g., Vercel Cron, GitHub Actions, or external service)
 // Recommended: Every 5-15 minutes
 

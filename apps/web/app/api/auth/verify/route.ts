@@ -12,7 +12,14 @@ export async function POST(req: Request) {
     const vt = await prisma.verificationToken.findUnique({
       where: { identifier_token: { identifier: email, token } },
     })
+
     if (!vt) {
+      // Check if user is already verified. If so, return success to prevent confusing "Verification Failed" message
+      // This happens if the link was clicked twice or scanned by email security software
+      const existingUser = await prisma.user.findUnique({ where: { email } })
+      if (existingUser?.emailVerified) {
+        return NextResponse.json({ success: true, userId: String(existingUser.id), message: 'Already verified' })
+      }
       return NextResponse.json({ error: 'Invalid or already used token' }, { status: 400 })
     }
     if (vt.expires < new Date()) {

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAuthSession } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getAuthSession()
+    const session = await getServerSession(req, authOptions)
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     
     const role = String(((session as any).user?.role) || '')

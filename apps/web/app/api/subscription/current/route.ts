@@ -3,16 +3,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any)
     
-    if (!session?.user) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const userId = (session.user as any).id
-    const userRole = (session.user as any).role
+    const userId = session.user.id
+    const userRole = session.user.role
 
     // Get user's current tenant
     const user = await prisma.user.findUnique({
