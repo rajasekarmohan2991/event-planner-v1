@@ -8,11 +8,11 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = session.user.role
     if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized - Super Admin only' }, { status: 403 })
@@ -38,10 +38,10 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // Sort: "default" slug first, then others by createdAt desc
+    // Sort: "super-admin" slug first, then others by createdAt desc
     const sortedCompanies = companies.sort((a, b) => {
-      if (a.slug === 'default') return -1
-      if (b.slug === 'default') return 1
+      if (a.slug === 'super-admin') return -1
+      if (b.slug === 'super-admin') return 1
       return 0 // Maintain existing sort for others
     })
 

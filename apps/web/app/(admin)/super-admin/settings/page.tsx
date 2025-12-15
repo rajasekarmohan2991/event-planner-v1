@@ -53,6 +53,42 @@ export default function SuperAdminSettingsPage() {
             </div>
           </div>
         </Link>
+
+        {/* Currency Settings */}
+        <Link href="/super-admin/settings/currency" className="block group">
+          <div className="bg-white rounded-xl border shadow-sm p-6 transition-all duration-200 hover:shadow-md hover:border-green-300">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition-colors">
+                <Coins className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Currency</h3>
+                <p className="text-sm text-gray-600">Payment Settings</p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Configure currency and payment options.
+            </div>
+          </div>
+        </Link>
+
+        {/* Subscription Management */}
+        <Link href="/admin/settings/billing" className="block group">
+          <div className="bg-white rounded-xl border shadow-sm p-6 transition-all duration-200 hover:shadow-md hover:border-blue-300">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition-colors">
+                <Settings className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Subscription</h3>
+                <p className="text-sm text-gray-600">Billing & Plans</p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Manage subscription plans and billing settings.
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   )
