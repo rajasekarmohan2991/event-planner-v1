@@ -81,7 +81,7 @@ export default function CompanyDetailsPage() {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const isDefaultTenant = params?.id === 'default-tenant';
+  const [isSuperAdminCompany, setIsSuperAdminCompany] = useState(false);
 
   useEffect(() => {
     if (params?.id) fetchData();
@@ -97,37 +97,36 @@ export default function CompanyDetailsPage() {
         })
       ];
 
-      // Fetch analytics only for default-tenant
-      if (isDefaultTenant) {
-        promises.push(
-          fetch('/api/admin/analytics', { credentials: 'include' }),
-          fetch('/api/admin/dashboard/stats', { credentials: 'include' })
-        );
-      }
-
       const results = await Promise.all(promises);
       const companyRes = results[0];
-      
+
       if (companyRes.ok) {
         const data = await companyRes.json();
         setCompany(data.company);
+
+        // Check if this is the super-admin company
+        const isSuper = data.company?.slug === 'super-admin';
+        setIsSuperAdminCompany(isSuper);
+
+        // Fetch analytics only for super-admin company
+        if (isSuper) {
+          const [analyticsRes, statsRes] = await Promise.all([
+            fetch('/api/admin/analytics', { credentials: 'include' }),
+            fetch('/api/admin/dashboard/stats', { credentials: 'include' })
+          ]);
+
+          if (analyticsRes.ok) {
+            const analyticsData = await analyticsRes.json();
+            setAnalytics(analyticsData);
+          }
+
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            setStats(statsData);
+          }
+        }
       }
 
-      if (isDefaultTenant && results.length > 1) {
-        const analyticsRes = results[1];
-        const statsRes = results[2];
-        
-        if (analyticsRes.ok) {
-          const analyticsData = await analyticsRes.json();
-          setAnalytics(analyticsData);
-        }
-
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
-        }
-      }
-      
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error:', error);
@@ -180,7 +179,7 @@ export default function CompanyDetailsPage() {
   if (!company) return <div className="p-8">Company not found</div>;
 
   // For default-tenant, show full dashboard with analytics
-  if (isDefaultTenant && analytics) {
+  if (isSuperAdminCompany && analytics) {
     return (
       <div className="p-6 space-y-6">
         {/* Live Updates Bar */}
@@ -374,170 +373,263 @@ export default function CompanyDetailsPage() {
         <div className="flex-1 min-w-0">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow border h-full">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <div>
-                <div className="text-2xl font-bold">{company.events.length}</div>
-                <div className="text-gray-600">Total Events</div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border h-full">
-            <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-green-600" />
-              <div>
-                <div className="text-2xl font-bold">{company.members.length}</div>
-                <div className="text-gray-600">Team Members</div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border h-full">
-            <div className="flex items-center gap-3">
-              <Settings className="h-8 w-8 text-purple-600" />
-              <div>
-                <div className="text-2xl font-bold">
-                  {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
+            <div className="bg-white p-6 rounded-lg shadow border h-full">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-8 w-8 text-blue-600" />
+                <div>
+                  <div className="text-2xl font-bold">{company.events.length}</div>
+                  <div className="text-gray-600">Total Events</div>
                 </div>
-                <div className="text-gray-600">Total Registrations</div>
               </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow border h-full">
+              <div className="flex items-center gap-3">
+                <Users className="h-8 w-8 text-green-600" />
+                <div>
+                  <div className="text-2xl font-bold">{company.members.length}</div>
+                  <div className="text-gray-600">Team Members</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow border h-full">
+              <div className="flex items-center gap-3">
+                <Settings className="h-8 w-8 text-purple-600" />
+                <div>
+                  <div className="text-2xl font-bold">
+                    {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
+                  </div>
+                  <div className="text-gray-600">Total Registrations</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Events List */}
+          <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Events</h2>
+              <Badge variant="secondary" className="ml-2">
+                {company.events.length} Total
+              </Badge>
+            </div>
+            <div className="p-0">
+              {company.events.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No events created yet</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Event Name</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Registrations</TableHead>
+                      <TableHead>Tickets Remaining</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {company.events.map((event) => {
+                      const capacity = event.capacity || 0;
+                      const registrations = event._count?.registrations || 0;
+                      const ticketsRemaining = Math.max(0, capacity - registrations);
+
+                      return (
+                        <TableRow key={event.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">
+                            {event.name}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col text-sm">
+                              <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                              {event.end_date && (
+                                <span className="text-gray-500 text-xs">
+                                  to {new Date(event.end_date).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{event.location || 'Online'}</TableCell>
+                          <TableCell>
+                            {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-gray-400" />
+                              <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
+                              {capacity > 0 ? ticketsRemaining : 'Unlimited'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={
+                              event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' :
+                                event.status === 'DRAFT' ? 'secondary' : 'outline'
+                            }>
+                              {event.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Events List */}
-        <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
-          <div className="p-6 border-b flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Events</h2>
-            <Badge variant="secondary" className="ml-2">
-              {company.events.length} Total
-            </Badge>
-          </div>
-          <div className="p-0">
-            {company.events.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No events created yet</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Event Name</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Registrations</TableHead>
-                    <TableHead>Tickets Remaining</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {company.events.map((event) => {
-                    const capacity = event.capacity || 0;
-                    const registrations = event._count?.registrations || 0;
-                    const ticketsRemaining = Math.max(0, capacity - registrations);
-                    
-                    return (
-                      <TableRow key={event.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">
-                          {event.name}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col text-sm">
-                            <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                            {event.end_date && (
-                              <span className="text-gray-500 text-xs">
-                                to {new Date(event.end_date).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{event.location || 'Online'}</TableCell>
-                        <TableCell>
-                          {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
-                            {capacity > 0 ? ticketsRemaining : 'Unlimited'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={
-                            event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' : 
-                            event.status === 'DRAFT' ? 'secondary' : 'outline'
-                          }>
-                            {event.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </div>
-      </div>
+        {/* Right Sidebar - Company Management & Featured Apps */}
+        <div className="w-full lg:w-80 shrink-0 space-y-6">
+          {/* Company Management Options / Super Admin Modules */}
+          <div className="bg-white rounded-lg shadow border overflow-hidden sticky top-6">
+            <div className="p-4 border-b bg-indigo-50/50 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-indigo-600" />
+              <h2 className="font-semibold text-gray-900">
+                {isSuperAdminCompany ? 'Super Admin Modules' : 'Company Management'}
+              </h2>
+            </div>
+            <div className="divide-y">
+              {isSuperAdminCompany ? (
+                <>
+                  {/* Lookup Management */}
+                  <div
+                    onClick={() => router.push('/admin/lookup')}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-all">
+                        <BookOpen className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Lookup Management</h3>
+                        <p className="text-xs text-gray-500">Manage system lookups</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
 
-      {/* Right Sidebar - Company Management & Featured Apps */}
-      <div className="w-full lg:w-80 shrink-0 space-y-6">
-        {/* Company Management Options */}
-        <div className="bg-white rounded-lg shadow border overflow-hidden sticky top-6">
-          <div className="p-4 border-b bg-indigo-50/50 flex items-center gap-2">
-             <Settings className="h-5 w-5 text-indigo-600" />
-             <h2 className="font-semibold text-gray-900">Company Management</h2>
-          </div>
-          <div className="divide-y">
-             <div 
-                onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
-                className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-             >
-                <div className="flex items-center gap-3">
-                   <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
-                      <Users className="h-5 w-5 text-blue-600" />
-                   </div>
-                   <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">Users</h3>
-                      <p className="text-xs text-gray-500">Manage company users</p>
-                   </div>
-                   <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                </div>
-             </div>
-             <div 
-                onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
-                className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-             >
-                <div className="flex items-center gap-3">
-                   <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
-                      <Settings className="h-5 w-5 text-purple-600" />
-                   </div>
-                   <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">System Settings</h3>
-                      <p className="text-xs text-gray-500">Configure system settings</p>
-                   </div>
-                   <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                </div>
-             </div>
-          </div>
-        </div>
+                  {/* User Management */}
+                  <div
+                    onClick={() => router.push('/admin/users')}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
+                        <Users className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">User Management</h3>
+                        <p className="text-xs text-gray-500">Manage all users</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
 
-        {/* Featured App Highlights */}
-        <div className="bg-white rounded-lg shadow border overflow-hidden">
-          <div className="p-4 border-b bg-blue-50/50 flex items-center gap-2">
-             <Star className="h-5 w-5 text-blue-600 fill-blue-600" />
-             <h2 className="font-semibold text-gray-900">Featured App Highlights</h2>
+                  {/* System Settings */}
+                  <div
+                    onClick={() => router.push('/super-admin/settings')}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
+                        <Settings className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">System Settings</h3>
+                        <p className="text-xs text-gray-500">Configure system settings</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+
+                  {/* Verifications */}
+                  <div
+                    onClick={() => router.push('/admin/verifications')}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-orange-100 group-hover:bg-orange-200 transition-all">
+                        <UserCheck className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Verifications</h3>
+                        <p className="text-xs text-gray-500">Review user verifications</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+
+                  {/* Analytics */}
+                  <div
+                    onClick={() => router.push('/admin/analytics')}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-all">
+                        <Calendar className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Analytics</h3>
+                        <p className="text-xs text-gray-500">View system analytics</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
+                        <Users className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Users</h3>
+                        <p className="text-xs text-gray-500">Manage company users</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
+                        <Settings className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">System Settings</h3>
+                        <p className="text-xs text-gray-500">Configure system settings</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <div className="divide-y">
-             {apps.map(app => (
-                <div 
-                  key={app.id} 
+
+          {/* Featured App Highlights */}
+          <div className="bg-white rounded-lg shadow border overflow-hidden">
+            <div className="p-4 border-b bg-blue-50/50 flex items-center gap-2">
+              <Star className="h-5 w-5 text-blue-600 fill-blue-600" />
+              <h2 className="font-semibold text-gray-900">Featured App Highlights</h2>
+            </div>
+            <div className="divide-y">
+              {apps.map(app => (
+                <div
+                  key={app.id}
                   className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
                   onClick={() => {
                     if (app.id === 'events') {
@@ -548,26 +640,26 @@ export default function CompanyDetailsPage() {
                     }
                   }}
                 >
-                   <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all ${app.color}`}>
-                         <app.icon className="h-6 w-6" />
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all ${app.color}`}>
+                      <app.icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-gray-900 truncate pr-2">{app.name}</h3>
+                        {app.status === 'active' && <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">ACTIVE</span>}
+                        {app.status === 'coming_soon' && <span className="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">COMING SOON</span>}
                       </div>
-                      <div className="flex-1 min-w-0">
-                         <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-medium text-gray-900 truncate pr-2">{app.name}</h3>
-                            {app.status === 'active' && <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">ACTIVE</span>}
-                            {app.status === 'coming_soon' && <span className="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">COMING SOON</span>}
-                         </div>
-                         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{app.description}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-400 mt-2" />
-                   </div>
+                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{app.description}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-400 mt-2" />
+                  </div>
                 </div>
-             ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
