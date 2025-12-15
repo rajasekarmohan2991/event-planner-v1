@@ -107,9 +107,39 @@ export async function middleware(req: NextRequest) {
       secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
     })
     if (token) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
+      // Redirect directly to role-based dashboard to avoid extra redirect
+      const role = token.role as string
+      let dashboardPath = '/dashboard/user' // default
+
+      if (role === 'SUPER_ADMIN') dashboardPath = '/admin'
+      else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
+      else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
+      else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
+
+      return NextResponse.redirect(new URL(dashboardPath, req.url))
     }
     return NextResponse.next()
+  }
+
+  // Optimize /dashboard redirect
+  if (pathname === '/dashboard') {
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
+    })
+
+    if (token) {
+      const role = token.role as string
+      let dashboardPath = '/dashboard/user'
+
+      if (role === 'SUPER_ADMIN') dashboardPath = '/admin'
+      else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
+      else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
+      else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
+
+      return NextResponse.redirect(new URL(dashboardPath, req.url))
+    }
   }
 
   // Skip public routes

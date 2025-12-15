@@ -42,17 +42,17 @@ async function ensureSuperAdminTenantForUser(userIdInput: any) {
   const uid = typeof userIdInput === 'bigint' ? userIdInput : BigInt(userIdInput)
   let tenant = await prisma.tenant.findUnique({ where: { slug: 'super-admin' } })
   if (!tenant) {
-    tenant = await prisma.tenant.create({ 
-      data: { 
-        name: 'Super Admin', 
-        slug: 'super-admin', 
+    tenant = await prisma.tenant.create({
+      data: {
+        name: 'Super Admin',
+        slug: 'super-admin',
         subdomain: 'super-admin',
         plan: 'ENTERPRISE',
         status: 'ACTIVE',
         maxEvents: 1000000,
         maxUsers: 1000000,
         maxStorage: 1000000
-      } 
+      }
     })
   } else {
     // Ensure existing super-admin tenant has high limits
@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
-    updateAge: 60 * 60, // Rotate at most once per hour to avoid 'new session' on every request
+    updateAge: 24 * 60 * 60, // Update session once per day instead of every hour for better performance
   },
   jwt: {
     maxAge: 7 * 24 * 60 * 60, // 7 days
@@ -154,7 +154,7 @@ export const authOptions: NextAuthOptions = {
                 if (!user.emailVerified) {
                   await prisma.user.update({ where: { id: user.id }, data: { emailVerified: new Date() } })
                 }
-              } catch {}
+              } catch { }
             }
             const accessToken = Buffer.from(JSON.stringify({
               sub: String(user.id),
@@ -295,7 +295,7 @@ export const authOptions: NextAuthOptions = {
               if (existingUser.role === 'SUPER_ADMIN') {
                 await ensureSuperAdminTenantForUser(existingUser.id)
               }
-            } catch (e) {}
+            } catch (e) { }
           } else {
             // Create new user from OAuth profile
             const email = user.email!.toLowerCase()
@@ -342,7 +342,7 @@ export const authOptions: NextAuthOptions = {
               if (newUser.role === 'SUPER_ADMIN') {
                 await ensureSuperAdminTenantForUser(newUser.id)
               }
-            } catch (e) {}
+            } catch (e) { }
 
             console.log(`✅ Created new user from ${account.provider}: ${user.email}`)
           }

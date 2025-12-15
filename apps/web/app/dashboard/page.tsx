@@ -2,67 +2,57 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { getDashboardRoute } from '@/lib/roles-config'
 import { UserRole } from '@/lib/roles-config'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [redirecting, setRedirecting] = useState(false)
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
     // Prevent multiple redirects
-    if (redirecting) return
+    if (hasRedirected.current) return
 
-    // Add timeout protection - if we're stuck loading for more than 5 seconds, force redirect to login
-    const timeout = setTimeout(() => {
-      if (status === 'loading') {
-        console.warn('Session loading timeout - redirecting to login')
-        setRedirecting(true)
-        router.push('/auth/login')
-      }
-    }, 5000)
-
-    if (status === 'loading') return () => clearTimeout(timeout)
-
-    if (!session) {
-      setRedirecting(true)
-      router.push('/auth/login')
-      clearTimeout(timeout)
+    // Immediate redirect if not authenticated
+    if (status === 'unauthenticated') {
+      hasRedirected.current = true
+      router.replace('/auth/login')
       return
     }
 
-    const userRole = (session as any)?.user?.role as UserRole
-    if (userRole) {
-      const dashboardRoute = getDashboardRoute(userRole)
-      setRedirecting(true)
-      router.push(dashboardRoute)
-    } else {
-      // Default fallback for users without defined roles
-      setRedirecting(true)
-      router.push('/dashboard/user')
+    // Wait for session to load, but with a hard timeout
+    if (status === 'loading') {
+      const timeout = setTimeout(() => {
+        if (!hasRedirected.current) {
+          console.warn('Session timeout - redirecting to login')
+          hasRedirected.current = true
+          router.replace('/auth/login')
+        }
+      }, 3000) // Reduced to 3 seconds
+
+      return () => clearTimeout(timeout)
     }
 
-    clearTimeout(timeout)
-  }, [session, status, router, redirecting])
+    // Redirect authenticated users to their dashboard
+    if (status === 'authenticated' && session) {
+      const userRole = (session as any)?.user?.role as UserRole
+      const dashboardRoute = userRole ? getDashboardRoute(userRole) : '/dashboard/user'
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    )
-  }
+      hasRedirected.current = true
+      router.replace(dashboardRoute)
+    }
+  }, [session, status, router])
 
+  // Show minimal loading state
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Redirecting to your dashboard...</p>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
+        <p className="text-sm text-gray-600">
+          {status === 'loading' ? 'Loading...' : 'Redirecting...'}
+        </p>
       </div>
     </div>
   )
