@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const eventId = parseInt(params.id)
-    
+
     // Ensure tables exist
     try {
       // Tables should already exist from migrations, skip creation to avoid schema conflicts
@@ -73,71 +73,59 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
+
     // Delete existing seats for this event
-    await prisma.$executeRaw`
-      DELETE FROM seat_inventory WHERE event_id = ${eventId}
-    `
+    await prisma.seatInventory.deleteMany({
+      where: { eventId: BigInt(eventId) }
+    })
 
     // Get tenant_id from event
     const tenantId = getTenantId() || null
 
     // Save floor plan configuration
-    await prisma.$executeRaw`
-      INSERT INTO floor_plan_configs (
-        event_id,
-        plan_name,
-        layout_data,
-        total_seats,
-        sections,
-        tenant_id
-      ) VALUES (
-        ${eventId},
-        ${plan.name || 'Default Floor Plan'},
-        ${JSON.stringify(plan)}::jsonb,
-        ${plan.totalSeats || 0},
-        ${JSON.stringify(plan.sections ?? [])}::jsonb,
-        ${tenantId}
-      )
-      ON CONFLICT (event_id, plan_name)
-      DO UPDATE SET
-        layout_data = EXCLUDED.layout_data,
-        total_seats = EXCLUDED.total_seats,
-        sections = EXCLUDED.sections,
-        tenant_id = EXCLUDED.tenant_id,
-        updated_at = NOW()
-    `
+    await prisma.floorPlanConfig.upsert({
+      where: {
+        eventId_planName: {
+          eventId: BigInt(eventId),
+          planName: plan.name || 'Default Floor Plan'
+        }
+      },
+      update: {
+        layoutData: plan,
+        totalSeats: plan.totalSeats || 0,
+        sections: plan.sections || [],
+        tenantId: tenantId,
+      },
+      create: {
+        eventId: BigInt(eventId),
+        planName: plan.name || 'Default Floor Plan',
+        layoutData: plan,
+        totalSeats: plan.totalSeats || 0,
+        sections: plan.sections || [],
+        tenantId: tenantId,
+      }
+    })
 
-    // Generate seats from floor plan (supports legacy sections or V3 typed plans)
+    // Generate seats from floor plan
     let totalSeatsGenerated = 0
-    let globalSeatNumber = 1 // Sequential numbering across entire venue
+    let globalSeatNumber = 1
     const seats: any[] = []
 
     const insertSeat = async (sectionName: string, rowLabel: string, seatNum: number, seatType: string, basePrice: number, xCoord: number, yCoord: number) => {
-      await prisma.$executeRaw`
-        INSERT INTO seat_inventory (
-          event_id,
-          section,
-          row_number,
-          seat_number,
-          seat_type,
-          base_price,
-          x_coordinate,
-          y_coordinate,
-          is_available,
-          tenant_id
-        ) VALUES (
-          ${eventId},
-          ${sectionName},
-          ${String(rowLabel)},
-          ${String(seatNum)},
-          ${seatType},
-          ${basePrice},
-          ${xCoord},
-          ${yCoord},
-          true,
-          ${tenantId}
-        )
-      `
+      await prisma.seatInventory.create({
+        data: {
+          eventId: BigInt(eventId),
+          section: sectionName,
+          rowNumber: String(rowLabel),
+          seatNumber: String(seatNum),
+          seatType: seatType,
+          basePrice: basePrice,
+          xCoordinate: xCoord,
+          yCoordinate: yCoord,
+          isAvailable: true,
+          tenantId: tenantId
+        }
+      })
       totalSeatsGenerated++
       seats.push({ section: sectionName, row: rowLabel, seat: seatNum, price: basePrice })
       globalSeatNumber++
@@ -277,7 +265,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('Error generating seats:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to generate seats',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })
@@ -295,34 +283,45 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const eventId = parseInt(params.id)
     const tenantId = getTenantId()
 
-    const floorPlan = await prisma.$queryRaw`
-      SELECT 
-        id::text,
-        plan_name as "planName",
-        layout_data as "layoutData",
-        total_seats as "totalSeats",
-        sections,
-        created_at as "createdAt"
-      FROM floor_plan_configs
-      WHERE event_id = ${eventId}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `
 
-    const seatCount = await prisma.$queryRaw`
-      SELECT COUNT(*)::int as count
-      FROM seat_inventory
-      WHERE event_id = ${eventId}
-    `
+    const floorPlan = await prisma.floorPlanConfig.findUnique({
+      where: {
+        eventId_planName: {
+          eventId: BigInt(eventId),
+          planName: 'Default Floor Plan' // Default to this name or findFirst
+        }
+      }
+    })
+
+    // Fallback if not found by specific name, try finding any for event (legacy support)
+    let planData = floorPlan
+    if (!planData) {
+      const anyPlan = await prisma.floorPlanConfig.findFirst({
+        where: { eventId: BigInt(eventId) },
+        orderBy: { createdAt: 'desc' }
+      })
+      planData = anyPlan
+    }
+
+    const seatCount = await prisma.seatInventory.count({
+      where: { eventId: BigInt(eventId) }
+    })
 
     return NextResponse.json({
-      floorPlan: (floorPlan as any[])[0] || null,
-      totalSeats: (seatCount as any[])[0]?.count || 0
+      floorPlan: planData ? {
+        id: String(planData.id),
+        planName: planData.planName,
+        layoutData: planData.layoutData,
+        totalSeats: planData.totalSeats,
+        sections: planData.sections,
+        createdAt: planData.createdAt
+      } : null,
+      totalSeats: seatCount
     })
 
   } catch (error: any) {
     console.error('Error fetching floor plan:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch floor plan',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })

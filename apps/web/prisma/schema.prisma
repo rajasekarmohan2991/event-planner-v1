@@ -1233,6 +1233,87 @@ model CalendarEvent {
   
   createdAt   DateTime  @default(now()) @map("created_at")
   
+
   @@index([eventId])
   @@map("calendar_events")
+}
+
+// ==============================
+// Seat Management (Added for V3)
+// ==============================
+
+model FloorPlanConfig {
+  id          BigInt   @id @default(autoincrement())
+  eventId     BigInt   @map("event_id")
+  planName    String   @map("plan_name")
+  layoutData  Json     @map("layout_data")
+  totalSeats  Int      @default(0) @map("total_seats")
+  sections    Json     @default("[]")
+  tenantId    String?  @map("tenant_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, planName])
+  @@map("floor_plan_configs")
+  @@index([eventId])
+}
+
+model SeatInventory {
+  id          BigInt   @id @default(autoincrement())
+  eventId     BigInt   @map("event_id")
+  section     String
+  rowNumber   String   @map("row_number")
+  seatNumber  String   @map("seat_number")
+  seatType    String   @default("STANDARD") @map("seat_type")
+  basePrice   Int      @default(0) @map("base_price") // in cents/paise
+  xCoordinate Float    @default(0) @map("x_coordinate")
+  yCoordinate Float    @default(0) @map("y_coordinate")
+  isAvailable Boolean  @default(true) @map("is_available")
+  isReserved  Boolean  @default(false) @map("is_reserved")
+  reservedBy  BigInt?  @map("reserved_by")
+  reservedAt  DateTime? @map("reserved_at")
+  status      String   @default("AVAILABLE") // AVAILABLE, BOOKED, BLOCKED
+  tenantId    String?  @map("tenant_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, section, rowNumber, seatNumber])
+  @@map("seat_inventory")
+  @@index([eventId, status])
+}
+
+model SeatPricingRule {
+  id          BigInt   @id @default(autoincrement())
+  eventId     BigInt   @map("event_id")
+  section     String?
+  rowPattern  String?  @map("row_pattern") 
+  seatType    String?  @map("seat_type")
+  basePrice   Int      @map("base_price")
+  multiplier  Float    @default(1.0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+
+  @@map("seat_pricing_rules")
+  @@index([eventId])
+}
+
+model SeatReservation {
+  id          String   @id @default(cuid())
+  eventId     BigInt   @map("event_id")
+  seatId      BigInt   @map("seat_id")
+  userId      BigInt?  @map("user_id")
+  userEmail   String?  @map("user_email")
+  registrationId String? @map("registration_id")
+  status      String   @default("RESERVED") // RESERVED, LOCKED, CONFIRMED, EXPIRED
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenantId    String?  @map("tenant_id")
+
+  @@map("seat_reservations")
+  @@index([eventId, status])
+  @@index([seatId])
+  @@index([expiresAt])
 }
