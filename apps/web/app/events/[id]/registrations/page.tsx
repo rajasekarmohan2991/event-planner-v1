@@ -458,10 +458,24 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <button
+            onClick={() => loadRegistrations(selectedStatus, pagination.page - 1)}
+            disabled={pagination.page <= 0 || loading}
+            className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
           <span className="text-sm text-gray-600">
             Page {pagination.page + 1} of {pagination.totalPages} ({pagination.total} total)
           </span>
+          <button
+            onClick={() => loadRegistrations(selectedStatus, pagination.page + 1)}
+            disabled={pagination.page >= pagination.totalPages - 1 || loading}
+            className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

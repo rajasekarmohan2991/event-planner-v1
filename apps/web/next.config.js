@@ -49,6 +49,12 @@ const nextConfig = {
           { key: 'Expires', value: '0' },
         ],
       },
+      {
+        source: '/api/map/static',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=3600, immutable' },
+        ],
+      },
     ]
   },
   output: 'standalone',

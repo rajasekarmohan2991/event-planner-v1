@@ -24,30 +24,43 @@ export async function apiFetch<T = any>(
     headers.set('Authorization', `Bearer ${token}`)
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+
   const config: RequestInit = {
     ...options,
     headers,
     credentials: 'include', // Include cookies for auth
+    signal: options.signal || controller.signal,
   }
 
-  const response = await fetch(url, config)
-  
-  // Handle empty responses (e.g., 204 No Content)
-  if (response.status === 204) {
-    return null as unknown as T
+  try {
+    const response = await fetch(url, config)
+    clearTimeout(timeoutId)
+    
+    // Handle empty responses (e.g., 204 No Content)
+    if (response.status === 204) {
+      return null as unknown as T
+    }
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.message || 'An error occurred',
+        response.status,
+        data.details
+      )
+    }
+
+    return data
+  } catch (error: any) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new ApiError('Request timed out', 408)
+    }
+    throw error
   }
-
-  const data = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    throw new ApiError(
-      data.message || 'An error occurred',
-      response.status,
-      data.details
-    )
-  }
-
-  return data
 }
 
 export const api = {

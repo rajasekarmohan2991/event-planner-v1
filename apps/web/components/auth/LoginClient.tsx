@@ -5,16 +5,20 @@ import { LoginForm } from '@/components/auth/LoginForm'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { getDashboardRoute, UserRole } from '@/lib/roles-config'
 
 export default function LoginClient() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace('/dashboard')
+    if (status === 'authenticated' && session?.user) {
+      // Direct redirect to role-specific dashboard to avoid middleware double-redirect
+      const role = (session.user as any).role as UserRole
+      const target = role ? getDashboardRoute(role) : '/dashboard'
+      router.replace(target)
     }
-  }, [status, router])
+  }, [status, session, router])
 
   return (
     <AuthLayout
