@@ -18,9 +18,11 @@ function buildSafeDatabaseUrl() {
     // Disable prepared statements in pooled environments
     if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true')
     if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '10')
-    // Force SSL in production if not explicitly set
+    // Force SSL in production if not explicitly set, but skip for localhost/IPs
     if (process.env.NODE_ENV === 'production' && !u.searchParams.has('sslmode')) {
-      u.searchParams.set('sslmode', 'require')
+      if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1' && !u.hostname.startsWith('192.168.')) {
+        u.searchParams.set('sslmode', 'require')
+      }
     }
     return u.toString()
   } catch {
