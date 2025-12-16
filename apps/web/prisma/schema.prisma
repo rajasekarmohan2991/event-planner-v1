@@ -1191,6 +1191,7 @@ model Event {
   eventManagerEmail  String?   @map("event_manager_email")
 
   tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  speakers           Speaker[]
 
   @@map("events")
 }
