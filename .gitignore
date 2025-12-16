@@ -103,3 +103,4 @@ lerna-debug.log
 
 # Turbo
 .turbo/
+apps/api-java/target/
