@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -40,7 +40,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/users') ||
       pathname?.startsWith('/admin/lookup') ||
       pathname?.startsWith('/admin/currency') ||
-      pathname?.startsWith('/super-admin/settings');
+      pathname?.startsWith('/super-admin/settings') ||
+      pathname?.startsWith('/super-admin/lookups');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show limited options with back to companies
@@ -55,6 +56,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Events', href: '/admin/events', icon: Calendar },
         { name: 'Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Data', href: '/admin/lookup', icon: Database },
+        { name: 'Lookup Management', href: '/super-admin/lookups', icon: List },
         { name: 'Currency Settings', href: '/admin/currency', icon: Shield },
         { name: 'System Settings', href: '/super-admin/settings', icon: Settings }
       )
