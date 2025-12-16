@@ -76,7 +76,26 @@ This guide covers explicitly how to connect **Supabase** (Database), **Render** 
 
 ---
 
-## ✅ Step 5: Verification
+## 📱 Step 5: WhatsApp & SMS Setup (Twilio)
+*Enable WhatsApp messaging for event notifications.*
+
+1.  **Create Twilio Account**: Sign up at [Twilio](https://www.twilio.com).
+2.  **Get Credentials**: Copy your **Account SID** and **Auth Token** from the dashboard.
+3.  **Setup WhatsApp Sandbox**:
+    *   Go to **Messaging** > **Try it out** > **Send a WhatsApp message**.
+    *   Follow the instructions to join the sandbox (send `join <code` to `+14155238886`).
+    *   **Crucial**: Only numbers that have joined the sandbox can receive messages during testing.
+4.  **Configure Environment**:
+    *   Add these to your **Vercel** and **Render** environment variables:
+        *   `TWILIO_ACCOUNT_SID`: (Your SID)
+        *   `TWILIO_AUTH_TOKEN`: (Your Token)
+        *   `TWILIO_WHATSAPP_FROM`: `whatsapp:+14155238886` (Sandbox number)
+    *   For SMS (Optional):
+        *   `TWILIO_SMS_FROM`: (Your Twilio Phone Number)
+
+---
+
+## ✅ Step 6: Verification
 1.  Open your **Vercel URL**.
 2.  **Loading Check**: The initial load might be slow if Render is "waking up". Wait 60s.
 3.  **Login**: Try logging in. If Google OAuth fails, ensure you added the Vercel domain to your **Google Cloud Console** > **Authorized Javascript Origins** and **Authorized Redirect URIs**.
