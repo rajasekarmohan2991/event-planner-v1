@@ -4,6 +4,12 @@
 .DS_Store
 node_modules
 **/node_modules
-**/target
 **/.next
 .vercel
+
+# Allow api-java source files for Docker build
+!apps/api-java/src
+!apps/api-java/pom.xml
+
+# But still ignore api-java build artifacts
+apps/api-java/target
