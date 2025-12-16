@@ -24,7 +24,11 @@ const nextConfig = {
   skipMiddlewareUrlNormalize: true,
   skipTrailingSlashRedirect: true,
   env: {
-    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081',
+    NEXT_PUBLIC_API_BASE_URL:
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://event-planner-v1.onrender.com'
+        : 'http://localhost:8081'),
   },
   images: {
     domains: ['localhost', 'lottiefiles.com', 'assets8.lottiefiles.com'],
