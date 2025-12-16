@@ -1,11 +1,11 @@
 # Build stage
 FROM maven:3.9.8-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY apps/api-java/pom.xml .
+COPY pom.xml .
 # First download dependencies to cache them
 RUN mvn dependency:go-offline
 # Copy source code
-COPY apps/api-java/src ./src
+COPY src ./src
 # Build the application using Spring Boot Maven plugin
 RUN mvn clean package -DskipTests
 
