@@ -1,7 +1,23 @@
 // Comprehensive Role-Based Access Control Configuration
+// Aligned with database enums: SystemRole and TenantRole
 
+// System-level roles (from SystemRole enum in database)
+export type SystemRole = 'SUPER_ADMIN' | 'USER'
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'TENANT_ADMIN' | 'EVENT_MANAGER' | 'ORGANIZER' | 'USER' | 'STAFF' | 'VIEWER' | 'EXHIBITOR_MANAGER'
+// Tenant-level roles (from TenantRole enum in database)
+export type TenantRole =
+  | 'TENANT_ADMIN'
+  | 'EVENT_MANAGER'
+  | 'VENUE_MANAGER'
+  | 'FINANCE_ADMIN'
+  | 'MARKETING_ADMIN'
+  | 'SUPPORT_STAFF'
+  | 'EXHIBITOR_MANAGER'
+  | 'ATTENDEE'
+  | 'VIEWER'
+
+// Combined type for convenience (used in session and role checks)
+export type UserRole = SystemRole | TenantRole | 'ORGANIZER' // ORGANIZER kept for backward compatibility
 
 export type Permission =
   // User Management
@@ -109,35 +125,6 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     color: 'indigo'
   },
 
-  ADMIN: {
-    name: 'ADMIN',
-    displayName: 'Administrator',
-    description: 'View users and manage events with analytics access',
-    permissions: [
-      // Users: View only ✅ (NO create, edit, delete)
-      'users.view',
-      // Events: View, create, edit ✅ (NO delete)
-      'events.view', 'events.create', 'events.edit', 'events.publish',
-      'events.manage_registrations', 'events.view_analytics',
-      // Analytics: View analytics ✅
-      'analytics.view', 'analytics.export',
-      // Additional permissions for admin functionality
-      'registrations.view', 'registrations.approve', 'registrations.cancel', 'registrations.export',
-      'admin.dashboard', 'admin.settings', 'admin.verifications',
-      'communication.send_email', 'communication.send_sms',
-      'payments.view', 'payments.process',
-      'promo_codes.view', 'promo_codes.create', 'promo_codes.edit', 'promo_codes.delete'
-    ],
-    dashboardRoute: '/admin',
-    allowedRoutes: [
-      '/admin/dashboard', '/admin/users', '/admin/settings', '/admin/verifications',
-      '/events/*', '/analytics/*'
-    ],
-    navigationItems: [
-      'admin-dashboard', 'user-management', 'event-management', 'verifications', 'analytics'
-    ],
-    color: 'blue'
-  },
 
   EVENT_MANAGER: {
     name: 'EVENT_MANAGER',
@@ -188,23 +175,82 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     color: 'purple'
   },
 
-  STAFF: {
-    name: 'STAFF',
-    displayName: 'Staff',
-    description: 'Operational staff with read-only access to events and registrations',
+  VENUE_MANAGER: {
+    name: 'VENUE_MANAGER',
+    displayName: 'Venue Manager',
+    description: 'Manages venue operations and logistics',
+    permissions: [
+      'events.view', 'events.edit',
+      'registrations.view',
+      'design.templates'
+    ],
+    dashboardRoute: '/dashboard/venue-manager',
+    allowedRoutes: ['/dashboard/venue-manager', '/events/*', '/venues/*'],
+    navigationItems: ['events', 'venues', 'logistics'],
+    color: 'amber'
+  },
+
+  FINANCE_ADMIN: {
+    name: 'FINANCE_ADMIN',
+    displayName: 'Finance Admin',
+    description: 'Handles payments and financial reports',
     permissions: [
       'events.view',
-      'registrations.view'
+      'registrations.view', 'registrations.export',
+      'payments.view', 'payments.process', 'payments.refund',
+      'analytics.view', 'analytics.export', 'analytics.payments',
+      'promo_codes.view', 'promo_codes.create', 'promo_codes.edit'
     ],
-    dashboardRoute: '/dashboard/staff',
-    allowedRoutes: [
-      '/dashboard/staff', '/events/*'
+    dashboardRoute: '/dashboard/finance',
+    allowedRoutes: ['/dashboard/finance', '/events/*', '/payments/*', '/analytics/*'],
+    navigationItems: ['payments', 'analytics', 'reports'],
+    color: 'emerald'
+  },
+
+  MARKETING_ADMIN: {
+    name: 'MARKETING_ADMIN',
+    displayName: 'Marketing Admin',
+    description: 'Controls branding and communications',
+    permissions: [
+      'events.view', 'events.edit',
+      'communication.send_email', 'communication.send_sms', 'communication.bulk_operations',
+      'design.templates', 'design.branding', 'design.themes',
+      'promo_codes.view', 'promo_codes.create', 'promo_codes.edit',
+      'analytics.view'
     ],
-    navigationItems: [
-      'view-events', 'registrations'
+    dashboardRoute: '/dashboard/marketing',
+    allowedRoutes: ['/dashboard/marketing', '/events/*', '/communicate/*', '/design/*'],
+    navigationItems: ['campaigns', 'branding', 'communications'],
+    color: 'pink'
+  },
+
+  SUPPORT_STAFF: {
+    name: 'SUPPORT_STAFF',
+    displayName: 'Support Staff',
+    description: 'On-ground event support',
+    permissions: [
+      'events.view',
+      'registrations.view', 'registrations.approve'
     ],
+    dashboardRoute: '/dashboard/support',
+    allowedRoutes: ['/dashboard/support', '/events/*', '/checkin/*'],
+    navigationItems: ['events', 'registrations', 'check-in'],
     color: 'teal'
   },
+
+  ATTENDEE: {
+    name: 'ATTENDEE',
+    displayName: 'Attendee',
+    description: 'Public event registration (read-only)',
+    permissions: [
+      'events.view'
+    ],
+    dashboardRoute: '/dashboard/user',
+    allowedRoutes: ['/dashboard/user', '/events/*/public', '/my-tickets'],
+    navigationItems: ['my-events', 'my-tickets'],
+    color: 'slate'
+  },
+
 
   VIEWER: {
     name: 'VIEWER',
