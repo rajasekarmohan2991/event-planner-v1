@@ -1214,10 +1214,15 @@ model Speaker {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   tenantId    String?   @map("tenant_id")
 
+  // Relation to Event (Required by Java entity)
+  eventId     BigInt    @map("event_id")
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   sessions    SessionSpeaker[]
 
   @@map("speakers")
   @@index([tenantId])
+  @@index([eventId])
 }
 
 model SessionSpeaker {
