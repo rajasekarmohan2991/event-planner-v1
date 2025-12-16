@@ -4,10 +4,6 @@
 .DS_Store
 node_modules
 **/node_modules
-target
 **/target
-dist
-**/dist
+**/.next
 .vercel
-.next
-apps/web/.next

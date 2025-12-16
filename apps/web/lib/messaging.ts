@@ -156,6 +156,35 @@ async function sendWithSMSMode(to: string, body: string): Promise<SMSResult> {
   }
 }
 
+async function sendWhatsAppWithTwilio(to: string, body: string): Promise<WAResult> {
+  try {
+    console.log('📱 Twilio WhatsApp - Attempting to send message')
+    const toNormalized = normalizePhone(to)
+    // Twilio WhatsApp requires 'whatsapp:' prefix
+    const toWhatsApp = `whatsapp:${toNormalized}`
+    // Default to sandbox number if not set
+    const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'
+
+    console.log(`📱 Sending WhatsApp from ${fromWhatsApp} to ${toWhatsApp}`)
+
+    // Dynamic import to avoid build errors if twilio not installed
+    const twilio = await import('twilio')
+    const client = twilio.default(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
+
+    const message = await client.messages.create({
+      to: toWhatsApp,
+      from: fromWhatsApp,
+      body
+    })
+
+    console.log('✅ Twilio WhatsApp sent:', message.sid)
+    return { success: true, id: message.sid }
+  } catch (error: any) {
+    console.error('❌ Twilio WhatsApp error:', error)
+    return { success: false, error: error.message || error }
+  }
+}
+
 export async function sendSMS(to: string, body: string): Promise<SMSResult> {
   const provider = getSMSProvider()
   
@@ -173,13 +202,16 @@ export async function sendSMS(to: string, body: string): Promise<SMSResult> {
 }
 
 export async function sendWhatsApp(to: string, body: string): Promise<WAResult> {
-  // Note: SMSMode doesn't support WhatsApp directly
-  // For now, we'll return an error indicating WhatsApp is not supported
-  // You can integrate with WhatsApp Business API separately if needed
-  console.warn('WhatsApp sending not supported with SMSMode - use WhatsApp Business API')
+  // Check if Twilio is configured
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    return sendWhatsAppWithTwilio(to, body)
+  }
+
+  // Fallback / Error
+  console.warn('WhatsApp sending not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM.')
   return { 
     success: false, 
-    error: 'WhatsApp not supported with SMSMode. Please use WhatsApp Business API for WhatsApp messaging.' 
+    error: 'WhatsApp not configured. Please set Twilio credentials.' 
   }
 }
 
