@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { UserRole, UserRoleWithGuest } from '@/types/user';
 import { useEffect, useState } from 'react';
@@ -39,24 +40,14 @@ const mainNavItems: NavItem[] = [
 
 const MainNav = () => {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [userRole, setUserRole] = useState<UserRoleWithGuest>('GUEST');
 
   useEffect(() => {
-    // Fetch the user's role from the session
-    const fetchUserRole = async () => {
-      try {
-        const response = await fetch('/api/auth/session');
-        const session = await response.json();
-        if (session?.user?.role) {
-          setUserRole(session.user.role);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user role:', error);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
+    if (session?.user?.role) {
+      setUserRole(session.user.role as UserRoleWithGuest);
+    }
+  }, [session]);
 
   const filteredNavItems = mainNavItems.filter(
     (item) => item.roles.includes(userRole) || item.roles.includes('GUEST')

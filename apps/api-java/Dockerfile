@@ -19,7 +19,7 @@ COPY --from=build /app/target/api-java-*.jar app.jar
 EXPOSE 8080
 
 # Set JVM options and Spring profile
-ENV JAVA_TOOL_OPTIONS="-XX:+UseZGC -XX:MaxRAMPercentage=75.0"
+ENV JAVA_TOOL_OPTIONS="-XX:+UseSerialGC -XX:MaxRAMPercentage=70.0 -Xss512k -XX:ActiveProcessorCount=2"
 ENV SPRING_PROFILES_ACTIVE=prod
 
 # Run the application
