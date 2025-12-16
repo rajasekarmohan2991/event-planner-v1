@@ -230,13 +230,12 @@ export default function CompanyDashboardPage() {
         </div>
       </div>
 
-      {/* Featured App Highlights */}
+      {/* Featured App Highlights - Only Events */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800">
           <span className="text-blue-500">☆</span> Featured App Highlights
         </h2>
         <div className="space-y-3">
-          {/* Events Card */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-all">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
@@ -249,57 +248,6 @@ export default function CompanyDashboardPage() {
             </div>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-md uppercase tracking-wide">Active</span>
-              <span className="text-gray-400">›</span>
-            </div>
-          </div>
-
-          {/* Movies Ticket Card */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between opacity-75">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
-                <span className="text-2xl">☆</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Movies Ticket</h3>
-                <p className="text-sm text-gray-500">Book and manage movie screenings and tickets</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-md uppercase tracking-wide">Coming Soon</span>
-              <span className="text-gray-400">›</span>
-            </div>
-          </div>
-
-          {/* Corporate Gifts Card */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between opacity-75">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                <span className="text-2xl">📄</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Corporate Gifts</h3>
-                <p className="text-sm text-gray-500">Manage corporate gifting and inventory</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-md uppercase tracking-wide">Coming Soon</span>
-              <span className="text-gray-400">›</span>
-            </div>
-          </div>
-
-          {/* Arts Card */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between opacity-75">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600">
-                <span className="text-2xl">📖</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Arts</h3>
-                <p className="text-sm text-gray-500">Art exhibitions and gallery management</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-md uppercase tracking-wide">Coming Soon</span>
               <span className="text-gray-400">›</span>
             </div>
           </div>

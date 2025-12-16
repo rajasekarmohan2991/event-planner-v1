@@ -144,30 +144,6 @@ export default function CompanyDetailsPage() {
       icon: Calendar,
       status: 'active',
       color: 'text-purple-600'
-    },
-    {
-      id: 'movies',
-      name: 'Movies Ticket',
-      description: 'Book and manage movie screenings and tickets',
-      icon: Star,
-      status: 'coming_soon',
-      color: 'text-red-600'
-    },
-    {
-      id: 'gifts',
-      name: 'Corporate Gifts',
-      description: 'Manage corporate gifting and inventory',
-      icon: FileText,
-      status: 'coming_soon',
-      color: 'text-green-600'
-    },
-    {
-      id: 'arts',
-      name: 'Arts',
-      description: 'Art exhibitions and gallery management',
-      icon: BookOpen,
-      status: 'coming_soon',
-      color: 'text-teal-600'
     }
   ];
 

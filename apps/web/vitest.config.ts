@@ -1,9 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
-import type { UserConfig } from 'vite';
-
-// Use require for the React plugin
-const react = require('@vitejs/plugin-react').default;
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -21,8 +18,11 @@ export default defineConfig({
         '**/prisma/**',
         '**/.next/**',
         '**/coverage/**',
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
       ],
     },
+    include: ['**/*.test.ts', '**/*.test.tsx'],
   },
   resolve: {
     alias: [

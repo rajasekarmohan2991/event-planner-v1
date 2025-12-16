@@ -62,7 +62,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className={cn(inter.variable, 'min-h-screen font-sans antialiased')}>
+      <body className={cn(
+        inter.variable,
+        'min-h-screen bg-background text-foreground font-sans antialiased'
+      )}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AppProviders>
             <ToastProvider>

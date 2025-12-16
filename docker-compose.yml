@@ -68,14 +68,14 @@ services:
   web:
     build:
       context: ./apps/web
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.disabled
     environment:
       # Let browser use Next.js API routes (no direct Java API base here)
       # Server-to-server calls inside docker network (used by NextAuth authorize)
       INTERNAL_API_BASE_URL: http://api:8080
       NODE_ENV: production
       # Point Prisma to dockerized Postgres service so web can reach it inside the network
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/event_planner?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/event_planner?schema=public&sslmode=disable
       NEXTAUTH_URL: http://localhost:3001
       NEXTAUTH_SECRET: dev_super_secret_change_me
       NEXTAUTH_TRUST_HOST: 'true'

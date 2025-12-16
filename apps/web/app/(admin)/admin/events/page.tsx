@@ -62,7 +62,8 @@ export default function EventsPage() {
   }
 
   const filteredEvents = events.filter(event => {
-    if (filter === 'all') return event.status !== 'DRAFT'
+    // Include Drafts in "All"
+    if (filter === 'all') return true
     if (filter === 'draft') return event.status === 'DRAFT'
     if (filter === 'upcoming') {
       const startDate = new Date(event.startDate)

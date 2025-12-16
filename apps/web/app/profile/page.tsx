@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import Image from "next/image"
 import { Bell, Mail, MessageSquare, Calendar, Shield } from "lucide-react"
@@ -17,6 +17,29 @@ function PreferencesSection() {
 
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/user/preferences', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled) return
+        setPreferences(prev => ({
+          ...prev,
+          emailNotifications: data?.emailNotifications ?? prev.emailNotifications,
+          pushNotifications: data?.pushNotifications ?? prev.pushNotifications,
+          smsNotifications: data?.smsNotifications ?? prev.smsNotifications,
+          eventReminders: data?.eventReminders ?? prev.eventReminders,
+          weeklyDigest: data?.weeklyDigest ?? prev.weeklyDigest,
+          marketingEmails: data?.marketingEmails ?? prev.marketingEmails,
+        }))
+      } catch {}
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   const handleToggle = (key: keyof typeof preferences) => {
     setPreferences(prev => ({ ...prev, [key]: !prev[key] }))

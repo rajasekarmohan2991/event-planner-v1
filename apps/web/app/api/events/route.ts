@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
@@ -8,6 +9,24 @@ import { logActivity, ActivityActions, EntityTypes } from '@/lib/activity'
 const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'
 // Spring Boot context-path is "/api", so all controllers are under /api
 const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
+
+async function resolveTenantId(session: any, req: NextRequest): Promise<string | undefined> {
+  const inboundTenant = req.headers.get('x-tenant-id') || undefined
+  const fromSession = (session as any)?.user?.currentTenantId as string | undefined
+  const fromEnv = process.env.DEFAULT_TENANT_ID || undefined
+  if (fromSession) return fromSession
+  if (inboundTenant) return inboundTenant
+  if (fromEnv) return fromEnv
+  try {
+    const superAdmin = await prisma.tenant.findUnique({ where: { slug: 'super-admin' }, select: { id: true } })
+    if (superAdmin?.id) return superAdmin.id
+  } catch {}
+  try {
+    const anyActive = await prisma.tenant.findFirst({ where: { status: 'ACTIVE' }, select: { id: true } })
+    if (anyActive?.id) return anyActive.id
+  } catch {}
+  return undefined
+}
 
 export async function POST(req: NextRequest) {
   // Check permission for creating events
@@ -72,10 +91,8 @@ export async function POST(req: NextRequest) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
-    // Tenant and role headers for Java API
-    // Prefer tenant from session, then inbound header, then default
-    const inboundTenant = req.headers.get('x-tenant-id') || undefined
-    const tenantId = ((session as any)?.user?.currentTenantId as string | undefined) || inboundTenant || process.env.DEFAULT_TENANT_ID || 'default-tenant'
+    // Tenant and role headers for Java API (robust fallback)
+    const tenantId = await resolveTenantId(session, req)
     const tenantRole = (session as any)?.user?.tenantRole as string | undefined
     const role = tenantRole || ((session as any)?.user?.role as string | undefined)
     if (tenantId) headers['x-tenant-id'] = tenantId
@@ -143,8 +160,7 @@ export async function GET(req: NextRequest) {
   
   try {
     const headers: Record<string, string> = {}
-    const inboundTenant = req.headers.get('x-tenant-id') || undefined
-    const tenantId = ((session as any)?.user?.currentTenantId as string | undefined) || inboundTenant || process.env.DEFAULT_TENANT_ID || 'default-tenant'
+    const tenantId = await resolveTenantId(session, req)
     const role = (session as any)?.user?.role as string | undefined
     const userId = (session as any)?.user?.id
     
@@ -211,6 +227,10 @@ export async function GET(req: NextRequest) {
     const allEvents = payload?.content || payload || []
     
     const events = allEvents
+      .map((raw: any) => ({
+        ...raw,
+        status: (raw.status || '').toUpperCase(),
+      }))
       .filter((event: any) => showTrashed || event.status !== 'TRASHED')
       .map((event: any) => {
         const startDate = new Date(event.startsAt || event.startDate)
@@ -238,7 +258,7 @@ export async function GET(req: NextRequest) {
           bannerImage: event.bannerUrl || event.bannerImage || null,
           priceInr: event.priceInr || event.price_inr || 0,
           capacity: event.expectedAttendees || event.capacity || event.seats || event.maxCapacity || 0,
-          status: actualStatus, // Use calculated status
+          status: actualStatus, // normalized & calculated
           // Add registration count
           registrationCount: registrationCounts[parseInt(event.id)] || 0
         }

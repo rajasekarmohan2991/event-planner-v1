@@ -95,7 +95,16 @@ export async function POST(req: NextRequest) {
     })
 
     if (existingInvite) {
-      return NextResponse.json({ error: 'Invite already sent to this email' }, { status: 409 })
+      // Be idempotent: treat existing pending invite as success to avoid blocking UI
+      return NextResponse.json({ 
+        success: true, 
+        duplicate: true,
+        invite: {
+          ...existingInvite,
+          invitedBy: existingInvite.invitedBy.toString()
+        },
+        message: 'Invite already sent to this email'
+      })
     }
 
     // Create team invite
