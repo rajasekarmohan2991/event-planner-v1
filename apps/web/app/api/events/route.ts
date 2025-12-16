@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`
     
     console.log('🔑 Headers:', { tenantId, role, hasToken: !!accessToken })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout for Java Backend
+
     console.log('🌐 Calling:', `${API_BASE}/events`)
     
     const res: Response = await fetch(`${API_BASE}/events`, {
@@ -90,7 +93,9 @@ export async function POST(req: NextRequest) {
       headers,
       body: JSON.stringify(payload),
       credentials: 'include',
+      signal: controller.signal,
     })
+    clearTimeout(timeoutId)
     
     const text: string = await res.text()
     const isJson: boolean = (res.headers.get('content-type') || '').includes('application/json')
@@ -159,11 +164,16 @@ export async function GET(req: NextRequest) {
       apiUrl += url.search || ''
     }
     
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+
     const res = await fetch(apiUrl, {
       headers,
       credentials: 'include',
       cache: 'no-store',
+      signal: controller.signal,
     })
+    clearTimeout(timeoutId)
     
     const text = await res.text()
     const isJson = (res.headers.get('content-type') || '').includes('application/json')

@@ -209,14 +209,15 @@ export default function EventList() {
     let aborted = false
     ;(async () => {
       const updates: Record<string, { lat: number; lon: number }> = {}
-      for (const city of missing) {
+      
+      await Promise.all(missing.map(async (city) => {
         try {
           // Check database cache first
           const cacheRes = await fetch(`/api/geocoding-cache?city=${encodeURIComponent(city)}`)
           if (cacheRes.ok) {
             const cached = await cacheRes.json()
             updates[city.toLowerCase()] = { lat: cached.lat, lon: cached.lon }
-            continue
+            return
           }
           
           // Fetch from external API
@@ -226,17 +227,16 @@ export default function EventList() {
             const coords = { lat: Number(data.lat), lon: Number(data.lon) }
             updates[city.toLowerCase()] = coords
             
-            // Save to database cache
-            try {
-              await fetch('/api/geocoding-cache', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ city, ...coords })
-              })
-            } catch {}
+            // Save to database cache (fire and forget)
+            fetch('/api/geocoding-cache', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ city, ...coords })
+            }).catch(() => {})
           }
         } catch {}
-      }
+      }))
+
       if (!aborted && Object.keys(updates).length) {
         setCityCoords(prev => ({ ...prev, ...updates }))
       }

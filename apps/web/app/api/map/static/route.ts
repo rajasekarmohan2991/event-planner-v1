@@ -19,8 +19,17 @@ export async function GET(req: NextRequest) {
 
   const upstream = `https://staticmap.openstreetmap.de/staticmap.php?center=${encodeURIComponent(lat)},${encodeURIComponent(lon)}&zoom=${zoom}&size=${w}x${h}&markers=${encodeURIComponent(lat)},${encodeURIComponent(lon)},lightblue1`
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
+  
   try {
-    const res = await fetch(upstream, { cache: 'no-store' })
+    const res = await fetch(upstream, { 
+      cache: 'force-cache', 
+      signal: controller.signal,
+      next: { revalidate: 3600 } // Next.js 13+ cache
+    })
+    clearTimeout(timeout)
+    
     if (res.ok) {
       const arrayBuf = await res.arrayBuffer()
       return new NextResponse(arrayBuf, {
