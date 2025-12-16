@@ -2,7 +2,7 @@
 // Aligned with database enums: SystemRole and TenantRole
 
 // System-level roles (from SystemRole enum in database)
-export type SystemRole = 'SUPER_ADMIN' | 'USER'
+export type SystemRole = 'SUPER_ADMIN' | 'ADMIN' | 'USER'
 
 // Tenant-level roles (from TenantRole enum in database)
 export type TenantRole =
@@ -12,6 +12,7 @@ export type TenantRole =
   | 'FINANCE_ADMIN'
   | 'MARKETING_ADMIN'
   | 'SUPPORT_STAFF'
+  | 'STAFF'
   | 'EXHIBITOR_MANAGER'
   | 'ATTENDEE'
   | 'VIEWER'
@@ -123,6 +124,49 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'admin-dashboard', 'user-management', 'event-management', 'verifications', 'permissions', 'analytics', 'system-settings'
     ],
     color: 'indigo'
+  },
+
+  ADMIN: {
+    name: 'ADMIN',
+    displayName: 'Administrator',
+    description: 'View users and manage events with analytics access',
+    permissions: [
+      // Users: View only ✅ (NO create, edit, delete)
+      'users.view',
+      // Events: View, create, edit ✅ (NO delete)
+      'events.view', 'events.create', 'events.edit', 'events.publish',
+      'events.manage_registrations', 'events.view_analytics',
+      // Analytics: View analytics ✅
+      'analytics.view', 'analytics.export',
+      // Additional permissions for admin functionality
+      'registrations.view', 'registrations.approve', 'registrations.cancel', 'registrations.export',
+      'admin.dashboard', 'admin.settings', 'admin.verifications',
+      'communication.send_email', 'communication.send_sms',
+      'payments.view', 'payments.process',
+      'promo_codes.view', 'promo_codes.create', 'promo_codes.edit', 'promo_codes.delete'
+    ],
+    dashboardRoute: '/admin',
+    allowedRoutes: [
+      '/admin/dashboard', '/admin/users', '/admin/settings', '/admin/verifications',
+      '/events/*', '/analytics/*'
+    ],
+    navigationItems: [
+      'admin-dashboard', 'user-management', 'event-management', 'verifications', 'analytics'
+    ],
+    color: 'blue'
+  },
+
+  USER: {
+    name: 'USER',
+    displayName: 'User',
+    description: 'Basic user with limited access',
+    permissions: [
+      'events.view'
+    ],
+    dashboardRoute: '/dashboard/user',
+    allowedRoutes: ['/dashboard/user', '/events/*/public', '/my-tickets', '/profile'],
+    navigationItems: ['my-events', 'my-tickets', 'profile'],
+    color: 'gray'
   },
 
 
@@ -289,26 +333,18 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     color: 'orange'
   },
 
-  USER: {
-    name: 'USER',
-    displayName: 'User',
-    description: 'View events only - no creation or management permissions',
+  STAFF: {
+    name: 'STAFF',
+    displayName: 'Staff',
+    description: 'General operational staff',
     permissions: [
-      // Users: NO permissions ❌
-      // Events: View only ✅ (NO create, edit, delete)
-      'events.view'
-      // Analytics: NO permissions ❌
-      // System: NO permissions ❌
-      // Roles: NO permissions ❌
+      'events.view',
+      'registrations.view'
     ],
-    dashboardRoute: '/dashboard/user',
-    allowedRoutes: [
-      '/dashboard/user', '/events/[id]/public', '/events/[id]/register'
-    ],
-    navigationItems: [
-      'user-dashboard', 'browse-events', 'my-registrations'
-    ],
-    color: 'gray'
+    dashboardRoute: '/dashboard/staff',
+    allowedRoutes: ['/dashboard/staff', '/events/*', '/checkin/*'],
+    navigationItems: ['events', 'check-in'],
+    color: 'teal'
   }
 }
 

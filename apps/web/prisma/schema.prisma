@@ -15,6 +15,7 @@ datasource db {
 
 enum SystemRole {
   SUPER_ADMIN
+  ADMIN               // Administrator with elevated permissions
   USER
 }
 
@@ -25,6 +26,7 @@ enum TenantRole {
   FINANCE_ADMIN       // Handles payments and financial reports
   MARKETING_ADMIN     // Controls branding and communications
   SUPPORT_STAFF       // On-ground event support
+  STAFF               // General operational staff
   EXHIBITOR_MANAGER   // Manages exhibitor relationships
   ATTENDEE            // Public event registration (read-only)
   VIEWER              // Read-only access to reports
