@@ -2,9 +2,9 @@ services:
   # Java Backend API
   - type: web
     name: event-planner-api
-    runtime: docker
-    dockerfilePath: ./apps/api-java/Dockerfile
-    dockerContext: .
+    runtime: java
+    buildCommand: cd apps/api-java && mvn clean package -DskipTests
+    startCommand: cd apps/api-java && java -jar target/*.jar
     region: singapore
     plan: free
     healthCheckPath: /api/health
@@ -21,6 +21,8 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      - key: PORT
+        value: 8080
 
   # Optional: Next.js Frontend (if deploying to Render instead of Vercel)
   # - type: web
