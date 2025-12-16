@@ -95,17 +95,31 @@ function hasModuleAccess(tenantRole: string | null, module: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Skip all API routes except auth
+  // 1. Skip API routes early (except auth) to avoid unnecessary token parsing
   if (pathname.startsWith('/api') && !pathname.startsWith('/api/auth')) {
     return NextResponse.next()
   }
 
+  // Get authentication token (robust to cookie name/prefix differences)
+  const isHttps = req.nextUrl.protocol === 'https:' || (req.headers.get('x-forwarded-proto') || '').includes('https') || !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
+  
+  // Try to get token with default options first
+  let token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: isHttps,
+  })
+
+  // Fallback checks if token not found (handling different cookie name conventions)
+  if (!token) {
+    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: 'next-auth.session-token' })
+  }
+  if (!token) {
+    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: '__Secure-next-auth.session-token' })
+  }
+
+  // Handle Login Page Redirects (Already authenticated users shouldn't see login)
   if (pathname.startsWith('/auth/login')) {
-    const token = await getToken({
-      req,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
-    })
     if (token) {
       // Redirect directly to role-based dashboard to avoid extra redirect
       const role = token.role as string
@@ -121,14 +135,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Optimize /dashboard redirect
+  // Handle Dashboard Routing (Redirect to role-specific dashboard)
   if (pathname === '/dashboard') {
-    const token = await getToken({
-      req,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
-    })
-
     if (token) {
       const role = token.role as string
       let dashboardPath = '/dashboard/user'
@@ -145,21 +153,6 @@ export async function middleware(req: NextRequest) {
   // Skip public routes
   if (isPublicRoute(pathname)) {
     return NextResponse.next()
-  }
-
-  // Get authentication token (robust to cookie name/prefix differences)
-  const isHttps = req.nextUrl.protocol === 'https:' || (req.headers.get('x-forwarded-proto') || '').includes('https') || !!(process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https://'))
-  let token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: isHttps,
-  })
-  if (!token) {
-    // Fallback to explicit default cookie names
-    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: 'next-auth.session-token' })
-  }
-  if (!token) {
-    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, secureCookie: isHttps, cookieName: '__Secure-next-auth.session-token' })
   }
 
   // Redirect to login if not authenticated

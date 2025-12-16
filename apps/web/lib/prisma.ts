@@ -17,7 +17,7 @@ function buildSafeDatabaseUrl() {
     const u = new URL(raw)
     // Disable prepared statements in pooled environments
     if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true')
-    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '1')
+    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '10')
     // Force SSL in production if not explicitly set
     if (process.env.NODE_ENV === 'production' && !u.searchParams.has('sslmode')) {
       u.searchParams.set('sslmode', 'require')
