@@ -4,7 +4,7 @@ services:
     name: event-planner-api
     runtime: docker
     dockerfilePath: ./apps/api-java/Dockerfile
-    dockerContext: ./apps/api-java
+    dockerContext: .
     region: singapore
     plan: free
     healthCheckPath: /api/health
