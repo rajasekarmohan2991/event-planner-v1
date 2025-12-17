@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -13,17 +14,27 @@ export async function GET(_req: NextRequest) {
     }
     const tenantId = session.user.currentTenantId
 
-    const base = process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'
-    const url = `${base}/api/events?page=0&size=100`
-    const eventsRes = await fetch(url, { headers: { 'x-tenant-id': tenantId } })
-    const eventsData = eventsRes.ok ? await eventsRes.json() : []
-    const events = (eventsData.content || eventsData || []).map((e: any) => ({
+    // Use Prisma directly to avoid lag/caching issues from Java API
+    const events = await prisma.event.findMany({
+      where: {
+        tenantId: tenantId,
+        // Optional: filter by status if needed, but 'All Events' usually implies all
+      },
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    const serializedEvents = events.map(e => ({
       id: String(e.id),
-      name: e.name || e.title || 'Untitled Event'
+      name: e.name || 'Untitled Event'
     }))
 
-    return NextResponse.json({ events })
+    return NextResponse.json({ events: serializedEvents })
   } catch (e: any) {
+    console.error('Events Lite Error:', e)
     return NextResponse.json({ error: e?.message || 'Failed to load events' }, { status: 500 })
   }
 }

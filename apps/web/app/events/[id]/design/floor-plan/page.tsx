@@ -45,6 +45,19 @@ export default function FloorPlanDesignerPage({ params }: { params: { id: string
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [scale, setScale] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
+  const [savedPlans, setSavedPlans] = useState<any[]>([])
+  const [activeTool, setActiveTool] = useState<'toolkit' | 'plans'>('toolkit')
+
+  const loadSavedPlans = async () => {
+    try {
+      const res = await fetch(`/api/events/${params.id}/floor-plans`)
+      if (res.ok) {
+        const data = await res.json()
+        setSavedPlans(data.floorPlans || [])
+      }
+    } catch { }
+  }
+  useEffect(() => { loadSavedPlans() }, [params.id])
 
 
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -139,7 +152,7 @@ export default function FloorPlanDesignerPage({ params }: { params: { id: string
     try {
       // Transform our visual sections into the format expected by the generator API
       const floorPlan = {
-        name: `Designed Plan ${new Date().toLocaleDateString()}`,
+        name: `Designed Plan ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
         totalSeats: sections.reduce((acc, s) => {
           if (s.type === 'GRID') return acc + ((s.rows || 0) * (s.cols || 0))
           if (s.type === 'TABLE') return acc + (s.seatsPerTable || 0)
@@ -215,6 +228,8 @@ export default function FloorPlanDesignerPage({ params }: { params: { id: string
       if (!res.ok) throw new Error('Failed to generate seats')
       const data = await res.json()
       alert('Floor plan saved and seats generated successfully!')
+      loadSavedPlans()
+      setActiveTool('plans') // Switch to plans view
     } catch (e: any) {
       alert(`Error saving floor plan: ${e.message}`)
     } finally {
@@ -263,55 +278,136 @@ export default function FloorPlanDesignerPage({ params }: { params: { id: string
         <div className="flex flex-1 overflow-hidden">
           {/* Palette */}
           <aside className="w-64 bg-white border-r flex flex-col z-10">
-            <div className="p-4 border-b">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Toolkit</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <ToolButton
-                  icon={Grid}
-                  label="Seating Grid"
-                  onClick={() => addSection('GRID')}
-                  description="Theater/Stadium"
-                />
-                <ToolButton
-                  icon={Circle}
-                  label="Round Table"
-                  onClick={() => addSection('TABLE')}
-                  description="Banquet/Dinner"
-                />
-                <ToolButton
-                  icon={Square}
-                  label="Standing"
-                  onClick={() => addSection('GA')}
-                  description="General Admission"
-                />
-              </div>
+            <div className="flex border-b">
+              <button
+                onClick={() => setActiveTool('toolkit')}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${activeTool === 'toolkit' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Toolkit
+              </button>
+              <button
+                onClick={() => setActiveTool('plans')}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider ${activeTool === 'plans' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Saved Plans
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Sections ({sections.length})</h2>
-              <div className="space-y-2">
-                {sections.map(s => (
-                  <div
-                    key={s.id}
-                    onClick={() => setSelectedSectionId(s.id)}
-                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${selectedSectionId === s.id ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300 bg-white'}`}
-                  >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{s.name}</div>
-                      <div className="text-xs text-slate-500">
-                        {s.type === 'GRID' ? `${s.rows}x${s.cols} Seats` : s.type === 'TABLE' ? `${s.seatsPerTable} Seats` : `Capacity: ${s.capacity}`}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {sections.length === 0 && (
+            {activeTool === 'toolkit' ? (
+              <div className="p-4 border-b">
+                <div className="grid grid-cols-2 gap-3">
+                  <ToolButton
+                    icon={Grid}
+                    label="Seating Grid"
+                    onClick={() => addSection('GRID')}
+                    description="Theater/Stadium"
+                  />
+                  <ToolButton
+                    icon={Circle}
+                    label="Round Table"
+                    onClick={() => addSection('TABLE')}
+                    description="Banquet/Dinner"
+                  />
+                  <ToolButton
+                    icon={Square}
+                    label="Standing"
+                    onClick={() => addSection('GA')}
+                    description="General Admission"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {savedPlans.length === 0 && (
                   <div className="text-center py-8 text-xs text-slate-400 border-2 border-dashed rounded-lg">
-                    No sections added.<br />Click a tool above to start.
+                    No saved plans found.
                   </div>
                 )}
+                {savedPlans.map(plan => (
+                  <div key={plan.id} className="p-3 border rounded-lg bg-white hover:border-indigo-300 transition-colors group">
+                    <div className="font-medium text-sm truncate" title={plan.planName}>{plan.planName}</div>
+                    <div className="text-xs text-slate-500 mt-1 flex justify-between">
+                      <span>{plan.totalSeats || 0} Seats</span>
+                      <span>{new Date(plan.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Load this plan? Current unsaved changes will be lost.')) {
+                          if (plan.layoutData && plan.layoutData.sections) {
+                            const loadedSections = plan.layoutData.sections.map((s: any) => {
+                              if (s.visualData) {
+                                return {
+                                  id: s.visualData.id || `section-${Math.random()}`,
+                                  name: s.name,
+                                  type: s.visualData.type || s.type || 'GRID',
+                                  x: s.visualData.x || 100,
+                                  y: s.visualData.y || 100,
+                                  width: s.visualData.width || 200,
+                                  height: s.visualData.height || 150,
+                                  price: s.basePrice || 100,
+                                  color: s.visualData.color || '#6366f1',
+                                  rows: s.type === 'GRID' ? (s.rows?.length || 5) : undefined,
+                                  cols: s.type === 'GRID' ? (s.rows?.[0]?.seats || 10) : undefined,
+                                  seatsPerTable: s.type === 'TABLE' ? (s.rows?.[0]?.seats || 8) : undefined,
+                                  capacity: s.type === 'GA' ? (s.rows?.[0]?.seats || 100) : undefined,
+                                }
+                              }
+                              return {
+                                id: `section-${Math.random()}`,
+                                name: s.name,
+                                type: 'GRID',
+                                x: 100,
+                                y: 100,
+                                width: 200,
+                                height: 150,
+                                price: s.basePrice || 100,
+                                rows: s.rows?.length || 5,
+                                cols: s.rows?.[0]?.seats || 10,
+                                color: '#94a3b8'
+                              }
+                            })
+                            setSections(loadedSections)
+                            setSelectedSectionId(null)
+                          }
+                        }
+                      }}
+                      className="mt-2 w-full py-1.5 text-xs bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Load Plan
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
+
+
+            {activeTool === 'toolkit' && (
+              <div className="flex-1 overflow-y-auto p-4">
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Sections ({sections.length})</h2>
+                <div className="space-y-2">
+                  {sections.map(s => (
+                    <div
+                      key={s.id}
+                      onClick={() => setSelectedSectionId(s.id)}
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${selectedSectionId === s.id ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 hover:border-indigo-300 bg-white'}`}
+                    >
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{s.name}</div>
+                        <div className="text-xs text-slate-500">
+                          {s.type === 'GRID' ? `${s.rows}x${s.cols} Seats` : s.type === 'TABLE' ? `${s.seatsPerTable} Seats` : `Capacity: ${s.capacity}`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {sections.length === 0 && (
+                    <div className="text-center py-8 text-xs text-slate-400 border-2 border-dashed rounded-lg">
+                      No sections added.<br />Click a tool above to start.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </aside>
 
           {/* Canvas */}
