@@ -13,7 +13,7 @@ export default function EventManagePage({ params }: { params: { id: string } }) 
   const tabs = [
     { href: `${base}/info`, label: 'Event Info' },
     { href: `${base}/speakers`, label: 'Speakers' },
-    { href: `${base}/sessions`, label: 'Sessions' },
+
     { href: `${base}/team`, label: 'Team' },
     { href: `${base}/sponsors`, label: 'Sponsors' },
     { href: `${base}/promote`, label: 'Promote' },
@@ -40,11 +40,10 @@ export default function EventManagePage({ params }: { params: { id: string } }) 
                 <Link
                   key={href}
                   href={href}
-                  className={`relative text-sm px-3 py-1.5 rounded-md border motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 ${
-                    active
+                  className={`relative text-sm px-3 py-1.5 rounded-md border motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 ${active
                       ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-950/20 dark:text-indigo-300'
                       : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
+                    }`}
                 >
                   {label}
                   <span className={`pointer-events-none absolute left-3 right-3 -bottom-0.5 h-0.5 rounded-full bg-indigo-500 motion-safe:transition-transform motion-safe:duration-200 ${active ? 'scale-x-100' : 'scale-x-0'} hover:scale-x-100 origin-left`} />

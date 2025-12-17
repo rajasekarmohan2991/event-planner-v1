@@ -10,7 +10,7 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const tabs = [
     { href: `${base}/info`, label: 'Event Info' },
     { href: `${base}/speakers`, label: 'Speakers' },
-    { href: `${base}/sessions`, label: 'Sessions' },
+
     { href: `${base}/team`, label: 'Team' },
 
     { href: `${base}/sponsors`, label: 'Sponsors' },
@@ -31,8 +31,8 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
                 key={href}
                 href={href}
                 className={`relative text-sm px-3 py-1.5 rounded-md border transition-all duration-200 ${active
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-950/20 dark:text-indigo-300'
-                    : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400/60 dark:bg-indigo-950/20 dark:text-indigo-300'
+                  : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
               >
                 {label}
