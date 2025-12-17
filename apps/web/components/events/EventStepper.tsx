@@ -8,21 +8,22 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const Player = dynamic(() => import('@lottiefiles/react-lottie-player').then(m => m.Player), { ssr: false });
 import { cn } from '@/lib/utils';
-import { BasicInfoStep, EventDetailsStep, ScheduleStep, MediaStep, LegalStep, ReviewStep } from './EventFormSteps';
+import { BasicInfoStep, EventDetailsStep, ScheduleStep, MediaStep, LegalStep, ReviewStep, SessionsStep } from './EventFormSteps';
 
 const steps = [
   { id: 'basic', title: 'Basic Info' },
   { id: 'details', title: 'Event Details' },
   { id: 'schedule', title: 'Date & Time' },
+  { id: 'sessions', title: 'Sessions' },
   { id: 'media', title: 'Media & Extras' },
   { id: 'legal', title: 'Terms & Manager' },
   { id: 'review', title: 'Review & Submit' },
 ];
 
-export function EventStepper({ 
+export function EventStepper({
   onComplete,
-  onFormDataChange 
-}: { 
+  onFormDataChange
+}: {
   onComplete: (data: any) => Promise<void>
   onFormDataChange?: (data: any) => void
 }) {
@@ -34,6 +35,7 @@ export function EventStepper({
     schedule: {},
     media: {},
     legal: {},
+    sessions: {},
   });
 
   // Show a tiny flourish on step change
@@ -61,12 +63,12 @@ export function EventStepper({
       ...formData,
       [steps[currentStep].id]: stepData
     };
-    
+
     setFormData(updatedFormData);
-    
+
     // Notify parent of form data changes (for image preview)
     onFormDataChange?.(updatedFormData);
-    
+
     if (currentStep === steps.length - 1) {
       handleSubmit();
     } else {
@@ -83,6 +85,7 @@ export function EventStepper({
         ...formData.schedule,
         ...formData.media,
         ...formData.legal,
+        ...formData.sessions,
       };
       await onComplete(completeFormData);
     } finally {
@@ -96,13 +99,15 @@ export function EventStepper({
         return <BasicInfoStep onSubmit={handleStepSubmit} initialData={formData.basic} />;
       case 'details':
         // Pass combined data including type, category, capacity from basic step
-        return <EventDetailsStep onSubmit={handleStepSubmit} initialData={{...formData.basic, ...formData.details}} />;
+        return <EventDetailsStep onSubmit={handleStepSubmit} initialData={{ ...formData.basic, ...formData.details }} />;
       case 'schedule':
         return <ScheduleStep onSubmit={handleStepSubmit} initialData={formData.schedule} />;
+      case 'sessions':
+        return <SessionsStep onSubmit={handleStepSubmit} initialData={formData.sessions} />;
       case 'media':
-        return <MediaStep 
-          onSubmit={handleStepSubmit} 
-          initialData={{...formData.basic, ...formData.media}}
+        return <MediaStep
+          onSubmit={handleStepSubmit}
+          initialData={{ ...formData.basic, ...formData.media }}
           onImageUpload={(imageUrl) => {
             // Immediately update parent when image uploads
             const updatedFormData = {
@@ -116,15 +121,16 @@ export function EventStepper({
       case 'legal':
         return <LegalStep onSubmit={handleStepSubmit} initialData={formData.legal} />;
       case 'review':
-        return <ReviewStep 
+        return <ReviewStep
           data={{
             ...formData.basic,
             ...formData.details,
             ...formData.schedule,
+            ...formData.sessions,
             ...formData.media,
             ...formData.legal,
-          }} 
-          onSubmit={handleStepSubmit} 
+          }}
+          onSubmit={handleStepSubmit}
         />;
       default:
         return null;
@@ -212,16 +218,16 @@ export function EventStepper({
           </AnimatePresence>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={prevStep} 
+          <Button
+            variant="outline"
+            onClick={prevStep}
             disabled={currentStep === 0 || isSubmitting}
           >
             Previous
           </Button>
           <div className="flex gap-2">
             {currentStep < steps.length - 1 ? (
-              <Button 
+              <Button
                 onClick={() => {
                   const form = document.getElementById('step-form') as HTMLFormElement;
                   if (form) form.requestSubmit();
@@ -231,7 +237,7 @@ export function EventStepper({
                 Next
               </Button>
             ) : (
-              <Button 
+              <Button
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
@@ -252,4 +258,4 @@ export function EventStepper({
 }
 
 // Re-export the step components for use elsewhere
-export { BasicInfoStep, EventDetailsStep, ScheduleStep, MediaStep, ReviewStep };
+export { BasicInfoStep, EventDetailsStep, ScheduleStep, MediaStep, SessionsStep, LegalStep, ReviewStep };

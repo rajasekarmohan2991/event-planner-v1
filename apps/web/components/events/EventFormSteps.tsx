@@ -5,8 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { CalendarIcon, ImageIcon, PlayCircle } from 'lucide-react';
-
+import { CalendarIcon, ImageIcon, PlayCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +27,18 @@ const basicInfoSchema = z.object({
     required_error: 'Please select event mode',
   }),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
+});
+
+const sessionsSchema = z.object({
+  sessions: z.array(z.object({
+    title: z.string().min(1, 'Title is required'),
+    startTime: z.string().min(1, 'Start time is required'),
+    endTime: z.string().min(1, 'End time is required'),
+    description: z.string().optional(),
+    room: z.string().optional(),
+    track: z.string().optional(),
+    capacity: z.coerce.number().optional(),
+  })).optional(),
 });
 
 const eventDetailsSchema = z.object({
@@ -934,6 +945,155 @@ export function MediaStep({
   );
 }
 
+export function SessionsStep({ onSubmit, initialData }: { onSubmit: (data: any) => void, initialData: any }) {
+  const [sessions, setSessions] = useState<any[]>(initialData?.sessions || []);
+  const [sTitle, setSTitle] = useState('');
+  const [sDesc, setSDesc] = useState('');
+  const [sStart, setSStart] = useState('');
+  const [sEnd, setSEnd] = useState('');
+  const [sRoom, setSRoom] = useState('');
+  const [sTrack, setSTrack] = useState('');
+  const [sCap, setSCap] = useState('');
+  const { toast } = useToast();
+
+  const handleAddSession = () => {
+    if (!sTitle.trim()) {
+      toast({ title: "Title required", variant: "destructive" });
+      return;
+    }
+    if (!sStart || !sEnd) {
+      toast({ title: "Start and End times required", variant: "destructive" });
+      return;
+    }
+    if (new Date(sEnd) <= new Date(sStart)) {
+      toast({ title: "End time must be after start time", variant: "destructive" });
+      return;
+    }
+
+    const newSession = {
+      title: sTitle.trim(),
+      description: sDesc || undefined,
+      startTime: sStart,
+      endTime: sEnd,
+      room: sRoom || undefined,
+      track: sTrack || undefined,
+      capacity: sCap ? Number(sCap) : undefined,
+    };
+
+    const updatedSessions = [...sessions, newSession];
+    setSessions(updatedSessions);
+
+    // Clear form
+    setSTitle(''); setSDesc(''); setSStart(''); setSEnd(''); setSRoom(''); setSTrack(''); setSCap('');
+  };
+
+  const handleRemoveSession = (index: number) => {
+    setSessions(sessions.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({ sessions });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border p-5 space-y-4 bg-slate-50/50">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
+            <Clock className="h-5 w-5" />
+          </div>
+          <h3 className="text-sm font-semibold">Add Session</h3>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Session Title <span className="text-red-500">*</span></label>
+            <Input placeholder="e.g., Opening Keynote: The Future of Events" value={sTitle} onChange={(e) => setSTitle(e.target.value)} className="bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Starts At <span className="text-red-500">*</span></label>
+            <Input type="datetime-local" value={sStart} onChange={(e) => setSStart(e.target.value)} className="bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Ends At <span className="text-red-500">*</span></label>
+            <Input type="datetime-local" value={sEnd} onChange={(e) => setSEnd(e.target.value)} className="bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Room (Optional)</label>
+            <Input placeholder="e.g., Grand Ballroom A" value={sRoom} onChange={(e) => setSRoom(e.target.value)} className="bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Track (Optional)</label>
+            <Input placeholder="e.g., Main Stage" value={sTrack} onChange={(e) => setSTrack(e.target.value)} className="bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Capacity (Optional)</label>
+            <Input type="number" placeholder="Defaults to room capacity" value={sCap} onChange={(e) => setSCap(e.target.value)} className="bg-white" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium mb-1.5 text-slate-700">Description (Optional)</label>
+            <Textarea rows={2} placeholder="Brief description of what this session covers..." value={sDesc} onChange={(e) => setSDesc(e.target.value)} className="bg-white" />
+          </div>
+        </div>
+        <Button type="button" onClick={handleAddSession} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+          Add Session to Schedule
+        </Button>
+      </div>
+
+      {sessions.length > 0 ? (
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-slate-600 flex items-center justify-between">
+            <span>Scheduled Sessions</span>
+            <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full">{sessions.length}</span>
+          </h4>
+          <div className="rounded-lg border bg-white divide-y overflow-hidden shadow-sm">
+            {sessions.map((s, idx) => (
+              <div key={idx} className="p-4 flex items-start justify-between gap-4 group hover:bg-slate-50 transition-colors">
+                <div className="min-w-0 space-y-1">
+                  <div className="font-semibold text-sm text-slate-900">{s.title}</div>
+                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {s.room && <span className="px-1.5 py-0.5 rounded bg-slate-100 border text-slate-600">{s.room}</span>}
+                    {s.track && <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-600">{s.track}</span>}
+                  </div>
+                  {s.description && (
+                    <p className="text-xs text-slate-600 line-clamp-1">{s.description}</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                  onClick={() => handleRemoveSession(idx)}
+                  title="Remove session"
+                >
+                  <span className="sr-only">Remove</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 border-2 border-dashed rounded-lg text-slate-400">
+          <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No sessions added yet.</p>
+          <p className="text-xs">Add keynotes, workshops, or breaks above.</p>
+        </div>
+      )}
+
+      <form id="step-form" onSubmit={handleSubmit}>
+        {/* Hidden submit trigger for parent stepper */}
+      </form>
+    </div>
+  );
+}
+
 export function ReviewStep({ data, onSubmit }: { data: any, onSubmit: (data: any) => void }) {
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -993,6 +1153,26 @@ export function ReviewStep({ data, onSubmit }: { data: any, onSubmit: (data: any
         ))}
       </div>
 
+      {data.sessions && data.sessions.length > 0 && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="bg-slate-50 px-4 py-3 border-b font-medium text-sm text-slate-700">
+            Scheduled Sessions ({data.sessions.length})
+          </div>
+          <div className="divide-y">
+            {data.sessions.map((s: any, i: number) => (
+              <div key={i} className="p-4 text-sm">
+                <div className="font-semibold text-slate-800">{s.title}</div>
+                <div className="text-slate-500 mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  <span>📅 {s.startTime ? s.startTime.replace('T', ' ') : 'TBD'}</span>
+                  {s.endTime && <span>➡️ {s.endTime.replace('T', ' ')}</span>}
+                  {s.room && <span>📍 {s.room}</span>}
+                  {s.track && <span>🏷️ {s.track}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

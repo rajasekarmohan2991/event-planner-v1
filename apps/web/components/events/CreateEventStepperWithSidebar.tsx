@@ -14,7 +14,7 @@ export function CreateEventStepperWithSidebar() {
   const handleSubmit = async (data: any) => {
     try {
       console.log('📝 Form data received:', data);
-      
+
       // Build startsAt/endsAt ISO-8601 strings from date + time selections
       const toIso = (d: Date, hhmm: string) => {
         const [h, m] = hhmm.split(':').map((v: string) => parseInt(v, 10))
@@ -105,6 +105,37 @@ export function CreateEventStepperWithSidebar() {
       } catch (e) {
         console.warn('Failed to save seat counts for event', e)
       }
+
+      // Persist sessions if provided
+      if (data.sessions && Array.isArray(data.sessions) && data.sessions.length > 0) {
+        try {
+          console.log(`📅 saving ${data.sessions.length} sessions...`);
+          await Promise.all(
+            data.sessions.map((session: any) =>
+              fetch(`/api/events/${result.id}/sessions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: session.title,
+                  description: session.description,
+                  startTime: new Date(session.startTime).toISOString(),
+                  endTime: new Date(session.endTime).toISOString(),
+                  room: session.room,
+                  track: session.track,
+                  capacity: session.capacity,
+                  speakers: [], // Speakers not yet handled in basic wizard
+                  addToCalendar: true
+                }),
+              })
+            )
+          );
+          console.log('✅ Sessions saved');
+        } catch (e) {
+          console.error('Failed to save sessions', e);
+          toast.error('Event created, but some sessions could not be saved.');
+        }
+      }
+
       router.push(`/events/${result.id}`);
     } catch (error: any) {
       console.error('Error creating event:', error);
@@ -118,7 +149,7 @@ export function CreateEventStepperWithSidebar() {
     if (data?.media?.imageUrl) {
       setBannerImage(data.media.imageUrl);
     }
-    
+
     // Extract title from basic step
     if (data?.basic?.title) {
       setEventTitle(data.basic.title);
@@ -138,8 +169,8 @@ export function CreateEventStepperWithSidebar() {
               </p>
             </div>
             <div className="px-6 py-6">
-              <EventStepper 
-                onComplete={handleSubmit} 
+              <EventStepper
+                onComplete={handleSubmit}
                 onFormDataChange={handleFormDataChange}
               />
             </div>
@@ -151,9 +182,9 @@ export function CreateEventStepperWithSidebar() {
               {/* Banner Preview */}
               <div className="relative h-32 rounded-xl overflow-hidden bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-pink-500/15 dark:from-indigo-500/10 dark:via-purple-500/10 dark:to-pink-500/10">
                 {bannerImage ? (
-                  <img 
-                    src={bannerImage} 
-                    alt="Event banner preview" 
+                  <img
+                    src={bannerImage}
+                    alt="Event banner preview"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -162,14 +193,14 @@ export function CreateEventStepperWithSidebar() {
                   </div>
                 )}
               </div>
-              
+
               {/* Event Info */}
               <div>
                 <h2 className="text-lg font-semibold">
                   {eventTitle || 'Create your event'}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {bannerImage 
+                  {bannerImage
                     ? 'Upload more images and configure your event details in the form.'
                     : 'Provide event basics now and fill in more details later like tickets, schedule and speakers.'
                   }
