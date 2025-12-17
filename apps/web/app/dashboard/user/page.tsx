@@ -92,6 +92,7 @@ export default function UserDashboard() {
           <p className="text-gray-600">
             Discover amazing events and manage your registrations
           </p>
+          <p className="text-xs text-indigo-500 mt-2">System Version: {new Date().toISOString()}</p>
         </div>
 
         {/* Quick Stats */}
@@ -196,8 +197,8 @@ export default function UserDashboard() {
                   </div>
                   <div className="text-right flex flex-col items-end gap-2">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${event.status === 'LIVE' ? 'bg-green-100 text-green-800' :
-                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 border border-gray-300' :
-                          'bg-indigo-100 text-indigo-800'
+                      event.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 border border-gray-300' :
+                        'bg-indigo-100 text-indigo-800'
                       }`}>
                       {event.status}
                     </span>
