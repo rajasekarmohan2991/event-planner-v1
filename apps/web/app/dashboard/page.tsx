@@ -22,26 +22,22 @@ export default function DashboardPage() {
       router.replace('/auth/login')
       return
     }
-    const dashboardRoute = userRole ? getDashboardRoute(userRole) : '/dashboard/user'
 
-    hasRedirected.current = true
-    router.replace(dashboardRoute)
-  }
 
     // Redirect authenticated users to their dashboard
     if (status === 'authenticated' && session) {
-    const userRole = (session as any)?.user?.role as UserRole
-    const dashboardRoute = userRole ? getDashboardRoute(userRole) : '/dashboard/user'
+      const userRole = (session as any)?.user?.role as UserRole
+      const dashboardRoute = userRole ? getDashboardRoute(userRole) : '/dashboard/user'
 
-    hasRedirected.current = true
-    router.replace(dashboardRoute)
-  }
-  // If status is 'loading', we just wait. The user sees the premium loader.
-}, [session, status, router])
+      hasRedirected.current = true
+      router.replace(dashboardRoute)
+    }
+    // If status is 'loading', we just wait. The user sees the premium loader.
+  }, [session, status, router])
 
-return (
-  <LoadingScreen
-    message={status === 'loading' ? 'Initializing Dashboard...' : 'Redirecting...'}
-  />
-)
+  return (
+    <LoadingScreen
+      message={status === 'loading' ? 'Initializing Dashboard...' : 'Redirecting...'}
+    />
+  )
 }
