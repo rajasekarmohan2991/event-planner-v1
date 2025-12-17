@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -36,40 +36,47 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     // 2. Viewing global admin modules (Events, Users, Lookup, Currency) which belong to the system/default tenant
     // 3. Viewing System Settings
     const isSuperAdminCompanyView = (isCompanyPage && currentCompanyId === 'default-tenant') ||
+      pathname === '/admin' || // Exact dashboard match
       pathname?.startsWith('/admin/events') ||
       pathname?.startsWith('/admin/users') ||
       pathname?.startsWith('/admin/lookup') ||
-      pathname?.startsWith('/admin/currency') ||
-      pathname?.startsWith('/super-admin/settings') ||
-      pathname?.startsWith('/super-admin/lookups') ||
-      pathname?.startsWith('/super-admin/diagnostics'); // Diagnostics treated as system view
+      pathname?.startsWith('/admin/system-settings') ||
+      pathname?.startsWith('/admin/billing') ||
+      pathname?.startsWith('/super-admin/diagnostics');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show limited options with back to companies
       baseNavigation.push(
-        { name: 'Back to Companies', href: '/super-admin/companies', icon: Building2 },
+        { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
         { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard }
+        // Add more module links specific to individual companies here if needed
       )
     } else if (isSuperAdminCompanyView) {
-      // Inside Super Admin Company: Show full system modules
+      // Inside Super Admin Company (Detailed View): Show full system modules
+      // This is the "Detailed" view requested by the user
+      // 1. Dashboard (Points to /admin)
+      // 2. All Events
+      // 3. All Users
+      // 4. Lookup Management
+      // 5. System Settings (Consolidated)
+      // 6. Billing & Subscription
+      // 7. Run Diagnostics
       baseNavigation.push(
-        { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
-        { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity },
-        { name: 'Events', href: '/admin/events', icon: Calendar },
-        { name: 'Users', href: '/admin/users', icon: Users },
-        { name: 'Lookup Data', href: '/admin/lookup', icon: Database },
-        { name: 'Lookup Management', href: '/super-admin/lookups', icon: List },
-        { name: 'Currency Settings', href: '/admin/currency', icon: Shield },
-        { name: 'System Settings', href: '/super-admin/settings', icon: Settings }
+        { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft }, // Helpful back link
+        { name: 'Dashboard', href: `/admin`, icon: LayoutDashboard },
+        { name: 'All Events', href: '/admin/events', icon: Calendar },
+        { name: 'All Users', href: '/admin/users', icon: Users },
+        { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
+        { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
+        { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard },
+        { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
       )
     } else {
       // Global Super Admin View: Only Companies and Settings
+      // This is the "Landing" view requested by the user
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
-        { name: 'All Events', href: '/admin/events', icon: Calendar },
-        { name: 'All Users', href: '/admin/users', icon: Users },
-        { name: 'Diagnostics', href: '/super-admin/diagnostics', icon: Activity },
-        { name: 'Settings', href: '/admin/settings', icon: Settings }
+        { name: 'Settings', href: '/super-admin/settings', icon: Settings }
       )
     }
     return baseNavigation
@@ -158,7 +165,7 @@ export function AdminSidebar() {
               const isActive = pathname === item.href
               return (
                 <Link
-                  key={item.name}
+                  key={item.href} // Use href as key since name might duplicate across context
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
@@ -223,7 +230,7 @@ export function AdminSidebar() {
               const isActive = pathname === item.href
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   href={item.href}
                   className={cn(
                     isActive
