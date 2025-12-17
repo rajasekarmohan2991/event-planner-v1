@@ -313,20 +313,6 @@ export function RouteProtection({
   const userRole = (session as any)?.user?.role as UserRole
   const router = useRouter()
 
-  // DEBUG: Manual session fetch
-  const [debugSession, setDebugSession] = React.useState<any>('loading...')
-  React.useEffect(() => {
-    fetch('/api/auth/session')
-      .then(async res => {
-        const text = await res.text()
-        try {
-          setDebugSession(JSON.parse(text))
-        } catch (e) {
-          setDebugSession({ error: 'Failed to parse JSON', raw: text })
-        }
-      })
-      .catch(err => setDebugSession({ error: 'Fetch failed', msg: err.message }))
-  }, [])
 
   // Redirect logic removed to prevent potential loops with middleware
   // React.useEffect(() => {
@@ -346,11 +332,6 @@ export function RouteProtection({
       <div className="p-6 text-center">
         <Shield className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Authentication Required</h2>
-        <p className="text-red-500 text-xs font-mono mb-2">Debug NextAuth Status: '{status}'</p>
-        <div className="text-left bg-gray-100 p-2 rounded mb-4 text-xs font-mono overflow-auto max-h-40">
-          <p className="font-bold">Raw /api/auth/session response:</p>
-          <pre>{JSON.stringify(debugSession, null, 2)}</pre>
-        </div>
         <p className="text-gray-600 mb-4">
           You need to be signed in to access this page.
         </p>
@@ -369,7 +350,6 @@ export function RouteProtection({
       <div className="p-6 text-center">
         <Shield className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h2>
-        <p className="text-red-500 text-xs font-mono mb-2">Debug: Your Role is '{userRole || 'undefined'}'</p>
         <p className="text-gray-600">
           You don't have permission to access this page.
         </p>

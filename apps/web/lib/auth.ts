@@ -519,7 +519,7 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true, // Enable debug logs to diagnose production issue
+  debug: process.env.NODE_ENV === 'development',
   // Trust the host header - required for Vercel deployments
   // This allows NextAuth to work with preview URLs
   ...(process.env.NODE_ENV === 'production' && {
