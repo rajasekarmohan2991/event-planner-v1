@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getMapLink } from '@/lib/geo/maps';
+import { useToast } from '@/components/ui/use-toast';
 
 // Schemas for each step
 const basicInfoSchema = z.object({
@@ -104,27 +105,6 @@ export function BasicInfoStep({ onSubmit, initialData }: { onSubmit: (data: any)
       ...initialData
     },
   });
-
-  async function uploadFile(file: File): Promise<string | null> {
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/uploads', { method: 'POST', body: fd });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('❌ Banner upload failed:', err);
-        alert(`Upload failed: ${err.message || 'Unknown error'}`);
-        return null;
-      }
-      const data = await res.json();
-      console.log('✅ Banner upload success:', data);
-      return data?.url || null;
-    } catch (e: any) {
-      console.error('❌ Banner upload error:', e);
-      alert(`Upload error: ${e.message}`);
-      return null;
-    }
-  }
 
   return (
     <Form {...form}>
@@ -303,7 +283,7 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
         setCityOptions(
           predictions.map(p => ({ name: p.description, lat: 19.076, lon: 72.8777 })) // Default Mumbai coords
         );
-      } catch {}
+      } catch { }
     }, 250);
     return () => clearTimeout(t);
   }, [cityQuery]);
@@ -323,19 +303,19 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
           minCapacity: String(Math.floor(eventCapacity * 0.8)), // 80% of required
           maxCapacity: String(Math.ceil(eventCapacity * 1.5))   // 150% of required
         });
-        
+
         const res = await fetch(`/api/venues/search?${params.toString()}`);
         if (!aborted && res.ok) {
           const data = await res.json();
           const venues = data.venues || [];
-          
+
           // Sort by capacity match (closest to required capacity first)
           const sorted = venues.sort((a: any, b: any) => {
             const aDiff = Math.abs((a.capacity || 0) - eventCapacity);
             const bDiff = Math.abs((b.capacity || 0) - eventCapacity);
             return aDiff - bDiff;
           });
-          
+
           setVenueOptions(
             sorted.map((v: any) => ({
               name: `${v.name}${v.capacity ? ` (Capacity: ${v.capacity})` : v.rooms ? ` (${v.rooms} rooms)` : ''}`,
@@ -355,7 +335,7 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
           if (!aborted) {
             setVenueOptions(venues.map(v => ({ name: v, lat: 19.076, lon: 72.8777 })));
           }
-        } catch {}
+        } catch { }
       }
     }, 500); // Longer delay for API call
     return () => { aborted = true; clearTimeout(t); };
@@ -447,21 +427,21 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
                   typeof form.watch('latitude') === 'number' &&
                   typeof form.watch('longitude') === 'number' &&
                   (form.watch('latitude') !== 0 || form.watch('longitude') !== 0) && (
-                  <div className="mt-2">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${form.watch('latitude')},${form.watch('longitude')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Open in Google Maps ↗
-                    </a>
-                  </div>
-                )}
+                    <div className="mt-2">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${form.watch('latitude')},${form.watch('longitude')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Open in Google Maps ↗
+                      </a>
+                    </div>
+                  )}
                 <FormMessage />
               </FormItem>
             )}
@@ -695,6 +675,7 @@ export function MediaStep({
   initialData: any
   onImageUpload?: (imageUrl: string) => void
 }) {
+  const { toast } = useToast();
   const form = useForm<MediaFormValues>({
     resolver: zodResolver(mediaSchema),
     defaultValues: {
@@ -720,31 +701,52 @@ export function MediaStep({
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         console.error('❌ Image upload failed:', err);
-        alert(`Upload failed: ${err.message || 'Unknown error'}`);
+        const errorMessage = err.message || err.error || 'Unknown upload error';
+        const errorDetail = err.hint || '';
+
+        toast({
+          title: "Upload Failed",
+          description: errorDetail ? `${errorMessage} ${errorDetail}` : errorMessage,
+          variant: "destructive",
+        });
         return null;
       }
       const data = await res.json();
       console.log('✅ Image upload success:', data);
+
+      toast({
+        title: "Image Uploaded",
+        description: "Your event banner has been uploaded successfully.",
+      });
+
       return data?.url || null;
     } catch (e: any) {
       console.error('❌ Image upload error:', e);
-      alert(`Upload error: ${e.message}`);
+      toast({
+        title: "Upload Error",
+        description: e.message || "Network error occurred while uploading",
+        variant: "destructive",
+      });
       return null;
     }
   }
 
   const handleSubmit = (data: MediaFormValues) => {
     const totalSeats = (data.vipSeats || 0) + (data.premiumSeats || 0) + (data.generalSeats || 0);
-    
+
     if (totalSeats > capacity) {
       form.setError('vipSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
       form.setError('premiumSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
       form.setError('generalSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
-      // Also alert for visibility
-      alert(`Total seats (${totalSeats}) exceeds capacity (${capacity}). Please adjust seat distribution.`);
+      // Also toast for visibility
+      toast({
+        title: "Capacity Exceeded",
+        description: `Total allocated seats (${totalSeats}) exceeds event capacity (${capacity}). Please adjust your seat distribution.`,
+        variant: "destructive"
+      });
       return;
     }
-    
+
     onSubmit(data);
   };
 
@@ -761,9 +763,9 @@ export function MediaStep({
                 <div className="flex items-center gap-4">
                   <div className="w-24 h-24 rounded-md bg-muted flex items-center justify-center">
                     {field.value ? (
-                      <img 
-                        src={field.value} 
-                        alt="Event" 
+                      <img
+                        src={field.value}
+                        alt="Event"
                         className="w-full h-full object-cover rounded-md"
                       />
                     ) : (
@@ -771,10 +773,10 @@ export function MediaStep({
                     )}
                   </div>
                   <FormControl>
-                    <Input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
                       id="image-upload"
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
@@ -827,7 +829,7 @@ export function MediaStep({
           <p className="text-sm text-gray-600 mb-4">
             Total Capacity: <span className="font-semibold">{capacity}</span> seats
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* VIP Section */}
             <div className="border rounded-lg p-4 bg-yellow-50">
@@ -922,7 +924,7 @@ export function MediaStep({
               />
             </div>
           </div>
-          
+
           <p className="text-xs text-gray-500 mt-4">
             💡 Tip: Total seats should not exceed capacity ({capacity}). Leave price as 0 for free tickets.
           </p>
@@ -977,7 +979,7 @@ export function ReviewStep({ data, onSubmit }: { data: any, onSubmit: (data: any
           Please review all the information before submitting your event.
         </p>
       </div>
-      
+
       <div className="border rounded-lg divide-y">
         {Object.entries(displayData).map(([key, value]) => (
           <div key={key} className="grid grid-cols-3 p-4">
@@ -1034,7 +1036,7 @@ export function LegalStep({ onSubmit, initialData }: { onSubmit: (data: any) => 
             </svg>
             Event Manager Contact
           </h4>
-          
+
           <FormField
             control={form.control}
             name="eventManagerName"
@@ -1086,7 +1088,7 @@ export function LegalStep({ onSubmit, initialData }: { onSubmit: (data: any) => 
             <FormItem>
               <FormLabel>Terms & Conditions</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Enter your event terms and conditions here..."
                   className="min-h-[150px]"
                   {...field}
@@ -1108,7 +1110,7 @@ export function LegalStep({ onSubmit, initialData }: { onSubmit: (data: any) => 
             <FormItem>
               <FormLabel>Disclaimer</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Enter any disclaimers or liability statements..."
                   className="min-h-[120px]"
                   {...field}

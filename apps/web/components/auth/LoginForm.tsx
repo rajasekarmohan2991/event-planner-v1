@@ -1,12 +1,22 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { signIn, getSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { FcGoogle } from 'react-icons/fc'
@@ -14,7 +24,6 @@ import { FaInstagram } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const MotionButton = motion(Button)
-const MotionInput = motion(Input)
 const MotionAlert = motion(Alert)
 
 // Animation variants
@@ -30,17 +39,17 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
       type: 'spring',
       stiffness: 100,
       damping: 12
-    } 
+    }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -20,
     transition: {
       duration: 0.2
@@ -50,10 +59,15 @@ const itemVariants = {
 
 type SocialProvider = 'google' | 'instagram' | null;
 
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type LoginValues = z.infer<typeof loginSchema>
+
 export function LoginForm() {
-  const [email, setEmail] = useState('')
   const [socialLoading, setSocialLoading] = useState<SocialProvider>(null)
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -66,9 +80,17 @@ export function LoginForm() {
   const registered = searchParams?.get('registered')
   const urlError = searchParams?.get('error')
 
+  const form = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
+
   const mapAuthError = useCallback((codeOrMsg?: string) => {
     const code = String(codeOrMsg || '').trim()
-    
+
     // Check for common error patterns
     if (code.toLowerCase().includes('unauthorized') || code.toLowerCase().includes('invalid credentials')) {
       return 'Invalid email or password. Please check your credentials and try again.'
@@ -76,7 +98,7 @@ export function LoginForm() {
     if (code.toLowerCase().includes('email') && code.toLowerCase().includes('password')) {
       return 'Invalid email or password.'
     }
-    
+
     switch (code) {
       case 'CredentialsSignin':
         return 'Invalid email or password.'
@@ -140,45 +162,41 @@ export function LoginForm() {
     }
   }
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      setIsLoading(true)
-      setError('')
+  const onSubmit = async (values: LoginValues) => {
+    setIsLoading(true)
+    setError('')
 
-      try {
-        const result = await signIn('credentials', {
-          redirect: false,
-          email,
-          password,
-          callbackUrl: '/dashboard',
-        })
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: values.email,
+        password: values.password,
+        callbackUrl: '/dashboard',
+      })
 
-        if (result?.error) {
-          // Parse JSON error if it's a stringified object
-          let errorMessage = result.error
-          try {
-            const parsed = JSON.parse(result.error)
-            if (parsed.error) {
-              errorMessage = parsed.error
-            } else if (parsed.message) {
-              errorMessage = parsed.message
-            }
-          } catch {
-            // Not JSON, use as is
+      if (result?.error) {
+        // Parse JSON error if it's a stringified object
+        let errorMessage = result.error
+        try {
+          const parsed = JSON.parse(result.error)
+          if (parsed.error) {
+            errorMessage = parsed.error
+          } else if (parsed.message) {
+            errorMessage = parsed.message
           }
-          setError(mapAuthError(errorMessage))
-        } else {
-          router.push('/dashboard')
+        } catch {
+          // Not JSON, use as is
         }
-      } catch (error) {
-        setError('Unable to sign in. Please check your connection and try again.')
-      } finally {
-        setIsLoading(false)
+        setError(mapAuthError(errorMessage))
+      } else {
+        router.push('/dashboard')
       }
-    },
-    [email, password, callbackUrl, router, mapAuthError]
-  )
+    } catch (error) {
+      setError('Unable to sign in. Please check your connection and try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -260,7 +278,7 @@ export function LoginForm() {
       {/* Form Skeleton Loader */}
       <AnimatePresence>
         {isLoading && (
-          <motion.div 
+          <motion.div
             className="space-y-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -279,158 +297,155 @@ export function LoginForm() {
               <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
             </div>
             <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="h-10 bg-gray-100 rounded-md animate-pulse"></div>
-              <div className="h-10 bg-gray-100 rounded-md animate-pulse"></div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Login Form */}
       {!isLoading && (
-        <motion.form 
-          onSubmit={handleSubmit}
-          className="space-y-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          autoComplete="off"
-        >
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </Label>
-            <MotionInput
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              required
-              whileFocus={{ scale: 1.01 }}
-            />
-          </motion.div>
-
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                Password
-              </Label>
-              <Link
-                href="/auth/forgot-password"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <MotionInput
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                required
-                whileFocus={{ scale: 1.01 }}
-                className="pr-10"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
+        <Form {...form}>
+          <motion.form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            autoComplete="off"
+          >
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email
+                    </FormLabel>
+                    <FormControl>
+                      <motion.div whileFocus={{ scale: 1.01 }}>
+                        <Input
+                          placeholder="name@example.com"
+                          type="email"
+                          disabled={isLoading}
+                          {...field}
+                        />
+                      </motion.div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </button>
-            </div>
-          </motion.div>
+              />
+            </motion.div>
 
-          <motion.div className="space-y-4" variants={itemVariants}>
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Sign In'
-              )}
-            </Button>
-          </motion.div>
-        </motion.form>
-      )}
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" /> Password
+                      </FormLabel>
+                      <Link
+                        href="/auth/forgot-password"
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <FormControl>
+                        <motion.div whileFocus={{ scale: 1.01 }}>
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            disabled={isLoading}
+                            className="pr-10"
+                            autoComplete="current-password"
+                            {...field}
+                          />
+                        </motion.div>
+                      </FormControl>
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </motion.div>
 
-      {/* Social Login Buttons */}
-      {!isLoading && (
-        <motion.div 
-          className="mt-6 text-center text-sm"
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-        >
-          <motion.div className="relative py-6" variants={itemVariants}>
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
-          </div>
-        </motion.div>
+            <motion.div className="space-y-4" variants={itemVariants}>
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </motion.div>
 
-        <motion.div className="grid grid-cols-2 gap-3" variants={itemVariants}>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading || !!socialLoading}
-            onClick={() => handleSocialLogin('google')}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            {socialLoading === 'google' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <FcGoogle className="h-4 w-4" />
-                <span>Google</span>
-              </>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading || !!socialLoading}
-            onClick={() => handleSocialLogin('instagram')}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            {socialLoading === 'instagram' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <FaInstagram className="h-4 w-4 text-pink-600" />
-                <span>Instagram</span>
-              </>
-            )}
-          </Button>
-        </motion.div>
-        </motion.div>
+            {/* Social Login Buttons - Moved inside form container for better stagger effect */}
+            <motion.div className="relative py-4" variants={itemVariants}>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </motion.div>
+
+            <motion.div className="grid grid-cols-2 gap-3" variants={itemVariants}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || !!socialLoading}
+                onClick={() => handleSocialLogin('google')}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {socialLoading === 'google' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <FcGoogle className="h-4 w-4" />
+                    <span>Google</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || !!socialLoading}
+                onClick={() => handleSocialLogin('instagram')}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {socialLoading === 'instagram' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <FaInstagram className="h-4 w-4 text-pink-600" />
+                    <span>Instagram</span>
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </motion.form>
+        </Form>
       )}
     </div>
   )

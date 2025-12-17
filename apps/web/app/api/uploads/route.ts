@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
         })
       } catch (uploadError: any) {
         console.error('Cloudinary upload failed:', uploadError)
+        // Fall through to other providers if one fails? Or just error? 
+        // Usually if Cloudinary is configured but fails, we might want to try others, or maybe just error.
+        // Let's fall through for now.
       }
     }
 
@@ -43,6 +46,11 @@ export async function POST(req: NextRequest) {
         const fileName = `${base}${safeExt}`
         const bucket = 'uploads'
 
+        // Check if client is actually configured
+        if (!supabase || (supabase as any).storage?.from?.()?.upload?.().error?.message === 'Supabase not configured') {
+          throw new Error('Supabase client is not properly configured. Check SUPABASE_URL and Keys.')
+        }
+
         // Upload
         const { data, error } = await supabase.storage
           .from(bucket)
@@ -53,9 +61,12 @@ export async function POST(req: NextRequest) {
 
         if (error) {
           console.warn('Supabase upload warning:', error)
-          // If bucket doesn't exist, we might want to tell the user, but for now fall through
-          if (error.message.includes('bucket not found') || error.message.includes('row not found')) {
-            throw new Error('Supabase Storage bucket "uploads" likely missing. Please create it and set as Public.')
+
+          if (error.message.includes('bucket not found') || error.message.includes('row not found') || error.message.includes('The resource was not found')) {
+            throw new Error(`Supabase Storage bucket "${bucket}" is missing. Please create a Public bucket named "${bucket}" in your Supabase project.`)
+          }
+          if (error.message.includes('new row violates row-level security policy')) {
+            throw new Error('RLS policy violation. Ensure your "uploads" bucket allows INSERTs (or use Service Role Key in .env).')
           }
           throw error
         }
@@ -74,15 +85,26 @@ export async function POST(req: NextRequest) {
         })
       } catch (sbError: any) {
         console.error('Supabase upload failed:', sbError)
+
+        // Detailed logging for debugging
+        console.log('Supabase Config Check:', {
+          url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
+          serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing',
+          anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing'
+        })
+
         // If we are on Vercel and Supabase failed, we must error out
         const isVercel = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME
         if (isVercel && !isCloudinaryConfigured()) {
           return NextResponse.json({
-            message: 'Storage upload failed. Ensure the "uploads" bucket exists in Supabase and is Public.',
-            error: sbError.message
+            message: `Storage upload failed. ${sbError.message}`,
+            error: sbError.message,
+            hint: 'Ensure Supabase "uploads" bucket exists and is Public.'
           }, { status: 500 })
         }
       }
+    } else {
+      console.log('Skipping Supabase upload: NEXT_PUBLIC_SUPABASE_URL is not set.')
     }
 
     // 3. Fallback to Local Filesystem (Only for local dev)
@@ -119,6 +141,7 @@ export async function POST(req: NextRequest) {
       provider: 'local'
     })
   } catch (e: any) {
+    console.error('General upload error:', e)
     return NextResponse.json({ message: e?.message || 'Upload failed' }, { status: 500 })
   }
 }

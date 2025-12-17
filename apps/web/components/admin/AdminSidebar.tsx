@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -14,7 +14,7 @@ import { BrandLogo } from '@/components/BrandLogo'
 
 const getNavigation = (userRole?: string, pathname?: string) => {
   const baseNavigation = []
-  
+
   // Extract company ID if we are in a company view
   const companyIdMatch = pathname?.match(/\/super-admin\/companies\/([^/]+)/);
   const currentCompanyId = companyIdMatch ? companyIdMatch[1] : 'default-tenant';
@@ -24,7 +24,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
   // 1. We are at /super-admin/companies/[id] (but not the list page itself)
   // 2. OR we are in one of the admin sub-pages (context assumption)
   const isCompanyPage = pathname?.startsWith('/super-admin/companies/') && pathname !== '/super-admin/companies';
-  
+
   // SUPER_ADMIN: Different menus based on context
   if (userRole === 'SUPER_ADMIN') {
     // Check if we are viewing a specific company that is NOT the default tenant (Super Admin Company)
@@ -41,7 +41,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/lookup') ||
       pathname?.startsWith('/admin/currency') ||
       pathname?.startsWith('/super-admin/settings') ||
-      pathname?.startsWith('/super-admin/lookups');
+      pathname?.startsWith('/super-admin/lookups') ||
+      pathname?.startsWith('/super-admin/diagnostics'); // Diagnostics treated as system view
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show limited options with back to companies
@@ -53,6 +54,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // Inside Super Admin Company: Show full system modules
       baseNavigation.push(
         { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
+        { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity },
         { name: 'Events', href: '/admin/events', icon: Calendar },
         { name: 'Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Data', href: '/admin/lookup', icon: Database },
@@ -64,6 +66,9 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // Global Super Admin View: Only Companies and Settings
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
+        { name: 'All Events', href: '/admin/events', icon: Calendar },
+        { name: 'All Users', href: '/admin/users', icon: Users },
+        { name: 'Diagnostics', href: '/super-admin/diagnostics', icon: Activity },
         { name: 'Settings', href: '/admin/settings', icon: Settings }
       )
     }
@@ -84,7 +89,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
   }
 
   baseNavigation.push({ name: 'Settings', href: '/admin/settings', icon: Settings })
-  
+
   return baseNavigation
 }
 
@@ -93,7 +98,7 @@ export function AdminSidebar() {
   const { data: session } = useSession()
   const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar()
   const [mounted, setMounted] = useState(false)
-  
+
   const navigation = getNavigation((session?.user as any)?.role, pathname)
 
   // Only show the sidebar toggle on mobile after hydration
@@ -147,7 +152,7 @@ export function AdminSidebar() {
         </button>
         <div className="flex flex-col flex-grow pt-6 pb-4 overflow-y-auto">
           {/* Logo removed from Desktop Sidebar as it is now in Header */}
-          
+
           <nav className="mt-4 flex-1 px-3 space-y-2">
             {navigation.map((item) => {
               const isActive = pathname === item.href

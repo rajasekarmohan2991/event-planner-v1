@@ -1,12 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft, Building2, Check, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,8 +22,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 const MotionButton = motion(Button)
-const MotionInput = motion(Input)
-// Avoid wrapping custom Alert component with motion to prevent invalid element errors
+const MotionAlert = motion(Alert)
 
 // Animation variants
 const containerVariants = {
@@ -31,17 +37,17 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
       type: 'spring',
       stiffness: 100,
       damping: 12
-    } 
+    }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -20,
     transition: {
       duration: 0.2
@@ -75,19 +81,18 @@ export function RegisterForm() {
   const [checkingSlug, setCheckingSlug] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    setValue,
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {},
-  })
 
-  // role is always USER (hidden from UI)
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      companyName: '',
+      companySlug: '',
+    },
+  })
 
   // Brief initial shimmer on mount for delightful feedback
   useEffect(() => {
@@ -97,11 +102,11 @@ export function RegisterForm() {
 
   useEffect(() => {
     if (session?.user) {
-      if (session.user.name) setValue('name', session.user.name)
-      if (session.user.email) setValue('email', session.user.email)
+      if (session.user.name) form.setValue('name', session.user.name)
+      if (session.user.email) form.setValue('email', session.user.email)
       router.replace('/')
     }
-  }, [session, setValue, router])
+  }, [session, form, router])
 
   const checkSlugAvailability = async (slug: string) => {
     if (!slug || slug.length < 3) {
@@ -123,10 +128,10 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
-    
+
     try {
       setServerError(null)
-      
+
       if (registrationType === 'company') {
         if (!data.companyName || !data.companySlug) {
           throw new Error('Company name and slug are required')
@@ -188,12 +193,11 @@ export function RegisterForm() {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Heading removed per request */}
 
       {/* Form Skeleton Loader */}
       <AnimatePresence>
         {isLoading && (
-          <motion.div 
+          <motion.div
             className="space-y-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -204,262 +208,306 @@ export function RegisterForm() {
               <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
               <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
             </div>
-            <div className="space-y-3">
-              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
-            </div>
-            <div className="space-y-3">
-              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
-            </div>
-            <div className="space-y-3">
-              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
-            </div>
+            {/* ... other loading skeletons ... */}
+            <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
+            <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
             <div className="h-12 bg-gray-100 rounded-md animate-pulse"></div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Social signup moved to bottom */}
-
       {/* Register Form */}
       {!isLoading && (
-        <motion.form 
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-        >
-          <AnimatePresence mode="wait">
-            {(Object.keys(errors).length > 0 || serverError) && (
-              <Alert className="bg-red-50 border-red-200 text-red-800 mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {serverError && <div>{serverError}</div>}
-                  {Object.values(errors).map((error, index) => (
-                    <div key={index}>{error.message as string}</div>
-                  ))}
-                </AlertDescription>
-              </Alert>
-            )}
-          </AnimatePresence>
-
-          {/* Registration Type Toggle */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <button
-              type="button"
-              onClick={() => setRegistrationType('individual')}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-                registrationType === 'individual'
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
-              }`}
-            >
-              <User className={`w-6 h-6 mb-2 ${registrationType === 'individual' ? 'text-blue-600' : 'text-gray-400'}`} />
-              <span className="font-medium text-sm">Individual</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRegistrationType('company')}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-                registrationType === 'company'
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
-              }`}
-            >
-              <Building2 className={`w-6 h-6 mb-2 ${registrationType === 'company' ? 'text-blue-600' : 'text-gray-400'}`} />
-              <span className="font-medium text-sm">Company</span>
-            </button>
-          </div>
-
-          {/* Company Fields */}
-          <AnimatePresence mode="wait">
-            {registrationType === 'company' && (
-              <motion.div
-                variants={itemVariants}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                className="space-y-4 mb-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <MotionInput
-                    id="companyName"
-                    placeholder="Acme Inc."
-                    {...register('companyName', {
-                      onChange: (e) => {
-                        const name = e.target.value
-                        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                        setValue('companySlug', slug)
-                        
-                        // Debounce slug check
-                        const timer = setTimeout(() => {
-                          checkSlugAvailability(slug)
-                        }, 500)
-                      }
-                    })}
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="companySlug">Company Slug</Label>
-                  <div className="relative">
-                    <MotionInput
-                      id="companySlug"
-                      placeholder="acme-inc"
-                      {...register('companySlug', {
-                         onChange: (e) => {
-                            const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
-                            setValue('companySlug', slug)
-                            const timer = setTimeout(() => {
-                              checkSlugAvailability(slug)
-                            }, 500)
-                         }
-                      })}
-                      disabled={isLoading}
-                      className="pr-10"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {checkingSlug && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
-                      {!checkingSlug && slugAvailable === true && <Check className="w-4 h-4 text-green-600" />}
-                      {!checkingSlug && slugAvailable === false && <X className="w-4 h-4 text-red-600" />}
-                    </div>
-                  </div>
-                  {slugAvailable === false && (
-                    <p className="text-xs text-red-600">Slug already taken</p>
-                  )}
-                </div>
-                <div className="h-px bg-gray-200 my-4" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Full Name
-            </Label>
-            <MotionInput
-              id="name"
-              placeholder="John Doe"
-              {...register('name')}
-              disabled={isLoading}
-              whileFocus={{ scale: 1.01 }}
-            />
-          </motion.div>
-
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </Label>
-            <MotionInput
-              id="email"
-              type="email"
-              placeholder="name@example.com"
-              {...register('email')}
-              disabled={isLoading}
-              whileFocus={{ scale: 1.01 }}
-            />
-          </motion.div>
-
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <Label htmlFor="password" className="flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              Password
-            </Label>
-            <div className="relative">
-              <MotionInput
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="At least 8 characters"
-                {...register('password')}
-                disabled={isLoading}
-                whileFocus={{ scale: 1.01 }}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </motion.div>
-
-          <motion.div className="space-y-2" variants={itemVariants}>
-            <Label htmlFor="confirmPassword" className="flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              Confirm Password
-            </Label>
-            <div className="relative">
-              <MotionInput
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Re-enter password"
-                {...register('confirmPassword')}
-                disabled={isLoading}
-                whileFocus={{ scale: 1.01 }}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isLoading}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Account Type removed: defaulting to USER without exposing UI */}
-
-          <motion.div variants={itemVariants}>
-            <MotionButton 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]" 
-              disabled={isLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                'Create account'
-              )}
-            </MotionButton>
-          </motion.div>
-
-          <motion.div 
-            className="text-center pt-2" 
-            variants={itemVariants}
+        <Form {...form}>
+          <motion.form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
           >
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/login" className="font-medium text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </motion.div>
-        </motion.form>
+            <AnimatePresence mode="wait">
+              {(Object.keys(form.formState.errors).length > 0 || serverError) && (
+                <MotionAlert
+                  className="bg-red-50 border-red-200 text-red-800 mb-6"
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {serverError && <div>{serverError}</div>}
+                    {Object.values(form.formState.errors).map((error, index) => (
+                      <div key={index}>{error.message as string}</div>
+                    ))}
+                  </AlertDescription>
+                </MotionAlert>
+              )}
+            </AnimatePresence>
+
+            {/* Registration Type Toggle */}
+            <motion.div className="grid grid-cols-2 gap-4 mb-6" variants={itemVariants}>
+              <button
+                type="button"
+                onClick={() => setRegistrationType('individual')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${registrationType === 'individual'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+              >
+                <User className={`w-6 h-6 mb-2 ${registrationType === 'individual' ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className="font-medium text-sm">Individual</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegistrationType('company')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${registrationType === 'company'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+              >
+                <Building2 className={`w-6 h-6 mb-2 ${registrationType === 'company' ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className="font-medium text-sm">Company</span>
+              </button>
+            </motion.div>
+
+            {/* Company Fields */}
+            <AnimatePresence mode="wait">
+              {registrationType === 'company' && (
+                <motion.div
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="space-y-4 mb-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <motion.div whileFocus={{ scale: 1.01 }}>
+                            <Input
+                              placeholder="Acme Inc."
+                              disabled={isLoading}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                const name = e.target.value
+                                const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                                form.setValue('companySlug', slug)
+
+                                // Debounce slug check
+                                const timer = setTimeout(() => {
+                                  checkSlugAvailability(slug)
+                                }, 500)
+                              }}
+                            />
+                          </motion.div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="companySlug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Slug</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <motion.div whileFocus={{ scale: 1.01 }}>
+                              <Input
+                                placeholder="acme-inc"
+                                disabled={isLoading}
+                                className="pr-10"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                                  form.setValue('companySlug', slug)
+                                  const timer = setTimeout(() => {
+                                    checkSlugAvailability(slug)
+                                  }, 500)
+                                }}
+                              />
+                            </motion.div>
+                          </FormControl>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {checkingSlug && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+                            {!checkingSlug && slugAvailable === true && <Check className="w-4 h-4 text-green-600" />}
+                            {!checkingSlug && slugAvailable === false && <X className="w-4 h-4 text-red-600" />}
+                          </div>
+                        </div>
+                        {slugAvailable === false && (
+                          <p className="text-xs text-destructive mt-1">Slug already taken</p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="h-px bg-gray-200 my-4" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <User className="h-4 w-4" /> Full Name
+                    </FormLabel>
+                    <FormControl>
+                      <motion.div whileFocus={{ scale: 1.01 }}>
+                        <Input placeholder="John Doe" disabled={isLoading} {...field} />
+                      </motion.div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email
+                    </FormLabel>
+                    <FormControl>
+                      <motion.div whileFocus={{ scale: 1.01 }}>
+                        <Input placeholder="name@example.com" type="email" disabled={isLoading} {...field} />
+                      </motion.div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" /> Password
+                    </FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <motion.div whileFocus={{ scale: 1.01 }}>
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="At least 8 characters"
+                            className="pr-10"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </motion.div>
+                      </FormControl>
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Lock className="h-4 w-4" /> Confirm Password
+                    </FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <motion.div whileFocus={{ scale: 1.01 }}>
+                          <Input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            placeholder="Re-enter password"
+                            className="pr-10"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </motion.div>
+                      </FormControl>
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        disabled={isLoading}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <MotionButton
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                disabled={isLoading}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  'Create account'
+                )}
+              </MotionButton>
+            </motion.div>
+
+            <motion.div
+              className="text-center pt-2"
+              variants={itemVariants}
+            >
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link href="/auth/login" className="font-medium text-primary hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </motion.div>
+          </motion.form>
+        </Form>
       )}
     </div>
   )
