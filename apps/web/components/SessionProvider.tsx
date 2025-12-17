@@ -18,9 +18,7 @@ export function SessionProvider({ children, session = null }: SessionProviderPro
       refetchWhenOffline={false}
       basePath="/api/auth"
     >
-      <SessionKeepAlive intervalMinutes={10}>
-        {children}
-      </SessionKeepAlive>
+      {children}
     </NextAuthSessionProvider>
   );
 }
