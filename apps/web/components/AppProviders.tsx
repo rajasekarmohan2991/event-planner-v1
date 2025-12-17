@@ -6,10 +6,12 @@ import { ReactQueryProvider } from '@/components/ReactQueryProvider'
 // Service Worker DISABLED - was causing blank page issues
 // import { ServiceWorkerProvider } from '@/lib/useServiceWorker'
 
-export default function AppProviders({ children }: { children: React.ReactNode }) {
+import { Session } from 'next-auth'
+
+export default function AppProviders({ children, session }: { children: React.ReactNode, session: Session | null }) {
   return (
     <ErrorBoundary>
-      <SessionProvider>
+      <SessionProvider session={session}>
         {/* <ServiceWorkerProvider> */}
         <ReactQueryProvider>
           {children}

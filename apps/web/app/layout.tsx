@@ -7,6 +7,8 @@ import { ToastProvider } from '@/contexts/toast-context'
 import { Toaster } from '@/components/ui/toaster'
 import AppFrame from '@/components/layout/AppFrame'
 import { cn } from '@/lib/utils'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 // Font configuration
 const inter = Inter({
@@ -55,11 +57,13 @@ export const viewport: Viewport = {
   colorScheme: 'light',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await getServerSession(authOptions)
+
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
@@ -83,7 +87,7 @@ export default function RootLayout({
         'min-h-screen bg-background text-foreground font-sans antialiased'
       )}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AppProviders>
+          <AppProviders session={session}>
             <ToastProvider>
               <AppFrame>{children}</AppFrame>
               <Toaster />
