@@ -41,7 +41,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/users') ||
       pathname?.startsWith('/admin/lookup') ||
       pathname?.startsWith('/admin/system-settings') ||
-      pathname?.startsWith('/admin/billing') ||
+      pathname?.startsWith('/admin/billing-subscription') ||
       pathname?.startsWith('/super-admin/diagnostics') ||
       pathname?.startsWith('/admin/currency');
 
@@ -69,7 +69,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
-        { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard },
+        { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
       )
     } else {
