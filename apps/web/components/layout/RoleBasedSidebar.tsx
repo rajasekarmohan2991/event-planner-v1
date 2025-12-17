@@ -36,7 +36,7 @@ const USER_MENU_ITEMS: MenuItem[] = [
   },
 ]
 
-// Define sidebar menu items with role-based access
+// Define sidebar menu items with role-based access for Tenat Admins/Managers
 const MENU_ITEMS: MenuItem[] = [
   {
     name: 'Dashboard',
@@ -118,7 +118,7 @@ const MENU_ITEMS: MenuItem[] = [
   },
 ]
 
-// Super Admin only menu items
+// Global Super Admin View Items (When at /super-admin/companies)
 const SUPER_ADMIN_ITEMS: MenuItem[] = [
   {
     name: 'Companies',
@@ -134,15 +134,12 @@ const SUPER_ADMIN_ITEMS: MenuItem[] = [
   }
 ]
 
-// Menu items for "Super Admin Company" context (Default Organization)
-// Menu items for "Super Admin Company" context (Default Organization)
-// Menu items for "Super Admin Company" context (Default Organization)
+// Detailed Super Admin View Items (When inside a company context or dashboard)
 const SUPER_ADMIN_COMPANY_ITEMS: MenuItem[] = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
   { name: 'All Events', href: '/admin/events', icon: Calendar, roles: ['SUPER_ADMIN'] },
   { name: 'All Users', href: '/admin/users', icon: Users, roles: ['SUPER_ADMIN'] },
   { name: 'Lookup Management', href: '/admin/lookup', icon: FileText, roles: ['SUPER_ADMIN'] },
-  // Currency removed from main menu as per request, moved to System Settings
   { name: 'System Settings', href: '/admin/system-settings', icon: Settings, roles: ['SUPER_ADMIN'] },
   { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
   { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity, roles: ['SUPER_ADMIN'] },
@@ -160,43 +157,43 @@ export function RoleBasedSidebar() {
   const tenantRole = (session.user as any).tenantRole
   const isSuperAdmin = systemRole === 'SUPER_ADMIN'
   const isNormalUser = systemRole === 'USER' || (!tenantRole && systemRole !== 'SUPER_ADMIN')
-  // Super Admin Company view includes the dashboard and all module pages
+
+  // Detect which Super Admin view to show
+  // We are in "Company View" (Detailed) if we are accessing tenant-specific admin pages
+  // We exclude the main landing page '/super-admin/companies'
   const isSuperAdminCompanyView = pathname?.includes('/super-admin/companies/default-tenant') ||
     (isSuperAdmin && (
       pathname === '/admin' ||
       pathname?.startsWith('/admin/') ||
-      pathname?.startsWith('/admin/events') ||
-      pathname?.startsWith('/admin/users') ||
-      pathname?.startsWith('/admin/lookup') ||
-      // Currency removed but path remains valid if accessed directly
-      pathname?.startsWith('/admin/currency') ||
-      pathname?.startsWith('/admin/system-settings') ||
-      pathname?.startsWith('/admin/billing') ||
       pathname?.startsWith('/super-admin/diagnostics')
     ))
 
-  // Filter menu items based on role
-  let visibleItems: MenuItem[] = []
+  // Determine which items to show
+  let visiblePlatformItems: MenuItem[] = []
+  let visibleMainItems: MenuItem[] = []
 
   if (isNormalUser) {
-    // Normal users only see USER_MENU_ITEMS
-    visibleItems = USER_MENU_ITEMS
-  } else if (isSuperAdmin && isSuperAdminCompanyView) {
-    // When viewing Super Admin Company, show specific system modules
-    visibleItems = SUPER_ADMIN_COMPANY_ITEMS
-  } else if (isSuperAdmin && !isSuperAdminCompanyView) {
-    // Global Super Admin View: Hide generic tenant items, show only Global items
-    visibleItems = []
+    visibleMainItems = USER_MENU_ITEMS
+  } else if (isSuperAdmin) {
+    if (isSuperAdminCompanyView) {
+      // Detailed View: Show Dashboard, Events, Users, etc.
+      // Platform section is HIDDEN in detailed view to avoid clutter
+      visiblePlatformItems = []
+      visibleMainItems = SUPER_ADMIN_COMPANY_ITEMS
+    } else {
+      // Global View: Show Companies, Settings
+      // Main section is HIDDEN
+      visiblePlatformItems = SUPER_ADMIN_ITEMS
+      visibleMainItems = []
+    }
   } else {
-    // Admin/Manager users see MENU_ITEMS based on their tenant role
-    visibleItems = MENU_ITEMS.filter(item => {
-      if (isSuperAdmin) return true // Super admin sees everything
-      if (!tenantRole) return false // No tenant role, no access
+    // Tenant Admin / Manager View
+    visibleMainItems = MENU_ITEMS.filter(item => {
+      // No platform items for regular tenant admins
+      if (!tenantRole) return false
       return item.roles.includes(tenantRole)
     })
   }
-
-  const visibleSuperAdminItems = isSuperAdmin && !isSuperAdminCompanyView ? SUPER_ADMIN_ITEMS : []
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
@@ -208,20 +205,11 @@ export function RoleBasedSidebar() {
           )}
         </div>
 
-        {/* Super Admin Section - Only show when NOT in Super Admin Company view (or keep it?)
-            The user says "only companies settings will be remain ter".
-            If we are in Super Admin Company view, we want to show the modules "under default organisation".
-            The image shows "System Settings" page with the sidebar having these items.
-            So we likely want to HIDE the "Platform" section when in this view, OR merge them.
-            I'll hide the Platform section when in Super Admin Company view (via visibleSuperAdminItems logic above).
-         */}
-        {visibleSuperAdminItems.length > 0 && (
+        {/* Platform Menu (Global Items) */}
+        {visiblePlatformItems.length > 0 && (
           <div className="mb-6">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">
-              Platform
-            </div>
             <nav className="space-y-1">
-              {visibleSuperAdminItems.map((item) => {
+              {visiblePlatformItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
 
@@ -250,45 +238,43 @@ export function RoleBasedSidebar() {
           </div>
         )}
 
-        {/* Main Menu */}
+        {/* Main Menu (Detailed/Tenant Items) */}
         <div>
-          {isSuperAdmin && !isSuperAdminCompanyView && visibleItems.length > 0 && (
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">
-              Tenant
-            </div>
-          )}
           {isSuperAdmin && isSuperAdminCompanyView && (
             <div className="mb-2 px-3">
               <Link href="/super-admin/companies" className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                 &larr; Back to Companies
               </Link>
               <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-3">
-                Super Admin Company
+                Company View
               </div>
             </div>
           )}
-          <nav className="space-y-1">
-            {visibleItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </nav>
+          {visibleMainItems.length > 0 && (
+            <nav className="space-y-1">
+              {visibleMainItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    )}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                )
+              })}
+            </nav>
+          )}
         </div>
 
         {/* Role Badge */}
@@ -300,41 +286,6 @@ export function RoleBasedSidebar() {
             </div>
           </div>
         </div>
-      </div>
-    </aside>
-  )
-}
-
-/**
- * Minimal sidebar for unauthenticated users
- */
-export function PublicSidebar() {
-  return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="font-bold text-lg">Event Planner</h1>
-        </div>
-
-        <nav className="space-y-1">
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Home</span>
-          </Link>
-          <Link
-            href="/auth/signin"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100"
-          >
-            <Users className="w-5 h-5" />
-            <span>Sign In</span>
-          </Link>
-        </nav>
       </div>
     </aside>
   )
