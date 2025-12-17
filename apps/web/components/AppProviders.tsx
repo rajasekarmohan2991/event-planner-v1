@@ -1,7 +1,7 @@
 'use client'
 
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { SessionProvider } from '@/components/SessionProvider'
+import { SessionProvider } from 'next-auth/react'
 import { ReactQueryProvider } from '@/components/ReactQueryProvider'
 // Service Worker DISABLED - was causing blank page issues
 // import { ServiceWorkerProvider } from '@/lib/useServiceWorker'
