@@ -69,16 +69,27 @@ export async function GET(
       }
     })
 
-    // Fetch company events from Java API
-    const eventsRes = await fetch(`${process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'}/api/events`, {
-      headers: {
-        'x-tenant-id': tenantId,
-      }
-    })
+    // Fetch company events from Java API with timeout
+    let eventsList: any[] = []
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
 
-    const eventsData = eventsRes.ok ? await eventsRes.json() : []
-    // Handle both pagination (content) and array responses
-    const eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.content || [])
+      const eventsRes = await fetch(`${process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'}/api/events`, {
+        headers: {
+          'x-tenant-id': tenantId,
+        },
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
+
+      const eventsData = eventsRes.ok ? await eventsRes.json() : []
+      // Handle both pagination (content) and array responses
+      eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.content || [])
+    } catch (error) {
+      console.warn('Failed to fetch events from Java API:', error)
+      // Continue with empty list to avoid blocking the UI
+    }
 
     // Calculate real-time registrations for each event
     const eventIds = eventsList.map((e: any) => parseInt(e.id)).filter((id: number) => !isNaN(id))
