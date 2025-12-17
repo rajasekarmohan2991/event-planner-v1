@@ -38,7 +38,7 @@ export default function SuperAdminCompaniesPage() {
           headers: { 'Content-Type': 'application/json' }
         })
       ]);
-      
+
       if (companiesRes.ok) {
         const data = await companiesRes.json();
         setCompanies(data.companies || []);
@@ -111,7 +111,13 @@ export default function SuperAdminCompaniesPage() {
         {companies.map((company) => (
           <div
             key={company.id}
-            onClick={() => router.push(`/super-admin/companies/${company.id}`)}
+            onClick={() => {
+              if (company.slug === 'super-admin' || company.slug === 'default-tenant') {
+                router.push('/admin'); // Detailed View for Super Admin Tenant
+              } else {
+                router.push(`/super-admin/companies/${company.id}`);
+              }
+            }}
             className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 overflow-hidden flex flex-col"
           >
             {/* Banner Image (Gradient) */}

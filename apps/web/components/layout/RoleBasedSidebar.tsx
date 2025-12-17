@@ -136,15 +136,16 @@ const SUPER_ADMIN_ITEMS: MenuItem[] = [
 
 // Menu items for "Super Admin Company" context (Default Organization)
 // Menu items for "Super Admin Company" context (Default Organization)
+// Menu items for "Super Admin Company" context (Default Organization)
 const SUPER_ADMIN_COMPANY_ITEMS: MenuItem[] = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
-  { name: 'Run Diagnostics', href: '/admin/diagnostics', icon: Activity, roles: ['SUPER_ADMIN'] },
   { name: 'All Events', href: '/admin/events', icon: Calendar, roles: ['SUPER_ADMIN'] },
   { name: 'All Users', href: '/admin/users', icon: Users, roles: ['SUPER_ADMIN'] },
   { name: 'Lookup Management', href: '/admin/lookup', icon: FileText, roles: ['SUPER_ADMIN'] },
-  { name: 'Currency Settings', href: '/admin/currency', icon: DollarSign, roles: ['SUPER_ADMIN'] },
-  { name: 'System Settings', href: '/admin/settings', icon: Settings, roles: ['SUPER_ADMIN'] }, // Tenant system settings
+  // Currency removed from main menu as per request, moved to System Settings
+  { name: 'System Settings', href: '/admin/system-settings', icon: Settings, roles: ['SUPER_ADMIN'] },
   { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
+  { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity, roles: ['SUPER_ADMIN'] },
 ]
 
 export function RoleBasedSidebar() {
@@ -167,9 +168,11 @@ export function RoleBasedSidebar() {
       pathname?.startsWith('/admin/events') ||
       pathname?.startsWith('/admin/users') ||
       pathname?.startsWith('/admin/lookup') ||
+      // Currency removed but path remains valid if accessed directly
       pathname?.startsWith('/admin/currency') ||
-      pathname?.startsWith('/super-admin/settings') ||
-      pathname?.startsWith('/admin/settings')
+      pathname?.startsWith('/admin/system-settings') ||
+      pathname?.startsWith('/admin/billing') ||
+      pathname?.startsWith('/super-admin/diagnostics')
     ))
 
   // Filter menu items based on role
