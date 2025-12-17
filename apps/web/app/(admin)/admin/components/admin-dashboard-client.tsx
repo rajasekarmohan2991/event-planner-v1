@@ -29,7 +29,7 @@ export function AdminDashboardClient() {
     totalTickets: 0,
     totalCompanies: 0
   });
-  
+
   const [recentActivities, setRecentActivities] = useState<ActivityType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -37,12 +37,6 @@ export function AdminDashboardClient() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [companySettings, setCompanySettings] = useState<any>(null);
 
-  // Redirect Super Admin to Companies page
-  useEffect(() => {
-    if (session?.user?.role === 'SUPER_ADMIN') {
-      router.push('/super-admin/companies');
-    }
-  }, [session, router]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -139,7 +133,7 @@ export function AdminDashboardClient() {
         setCompanySettings(companyData);
       }
       setLastUpdated(new Date());
-      
+
       toast({
         title: 'Success',
         description: 'Dashboard data refreshed',
@@ -259,44 +253,44 @@ export function AdminDashboardClient() {
                 </div>
               </div>
             </div>
-            
+
             {/* Registration Trend Chart */}
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">📈 Registration Trends</h4>
               <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={(analytics?.registrationsByMonth && analytics.registrationsByMonth.length > 0) 
-                  ? analytics.registrationsByMonth 
+                <LineChart data={(analytics?.registrationsByMonth?.length > 0)
+                  ? analytics.registrationsByMonth
                   : Array.from({ length: 6 }, (_, i) => {
-                      const d = new Date();
-                      d.setMonth(d.getMonth() - (5 - i));
-                      return {
-                        month: d.toLocaleString('default', { month: 'short', year: 'numeric' }),
-                        count: 0
-                      };
-                    })
+                    const d = new Date();
+                    d.setMonth(d.getMonth() - (5 - i));
+                    return {
+                      month: d.toLocaleString('default', { month: 'short', year: 'numeric' }),
+                      count: 0
+                    };
+                  })
                 }>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="month" 
+                  <XAxis
+                    dataKey="month"
                     tick={{ fontSize: 11 }}
                     stroke="#6b7280"
                   />
-                  <YAxis 
+                  <YAxis
                     tick={{ fontSize: 11 }}
                     stroke="#6b7280"
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       fontSize: '12px'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#4f46e5" 
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#4f46e5"
                     strokeWidth={3}
                     dot={{ fill: '#4f46e5', r: 4 }}
                     activeDot={{ r: 6 }}
@@ -307,7 +301,7 @@ export function AdminDashboardClient() {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Ticket Sales Pie Chart */}
         <Card className="lg:col-span-1 bg-gradient-to-br from-purple-50 to-pink-100 border-0 shadow-lg">
           <CardHeader className="pb-2">
@@ -403,7 +397,7 @@ export function AdminDashboardClient() {
       </div>
 
       {/* Your Events Section */}
-      {analytics?.topEvents && analytics.topEvents.length > 0 && (
+      {analytics?.topEvents?.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900">Your Events</h2>
@@ -411,7 +405,7 @@ export function AdminDashboardClient() {
               View All
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analytics.topEvents.map((event: any) => (
               <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow border-l-4 border-l-indigo-500">
@@ -420,11 +414,10 @@ export function AdminDashboardClient() {
                     <CardTitle className="text-lg font-semibold line-clamp-1" title={event.name}>
                       {event.name}
                     </CardTitle>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
-                      event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                      event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                      'bg-blue-50 text-blue-700 border-blue-200'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
+                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                          'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
                       {event.status || 'DRAFT'}
                     </span>
                   </div>
@@ -436,7 +429,7 @@ export function AdminDashboardClient() {
                       {event.adminEmail || 'No admin email'}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Tag className="w-4 h-4 text-gray-400" />
                     <span className="font-medium text-gray-900">
@@ -464,18 +457,18 @@ export function AdminDashboardClient() {
                       <span className="font-bold text-indigo-600">{event.registrations}</span> registrations
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
                         onClick={() => router.push(`/events/${event.id}/info`)}
                         title="View Details"
                       >
                         <Eye className="w-4 h-4 text-blue-600" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0"
                         onClick={() => router.push(`/events/${event.id}/manage`)}
                         title="Edit Event"
