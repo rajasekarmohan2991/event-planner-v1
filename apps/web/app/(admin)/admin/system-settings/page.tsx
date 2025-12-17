@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Shield, Database, DollarSign, CreditCard } from 'lucide-react'
 import PermissionsMatrix from '@/components/admin/PermissionsMatrix'
 import ModuleAccessMatrix from '@/components/admin/ModuleAccessMatrix'
-import CurrencySettingsPage from '../currency/page'
-import BillingPage from '../billing/page'
+import CurrencySettings from '@/components/admin/CurrencySettings'
+import BillingSettings from '@/components/admin/BillingSettings'
 
 export default function SystemSettingsPage() {
   const [activeTab, setActiveTab] = useState<'permissions' | 'modules' | 'currency' | 'billing'>('permissions')
@@ -73,13 +73,13 @@ export default function SystemSettingsPage() {
       <div className="bg-white rounded-lg p-0">
         {activeTab === 'permissions' && <PermissionsMatrix />}
         {activeTab === 'currency' && (
-          <div className="border rounded-xl overflow-hidden">
-            <CurrencySettingsPage />
+          <div className="border rounded-xl p-0 overflow-hidden border-none shadow-none">
+            <CurrencySettings />
           </div>
         )}
         {activeTab === 'billing' && (
           <div className="border rounded-xl p-6">
-            <BillingPage />
+            <BillingSettings />
           </div>
         )}
         {activeTab === 'modules' && <ModuleAccessMatrix />}
