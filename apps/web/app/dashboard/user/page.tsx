@@ -28,6 +28,7 @@ export default function UserDashboard() {
   const { data: session, status } = useSession()
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [myRegistrations, setMyRegistrations] = useState<Registration[]>([])
+  const [myCreatedEvents, setMyCreatedEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,6 +57,15 @@ export default function UserDashboard() {
         if (registrationsRes.ok) {
           const registrationsData = await registrationsRes.json()
           setMyRegistrations(registrationsData.registrations || [])
+        }
+
+        // Fetch events created by me (including drafts)
+        const myEventsRes = await fetch('/api/events?my=true', {
+          credentials: 'include'
+        })
+        if (myEventsRes.ok) {
+          const myEventsData = await myEventsRes.json()
+          setMyCreatedEvents(myEventsData.events || [])
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -168,6 +178,39 @@ export default function UserDashboard() {
             </Link>
           </div>
         </div>
+
+        {/* Events Organized by You */}
+        {myCreatedEvents.length > 0 && (
+          <div className="bg-white rounded-lg border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Events Organized by You</h2>
+            </div>
+            <div className="space-y-3">
+              {myCreatedEvents.map((event) => (
+                <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{event.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      {new Date(event.startDate).toLocaleDateString()} • {event.location}
+                    </p>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${event.status === 'LIVE' ? 'bg-green-100 text-green-800' :
+                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 border border-gray-300' :
+                          'bg-indigo-100 text-indigo-800'
+                      }`}>
+                      {event.status}
+                    </span>
+                    <div className="flex gap-3">
+                      <Link href={`/events/${event.id}/edit`} className="text-xs text-blue-600 hover:underline">Edit</Link>
+                      <Link href={`/events/${event.id}`} className="text-xs text-blue-600 hover:underline">View</Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* My Registrations */}
         <div className="bg-white rounded-lg border p-6">
