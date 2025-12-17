@@ -73,7 +73,7 @@ export async function GET(
     let eventsList: any[] = []
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 1500) // 1.5s timeout
 
       const eventsRes = await fetch(`${process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'}/api/events`, {
         headers: {
