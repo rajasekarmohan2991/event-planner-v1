@@ -10,15 +10,25 @@ export const dynamic = 'force-dynamic'
 // POST /api/events/[id]/seats/generate - Generate seat inventory from floor plan
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    console.log('[API] /api/events/[id]/seats/generate - Starting')
+    console.log('[API] Event ID:', params.id)
+
     const permissionCheck = await checkPermissionInRoute('events.edit', 'Generate Seats')
-    if (permissionCheck) return permissionCheck
+    if (permissionCheck) {
+      console.log('[API] Permission check failed')
+      return permissionCheck
+    }
 
     const session = await getServerSession(authOptions as any) as any
     if (!session?.user) {
+      console.log('[API] No session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('[API] User:', session.user.email)
+
     const eventId = parseInt(params.id)
+    console.log('[API] Parsed event ID:', eventId)
 
     // Ensure tables exist
     try {
@@ -29,11 +39,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const body = await req.json().catch(() => ({}))
+    console.log('[API] Request body keys:', Object.keys(body))
+
     const { floorPlan, pricingRules } = body || {}
 
     // Support v2 payload { rows, cols, seatPrefix, basePrice, ticketClass }
     let plan = floorPlan
     if (!plan && (body?.rows && body?.cols)) {
+      console.log('[API] Using v2 payload format')
       const rows = Number(body.rows)
       const cols = Number(body.cols)
       const seatPrefix = String(body.seatPrefix || '')
@@ -58,6 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (!plan) {
+      console.log('[API] No floor plan in request, checking database...')
       // Try loading the latest saved plan for this event
       const rows = await prisma.$queryRaw`
         SELECT layout_data
@@ -68,11 +82,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ` as any[]
       if (rows.length > 0 && rows[0]?.layout_data) {
         plan = rows[0].layout_data as any
+        console.log('[API] Loaded plan from database')
       } else {
+        console.log('[API] ❌ No floor plan found')
         return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
       }
     }
 
+    console.log('[API] Floor plan:', {
+      name: plan.name,
+      totalSeats: plan.totalSeats,
+      sectionsCount: plan.sections?.length || 0
+    })
 
     // Delete existing seats for this event
     await prisma.seatInventory.deleteMany({
@@ -235,6 +256,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Save pricing rules if provided
     if (pricingRules && Array.isArray(pricingRules)) {
+      console.log('[API] Saving pricing rules:', pricingRules.length)
       for (const rule of pricingRules) {
         await prisma.$executeRaw`
           INSERT INTO seat_pricing_rules (
@@ -256,6 +278,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
+    console.log('[API] ✅ Successfully generated', totalSeatsGenerated, 'seats')
+
     return NextResponse.json({
       success: true,
       totalSeatsGenerated,
@@ -264,10 +288,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }, { status: 201 })
 
   } catch (error: any) {
-    console.error('Error generating seats:', error)
+    console.error('[API] ❌ Error generating seats:', error)
+    console.error('[API] Error stack:', error.stack)
     return NextResponse.json({
       error: 'Failed to generate seats',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 })
   }
 }

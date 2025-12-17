@@ -76,6 +76,8 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
       setGenerating(true)
       setMessage(null)
 
+      console.log('[FloorPlanner] Starting generation with data:', data)
+
       // Logic from original component
       const getSeatsPerRow = () => {
         if (data.tableType === 'ROUND') return 8
@@ -92,6 +94,8 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
         layout: data.tableType === 'ROWS' ? 'rows' : 'tables',
         tableType: data.tableType
       }
+
+      console.log('[FloorPlanner] Configuration:', config)
 
       const sections = []
 
@@ -134,6 +138,8 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
         })
       }
 
+      console.log('[FloorPlanner] Sections created:', sections.length)
+
       const floorPlan = {
         name: '2D Floor Plan',
         totalSeats: (data.vipSeats + data.premiumSeats + data.generalSeats),
@@ -159,19 +165,29 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
         }))
       }
 
-      const res = await fetch(`/api/events/${eventId}/seats/generate`, {
+      console.log('[FloorPlanner] Floor plan payload:', JSON.stringify(floorPlan, null, 2))
+
+      const apiUrl = `/api/events/${eventId}/seats/generate`
+      console.log('[FloorPlanner] Sending POST to:', apiUrl)
+
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ floorPlan })
       })
 
+      console.log('[FloorPlanner] Response status:', res.status, res.statusText)
+
       const resData = await res.json()
+      console.log('[FloorPlanner] Response data:', resData)
 
       if (!res.ok) {
-        throw new Error(resData.error || 'Failed to generate floor plan')
+        console.error('[FloorPlanner] API Error:', resData)
+        throw new Error(resData.error || `Server returned ${res.status}: ${res.statusText}`)
       }
 
+      console.log('[FloorPlanner] ✅ Success!')
       setMessage({
         type: 'success',
         text: `✅ ${resData.message || `Generated ${floorPlan.totalSeats} seats successfully!`}`
@@ -181,9 +197,11 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
         setTimeout(onSuccess, 1500)
       }
     } catch (error: any) {
+      console.error('[FloorPlanner] ❌ Error:', error)
+      console.error('[FloorPlanner] Error stack:', error.stack)
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to generate floor plan'
+        text: `❌ ${error.message || 'Failed to generate floor plan'}`
       })
     } finally {
       setGenerating(false)
@@ -430,6 +448,42 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
           </p>
         </form>
       </Form>
+
+      {/* Debug Panel (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <details className="mt-4 p-4 bg-gray-50 rounded border">
+          <summary className="cursor-pointer font-medium text-sm text-gray-700">
+            🔧 Debug Information
+          </summary>
+          <div className="mt-2 space-y-2 text-xs">
+            <div>
+              <strong>Event ID:</strong> {eventId}
+            </div>
+            <div>
+              <strong>Total Seats:</strong> {totalSeats}
+            </div>
+            <div>
+              <strong>Form Values:</strong>
+              <pre className="mt-1 p-2 bg-white rounded text-xs overflow-auto">
+                {JSON.stringify(values, null, 2)}
+              </pre>
+            </div>
+            <div className="pt-2">
+              <a
+                href={`/api/events/${eventId}/seats/test`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                🧪 Test Seat Generation API
+              </a>
+            </div>
+            <div className="text-gray-600 text-xs pt-2">
+              💡 Check browser console for detailed logs
+            </div>
+          </div>
+        </details>
+      )}
     </div>
   )
 }
