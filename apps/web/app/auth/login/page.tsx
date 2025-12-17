@@ -1,7 +1,5 @@
 import { Metadata, Viewport } from 'next'
-import nextDynamic from 'next/dynamic'
-
-const LoginClient = nextDynamic(() => import('@/components/auth/LoginClient'), { ssr: false })
+import LoginClient from '@/components/auth/LoginClient'
 
 export const dynamic = 'force-dynamic'
 
