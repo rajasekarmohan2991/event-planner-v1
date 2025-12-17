@@ -39,7 +39,14 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
         const res = await fetch(`${base}/api/events/${params.id}/promo-codes`)
         if (res.ok) {
           const data = await res.json()
-          setPromoCodes(Array.isArray(data) ? data : [])
+          const rows = Array.isArray(data) ? data : []
+          // Normalize DB values (Paise/Cents) to Human Readable (Rupees/Dollars)
+          const normalized = rows.map((p: any) => ({
+            ...p,
+            minOrderAmount: p.minOrderAmount ? p.minOrderAmount / 100 : 0,
+            discountAmount: p.discountType === 'FIXED' ? (p.discountAmount / 100) : p.discountAmount
+          }))
+          setPromoCodes(normalized)
         }
       } catch (error) {
         console.error('Failed to load promo codes:', error)
@@ -55,20 +62,39 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
       const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
       const isUpdate = promoCode.id
 
+      const payload = {
+        ...promoCode,
+        // Convert to paise/cents for backend consistency if currency related
+        minOrderAmount: Math.round((promoCode.minOrderAmount || 0) * 100),
+        discountAmount: promoCode.discountType === 'FIXED'
+          ? Math.round((promoCode.discountAmount || 0) * 100)
+          : promoCode.discountAmount
+      }
+
       const res = await fetch(`${base}/api/events/${params.id}/promo-codes${isUpdate ? `/${promoCode.id}` : ''}`, {
         method: isUpdate ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(promoCode)
+        body: JSON.stringify(payload)
       })
 
       if (!res.ok) throw new Error('Failed to save promo code')
 
       const saved = await res.json()
+      // No need to adjust saved response if we reload or if backend returns raw db values
+      // But if we use 'saved' directly in state, it has large numbers. 
+      // Actually, standardizing on UI expecting "Human Readable" numbers and converting on save/load is tricky if saved returns DB values.
+      // Better to normalize 'saved' back to human readable before setting state.
+
+      const normalizedSaved = {
+        ...saved,
+        minOrderAmount: saved.minOrderAmount ? saved.minOrderAmount / 100 : 0,
+        discountAmount: saved.discountType === 'FIXED' ? (saved.discountAmount / 100) : saved.discountAmount
+      }
 
       if (isUpdate) {
-        setPromoCodes(prev => prev.map(p => p.id === saved.id ? saved : p))
+        setPromoCodes(prev => prev.map(p => p.id === saved.id ? normalizedSaved : p))
       } else {
-        setPromoCodes(prev => [...prev, saved])
+        setPromoCodes(prev => [...prev, normalizedSaved])
       }
 
       setShowModal(false)
@@ -101,7 +127,8 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
 
     try {
       const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
-      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/validate?code=${encodeURIComponent(validatingCode)}&orderAmount=1000`, {
+      // orderAmount in paise for validation
+      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/validate?code=${encodeURIComponent(validatingCode)}&orderAmount=100000`, {
         method: 'POST'
       })
 
@@ -125,7 +152,7 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
     if (type === 'PERCENT') {
       return `${amount}% off`
     } else {
-      return `₹${amount} off`
+      return `₹${amount} off` // Amount in state is already human readable
     }
   }
 
@@ -181,9 +208,8 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
                 <div key={promo.id} className="flex items-center justify-between rounded-lg border p-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <div className={`px-2 py-1 rounded text-xs font-medium ${
-                        promo.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <div className={`px-2 py-1 rounded text-xs font-medium ${promo.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
                         {promo.isActive ? 'Active' : 'Inactive'}
                       </div>
                       <div>
@@ -322,7 +348,7 @@ function PromoCodeModal({ promoCode, onSave, onClose }: {
                 <input
                   type="number"
                   value={formData.discountAmount}
-                  onChange={(e) => setFormData({ ...formData, discountAmount: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, discountAmount: parseFloat(e.target.value) || 0 })}
                   className="w-full rounded-md border px-3 py-2 text-sm"
                   min="0"
                   max={formData.discountType === 'PERCENT' ? 100 : undefined}
