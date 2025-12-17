@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserPlus, Calendar, Users, Settings } from "lucide-react";
+import { LoadingWithTimeout } from "@/components/LoadingWithTimeout";
 
 import {
   Table,
@@ -42,21 +43,24 @@ interface CompanyDashboard {
 
 export default function CompanyDashboardPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [dashboard, setDashboard] = useState<CompanyDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboard();
-  }, []);
+    if (status === 'authenticated') {
+      fetchDashboard();
+    }
+  }, [status]);
 
   async function fetchDashboard() {
     try {
+      setLoading(true);
       const res = await fetch("/api/company/dashboard", {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setDashboard(data);
@@ -72,7 +76,7 @@ export default function CompanyDashboardPage() {
     router.push("/company/team");
   };
 
-  if (loading) return <div className="p-8">Loading dashboard...</div>;
+  if (loading) return <LoadingWithTimeout message="Loading dashboard..." timeout={3000} />;
   if (!dashboard) return <div className="p-8">No company data found</div>;
 
   return (
@@ -102,7 +106,7 @@ export default function CompanyDashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div 
+        <div
           className="bg-gradient-to-br from-white to-blue-50/30 rounded-lg shadow-sm border border-blue-100/50 p-6 hover:shadow-md transition-all"
         >
           <div className="flex items-center gap-4">
@@ -115,7 +119,7 @@ export default function CompanyDashboardPage() {
             </div>
           </div>
         </div>
-        <div 
+        <div
           className="bg-gradient-to-br from-white to-green-50/30 rounded-lg shadow-sm border border-green-100/50 p-6 hover:shadow-md transition-all"
         >
           <div className="flex items-center gap-4">
@@ -128,7 +132,7 @@ export default function CompanyDashboardPage() {
             </div>
           </div>
         </div>
-        <div 
+        <div
           className="bg-gradient-to-br from-white to-purple-50/30 rounded-lg shadow-sm border border-purple-100/50 p-6 hover:shadow-md transition-all"
         >
           <div className="flex items-center gap-4">
@@ -147,7 +151,7 @@ export default function CompanyDashboardPage() {
       <div className="bg-gradient-to-br from-white via-indigo-50/10 to-blue-50/20 rounded-lg shadow-sm border border-indigo-100/50 mb-8 overflow-hidden hover:shadow-md transition-all">
         <div className="p-6 border-b border-indigo-100/50 flex justify-between items-center bg-gradient-to-r from-indigo-50/30 to-blue-50/30">
           <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Your Events</h2>
-          <button 
+          <button
             onClick={() => router.push('/admin/events')}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium px-4 py-2 rounded-full hover:bg-blue-50 transition-colors"
           >
@@ -180,8 +184,8 @@ export default function CompanyDashboardPage() {
                   const ticketsRemaining = Math.max(0, capacity - registrations);
 
                   return (
-                    <TableRow 
-                      key={event.id} 
+                    <TableRow
+                      key={event.id}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => router.push(`/events/${event.id}`)}
                     >
@@ -215,8 +219,8 @@ export default function CompanyDashboardPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={
-                          event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' : 
-                          event.status === 'DRAFT' ? 'secondary' : 'outline'
+                          event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' :
+                            event.status === 'DRAFT' ? 'secondary' : 'outline'
                         }>
                           {event.status}
                         </Badge>
