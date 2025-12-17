@@ -1,11 +1,12 @@
 "use client"
 
+import * as React from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  LayoutDashboard, Users, Calendar, Settings, Shield, 
-  BarChart3, Mail, CreditCard, Palette, Tag, 
+import {
+  LayoutDashboard, Users, Calendar, Settings, Shield,
+  BarChart3, Mail, CreditCard, Palette, Tag,
   UserCheck, Building, FileText, Home, User
 } from 'lucide-react'
 import { UserRole, getRoleDefinition, canAccessRoute } from '@/lib/roles-config'
@@ -167,8 +168,8 @@ interface RoleBasedNavigationProps {
   orientation?: 'vertical' | 'horizontal'
 }
 
-export default function RoleBasedNavigation({ 
-  className = '', 
+export default function RoleBasedNavigation({
+  className = '',
   showLabels = true,
   orientation = 'vertical'
 }: RoleBasedNavigationProps) {
@@ -177,13 +178,13 @@ export default function RoleBasedNavigation({
   const pathname = usePathname()
 
   const userRole = (session as any)?.user?.role as UserRole
-  
+
   if (!userRole) {
     return null
   }
 
   // Filter navigation items based on user role
-  const availableItems = NAVIGATION_ITEMS.filter(item => 
+  const availableItems = NAVIGATION_ITEMS.filter(item =>
     item.requiredRoles.includes(userRole)
   )
 
@@ -204,7 +205,7 @@ export default function RoleBasedNavigation({
     return pathname.startsWith(href)
   }
 
-  const containerClasses = orientation === 'horizontal' 
+  const containerClasses = orientation === 'horizontal'
     ? `flex flex-wrap gap-2 ${className}`
     : `flex flex-col space-y-1 ${className}`
 
@@ -227,15 +228,15 @@ export default function RoleBasedNavigation({
       {availableItems.map((item) => {
         const Icon = item.icon
         const active = isActive(item.href)
-        
+
         return (
           <button
             key={item.id}
             onClick={() => handleNavigation(item.href)}
             className={`
               flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-              ${active 
-                ? `bg-${roleDefinition.color}-100 text-${roleDefinition.color}-700 border border-${roleDefinition.color}-200` 
+              ${active
+                ? `bg-${roleDefinition.color}-100 text-${roleDefinition.color}-700 border border-${roleDefinition.color}-200`
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }
               ${orientation === 'horizontal' ? 'flex-row' : 'w-full text-left'}
@@ -299,20 +300,34 @@ export function useCanAccessRoute() {
 }
 
 // Component for protecting routes
-export function RouteProtection({ 
-  children, 
-  requiredRoles, 
-  fallback 
-}: { 
+export function RouteProtection({
+  children,
+  requiredRoles,
+  fallback
+}: {
   children: React.ReactNode
   requiredRoles: UserRole[]
   fallback?: React.ReactNode
 }) {
   const { data: session, status } = useSession()
   const userRole = (session as any)?.user?.role as UserRole
+  const router = useRouter()
+
+  // Redirect to login if user is not authenticated
+  React.useEffect(() => {
+    if (status === 'unauthenticated') {
+      const currentPath = window.location.pathname
+      router.push(`/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`)
+    }
+  }, [status, router])
 
   if (status === 'loading') {
     return <div className="p-6">Loading...</div>
+  }
+
+  // If unauthenticated, we are redirecting, so don't show anything (or show Access Denied as fallback)
+  if (status === 'unauthenticated') {
+    return null
   }
 
   if (!userRole || !requiredRoles.includes(userRole)) {

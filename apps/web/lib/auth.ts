@@ -520,16 +520,16 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: `${process.env.NEXTAUTH_URL?.startsWith('https://') ? '__Secure-' : ''}next-auth.session-token`,
+      name: `${(process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production') ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NEXTAUTH_URL?.startsWith('https://'),
+        secure: process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production',
       },
     },
   },
-  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith('https://'),
+  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production',
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 }
