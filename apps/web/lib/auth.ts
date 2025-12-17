@@ -518,23 +518,8 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/login',
     error: '/auth/error',
   },
-  cookies: {
-    sessionToken: {
-      name: `${(process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production') ? '__Secure-' : ''}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        // Don't set domain to allow cookies to work on all Vercel preview URLs
-        domain: undefined,
-      },
-    },
-  },
-  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production',
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug logs to diagnose production issue
   // Trust the host header - required for Vercel deployments
   // This allows NextAuth to work with preview URLs
   ...(process.env.NODE_ENV === 'production' && {
