@@ -95,31 +95,14 @@ export async function POST(req: NextRequest) {
 
         // If we are on Vercel and Supabase failed, we must error out
         // UNLESS we are in development mode (local vercel dev), in which case we can try local fs
-        const isVercel = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME
-        const isDev = process.env.NODE_ENV === 'development'
-
-        if (isVercel && !isCloudinaryConfigured() && !isDev) {
-          return NextResponse.json({
-            message: `Storage upload failed. ${sbError.message}`,
-            error: sbError.message,
-            hint: 'Ensure Supabase "uploads" bucket exists and is Public.'
-          }, { status: 500 })
-        }
       }
     } else {
       console.log('Skipping Supabase upload: NEXT_PUBLIC_SUPABASE_URL is not set.')
     }
 
-    // 3. Fallback to Local Filesystem (Only for local dev)
-    const isVercel = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME
-    const isDev = process.env.NODE_ENV === 'development'
+    // 3. Fallback to Local Filesystem (Only if writable)
+    // We attempt to write. If this fails (e.g. read-only filesystem on Vercel), the global catch will handle it.
 
-    if (isVercel && !isDev) {
-      return NextResponse.json({
-        message: 'Storage configuration missing. Please configure Supabase (Bucket "uploads") or Cloudinary for production.',
-        error: 'No valid storage provider found.'
-      }, { status: 500 })
-    }
 
     const ext = path.extname(file.name || '') || '.bin'
     const safeExt = ext.length <= 8 ? ext : '.bin'
