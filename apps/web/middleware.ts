@@ -40,6 +40,7 @@ const AUTH_ONLY_ROUTES = [
   '/api/admin',
   '/admin',
   '/dashboard',
+  '/dashboard/user', // User dashboard doesn't require tenant
   '/profile',
   '/settings',
   '/unauthorized',

@@ -313,21 +313,36 @@ export function RouteProtection({
   const userRole = (session as any)?.user?.role as UserRole
   const router = useRouter()
 
-  // Redirect to login if user is not authenticated
-  React.useEffect(() => {
-    if (status === 'unauthenticated') {
-      const currentPath = window.location.pathname
-      router.push(`/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`)
-    }
-  }, [status, router])
+  // Redirect logic removed to prevent potential loops with middleware
+  // React.useEffect(() => {
+  //   if (status === 'unauthenticated') {
+  //    const currentPath = window.location.pathname
+  //    router.push(`/auth/login?callbackUrl=${encodeURIComponent(currentPath)}`)
+  //   }
+  // }, [status, router])
 
   if (status === 'loading') {
     return <div className="p-6">Loading...</div>
   }
 
-  // If unauthenticated, we are redirecting, so don't show anything (or show Access Denied as fallback)
+  // If unauthenticated, show access denied with login button instead of redirecting
   if (status === 'unauthenticated') {
-    return null
+    return (
+      <div className="p-6 text-center">
+        <Shield className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Authentication Required</h2>
+        <p className="text-red-500 text-xs font-mono mb-2">Debug: Status is '{status}'</p>
+        <p className="text-gray-600 mb-4">
+          You need to be signed in to access this page.
+        </p>
+        <Link
+          href={`/auth/login?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '')}`}
+          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+        >
+          Sign In
+        </Link>
+      </div>
+    )
   }
 
   if (!userRole || !requiredRoles.includes(userRole)) {
@@ -335,6 +350,7 @@ export function RouteProtection({
       <div className="p-6 text-center">
         <Shield className="w-12 h-12 mx-auto text-gray-400 mb-4" />
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-red-500 text-xs font-mono mb-2">Debug: Your Role is '{userRole || 'undefined'}'</p>
         <p className="text-gray-600">
           You don't have permission to access this page.
         </p>

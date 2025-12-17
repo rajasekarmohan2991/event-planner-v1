@@ -76,6 +76,14 @@ export default function UserDashboard() {
       <div className="p-6 space-y-6">
         {/* Welcome Header */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+          {/* DEBUG INFO */}
+          <div className="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded text-xs font-mono">
+            <p>Status: {status}</p>
+            <p>Role: {(session as any)?.user?.role || 'None'}</p>
+            <p>Loading: {String(loading)}</p>
+            <p>Events: {upcomingEvents.length}</p>
+            <p>Registrations: {myRegistrations.length}</p>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Welcome back, {(session as any)?.user?.name || 'User'}!
           </h1>
@@ -206,10 +214,10 @@ export default function UserDashboard() {
                   </div>
                   <div className="text-right">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${registration.status === 'CONFIRMED'
-                        ? 'bg-green-100 text-green-800'
-                        : registration.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
+                      ? 'bg-green-100 text-green-800'
+                      : registration.status === 'PENDING'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
                       }`}>
                       {registration.status}
                     </span>
