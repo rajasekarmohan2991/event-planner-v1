@@ -32,8 +32,11 @@ export async function GET(req: NextRequest) {
 
     // If still no tenant, return empty list (user might be a lone wolf or new)
     if (!currentTenantId) {
+      console.log('[company/users] No tenant found for user:', session.user.id)
       return NextResponse.json({ users: [], total: 0, page: 1, limit: 50 })
     }
+
+    console.log('[company/users] Fetching users for tenant:', currentTenantId)
 
     const { searchParams } = new URL(req.url)
     const page = parseIntSafe(searchParams.get('page'), 1)
@@ -53,9 +56,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (q) {
-      whereClause.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } }
+      whereClause.AND = [
+        {
+          OR: [
+            { name: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } }
+          ]
+        }
       ]
     }
 
@@ -88,6 +95,8 @@ export async function GET(req: NextRequest) {
       tenantRole: u.memberships[0]?.role || 'MEMBER',
       isInvite: false
     }))
+
+    console.log('[company/users] Found', mappedUsers.length, 'users out of', total, 'total')
 
     return NextResponse.json({
       page,

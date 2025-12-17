@@ -29,10 +29,10 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
   const [selectedCompanyEmails, setSelectedCompanyEmails] = useState<Record<string, boolean>>({})
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
-  const [sortBy, setSortBy] = useState<'name'|'email'|'role'|'status'|'invitedAt'|'joinedAt'>('name')
-  const [sortDir, setSortDir] = useState<'ASC'|'DESC'>('ASC')
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'role' | 'status' | 'invitedAt' | 'joinedAt'>('name')
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC')
   const [totalPages, setTotalPages] = useState(1)
-  const [editOpen, setEditOpen] = useState<{id: string, role: string, status: 'Invited'|'Joined'} | null>(null)
+  const [editOpen, setEditOpen] = useState<{ id: string, role: string, status: 'Invited' | 'Joined' } | null>(null)
 
   // API-driven members
   const [eventMembers, setEventMembers] = useState<Member[]>([])
@@ -77,11 +77,27 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
       if (!inviteOpen) return
       setLoadingCompanyUsers(true)
       try {
+        console.log('[team] Fetching company users...')
         const res = await fetch(`/api/company/users?limit=200`, { credentials: 'include', cache: 'no-store' })
-        const data = await res.json().catch(() => ({ users: [] }))
+        console.log('[team] Company users response status:', res.status)
+
+        if (!res.ok) {
+          console.error('[team] Failed to fetch company users:', res.status, res.statusText)
+          setCompanyUsers([])
+          return
+        }
+
+        const data = await res.json().catch((e) => {
+          console.error('[team] Failed to parse company users JSON:', e)
+          return { users: [] }
+        })
+
+        console.log('[team] Company users data:', data)
         const users = Array.isArray(data?.users) ? data.users : (Array.isArray(data) ? data : [])
+        console.log('[team] Parsed users array:', users.length, 'users')
         setCompanyUsers(users || [])
-      } catch {
+      } catch (e) {
+        console.error('[team] Error loading company users:', e)
         setCompanyUsers([])
       } finally {
         setLoadingCompanyUsers(false)
@@ -218,7 +234,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                 onChange={(e) => { setSearchEventMembers(e.target.value); setPage(1); }}
               />
               <div className="flex items-center gap-2 text-slate-500">
-                <select className="rounded-md border px-2 py-1 text-xs" value={sortBy} onChange={(e)=>{ setSortBy(e.target.value as any); setPage(1); }}>
+                <select className="rounded-md border px-2 py-1 text-xs" value={sortBy} onChange={(e) => { setSortBy(e.target.value as any); setPage(1); }}>
                   <option value="name">Name</option>
                   <option value="email">Email</option>
                   <option value="role">Role</option>
@@ -226,7 +242,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                   <option value="invitedAt">Invited</option>
                   <option value="joinedAt">Joined</option>
                 </select>
-                <button title="Sort direction" onClick={()=> setSortDir(d=> d==='ASC'?'DESC':'ASC')} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">{sortDir==='ASC'?'ASC':'DESC'}</button>
+                <button title="Sort direction" onClick={() => setSortDir(d => d === 'ASC' ? 'DESC' : 'ASC')} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">{sortDir === 'ASC' ? 'ASC' : 'DESC'}</button>
               </div>
             </div>
             <div className="rounded-md border overflow-hidden">
@@ -246,7 +262,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold">
-                            {m.name.split(' ').map(s => s[0]).join('').slice(0,2).toUpperCase()}
+                            {m.name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <div className="font-medium">{m.name}</div>
@@ -276,26 +292,26 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                           {m.status === 'Rejected' && (
                             <button onClick={() => onReinvite(m.email)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Resend invite</button>
                           )}
-                          <button onClick={()=> setEditOpen({ id: m.id, role: m.role, status: m.status as any})} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
-                          <button onClick={async ()=>{ 
+                          <button onClick={() => setEditOpen({ id: m.id, role: m.role, status: m.status as any })} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
+                          <button onClick={async () => {
                             if (status !== 'authenticated') {
                               setBanner('You must be logged in to remove team members')
                               setTimeout(() => setBanner(null), 3000)
                               return
                             }
-                            if(confirm('Remove this member?')) { 
-                              try { 
+                            if (confirm('Remove this member?')) {
+                              try {
                                 console.log('Deleting member:', m.id, 'from event:', params.id)
-                                await deleteTeamMember(params.id, Number(m.id), accessToken); 
-                                await reloadMembers(); 
+                                await deleteTeamMember(params.id, Number(m.id), accessToken);
+                                await reloadMembers();
                                 setBanner('Member removed successfully')
                                 setTimeout(() => setBanner(null), 2500)
-                              } catch(e:any){ 
+                              } catch (e: any) {
                                 console.error('Delete member error:', e)
-                                setBanner(e?.message||'Delete failed'); 
-                                setTimeout(()=> setBanner(null), 3000) 
-                              } 
-                            } 
+                                setBanner(e?.message || 'Delete failed');
+                                setTimeout(() => setBanner(null), 3000)
+                              }
+                            }
                           }} className="rounded-md border border-rose-300 text-rose-700 px-2 py-1 text-xs hover:bg-rose-50">Remove</button>
                         </div>
                       </td>
@@ -310,9 +326,9 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
             <div className="flex items-center justify-between text-xs text-slate-600">
               <div>Page {page} of {totalPages}</div>
               <div className="flex items-center gap-2">
-                <button disabled={page<=1} onClick={()=> setPage(p=> Math.max(1, p-1))} className="rounded-md border px-2 py-1 disabled:opacity-50">Prev</button>
-                <button disabled={page>=totalPages} onClick={()=> setPage(p=> Math.min(totalPages, p+1))} className="rounded-md border px-2 py-1 disabled:opacity-50">Next</button>
-                <select className="rounded-md border px-2 py-1" value={limit} onChange={(e)=> { setLimit(parseInt(e.target.value)); setPage(1); }}>
+                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="rounded-md border px-2 py-1 disabled:opacity-50">Prev</button>
+                <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="rounded-md border px-2 py-1 disabled:opacity-50">Next</button>
+                <select className="rounded-md border px-2 py-1" value={limit} onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -330,7 +346,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                 <h2 className="text-base font-semibold">Event Team Roles</h2>
                 <p className="text-sm text-slate-600 mt-1">Define roles and their permissions for event team members</p>
               </div>
-              <button 
+              <button
                 onClick={() => setActiveTab('roles')}
                 className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
               >
@@ -574,33 +590,33 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
           <div className="w-full max-w-sm rounded-lg border bg-white p-4 shadow-lg dark:bg-slate-900">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold">Edit Member</h3>
-              <button onClick={()=> setEditOpen(null)} className="rounded-md border px-2 py-1 text-xs">✕</button>
+              <button onClick={() => setEditOpen(null)} className="rounded-md border px-2 py-1 text-xs">✕</button>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-slate-600 mb-1">Role</label>
-                <input className="w-full rounded-md border px-3 py-2 text-sm" value={editOpen.role} onChange={(e)=> setEditOpen(prev=> prev? { ...prev, role: e.target.value } : prev)} />
+                <input className="w-full rounded-md border px-3 py-2 text-sm" value={editOpen.role} onChange={(e) => setEditOpen(prev => prev ? { ...prev, role: e.target.value } : prev)} />
               </div>
               <div>
                 <label className="block text-xs text-slate-600 mb-1">Status</label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm" value={editOpen.status} onChange={(e)=> setEditOpen(prev=> prev? { ...prev, status: e.target.value as any } : prev)}>
+                <select className="w-full rounded-md border px-3 py-2 text-sm" value={editOpen.status} onChange={(e) => setEditOpen(prev => prev ? { ...prev, status: e.target.value as any } : prev)}>
                   <option value="Invited">Invited</option>
                   <option value="Joined">Joined</option>
                 </select>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button onClick={()=> setEditOpen(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancel</button>
-                <button onClick={async ()=> {
+                <button onClick={() => setEditOpen(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancel</button>
+                <button onClick={async () => {
                   if (!editOpen) return
                   try {
                     await updateTeamMember(params.id, Number(editOpen.id), { role: editOpen.role, status: editOpen.status === 'Joined' ? 'JOINED' : 'INVITED' }, accessToken)
                     await reloadMembers()
                     setEditOpen(null)
                     setBanner('Member updated')
-                    setTimeout(()=> setBanner(null), 2500)
-                  } catch(e:any) {
-                    setBanner(e?.message||'Update failed')
-                    setTimeout(()=> setBanner(null), 3000)
+                    setTimeout(() => setBanner(null), 2500)
+                  } catch (e: any) {
+                    setBanner(e?.message || 'Update failed')
+                    setTimeout(() => setBanner(null), 3000)
                   }
                 }} className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">Save</button>
               </div>
