@@ -13,8 +13,8 @@ export function SessionProvider({ children, session = null }: SessionProviderPro
   return (
     <NextAuthSessionProvider
       session={session}
-      refetchOnWindowFocus={true}
-      refetchInterval={60} // Refetch every 60 seconds to keep session fresh
+      refetchOnWindowFocus={false} // Disabled to prevent CORS errors
+      refetchInterval={0} // Disabled to prevent CORS errors
       refetchWhenOffline={false}
       basePath="/api/auth"
     >

@@ -20,6 +20,23 @@ export default function LoginClient() {
     }
   }, [status, session, router])
 
+  // Show loading state while checking session
+  if (status === 'loading') {
+    return (
+      <AuthLayout
+        lottieSrc="/animations/signin.json"
+        animationPlacement="left"
+        disableBackgroundAnimations
+        title="Welcome"
+        subtitle="Loading..."
+      >
+        <div className="w-full flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+      </AuthLayout>
+    )
+  }
+
   return (
     <AuthLayout
       lottieSrc="/animations/signin.json"
