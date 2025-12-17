@@ -23,7 +23,7 @@ export async function POST(
         }
 
         const eventId = parseInt(params.id)
-        const registrationId = BigInt(params.registrationId)
+        const registrationId = params.registrationId
 
         // 1. Get current data
         const rows = await prisma.$queryRaw<any[]>`
