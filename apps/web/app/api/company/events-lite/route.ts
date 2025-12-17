@@ -17,7 +17,10 @@ export async function GET(_req: NextRequest) {
     const url = `${base}/api/events?page=0&size=100`
     const eventsRes = await fetch(url, { headers: { 'x-tenant-id': tenantId } })
     const eventsData = eventsRes.ok ? await eventsRes.json() : []
-    const events = (eventsData.content || eventsData || []).map((e: any) => ({ id: String(e.id), name: e.name }))
+    const events = (eventsData.content || eventsData || []).map((e: any) => ({
+      id: String(e.id),
+      name: e.name || e.title || 'Untitled Event'
+    }))
 
     return NextResponse.json({ events })
   } catch (e: any) {
