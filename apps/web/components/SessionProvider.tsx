@@ -2,6 +2,7 @@
 
 import { SessionProvider as NextAuthSessionProvider } from 'next-auth/react';
 import type { Session } from 'next-auth';
+import { SessionKeepAlive } from '@/lib/useSessionKeepAlive';
 
 interface SessionProviderProps {
   children: React.ReactNode;
@@ -13,11 +14,13 @@ export function SessionProvider({ children, session = null }: SessionProviderPro
     <NextAuthSessionProvider
       session={session}
       refetchOnWindowFocus={true}
-      refetchInterval={300} // Refetch every 5 minutes
+      refetchInterval={60} // Refetch every 60 seconds to keep session fresh
       refetchWhenOffline={false}
       basePath="/api/auth"
     >
-      {children}
+      <SessionKeepAlive intervalMinutes={10}>
+        {children}
+      </SessionKeepAlive>
     </NextAuthSessionProvider>
   );
 }

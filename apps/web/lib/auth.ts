@@ -82,11 +82,11 @@ export const authOptions: NextAuthOptions = {
   // Note: Not using PrismaAdapter to allow custom account linking logic
   session: {
     strategy: 'jwt',
-    maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
-    updateAge: 24 * 60 * 60, // Update session once per day instead of every hour for better performance
+    maxAge: 30 * 24 * 60 * 60, // 30 days for better UX
+    updateAge: 60 * 60, // Update session every hour to keep it fresh
   },
   jwt: {
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
     // Google OAuth - only enable if credentials are provided
@@ -526,6 +526,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NEXTAUTH_URL?.startsWith('https://') || process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
       },
     },
   },
