@@ -3,10 +3,11 @@
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  LayoutDashboard, Calendar, Users, Building2, Palette, 
+import {
+  LayoutDashboard, Calendar, Users, Building2, Palette,
   Mail, FileText, Clock, Settings, DollarSign, Shield,
-  CheckSquare, BarChart3, Ticket, Trash2, UserCheck
+  CheckSquare, BarChart3, Ticket, Trash2, UserCheck,
+  Activity, CreditCard
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -127,60 +128,33 @@ const SUPER_ADMIN_ITEMS: MenuItem[] = [
   },
   {
     name: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    roles: ['SUPER_ADMIN']
-  }
-]
-
-// Menu items for "Super Admin Company" context (Default Organization)
-const SUPER_ADMIN_COMPANY_ITEMS: MenuItem[] = [
-  {
-    name: 'Dashboard',
-    href: '/super-admin/companies/default-tenant',
-    icon: LayoutDashboard,
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    name: 'Events',
-    href: '/admin/events',
-    icon: Calendar,
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    name: 'Users',
-    href: '/admin/users',
-    icon: Users,
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    name: 'Lookup Data',
-    href: '/admin/lookup',
-    icon: FileText,
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    name: 'Currency Settings',
-    href: '/admin/currency',
-    icon: DollarSign,
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    name: 'System Settings',
     href: '/super-admin/settings',
     icon: Settings,
     roles: ['SUPER_ADMIN']
   }
 ]
 
+// Menu items for "Super Admin Company" context (Default Organization)
+// Menu items for "Super Admin Company" context (Default Organization)
+const SUPER_ADMIN_COMPANY_ITEMS: MenuItem[] = [
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
+  { name: 'Run Diagnostics', href: '/admin/diagnostics', icon: Activity, roles: ['SUPER_ADMIN'] },
+  { name: 'All Events', href: '/admin/events', icon: Calendar, roles: ['SUPER_ADMIN'] },
+  { name: 'All Users', href: '/admin/users', icon: Users, roles: ['SUPER_ADMIN'] },
+  { name: 'Lookup Management', href: '/admin/lookup', icon: FileText, roles: ['SUPER_ADMIN'] },
+  { name: 'Currency Settings', href: '/admin/currency', icon: DollarSign, roles: ['SUPER_ADMIN'] },
+  { name: 'System Settings', href: '/admin/settings', icon: Settings, roles: ['SUPER_ADMIN'] }, // Tenant system settings
+  { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
+]
+
 export function RoleBasedSidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
-  
+
   if (!session?.user) {
     return null
   }
-  
+
   const systemRole = (session.user as any).role
   const tenantRole = (session.user as any).tenantRole
   const isSuperAdmin = systemRole === 'SUPER_ADMIN'
@@ -188,6 +162,8 @@ export function RoleBasedSidebar() {
   // Super Admin Company view includes the dashboard and all module pages
   const isSuperAdminCompanyView = pathname?.includes('/super-admin/companies/default-tenant') ||
     (isSuperAdmin && (
+      pathname === '/admin' ||
+      pathname?.startsWith('/admin/') ||
       pathname?.startsWith('/admin/events') ||
       pathname?.startsWith('/admin/users') ||
       pathname?.startsWith('/admin/lookup') ||
@@ -195,10 +171,10 @@ export function RoleBasedSidebar() {
       pathname?.startsWith('/super-admin/settings') ||
       pathname?.startsWith('/admin/settings')
     ))
-  
+
   // Filter menu items based on role
   let visibleItems: MenuItem[] = []
-  
+
   if (isNormalUser) {
     // Normal users only see USER_MENU_ITEMS
     visibleItems = USER_MENU_ITEMS
@@ -216,9 +192,9 @@ export function RoleBasedSidebar() {
       return item.roles.includes(tenantRole)
     })
   }
-  
+
   const visibleSuperAdminItems = isSuperAdmin && !isSuperAdminCompanyView ? SUPER_ADMIN_ITEMS : []
-  
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
       <div className="p-4">
@@ -228,7 +204,7 @@ export function RoleBasedSidebar() {
             <span className="mt-1 text-xs text-red-600 font-semibold">SUPER ADMIN</span>
           )}
         </div>
-        
+
         {/* Super Admin Section - Only show when NOT in Super Admin Company view (or keep it?)
             The user says "only companies settings will be remain ter".
             If we are in Super Admin Company view, we want to show the modules "under default organisation".
@@ -245,7 +221,7 @@ export function RoleBasedSidebar() {
               {visibleSuperAdminItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-                
+
                 return (
                   <Link
                     key={item.href}
@@ -270,7 +246,7 @@ export function RoleBasedSidebar() {
             </nav>
           </div>
         )}
-        
+
         {/* Main Menu */}
         <div>
           {isSuperAdmin && !isSuperAdminCompanyView && visibleItems.length > 0 && (
@@ -279,20 +255,20 @@ export function RoleBasedSidebar() {
             </div>
           )}
           {isSuperAdmin && isSuperAdminCompanyView && (
-             <div className="mb-2 px-3">
-                <Link href="/super-admin/companies" className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                  &larr; Back to Companies
-                </Link>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-3">
-                  Super Admin Company
-                </div>
-             </div>
+            <div className="mb-2 px-3">
+              <Link href="/super-admin/companies" className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                &larr; Back to Companies
+              </Link>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-3">
+                Super Admin Company
+              </div>
+            </div>
           )}
           <nav className="space-y-1">
             {visibleItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-              
+
               return (
                 <Link
                   key={item.href}
@@ -311,7 +287,7 @@ export function RoleBasedSidebar() {
             })}
           </nav>
         </div>
-        
+
         {/* Role Badge */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="px-3 py-2 bg-gray-50 rounded-lg">
@@ -339,7 +315,7 @@ export function PublicSidebar() {
           </div>
           <h1 className="font-bold text-lg">Event Planner</h1>
         </div>
-        
+
         <nav className="space-y-1">
           <Link
             href="/"
