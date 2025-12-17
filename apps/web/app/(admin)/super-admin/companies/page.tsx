@@ -41,7 +41,14 @@ export default function SuperAdminCompaniesPage() {
 
       if (companiesRes.ok) {
         const data = await companiesRes.json();
-        setCompanies(data.companies || []);
+        const sorted = (data.companies || []).sort((a: any, b: any) => {
+          const isSuperA = a.slug === 'super-admin' || a.slug === 'default-tenant';
+          const isSuperB = b.slug === 'super-admin' || b.slug === 'default-tenant';
+          if (isSuperA && !isSuperB) return -1;
+          if (!isSuperA && isSuperB) return 1;
+          return 0;
+        });
+        setCompanies(sorted);
       }
 
       if (analyticsRes.ok) {

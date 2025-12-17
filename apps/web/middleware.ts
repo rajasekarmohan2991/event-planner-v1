@@ -126,7 +126,7 @@ export async function middleware(req: NextRequest) {
       const role = token.role as string
       let dashboardPath = '/dashboard/user' // default
 
-      if (role === 'SUPER_ADMIN') dashboardPath = '/admin'
+      if (role === 'SUPER_ADMIN') dashboardPath = '/super-admin/companies'
       else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
       else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
       else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
@@ -142,7 +142,7 @@ export async function middleware(req: NextRequest) {
       const role = token.role as string
       let dashboardPath = '/dashboard/user'
 
-      if (role === 'SUPER_ADMIN') dashboardPath = '/admin'
+      if (role === 'SUPER_ADMIN') dashboardPath = '/super-admin/companies'
       else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
       else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
       else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
