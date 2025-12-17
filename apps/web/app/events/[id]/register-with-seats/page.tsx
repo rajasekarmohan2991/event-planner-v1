@@ -20,9 +20,7 @@ export default function RegisterWithSeatsPage() {
   const searchParams = useSearchParams()
   const eventId = params?.id as string
 
-  if (!eventId) {
-    return <div>Loading...</div>
-  }
+
 
   const [step, setStep] = useState(1) // 1: Seat Selection, 2: Details, 3: Payment, 4: Success
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
@@ -33,7 +31,7 @@ export default function RegisterWithSeatsPage() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [numberOfAttendees, setNumberOfAttendees] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'razorpay' | 'dummy'>('dummy')
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -139,7 +137,7 @@ export default function RegisterWithSeatsPage() {
       const now = new Date().getTime()
       const expiry = new Date(reservationExpiry).getTime()
       const remaining = Math.max(0, expiry - now)
-      
+
       setTimeRemaining(Math.floor(remaining / 1000))
 
       if (remaining <= 0) {
@@ -157,29 +155,29 @@ export default function RegisterWithSeatsPage() {
   useEffect(() => {
     if (!reservationExpiry) return
     if (timeRemaining === 60) {
-      try { alert('Your reservation will expire in 1 minute. Completing payment will auto-extend if needed.') } catch {}
+      try { alert('Your reservation will expire in 1 minute. Completing payment will auto-extend if needed.') } catch { }
     }
     const shouldExtend = (step === 2 || step === 3) && timeRemaining > 0 && timeRemaining <= 120
     const now = Date.now()
     const recentlyExtended = now - lastExtendedAtRef.current < 120000 // 2 minutes throttle
     if (shouldExtend && !extendingRef.current && !recentlyExtended && selectedSeats.length > 0) {
       extendingRef.current = true
-      ;(async () => {
-        try {
-          const res = await fetch(`/api/events/${eventId}/seats/extend`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
-          })
-          if (res.ok) {
-            const data = await res.json()
-            if (data.expiresAt) setReservationExpiry(new Date(data.expiresAt))
-            lastExtendedAtRef.current = Date.now()
-          }
-        } catch {}
-        extendingRef.current = false
-      })()
+        ; (async () => {
+          try {
+            const res = await fetch(`/api/events/${eventId}/seats/extend`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
+            })
+            if (res.ok) {
+              const data = await res.json()
+              if (data.expiresAt) setReservationExpiry(new Date(data.expiresAt))
+              lastExtendedAtRef.current = Date.now()
+            }
+          } catch { }
+          extendingRef.current = false
+        })()
     }
   }, [timeRemaining, step, reservationExpiry, selectedSeats, eventId])
 
@@ -196,8 +194,8 @@ export default function RegisterWithSeatsPage() {
           body: payload,
           keepalive: true,
           credentials: 'include'
-        }).catch(() => {})
-      } catch {}
+        }).catch(() => { })
+      } catch { }
     }
     const onBeforeUnload = () => { releaseSeats() }
     const onPageHide = () => { releaseSeats() }
@@ -337,7 +335,7 @@ export default function RegisterWithSeatsPage() {
 
       const registration = await regRes.json()
       setRegistrationId(registration.id)
-      
+
       // For dummy payment, auto-confirm
       if (paymentMethod === 'dummy') {
         // Confirm seat reservations
@@ -354,7 +352,7 @@ export default function RegisterWithSeatsPage() {
         // Generate QR code as a check-in URL (to be scanned by staff device)
         const qrUrl = `${window.location.origin}/events/${eventId}/checkin/${registration.id}`
         setQrCode(qrUrl)
-        
+
         setStep(4) // Success
       } else {
         // For Stripe/Razorpay (not implemented): release seats and show error
@@ -364,7 +362,7 @@ export default function RegisterWithSeatsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
           })
-        } catch {}
+        } catch { }
         alert(`${paymentMethod} integration coming soon! Seats released. Use Dummy payment for now.`)
         setLoading(false)
       }
@@ -378,7 +376,7 @@ export default function RegisterWithSeatsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ seatIds: selectedSeats.map(s => s.id) })
         })
-      } catch {}
+      } catch { }
       setLoading(false)
     } finally {
       if (paymentMethod === 'dummy') {
@@ -391,6 +389,10 @@ export default function RegisterWithSeatsPage() {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  if (!eventId) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
 
   return (
@@ -440,7 +442,7 @@ export default function RegisterWithSeatsPage() {
         {step === 1 && (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h1 className="text-2xl font-bold mb-6">Select Your Seats</h1>
-            
+
             <SeatSelector
               eventId={eventId}
               onSeatSelect={handleSeatsSelected}
@@ -571,7 +573,7 @@ export default function RegisterWithSeatsPage() {
               {/* Promo Code Section */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <label className="block text-sm font-semibold text-green-900 mb-2">Promo Code (Optional)</label>
-                
+
                 {/* Available Promo Codes */}
                 {availablePromoCodes.length > 0 && !promoDiscount && (
                   <div className="mb-3 p-3 bg-white rounded-md border border-green-300">
@@ -679,10 +681,9 @@ export default function RegisterWithSeatsPage() {
               </div>
 
               {/* Dummy Payment - Active */}
-              <div 
-                className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                  paymentMethod === 'dummy' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-300'
-                }`}
+              <div
+                className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${paymentMethod === 'dummy' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-300'
+                  }`}
                 onClick={() => setPaymentMethod('dummy')}
               >
                 <div className="flex items-center gap-4">
