@@ -42,7 +42,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/lookup') ||
       pathname?.startsWith('/admin/system-settings') ||
       pathname?.startsWith('/admin/billing') ||
-      pathname?.startsWith('/super-admin/diagnostics');
+      pathname?.startsWith('/super-admin/diagnostics') ||
+      pathname?.startsWith('/admin/currency');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show limited options with back to companies
