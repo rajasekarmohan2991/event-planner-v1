@@ -152,11 +152,27 @@ export function LoginForm() {
 
   const handleSocialLogin = async (provider: 'google' | 'instagram') => {
     setSocialLoading(provider)
+    setError('')
     try {
-      await signIn(provider, {
+      console.log(`[LoginForm] Starting ${provider} OAuth...`)
+      const result = await signIn(provider, {
+        redirect: false,
         callbackUrl: '/dashboard',
       })
+
+      console.log(`[LoginForm] ${provider} OAuth result:`, result)
+
+      if (result?.error) {
+        console.error(`[LoginForm] ${provider} OAuth error:`, result.error)
+        setError(`Failed to sign in with ${provider}. Please try again.`)
+        setSocialLoading(null)
+      } else if (result?.ok) {
+        console.log(`[LoginForm] ${provider} OAuth successful, session should be created`)
+        // Don't redirect here - let LoginClient handle it
+        // The session will be updated and LoginClient will redirect
+      }
     } catch (error) {
+      console.error(`[LoginForm] ${provider} OAuth exception:`, error)
       setError('Failed to sign in. Please try again.')
       setSocialLoading(null)
     }
