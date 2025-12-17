@@ -25,12 +25,19 @@ interface Registration {
 }
 
 export default function UserDashboard() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [myRegistrations, setMyRegistrations] = useState<Registration[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (status === 'loading') return
+
+    if (status === 'unauthenticated') {
+      setLoading(false)
+      return
+    }
+
     const fetchDashboardData = async () => {
       try {
         // Fetch upcoming public events
@@ -57,10 +64,8 @@ export default function UserDashboard() {
       }
     }
 
-    if (session) {
-      fetchDashboardData()
-    }
-  }, [session])
+    fetchDashboardData()
+  }, [session, status])
 
   if (loading) {
     return <div className="p-6">Loading your dashboard...</div>
@@ -175,7 +180,7 @@ export default function UserDashboard() {
               View all
             </Link>
           </div>
-          
+
           {myRegistrations.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -200,13 +205,12 @@ export default function UserDashboard() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      registration.status === 'CONFIRMED' 
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${registration.status === 'CONFIRMED'
                         ? 'bg-green-100 text-green-800'
                         : registration.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
                       {registration.status}
                     </span>
                     <p className="text-sm text-gray-600 mt-1">
@@ -230,7 +234,7 @@ export default function UserDashboard() {
               View all
             </Link>
           </div>
-          
+
           {upcomingEvents.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -242,7 +246,7 @@ export default function UserDashboard() {
                 <div key={event.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
                   <h3 className="font-medium text-gray-900 mb-2">{event.name}</h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{event.description}</p>
-                  
+
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
@@ -259,7 +263,7 @@ export default function UserDashboard() {
                       </div>
                     )}
                   </div>
-                  
+
                   <Link
                     href={`/events/${event.id}/register`}
                     className="mt-4 w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
