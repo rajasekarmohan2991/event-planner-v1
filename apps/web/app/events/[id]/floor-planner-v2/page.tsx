@@ -29,7 +29,7 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  
+
   // Form state for current tab
   const [rows, setRows] = useState(5)
   const [cols, setCols] = useState(10)
@@ -74,15 +74,15 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       setLoading(true)
       const res = await fetch(`/api/events/${params.id}/floor-plans`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load floor plans')
-      
+
       const plans: FloorPlan[] = await res.json()
-      
+
       const organized: Record<TicketClass, FloorPlan | null> = {
         VIP: plans.find(p => p.ticketClass === 'VIP') || null,
         PREMIUM: plans.find(p => p.ticketClass === 'PREMIUM') || null,
         GENERAL: plans.find(p => p.ticketClass === 'GENERAL') || null
       }
-      
+
       setFloorPlans(organized)
     } catch (e: any) {
       setMessage({ type: 'error', text: e.message || 'Failed to load floor plans' })
@@ -94,7 +94,7 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
   const saveFloorPlan = async () => {
     try {
       setSaving(true)
-      
+
       const layoutConfig = {
         rows,
         cols,
@@ -113,10 +113,10 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       })
 
       if (!res.ok) throw new Error('Failed to save floor plan')
-      
+
       setMessage({ type: 'success', text: `${activeTab} floor plan saved successfully!` })
       await loadFloorPlans()
-      
+
       // Generate seats
       await generateSeats()
     } catch (e: any) {
@@ -142,7 +142,7 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       })
 
       if (!res.ok) throw new Error('Failed to generate seats')
-      
+
       setMessage({ type: 'success', text: `${rows * cols} ${activeTab} seats generated!` })
     } catch (e: any) {
       setMessage({ type: 'error', text: e.message || 'Failed to generate seats' })
@@ -160,7 +160,7 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       })
 
       if (!res.ok) throw new Error('Failed to delete floor plan')
-      
+
       setMessage({ type: 'success', text: `${activeTab} floor plan deleted!` })
       await loadFloorPlans()
     } catch (e: any) {
@@ -177,19 +177,19 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
   const tabClasses = (tab: TicketClass) => {
     const isActive = activeTab === tab
     const hasData = floorPlans[tab] !== null
-    
+
     let bgColor = 'bg-gray-100'
     if (tab === 'VIP') bgColor = isActive ? 'bg-purple-600 text-white' : hasData ? 'bg-purple-100' : 'bg-gray-100'
     if (tab === 'PREMIUM') bgColor = isActive ? 'bg-blue-600 text-white' : hasData ? 'bg-blue-100' : 'bg-gray-100'
     if (tab === 'GENERAL') bgColor = isActive ? 'bg-green-600 text-white' : hasData ? 'bg-green-100' : 'bg-gray-100'
-    
+
     return `px-6 py-3 rounded-t-lg font-semibold cursor-pointer transition-all ${bgColor} ${isActive ? 'shadow-lg' : 'hover:shadow-md'}`
   }
 
   return (
     <div className="space-y-4">
       <ManageTabs eventId={params.id} />
-      
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Floor Planner</h1>
@@ -204,8 +204,8 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       )}
 
       {/* Simple Ticket Creator */}
-      <SimpleTicketCreator 
-        eventId={params.id} 
+      <SimpleTicketCreator
+        eventId={params.id}
         onSuccess={() => {
           setMessage({ type: 'success', text: 'Tickets created successfully! Refreshing...' })
           loadFloorPlans()
@@ -213,7 +213,7 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       />
 
       {/* 2D Floor Generator */}
-      <Simple2DFloorGenerator 
+      <Simple2DFloorGenerator
         eventId={params.id}
         onSuccess={() => {
           setMessage({ type: 'success', text: '2D Floor plan generated successfully! Refreshing...' })
@@ -222,10 +222,17 @@ export default function FloorPlannerV2Page({ params }: { params: { id: string } 
       />
 
       <div className="border-t pt-6">
-        <h2 className="text-lg font-semibold mb-4">Advanced Floor Planner (Grid-Based)</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Use the grid-based planner below for complex seating arrangements with rows and columns.
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">Advanced Floor Planner (Grid-Based)</h2>
+            <p className="text-sm text-gray-600">
+              Use the grid-based planner below for complex seating arrangements with rows and columns.
+            </p>
+          </div>
+          <a href={`/events/${params.id}/design/floor-plan-v3`} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium">
+            Try V3 Visual Editor ✨
+          </a>
+        </div>
       </div>
 
       {/* Ticket Class Tabs */}

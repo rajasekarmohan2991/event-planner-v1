@@ -29,6 +29,11 @@ interface CompanyDetails {
   plan: string;
   status: string;
   billingEmail: string;
+  maxEvents: number;
+  maxUsers: number;
+  maxStorage: number;
+  trialEndsAt?: string;
+  subscriptionEndsAt?: string;
   events: Array<{
     id: number;
     name: string;
@@ -375,6 +380,80 @@ export default function CompanyDetailsPage() {
                     {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
                   </div>
                   <div className="text-gray-600">Total Registrations</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription & Billing Details */}
+          <div className="bg-white rounded-lg shadow border overflow-hidden mb-8">
+            <div className="p-6 border-b flex justify-between items-center bg-green-50/50">
+              <div className="flex items-center gap-2">
+                <Ticket className="h-5 w-5 text-green-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Subscription & Limits</h2>
+              </div>
+              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
+                {company.plan} Plan
+              </Badge>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-4">Plan Usage Limits</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">Events Created</span>
+                      <span className="text-gray-500">{company.events.length} / {company.maxEvents}</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">Team Members</span>
+                      <span className="text-gray-500">{company.members.length} / {company.maxUsers}</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">Storage (MB)</span>
+                      <span className="text-gray-500">0 / {company.maxStorage}</span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gray-400 rounded-full" style={{ width: `0%` }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Billing Information</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Status</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {company.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Billing Email</span>
+                    <span className="font-medium">{company.billingEmail}</span>
+                  </div>
+                  {company.trialEndsAt && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Trial Ends</span>
+                      <span className="font-medium">{new Date(company.trialEndsAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {company.subscriptionEndsAt && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Renews On</span>
+                      <span className="font-medium">{new Date(company.subscriptionEndsAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

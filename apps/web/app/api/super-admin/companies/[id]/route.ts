@@ -11,21 +11,21 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = session.user.role
     const currentTenantId = (session.user as any).currentTenantId
-    
+
     // SUPER_ADMIN can view any company, ADMIN can only view their own company
     if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-    
+
     const tenantId = params.id
-    
+
     // If ADMIN, ensure they can only access their own tenant
     if (userRole === 'ADMIN' && currentTenantId !== tenantId) {
       return NextResponse.json({ error: 'Unauthorized - Can only access your own company' }, { status: 403 })
@@ -42,7 +42,13 @@ export async function GET(
         status: true,
         billingEmail: true,
         emailFromAddress: true,
-        createdAt: true
+        createdAt: true,
+        maxEvents: true,
+        maxUsers: true,
+        maxStorage: true,
+        trialEndsAt: true,
+        subscriptionStartedAt: true,
+        subscriptionEndsAt: true
       }
     })
 
@@ -69,15 +75,15 @@ export async function GET(
         'x-tenant-id': tenantId,
       }
     })
-    
+
     const eventsData = eventsRes.ok ? await eventsRes.json() : []
     // Handle both pagination (content) and array responses
     const eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.content || [])
-    
+
     // Calculate real-time registrations for each event
     const eventIds = eventsList.map((e: any) => parseInt(e.id)).filter((id: number) => !isNaN(id))
     const registrationCounts: Record<number, number> = {}
-    
+
     if (eventIds.length > 0) {
       const regCounts = await prisma.$queryRaw<any[]>`
         SELECT event_id, COUNT(*)::int as count
@@ -101,8 +107,8 @@ export async function GET(
       status: e.status,
       priceInr: e.priceInr || e.price_inr || 0,
       capacity: e.expectedAttendees || e.capacity || e.seats || e.maxCapacity || 0,
-      _count: { 
-        registrations: registrationCounts[e.id] || 0 
+      _count: {
+        registrations: registrationCounts[e.id] || 0
       }
     }))
 
@@ -138,20 +144,20 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = session.user.role
     if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     const body = await req.json()
-    
+
     // Implement update logic if needed
-    
+
     return NextResponse.json({
       success: true,
       message: 'Company updated successfully'

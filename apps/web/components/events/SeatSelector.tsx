@@ -51,13 +51,13 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
       const es = new EventSource(`/api/events/${eventId}/seats/stream`)
       const onUpdate = () => fetchSeats(true)
       es.addEventListener('update', onUpdate)
-      es.addEventListener('hello', () => {})
-      es.addEventListener('ping', () => {})
+      es.addEventListener('hello', () => { })
+      es.addEventListener('ping', () => { })
       return () => {
-        try { es.removeEventListener('update', onUpdate) } catch {}
-        try { es.close() } catch {}
+        try { es.removeEventListener('update', onUpdate) } catch { }
+        try { es.close() } catch { }
       }
-    } catch {}
+    } catch { }
   }, [eventId])
 
   useEffect(() => {
@@ -77,19 +77,19 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
     try {
       if (!silent) setLoading(true)
       setError(null)
-      
+
       const qs = new URLSearchParams()
       if (ticketClassFilter) qs.set('ticketClass', ticketClassFilter)
       const response = await fetch(`/api/events/${eventId}/seats/availability${qs.toString() ? `?${qs.toString()}` : ''}`)
       if (!response.ok) {
         throw new Error(`Failed to fetch seats: ${response.status}`)
       }
-      
+
       const data = await response.json()
       const newSeats: Seat[] = data.seats || []
       setSeats(newSeats)
       setGroupedSeats(data.groupedSeats || {})
-      
+
       // Auto-select first section if available
       const sections = Object.keys(data.groupedSeats || {})
       if (sections.length > 0 && !selectedSection) {
@@ -104,7 +104,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({})
-        }).catch(()=>{})
+        }).catch(() => { })
         await fetchSeats(true)
       }
 
@@ -150,7 +150,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
     }
 
     const isSelected = selectedSeats.find(s => s.id === seat.id)
-    
+
     if (isSelected) {
       // Deselect seat
       setSelectedSeats(prev => prev.filter(s => s.id !== seat.id))
@@ -170,7 +170,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
 
   const getSeatColor = (seat: Seat) => {
     const isSelected = selectedSeats.find(s => s.id === seat.id)
-    
+
     if (isSelected) return 'bg-white text-green-600 border-green-600 ring-2 ring-green-400'
     if (!seat.available || seat.reservationStatus) return 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
     switch (seat.seatType) {
@@ -200,7 +200,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
   const computeColumnNumbers = (rowsObj: Record<string, Seat[]>) => {
     const colSet = new Set<string>()
     Object.values(rowsObj).forEach(row => row.forEach(s => colSet.add(s.seatNumber)))
-    return Array.from(colSet).sort((a,b) => parseInt(a) - parseInt(b))
+    return Array.from(colSet).sort((a, b) => parseInt(a) - parseInt(b))
   }
 
   const sections = useMemo(() => Object.keys(groupedSeats), [groupedSeats])
@@ -237,6 +237,34 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
 
   const currentSectionSeats = selectedSection ? groupedSeats[selectedSection] : {}
   const rows = Object.keys(currentSectionSeats).sort()
+
+  // Visual Map Logic
+  const hasCoordinates = seats.some(s => (s.xCoordinate || 0) !== 0 || (s.yCoordinate || 0) !== 0)
+  const useVisualMap = viewMode !== 'table' && hasCoordinates
+
+  const mapDimensions = useMemo(() => {
+    if (!hasCoordinates) return { width: 1000, height: 800 }
+
+    // Find bounds
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    seats.forEach(s => {
+      const x = Number(s.xCoordinate || 0)
+      const y = Number(s.yCoordinate || 0)
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    })
+
+    // Add padding
+    const padding = 100
+    const width = (maxX - minX) + (padding * 2)
+    const height = (maxY - minY) + (padding * 2)
+
+    // Check if result is valid number
+    if (!isFinite(width) || !isFinite(height)) return { width: 1000, height: 800 }
+    return { width: Math.max(width, 800), height: Math.max(height, 600) }
+  }, [seats, hasCoordinates])
 
   return (
     <div className="space-y-6">
@@ -290,18 +318,20 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-1">
-              <Button size="sm" variant={viewMode==='sectors'?'default':'outline'} onClick={()=>setViewMode('sectors')}>Sectors</Button>
-              <Button size="sm" variant={viewMode==='table'?'default':'outline'} onClick={()=>setViewMode('table')}>Table</Button>
+              <Button size="sm" variant={viewMode === 'sectors' ? 'default' : 'outline'} onClick={() => setViewMode('sectors')}>
+                {hasCoordinates ? 'Map' : 'Sectors'}
+              </Button>
+              <Button size="sm" variant={viewMode === 'table' ? 'default' : 'outline'} onClick={() => setViewMode('table')}>Table</Button>
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant={ticketClassFilter===''?'default':'outline'} onClick={()=>setTicketClassFilter('')}>All</Button>
-              <Button size="sm" variant={ticketClassFilter==='VIP'?'default':'outline'} onClick={()=>setTicketClassFilter('VIP')}>VIP</Button>
-              <Button size="sm" variant={ticketClassFilter==='PREMIUM'?'default':'outline'} onClick={()=>setTicketClassFilter('PREMIUM')}>Premium</Button>
-              <Button size="sm" variant={ticketClassFilter==='STANDARD'?'default':'outline'} onClick={()=>setTicketClassFilter('STANDARD')}>Standard</Button>
+              <Button size="sm" variant={ticketClassFilter === '' ? 'default' : 'outline'} onClick={() => setTicketClassFilter('')}>All</Button>
+              <Button size="sm" variant={ticketClassFilter === 'VIP' ? 'default' : 'outline'} onClick={() => setTicketClassFilter('VIP')}>VIP</Button>
+              <Button size="sm" variant={ticketClassFilter === 'PREMIUM' ? 'default' : 'outline'} onClick={() => setTicketClassFilter('PREMIUM')}>Premium</Button>
+              <Button size="sm" variant={ticketClassFilter === 'STANDARD' ? 'default' : 'outline'} onClick={() => setTicketClassFilter('STANDARD')}>Standard</Button>
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant={autoRefresh?'default':'outline'} onClick={()=>setAutoRefresh(v=>!v)}>{autoRefresh?'Live':'Paused'}</Button>
-              <Button size="sm" variant="outline" onClick={()=>fetchSeats()}>Refresh</Button>
+              <Button size="sm" variant={autoRefresh ? 'default' : 'outline'} onClick={() => setAutoRefresh(v => !v)}>{autoRefresh ? 'Live' : 'Paused'}</Button>
+              <Button size="sm" variant="outline" onClick={() => fetchSeats()}>Refresh</Button>
             </div>
           </div>
         </div>
@@ -339,17 +369,99 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
                       <td className="py-2 pr-4">
                         <Button
                           size="sm"
-                          variant={selectedSeats.find(s=>s.id===seat.id)?'default':'outline'}
+                          variant={selectedSeats.find(s => s.id === seat.id) ? 'default' : 'outline'}
                           disabled={!seat.available || !!seat.reservationStatus}
-                          onClick={()=>handleSeatClick(seat)}
+                          onClick={() => handleSeatClick(seat)}
                         >
-                          {selectedSeats.find(s=>s.id===seat.id)?'Selected':'Select'}
+                          {selectedSeats.find(s => s.id === seat.id) ? 'Selected' : 'Select'}
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          ) : (useVisualMap ? (
+            <div className="relative border rounded-lg bg-slate-50 overflow-hidden w-full h-[600px] flex items-center justify-center">
+              {/* Simple SVG Map */}
+              <div className="w-full h-full overflow-auto">
+                <svg
+                  viewBox={`0 0 ${mapDimensions.width} ${mapDimensions.height}`}
+                  className="w-full h-full min-w-[800px] min-h-[600px]"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <defs>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="2" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+
+                  {/* Background / Floor */}
+                  <rect x="0" y="0" width={mapDimensions.width} height={mapDimensions.height} fill="transparent" />
+
+                  {/* Seats */}
+                  {seats.map(seat => {
+                    const isSelected = selectedSeats.some(s => s.id === seat.id)
+                    const isUnavailable = !seat.available || !!seat.reservationStatus
+
+                    let fillStart = "#fff"
+                    let stroke = "#cbd5e1"
+
+                    if (isUnavailable) {
+                      fillStart = "#e2e8f0"
+                      stroke = "#cbd5e1"
+                    } else if (isSelected) {
+                      fillStart = "#22c55e"
+                      stroke = "#15803d"
+                    } else {
+                      // Color by type
+                      switch (seat.seatType) {
+                        case 'VIP': fillStart = "#fef08a"; stroke = "#eab308"; break;
+                        case 'PREMIUM': fillStart = "#dbeafe"; stroke = "#3b82f6"; break;
+                        default: fillStart = "#ffffff"; stroke = "#94a3b8"; break;
+                      }
+                    }
+
+                    return (
+                      <g
+                        key={seat.id}
+                        transform={`translate(${seat.xCoordinate}, ${seat.yCoordinate})`}
+                        onClick={() => handleSeatClick(seat)}
+                        className={isUnavailable ? 'cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                        style={{ transition: 'all 0.2s' }}
+                      >
+                        <title>{`${seat.section} - ${seat.rowNumber}${seat.seatNumber ? `-${seat.seatNumber}` : ''} (${seat.seatType}) - ₹${seat.basePrice}`}</title>
+
+                        {/* Seat Shape */}
+                        <circle
+                          r={isUnavailable ? 4 : (isSelected ? 8 : 6)}
+                          fill={fillStart}
+                          stroke={stroke}
+                          strokeWidth={isSelected ? 2 : 1}
+                          filter={isSelected ? "url(#glow)" : undefined}
+                        />
+
+                        {/* Seat Label for Zoomed in view (optional, simple check) */}
+                        {(!isUnavailable && !isSelected) && (
+                          <text y={0.5} fontSize={4} textAnchor="middle" fill={stroke} pointerEvents="none">
+                            {seat.seatNumber}
+                          </text>
+                        )}
+                      </g>
+                    )
+                  })}
+
+                  {/* Stage Label */}
+                  <text x={mapDimensions.width / 2} y={mapDimensions.height - 20} textAnchor="middle" fontSize={16} fill="#94a3b8" fontWeight="bold">
+                    STAGE / FRONT
+                  </text>
+                </svg>
+              </div>
+
+              <div className="absolute bottom-4 right-4 bg-white/90 p-2 rounded shadow text-xs">
+                <p>Scroll to zoom (coming soon) • Drag to pan (coming soon)</p>
+              </div>
             </div>
           ) : (
             // Sectors view: show each section with header and grid like the reference screenshot
@@ -359,21 +471,21 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
                 const rowKeys = Object.keys(rowsObj).sort()
                 const colNums = computeColumnNumbers(rowsObj)
                 const minPrice = Math.min(
-                  ...Object.values(rowsObj).flat().map(s=>Number(s.basePrice)||0).filter(n=>!isNaN(n) && n>0),
+                  ...Object.values(rowsObj).flat().map(s => Number(s.basePrice) || 0).filter(n => !isNaN(n) && n > 0),
                 )
                 return (
                   <div key={sectionKey}>
                     {/* Section heading with price */}
                     <div className="flex items-center justify-center text-xs text-gray-600 mb-2">
                       <div className="border-t flex-1" />
-                      <div className="px-3 whitespace-nowrap font-semibold">{minPrice>0?`₹${minPrice} `:''}{sectionKey.toUpperCase()}</div>
+                      <div className="px-3 whitespace-nowrap font-semibold">{minPrice > 0 ? `₹${minPrice} ` : ''}{sectionKey.toUpperCase()}</div>
                       <div className="border-t flex-1" />
                     </div>
                     {/* Column numbers header */}
-                    {colNums.length>0 && (
+                    {colNums.length > 0 && (
                       <div className="ml-12 mb-1 flex gap-1 text-[10px] text-gray-400">
                         {colNums.map(c => (
-                          <div key={c} className="w-8 h-6 flex items-center justify-center">{String(c).padStart(2,'0')}</div>
+                          <div key={c} className="w-8 h-6 flex items-center justify-center">{String(c).padStart(2, '0')}</div>
                         ))}
                       </div>
                     )}
@@ -393,7 +505,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
                                 title={`${seat.seatType} - Row ${seat.rowNumber}, Seat ${seat.seatNumber} - ₹${seat.basePrice}`}
                                 disabled={!seat.available || !!seat.reservationStatus}
                               >
-                                {String(seat.seatNumber).padStart(2,'0')}
+                                {String(seat.seatNumber).padStart(2, '0')}
                               </button>
                             ))}
                           </div>
@@ -410,7 +522,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
                 </div>
               </div>
             </div>
-          )}
+          ))}
         </CardContent>
       </Card>
 

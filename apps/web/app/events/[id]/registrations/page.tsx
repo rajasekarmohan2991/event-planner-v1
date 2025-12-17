@@ -54,17 +54,17 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
     resolveParams()
   }, [params])
 
-  const loadRegistrations = async (status = selectedStatus) => {
+  const loadRegistrations = async (status = selectedStatus, pageIndex = 0) => {
     if (!eventId) return
     setLoading(true)
     try {
       const params_obj = new URLSearchParams({
-        page: '0',
-        size: '1000' // Load all registrations
+        page: pageIndex.toString(),
+        size: '20' // Use sensible page size instead of 1000
       })
       if (status !== 'all') params_obj.set('status', status)
-      
-      const res = await fetch(`/api/events/${eventId}/registrations?${params_obj}`, { 
+
+      const res = await fetch(`/api/events/${eventId}/registrations?${params_obj}`, {
         cache: 'no-store',
         next: { revalidate: 0 },
         credentials: 'include',
@@ -74,18 +74,18 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
           'Expires': '0'
         }
       })
-      
+
       console.log('📋 Registration API response status:', res.status)
-      
+
       if (!res.ok) {
         const errorText = await res.text()
         console.error('📋 Registration API error:', res.status, errorText)
         throw new Error(`API Error: ${res.status} - ${errorText}`)
       }
-      
+
       const data: RegistrationResponse = await res.json()
       console.log('📋 Registration API data:', data)
-      
+
       if (data.registrations) {
         setRegistrations(data.registrations)
         setPagination(data.pagination)
@@ -118,7 +118,7 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: 'Approved via registration management' })
       })
-      
+
       if (res.ok) {
         await loadRegistrations()
         alert('Registration approved successfully!')
@@ -134,14 +134,14 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
   const handleCancelRegistration = async (registrationId: string) => {
     const reason = prompt('Enter cancellation reason:')
     if (!reason) return
-    
+
     try {
       const res = await fetch(`/api/events/${eventId}/registrations/${registrationId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason })
       })
-      
+
       if (res.ok) {
         await loadRegistrations()
         alert('Registration cancelled successfully!')
@@ -159,18 +159,18 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
       alert('Please select registrations to approve')
       return
     }
-    
+
     setBulkActionLoading(true)
     try {
       const res = await fetch(`/api/events/${eventId}/registrations/bulk-approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           registrationIds: selectedRegistrations,
           notes: 'Bulk approved via registration management'
         })
       })
-      
+
       if (res.ok) {
         const result = await res.json()
         await loadRegistrations()
@@ -187,7 +187,9 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
     }
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, checkedIn?: boolean) => {
+    if (checkedIn || status === 'CHECKED_IN') return <UserCheck className="w-4 h-4 text-purple-600" />
+
     switch (status) {
       case 'APPROVED': return <CheckCircle className="w-4 h-4 text-green-600" />
       case 'CANCELLED': return <XCircle className="w-4 h-4 text-red-600" />
@@ -196,7 +198,9 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, checkedIn?: boolean) => {
+    if (checkedIn || status === 'CHECKED_IN') return 'text-purple-700 bg-purple-50 border-purple-200'
+
     switch (status) {
       case 'APPROVED': return 'text-green-700 bg-green-50 border-green-200'
       case 'CANCELLED': return 'text-red-700 bg-red-50 border-red-200'
@@ -205,9 +209,31 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
     }
   }
 
+  const handleToggleCheckIn = async (regId: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/registrations/${regId}/toggle-checkin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkedIn: !currentStatus })
+      })
+
+      if (res.ok) {
+        // Optimistic update or reload
+        await loadRegistrations()
+        // alert(`Check-in status updated`)
+      } else {
+        const err = await res.json()
+        alert(`Failed to update check-in: ${err.message}`)
+      }
+    } catch (e) {
+      alert('Error updating check-in status')
+    }
+  }
+
   const pendingCount = registrations.filter(r => r.status === 'PENDING').length
   const approvedCount = registrations.filter(r => r.status === 'APPROVED').length
   const cancelledCount = registrations.filter(r => r.status === 'CANCELLED').length
+  const checkedInCount = registrations.filter(r => r.checkedIn || r.status === 'CHECKED_IN').length
 
   return (
     <div className="space-y-6">
@@ -225,16 +251,16 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
             + Add Registration
             <ChevronDown className="w-4 h-4" />
           </button>
-          
+
           {/* Dropdown Menu */}
           {showAddMenu && (
             <>
               {/* Backdrop */}
-              <div 
-                className="fixed inset-0 z-10" 
+              <div
+                className="fixed inset-0 z-10"
                 onClick={() => setShowAddMenu(false)}
               ></div>
-              
+
               {/* Menu */}
               <div className="absolute right-0 top-12 z-20 w-64 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
                 <div className="py-1">
@@ -251,7 +277,7 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
                       <div className="text-xs text-gray-500">Direct registration form</div>
                     </div>
                   </Link>
-                  
+
                   <Link
                     href={`/events/${eventId}/invites`}
                     onClick={() => setShowAddMenu(false)}
@@ -274,7 +300,7 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Link 
+        <Link
           href={`/events/${eventId}/registrations/approvals`}
           className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-lg border-2 border-green-200 hover:border-green-300 hover:shadow-lg transition-all group"
         >
@@ -296,7 +322,7 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
           </div>
         </Link>
 
-        <Link 
+        <Link
           href={`/events/${eventId}/registrations/cancellation-approvals`}
           className="bg-gradient-to-r from-red-50 to-red-100 p-6 rounded-lg border-2 border-red-200 hover:border-red-300 hover:shadow-lg transition-all group"
         >
@@ -330,14 +356,14 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
         </div>
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm font-medium text-gray-600">Pending</span>
+            <UserCheck className="w-5 h-5 text-purple-600" />
+            <span className="text-sm font-medium text-gray-600">Checked In</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-700">{pendingCount}</div>
+          <div className="text-2xl font-bold text-purple-700">{checkedInCount}</div>
         </div>
         <div className="bg-white p-4 rounded-lg border shadow-sm">
           <div className="flex items-center gap-2">
-            <UserCheck className="w-5 h-5 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-green-600" />
             <span className="text-sm font-medium text-gray-600">Approved</span>
           </div>
           <div className="text-2xl font-bold text-green-700">{approvedCount}</div>
@@ -355,18 +381,19 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
       <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
         <div className="flex items-center gap-4">
           <label className="text-sm font-medium text-gray-700">Filter by status:</label>
-          <select 
-            value={selectedStatus} 
+          <select
+            value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="border rounded-md px-3 py-1 text-sm"
           >
             <option value="all">All Statuses</option>
+            <option value="CHECKED_IN">Checked In</option>
             <option value="PENDING">Pending</option>
             <option value="APPROVED">Approved</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
         </div>
-        
+
         {selectedRegistrations.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">{selectedRegistrations.length} selected</span>
@@ -403,9 +430,10 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
               <th className="text-left px-4 py-3">Name</th>
               <th className="text-left px-4 py-3">Email</th>
               <th className="text-left px-4 py-3">Status</th>
+              <th className="text-left px-4 py-3">Check-In</th>
               <th className="text-left px-4 py-3">Type</th>
               <th className="text-left px-4 py-3">Registered</th>
-              <th className="text-left px-4 py-3"></th>
+              <th className="text-left px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -434,10 +462,21 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
                 </td>
                 <td className="px-4 py-3 text-gray-600">{registration.email}</td>
                 <td className="px-4 py-3">
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(registration.status)}`}>
-                    {getStatusIcon(registration.status)}
-                    {registration.status}
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(registration.status, registration.checkedIn)}`}>
+                    {getStatusIcon(registration.status, registration.checkedIn)}
+                    {registration.checkedIn ? 'CHECKED IN' : registration.status}
                   </div>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => handleToggleCheckIn(registration.id, registration.checkedIn)}
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${registration.checkedIn
+                      ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                      }`}
+                  >
+                    {registration.checkedIn ? 'Undo Check-in' : 'Check In'}
+                  </button>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{registration.type}</td>
                 <td className="px-4 py-3 text-gray-600">
@@ -448,6 +487,15 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
                     <button className="text-indigo-600 hover:text-indigo-900 p-1" title="Edit">
                       <Edit className="w-4 h-4" />
                     </button>
+                    {registration.status !== 'CANCELLED' && (
+                      <button
+                        onClick={() => handleCancelRegistration(registration.id)}
+                        className="text-red-600 hover:text-red-900 p-1"
+                        title="Cancel"
+                      >
+                        <UserX className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
