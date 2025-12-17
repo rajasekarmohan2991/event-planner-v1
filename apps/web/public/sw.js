@@ -50,16 +50,24 @@ self.addEventListener('fetch', (event) => {
         return
     }
 
+    // Only cache GET requests (POST, PUT, DELETE cannot be cached)
+    if (request.method !== 'GET') {
+        event.respondWith(fetch(request))
+        return
+    }
+
     // Skip API requests (always fetch fresh)
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
             fetch(request)
                 .then((response) => {
-                    // Cache successful API responses for 30 seconds
-                    if (response.ok) {
+                    // Only cache successful GET responses
+                    if (response.ok && request.method === 'GET') {
                         const clone = response.clone()
                         caches.open(DYNAMIC_CACHE).then((cache) => {
-                            cache.put(request, clone)
+                            cache.put(request, clone).catch((err) => {
+                                console.warn('[SW] Failed to cache:', request.url, err)
+                            })
                         })
                     }
                     return response
@@ -78,21 +86,27 @@ self.addEventListener('fetch', (event) => {
             if (cached) {
                 // Return cached version and update in background
                 fetch(request).then((response) => {
-                    if (response.ok) {
+                    if (response.ok && request.method === 'GET') {
                         caches.open(DYNAMIC_CACHE).then((cache) => {
-                            cache.put(request, response)
+                            cache.put(request, response).catch((err) => {
+                                console.warn('[SW] Failed to update cache:', request.url, err)
+                            })
                         })
                     }
+                }).catch(() => {
+                    // Ignore background update errors
                 })
                 return cached
             }
 
             // Not in cache, fetch from network
             return fetch(request).then((response) => {
-                if (response.ok) {
+                if (response.ok && request.method === 'GET') {
                     const clone = response.clone()
                     caches.open(DYNAMIC_CACHE).then((cache) => {
-                        cache.put(request, clone)
+                        cache.put(request, clone).catch((err) => {
+                            console.warn('[SW] Failed to cache:', request.url, err)
+                        })
                     })
                 }
                 return response
