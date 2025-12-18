@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image'
 import { cn } from "@/lib/utils"
 
 interface BrandedLoaderProps {
@@ -9,23 +10,45 @@ interface BrandedLoaderProps {
 
 export function BrandedLoader({ text = "Loading...", className }: BrandedLoaderProps) {
     return (
-        <div className={cn("flex h-full min-h-[50vh] w-full flex-col items-center justify-center gap-4 p-8", className)}>
-            <div className="relative flex flex-col items-center justify-center gap-4">
-                {/* Animated Rings */}
-                <div className="relative h-16 w-16">
-                    <div className="absolute inset-0 animate-ping rounded-full border-2 border-indigo-200 opacity-75"></div>
-                    <div className="relative h-16 w-16 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600 shadow-sm"></div>
-                    <div className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-indigo-50"></div>
+        <div className={cn("flex h-full min-h-[50vh] w-full flex-col items-center justify-center gap-6 p-8", className)}>
+            <div className="relative flex flex-col items-center justify-center gap-6">
+                {/* Ayphen Logo with animations */}
+                <div className="relative w-64 h-24 animate-pulse">
+                    <Image
+                        src="/images/ayphen-logo.png"
+                        alt="Ayphen Technologies"
+                        fill
+                        className="object-contain animate-fade-in"
+                        priority
+                    />
                 </div>
 
-                {/* Text content */}
-                <div className="flex flex-col items-center gap-1 text-center">
-                    <h3 className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-xl font-bold text-transparent animate-pulse">
-                        Ayphen Technologies
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{text}</p>
+                {/* Loading text with animated dots */}
+                <div className="flex flex-col items-center gap-2">
+                    <p className="text-sm text-muted-foreground font-medium">{text}</p>
+                    <div className="flex gap-1.5">
+                        <span className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
                 </div>
             </div>
+
+            <style jsx>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.8s ease-out;
+                }
+            `}</style>
         </div>
     )
 }
