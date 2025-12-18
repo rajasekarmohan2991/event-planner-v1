@@ -541,11 +541,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Fetch event name for activity logging
-    const event = await prisma.event.findUnique({
+    const eventForLogging = await prisma.event.findUnique({
       where: { id: eventId },
       select: { name: true }
     })
-    const eventName = event?.name || `Event #${params.id}`
+    const eventName = eventForLogging?.name || `Event #${params.id}`
 
     // Log registration activity
     logActivity({
