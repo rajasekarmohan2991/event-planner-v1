@@ -32,7 +32,7 @@ export async function getCurrentUserWithPermissions(): Promise<User | null> {
     if (!session || !session.user) return null
 
     const user = session.user as any
-    
+
     // Check for tenant context and get tenant-specific permissions
     if (user.currentTenantId) {
       let userIdBigInt: bigint
@@ -72,43 +72,43 @@ export async function getCurrentUserWithPermissions(): Promise<User | null> {
         // Normalize role names coming from DB (OWNER -> TENANT_ADMIN)
         const rawRole = String(tenantMember.role)
         const normalizedRole = rawRole === 'OWNER' ? 'TENANT_ADMIN' : rawRole
-        
+
         // Check if permissions exist in DB
         if (Array.isArray(tenantMember.permissions)) {
-            permissions = tenantMember.permissions as Permission[]
+          permissions = tenantMember.permissions as Permission[]
         } else if (typeof tenantMember.permissions === 'object' && tenantMember.permissions !== null) {
-             const storedPerms = tenantMember.permissions as Record<string, string[]>
-            Object.entries(storedPerms).forEach(([resource, actions]) => {
-                if (Array.isArray(actions)) {
-                    actions.forEach(action => {
-                        const mapped = action === 'read' ? 'view' : action === 'update' ? 'edit' : action
-                        permissions.push(`${resource}.${mapped}` as Permission)
-                    })
-                }
-            })
+          const storedPerms = tenantMember.permissions as Record<string, string[]>
+          Object.entries(storedPerms).forEach(([resource, actions]) => {
+            if (Array.isArray(actions)) {
+              actions.forEach(action => {
+                const mapped = action === 'read' ? 'view' : action === 'update' ? 'edit' : action
+                permissions.push(`${resource}.${mapped}` as Permission)
+              })
+            }
+          })
         }
-        
+
         // Fallback/Merge: For TENANT_ADMIN (incl. OWNER mapped), always ensure they have default permissions
         // This fixes issues where early accounts might have missing permission records
         if (normalizedRole === 'TENANT_ADMIN') {
-             console.log(`[Permission Check] Ensuring default permissions for TENANT_ADMIN`)
-             const defaultPerms = ROLE_PERMISSIONS_FALLBACK['TENANT_ADMIN']
-             Object.entries(defaultPerms).forEach(([resource, actions]) => {
-                 if (Array.isArray(actions)) {
-                     actions.forEach(action => {
-                         const mapped = action === 'read' ? 'view' : action === 'update' ? 'edit' : action
-                         const permString = `${resource}.${mapped}` as Permission
-                         if (!permissions.includes(permString)) {
-                             permissions.push(permString)
-                         }
-                     })
-                 }
-             })
+          console.log(`[Permission Check] Ensuring default permissions for TENANT_ADMIN`)
+          const defaultPerms = ROLE_PERMISSIONS_FALLBACK['TENANT_ADMIN']
+          Object.entries(defaultPerms).forEach(([resource, actions]) => {
+            if (Array.isArray(actions)) {
+              actions.forEach(action => {
+                const mapped = action === 'read' ? 'view' : action === 'update' ? 'edit' : action
+                const permString = `${resource}.${mapped}` as Permission
+                if (!permissions.includes(permString)) {
+                  permissions.push(permString)
+                }
+              })
+            }
+          })
         }
 
         console.log(`[Permission Check] Using Tenant (${user.currentTenantId}) Role: ${normalizedRole}`)
         console.log(`[Permission Check] Permissions count: ${permissions.length}`)
-        
+
         return {
           id: user.id,
           email: user.email,
@@ -121,7 +121,7 @@ export async function getCurrentUserWithPermissions(): Promise<User | null> {
 
     // Fallback: Get user's system role and permissions
     const userPermissions = await getUserPermissions(user.role)
-    
+
     return {
       id: user.id,
       email: user.email,
@@ -266,7 +266,7 @@ export async function canPerformCRUD(resource: string): Promise<{
   }
 
   const permissions = user.permissions || []
-  
+
   return {
     canView: permissions.includes(`${resource}.view` as Permission),
     canCreate: permissions.includes(`${resource}.create` as Permission),
@@ -323,12 +323,18 @@ export async function withPermission<T>(
 
 /**
  * Role hierarchy for permission inheritance
+ * Higher numbers = more privileges
+ * Higher roles can access pages/resources meant for lower roles
  */
 export const ROLE_HIERARCHY: Record<string, number> = {
-  'SUPER_ADMIN': 100,
-  'Admin': 80,
-  'Event Manager': 60,
-  'User': 20
+  'SUPER_ADMIN': 100,      // Highest level - can access everything
+  'TENANT_ADMIN': 80,      // Tenant administrator
+  'ADMIN': 70,             // Admin role
+  'EVENT_MANAGER': 60,     // Event manager
+  'ORGANIZER': 50,         // Event organizer
+  'STAFF': 40,             // Staff member
+  'USER': 20,              // Regular user
+  'GUEST': 10              // Guest/unauthenticated
 }
 
 /**

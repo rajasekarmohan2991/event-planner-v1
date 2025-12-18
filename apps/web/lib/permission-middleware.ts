@@ -11,7 +11,7 @@ export function withPermissions(requiredPermissions: Permission | Permission[]) 
       try {
         // Get current user with permissions
         const user = await getCurrentUserWithPermissions()
-        
+
         if (!user) {
           return NextResponse.json(
             { error: 'Authentication required' },
@@ -21,7 +21,7 @@ export function withPermissions(requiredPermissions: Permission | Permission[]) 
 
         // Check permissions
         let hasAccess = false
-        
+
         if (typeof requiredPermissions === 'string') {
           hasAccess = await hasPermission(requiredPermissions as Permission)
         } else {
@@ -30,8 +30,8 @@ export function withPermissions(requiredPermissions: Permission | Permission[]) 
 
         if (!hasAccess) {
           return NextResponse.json(
-            { 
-              error: 'Access denied', 
+            {
+              error: 'Access denied',
               message: `Required permissions: ${Array.isArray(requiredPermissions) ? requiredPermissions.join(' OR ') : requiredPermissions}`,
               userRole: user.role,
               userPermissions: user.permissions
@@ -63,13 +63,14 @@ export function withCRUDPermissions(resource: string, operation: 'view' | 'creat
 
 /**
  * Role-based middleware (for backward compatibility)
+ * Now supports role hierarchy - higher roles can access lower role pages
  */
 export function withRole(allowedRoles: string | string[]) {
   return function (handler: Function) {
     return async function (req: NextRequest, ...args: any[]) {
       try {
         const user = await getCurrentUserWithPermissions()
-        
+
         if (!user) {
           return NextResponse.json(
             { error: 'Authentication required' },
@@ -78,13 +79,29 @@ export function withRole(allowedRoles: string | string[]) {
         }
 
         const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]
-        
-        if (!roles.includes(user.role)) {
+
+        // Import role hierarchy
+        const { ROLE_HIERARCHY } = await import('./permission-checker')
+
+        // Check if user's role matches exactly OR has higher hierarchy level
+        const userRoleLevel = ROLE_HIERARCHY[user.role] || 0
+        const hasAccess = roles.some(role => {
+          // Exact match
+          if (role === user.role) return true
+
+          // Hierarchy check - user's role level must be >= required role level
+          const requiredLevel = ROLE_HIERARCHY[role] || 0
+          return userRoleLevel >= requiredLevel
+        })
+
+        if (!hasAccess) {
           return NextResponse.json(
-            { 
-              error: 'Access denied', 
+            {
+              error: 'Access denied',
               message: `Required roles: ${roles.join(' OR ')}`,
-              userRole: user.role
+              userRole: user.role,
+              userRoleLevel,
+              note: 'Higher level roles can access lower level pages'
             },
             { status: 403 }
           )
@@ -111,7 +128,7 @@ export function requiresPermission(permission: Permission) {
 
     descriptor.value = async function (...args: any[]) {
       const hasAccess = await hasPermission(permission)
-      
+
       if (!hasAccess) {
         throw new Error(`Access denied. Required permission: ${permission}`)
       }
@@ -131,10 +148,10 @@ export async function checkPermissionInRoute(
   action?: string
 ): Promise<NextResponse | null> {
   const user = await getCurrentUserWithPermissions()
-  
+
   if (!user) {
     return NextResponse.json(
-      { 
+      {
         error: 'Authentication Required',
         message: 'You must be logged in to perform this action.',
         suggestion: 'Please log in and try again.',
@@ -153,7 +170,7 @@ export async function checkPermissionInRoute(
   if (user.role === 'TENANT_ADMIN' && isAllEventsOps) {
     return null
   }
-  
+
   if (typeof permission === 'string') {
     hasAccess = await hasPermission(permission as any)
     requiredPermission = permission
@@ -169,7 +186,7 @@ export async function checkPermissionInRoute(
     const roleGuidance = getRoleGuidance(user.role)
 
     return NextResponse.json(
-      { 
+      {
         error: error.title,
         message: error.message,
         suggestion: error.suggestion,
