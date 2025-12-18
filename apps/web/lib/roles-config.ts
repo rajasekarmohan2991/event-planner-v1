@@ -79,9 +79,9 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'design.templates', 'design.branding', 'design.themes',
       'promo_codes.view', 'promo_codes.create', 'promo_codes.edit', 'promo_codes.delete'
     ],
-    dashboardRoute: '/admin',
+    dashboardRoute: '/super-admin/companies',
     allowedRoutes: [
-      '/admin/*', '/events/*', '/dashboard/*', '/users/*', '/analytics/*',
+      '/admin/*', '/super-admin/*', '/events/*', '/dashboard/*', '/users/*', '/analytics/*',
       '/settings/*', '/verifications/*', '/permissions/*'
     ],
     navigationItems: [
