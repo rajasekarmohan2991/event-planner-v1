@@ -43,8 +43,8 @@ async function ensureFeedTables() {
     `)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_feed_comments_post ON feed_comments("postId")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_feed_comments_user ON feed_comments("userId")`)
-  } catch {}
- }
+  } catch { }
+}
 
 async function ensureUserNotificationsTable() {
   try {
@@ -64,7 +64,7 @@ async function ensureUserNotificationsTable() {
     `)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications("userId")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_user_notifications_created ON user_notifications("createdAt")`)
-  } catch {}
+  } catch { }
 }
 
 // GET - Fetch feed posts
@@ -88,8 +88,13 @@ export async function GET(req: NextRequest) {
       const headerTenant = getTenantId()
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { currentTenantId: true } })
       const tenant = user?.currentTenantId || headerTenant
-      if (!tenant) return NextResponse.json({ posts: [] })
-      whereClause.tenantId = tenant
+
+      // If user has a tenant, filter by it
+      // If no tenant, show all posts (global feed for regular users)
+      if (tenant) {
+        whereClause.tenantId = tenant
+      }
+      // If no tenant, don't filter - show all posts
     }
 
     // 2. Fetch posts with relations
@@ -168,10 +173,9 @@ export async function POST(req: NextRequest) {
       attachments.push(`/uploads/${file.name}`)
     }
 
-    // Resolve tenant: user.currentTenantId -> header -> default for SUPER_ADMIN
+    // Resolve tenant: user.currentTenantId -> header -> global for all users
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { currentTenantId: true, name: true } })
-    let tenantId = user?.currentTenantId || getTenantId() || (userRole === 'SUPER_ADMIN' ? 'default-tenant' : null)
-    if (!tenantId) return NextResponse.json({ error: 'No tenant context' }, { status: 400 })
+    let tenantId = user?.currentTenantId || getTenantId() || 'global'
 
     // Create post using Prisma Client instead of raw SQL to ensure type safety and correct column mapping
     const post = await prisma.feedPost.create({
@@ -185,16 +189,18 @@ export async function POST(req: NextRequest) {
 
     // Create a simple self-notification so the bell shows something immediately
     await ensureUserNotificationsTable()
-    const notifId = (globalThis as any).crypto?.randomUUID ? (globalThis as any).crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+    const notifId = (globalThis as any).crypto?.randomUUID ? (globalThis as any).crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     await prisma.$executeRaw`
       INSERT INTO user_notifications (id, "userId", type, title, message, link, "isRead", "createdAt")
       VALUES (${notifId}, ${userId}, 'info', 'Post published', ${Prisma.sql`'Your post has been published'`}, ${`/feed`}, FALSE, NOW())
     `
 
-    return NextResponse.json({ success: true, post: {
-      ...post,
-      userId: post.userId.toString() // Serialize BigInt
-    }})
+    return NextResponse.json({
+      success: true, post: {
+        ...post,
+        userId: post.userId.toString() // Serialize BigInt
+      }
+    })
   } catch (error) {
     console.error('Post creation error:', error)
     return NextResponse.json({ error: 'Failed to create post' }, { status: 500 })
