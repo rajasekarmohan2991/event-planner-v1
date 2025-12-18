@@ -4,13 +4,27 @@ export const dynamic = 'force-dynamic'
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import { Settings, Database, Mail, Shield, Globe, Bell, Users, Lock, CreditCard } from 'lucide-react'
+import { Settings, Database, Mail, Shield, Globe, Bell, Users, Lock, CreditCard, Edit2 } from 'lucide-react'
 import Link from 'next/link'
+import { EditModal, ToggleModal } from '@/components/admin/EditModal'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; field: string; value: string; title: string } | null>(null)
+  const [toggleModal, setToggleModal] = useState<{ isOpen: boolean; field: string; value: boolean; title: string } | null>(null)
+  const [settings, setSettings] = useState({
+    siteName: 'Event Planner',
+    timeZone: 'UTC+05:30',
+    language: 'English',
+    emailService: 'SMTP',
+    fromAddress: 'noreply@eventplanner.com',
+    sessionTimeout: '24 hours',
+    emailNotifications: true,
+    pushNotifications: false,
+    adminAlerts: true,
+  })
 
   useEffect(() => {
     setLoading(false)
@@ -83,7 +97,13 @@ export default function SettingsPage() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm">Site Name</span>
-              <span className="text-sm text-gray-500">Event Planner</span>
+              <button
+                onClick={() => setEditModal({ isOpen: true, field: 'Site Name', value: settings.siteName, title: 'Edit Site Name' })}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              >
+                {settings.siteName}
+                <Edit2 className="w-3 h-3" />
+              </button>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm">Time Zone</span>
@@ -295,7 +315,7 @@ export default function SettingsPage() {
       <div className="bg-white rounded-lg border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+          <button
             onClick={() => handleQuickAction('clear-cache')}
             disabled={actionLoading !== null}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-indigo-300 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -305,7 +325,7 @@ export default function SettingsPage() {
             </div>
             <div className="text-xs text-gray-500 mt-1">Clear system cache and temporary files</div>
           </button>
-          <button 
+          <button
             onClick={() => handleQuickAction('backup-database')}
             disabled={actionLoading !== null}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-indigo-300 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -315,7 +335,7 @@ export default function SettingsPage() {
             </div>
             <div className="text-xs text-gray-500 mt-1">Create a backup of the database</div>
           </button>
-          <button 
+          <button
             onClick={() => handleQuickAction('health-check')}
             disabled={actionLoading !== null}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-indigo-300 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -327,6 +347,47 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editModal && (
+        <EditModal
+          isOpen={editModal.isOpen}
+          onClose={() => setEditModal(null)}
+          title={editModal.title}
+          field={editModal.field}
+          currentValue={editModal.value}
+          onSave={(value) => {
+            // Update settings based on field
+            if (editModal.field === 'Site Name') {
+              setSettings({ ...settings, siteName: value })
+            }
+            // Add more fields as needed
+            alert(`✅ ${editModal.field} updated successfully!`)
+          }}
+        />
+      )}
+
+      {/* Toggle Modal */}
+      {toggleModal && (
+        <ToggleModal
+          isOpen={toggleModal.isOpen}
+          onClose={() => setToggleModal(null)}
+          title={toggleModal.title}
+          field={toggleModal.field}
+          currentValue={toggleModal.value}
+          onSave={(value) => {
+            // Update settings based on field
+            if (toggleModal.field === 'Email Notifications') {
+              setSettings({ ...settings, emailNotifications: value })
+            } else if (toggleModal.field === 'Push Notifications') {
+              setSettings({ ...settings, pushNotifications: value })
+            } else if (toggleModal.field === 'Admin Alerts') {
+              setSettings({ ...settings, adminAlerts: value })
+            }
+            alert(`✅ ${toggleModal.field} updated successfully!`)
+          }}
+        />
+      )}
     </div>
   )
 }
