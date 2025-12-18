@@ -174,6 +174,96 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }, { status: 400 })
     }
 
+    // ============================================
+    // PHASE 2: TICKET CLASS VALIDATION (SELLING POINT!)
+    // ============================================
+
+    const ticketId = formData.ticketId || formData.ticketClassId
+    const quantity = formData.quantity || 1
+
+    if (ticketId) {
+      console.log('🎫 Validating ticket class:', ticketId)
+
+      // 1. Fetch ticket class
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId }
+      })
+
+      if (!ticket) {
+        return NextResponse.json({
+          message: 'Invalid ticket class selected'
+        }, { status: 400 })
+      }
+
+      // 2. Check if ticket is active
+      if (ticket.status !== 'ACTIVE') {
+        return NextResponse.json({
+          message: 'This ticket class is not available'
+        }, { status: 400 })
+      }
+
+      // 3. CAPACITY CHECK (SELLING POINT!)
+      const available = ticket.capacity - ticket.sold
+      if (available <= 0) {
+        return NextResponse.json({
+          message: `Sorry, "${ticket.name}" tickets are sold out`
+        }, { status: 400 })
+      }
+
+      if (quantity > available) {
+        return NextResponse.json({
+          message: `Only ${available} tickets available for "${ticket.name}"`
+        }, { status: 400 })
+      }
+
+      // 4. QUANTITY LIMITS (SELLING POINT!)
+      if (ticket.minQuantity && quantity < ticket.minQuantity) {
+        return NextResponse.json({
+          message: `Minimum ${ticket.minQuantity} tickets required for "${ticket.name}"`
+        }, { status: 400 })
+      }
+
+      if (ticket.maxQuantity && quantity > ticket.maxQuantity) {
+        return NextResponse.json({
+          message: `Maximum ${ticket.maxQuantity} tickets allowed for "${ticket.name}"`
+        }, { status: 400 })
+      }
+
+      // 5. SALES PERIOD (SELLING POINT!)
+      const now = new Date()
+
+      if (ticket.salesStartAt && now < ticket.salesStartAt) {
+        return NextResponse.json({
+          message: `Ticket sales for "${ticket.name}" start on ${ticket.salesStartAt.toLocaleString()}`
+        }, { status: 400 })
+      }
+
+      if (ticket.salesEndAt && now > ticket.salesEndAt) {
+        return NextResponse.json({
+          message: `Ticket sales for "${ticket.name}" ended on ${ticket.salesEndAt.toLocaleString()}`
+        }, { status: 400 })
+      }
+
+      // 6. USER TYPE RESTRICTIONS (SELLING POINT!)
+      if (ticket.allowedUserTypes) {
+        const allowedTypes = ticket.allowedUserTypes.split(',').map(t => t.trim())
+        const userType = (session as any)?.user?.userType || 'GENERAL'
+
+        if (!allowedTypes.includes(userType)) {
+          return NextResponse.json({
+            message: `"${ticket.name}" is only available for: ${allowedTypes.join(', ')}`
+          }, { status: 400 })
+        }
+      }
+
+      console.log('✅ Ticket validation passed:', {
+        ticket: ticket.name,
+        quantity,
+        available,
+        price: ticket.priceInr
+      })
+    }
+
     // Extract payment and promo code info
     const totalPrice = formData.totalPrice || formData.priceInr || parsed.priceInr || parsed.totalPrice || 0
     const promoCode = formData.promoCode || parsed.promoCode || null

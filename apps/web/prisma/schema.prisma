@@ -369,6 +369,19 @@ model Ticket {
   capacity   Int          @default(0)
   sold       Int          @default(0)
   status     TicketStatus @default(ACTIVE)
+  
+  // Quantity Limits (SELLING POINT!)
+  minQuantity Int?        @map("min_quantity") // Minimum tickets per order
+  maxQuantity Int?        @map("max_quantity") // Maximum tickets per order
+  
+  // Sales Period (SELLING POINT!)
+  salesStartAt DateTime?  @map("sales_start_at") // When ticket sales begin
+  salesEndAt   DateTime?  @map("sales_end_at")   // When ticket sales end
+  
+  // User Type Restrictions (SELLING POINT!)
+  allowedUserTypes String? @map("allowed_user_types") // Comma-separated: MEMBER,VIP,STUDENT
+  requiresApproval Boolean @default(false) @map("requires_approval")
+  
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   // Tenant scope
