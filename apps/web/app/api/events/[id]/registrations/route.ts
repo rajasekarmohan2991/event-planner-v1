@@ -279,7 +279,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       throw new Error('Failed to create registration')
     }
 
-    const registrationId = BigInt(registration.id)
+    const registrationId = registration.id // UUID string
     const userId = (session as any)?.user?.id ? BigInt((session as any).user.id) : null
 
     // Create payment record
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           updated_at
         ) VALUES (
           ${paymentId},
-          ${registrationId},
+          ${String(registrationId)}, 
           ${eventId},
           ${userId},
           ${amountInMinor},
