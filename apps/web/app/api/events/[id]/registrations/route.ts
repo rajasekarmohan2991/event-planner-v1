@@ -530,10 +530,41 @@ EventPlanner © 2025
     return NextResponse.json(response, { status: 201 })
 
   } catch (error: any) {
-    console.error('Error creating registration:', error)
+    console.error('❌ Error creating registration:', error)
+    console.error('❌ Error name:', error?.name)
+    console.error('❌ Error message:', error?.message)
+    console.error('❌ Error code:', error?.code)
+    console.error('❌ Error stack:', error?.stack)
+
+    // More specific error messages
+    let errorMessage = 'Registration failed'
+    let errorDetails: any = {}
+
+    if (error?.code === 'P2002') {
+      errorMessage = 'Duplicate registration detected'
+      errorDetails = { field: error?.meta?.target }
+    } else if (error?.code === 'P2003') {
+      errorMessage = 'Invalid reference - event or user not found'
+      errorDetails = { field: error?.meta?.field_name }
+    } else if (error?.code === 'P2025') {
+      errorMessage = 'Record not found'
+    } else if (error?.message?.includes('payments')) {
+      errorMessage = 'Payment record creation failed'
+      errorDetails = { hint: 'Check if payments table exists' }
+    } else if (error?.message?.includes('registration_approvals')) {
+      errorMessage = 'Approval record creation failed'
+      errorDetails = { hint: 'Check if registration_approvals table exists' }
+    } else if (error?.message?.includes('promo_redemptions')) {
+      errorMessage = 'Promo redemption record creation failed'
+      errorDetails = { hint: 'Check if promo_redemptions table exists' }
+    }
+
     return NextResponse.json({
-      message: error?.message || 'Registration failed',
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: errorMessage,
+      details: errorDetails,
+      originalError: error?.message || 'Unknown error',
+      code: error?.code,
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
 }
