@@ -242,7 +242,13 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                   <option value="invitedAt">Invited</option>
                   <option value="joinedAt">Joined</option>
                 </select>
-                <button title="Sort direction" onClick={() => setSortDir(d => d === 'ASC' ? 'DESC' : 'ASC')} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">{sortDir === 'ASC' ? 'ASC' : 'DESC'}</button>
+                <button
+                  title={`Sort ${sortDir === 'ASC' ? 'ascending' : 'descending'} - Click to toggle`}
+                  onClick={() => setSortDir(d => d === 'ASC' ? 'DESC' : 'ASC')}
+                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-1"
+                >
+                  {sortDir === 'ASC' ? '↑' : '↓'}
+                </button>
               </div>
             </div>
             <div className="rounded-md border overflow-hidden">
