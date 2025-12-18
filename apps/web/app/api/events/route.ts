@@ -164,13 +164,9 @@ export async function GET(req: NextRequest) {
       console.log('✅ SUPER_ADMIN - No filtering applied')
       // No where clause for SUPER_ADMIN - they see everything
     } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
-      if (tenantId) {
-        where.tenantId = tenantId
-        console.log(`🏢 Tenant filtering: ${tenantId}`)
-      } else {
-        where.tenantId = 'non-existent'
-        console.log('⚠️ No tenantId - blocking access')
-      }
+      // Admin roles can see all events (platform-level + their tenant's)
+      console.log(`✅ ${userRole} - Showing all events (no tenant filtering)`)
+      // No tenant filtering - admins can see and manage all events
     } else {
       if (isMyEvents && userId) {
         const registrations = await prisma.registration.findMany({
