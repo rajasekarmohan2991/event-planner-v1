@@ -135,9 +135,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Check permission for viewing events (optional)
-  // const permissionError = await checkPermissionInRoute('events.view')
-  // if (permissionError) return permissionError
+  const startTime = Date.now()
 
   const session = await getServerSession(authOptions as any) as any
   const url = new URL(req.url)
@@ -148,116 +146,98 @@ export async function GET(req: NextRequest) {
   const sortBy = url.searchParams.get('sortBy') || 'startsAt'
   const sortDir = url.searchParams.get('sortDir') || 'desc'
   const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = parseInt(url.searchParams.get('limit') || '10')
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100) // Cap at 100
   const skip = (page - 1) * limit
 
   try {
     const userRole = (session as any)?.user?.role as string | undefined
     const userId = (session as any)?.user?.id
-    // effective tenant for admin views
     const tenantId = (session as any)?.user?.currentTenantId
 
-    console.log(`🔍 GET /api/events (Prisma) - User: ${session?.user?.email}, Role: ${userRole}, Tenant: ${tenantId}`)
+    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, Role: ${userRole}`)
 
     const where: any = {}
 
     // 1. Role-based filtering
     if (userRole === 'SUPER_ADMIN') {
-      // Super Admin sees ALL events.
-      console.log('✅ SUPER_ADMIN detected - No tenant filtering applied')
+      console.log('✅ SUPER_ADMIN - No filtering')
     } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
-      // Company/Tenant Admin sees ONLY their company's events
       if (tenantId) {
         where.tenantId = tenantId
-        console.log(`🏢 Tenant Admin - Filtering by tenantId: ${tenantId}`)
-        // If they want "my events", it just means their tenant's events in this context
+        console.log(`🏢 Tenant filtering: ${tenantId}`)
       } else {
-        where.tenantId = 'non-existent-tenant' // blocked
-        console.log('⚠️ Tenant Admin without tenantId - Blocking access')
+        where.tenantId = 'non-existent'
       }
     } else {
-      // Regular User / Public / Staff
-      // Should see Public events
       if (isMyEvents && userId) {
-        // Since 'createdBy' doesn't exist on Event model, we cannot easy filter by creator.
-        // If 'my events' means 'events I am attending':
         const registrations = await prisma.registration.findMany({
           where: { userId: BigInt(userId) },
           select: { eventId: true }
         })
-        const registeredEventIds = registrations.map(r => r.eventId)
-        where.id = { in: registeredEventIds }
-        console.log(`👤 User "My Events" - ${registeredEventIds.length} registered events`)
+        where.id = { in: registrations.map(r => r.eventId) }
       } else {
-        // Public/Discovery mode
         where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
-        console.log('🌍 Public mode - Filtering by published statuses')
       }
     }
 
-    // 2. Apply Filters
+    // 2. Apply filters
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { city: { contains: search, mode: 'insensitive' } },
-        { venue: { contains: search, mode: 'insensitive' } }
+        { city: { contains: search, mode: 'insensitive' } }
       ]
-      console.log(`🔎 Search filter applied: "${search}"`)
     }
+    if (statusParam && statusParam !== 'ALL') where.status = statusParam
+    if (modeParam && modeParam !== 'ALL') where.eventMode = modeParam
 
-    if (statusParam && statusParam !== 'ALL') {
-      where.status = statusParam
-      console.log(`📊 Status filter: ${statusParam}`)
-    }
-
-    if (modeParam && modeParam !== 'ALL') {
-      where.eventMode = modeParam
-      console.log(`🎭 Mode filter: ${modeParam}`)
-    }
-
-    console.log('📋 Final where clause:', JSON.stringify(where, null, 2))
-
-    // 3. Execute Query
+    // 3. Execute optimized query with minimal fields
     const [events, total] = await Promise.all([
       prisma.event.findMany({
         where,
-        orderBy: {
-          [sortBy]: sortDir.toLowerCase() === 'asc' ? 'asc' : 'desc'
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          city: true,
+          venue: true,
+          address: true,
+          bannerUrl: true,
+          priceInr: true,
+          expectedAttendees: true,
+          category: true,
+          eventMode: true
         },
+        orderBy: { [sortBy]: sortDir.toLowerCase() === 'asc' ? 'asc' : 'desc' },
         skip,
-        take: limit,
+        take: limit
       }),
       prisma.event.count({ where })
     ])
 
-    console.log(`📊 Query results: Found ${events.length} events (Total: ${total})`)
-
-    // 4. Get Registration Counts
+    // 4. Get registration counts in batch
     const eventIds = events.map(e => e.id)
     let registrationCounts: Record<string, number> = {}
 
     if (eventIds.length > 0) {
       const counts = await prisma.registration.groupBy({
         by: ['eventId'],
-        where: {
-          eventId: { in: eventIds }
-        },
-        _count: {
-          eventId: true
-        }
+        where: { eventId: { in: eventIds } },
+        _count: { eventId: true }
       })
       counts.forEach(c => {
         registrationCounts[String(c.eventId)] = c._count.eventId
       })
     }
 
-    // 5. Transform for Frontend
+    // 5. Format response
     const formattedEvents = events.map(event => {
-      // Calculate derived status if needed
       const now = new Date()
       let derivedStatus = event.status
-      // Logic for status derivation
+
       if (['PUBLISHED', 'UPCOMING'].includes(event.status)) {
         if (now > event.endsAt) derivedStatus = 'COMPLETED'
         else if (now >= event.startsAt && now <= event.endsAt) derivedStatus = 'LIVE'
@@ -265,15 +245,19 @@ export async function GET(req: NextRequest) {
 
       return {
         ...event,
-        id: String(event.id), // Ensure ID is string for frontend
+        id: String(event.id),
         status: derivedStatus,
         startDate: event.startsAt,
         endDate: event.endsAt,
         location: event.city || event.venue,
         bannerImage: event.bannerUrl,
-        registrationCount: registrationCounts[String(event.id)] || 0
+        registrationCount: registrationCounts[String(event.id)] || 0,
+        capacity: event.expectedAttendees || 0
       }
     })
+
+    const duration = Date.now() - startTime
+    console.log(`⚡ Query completed in ${duration}ms - ${events.length} events`)
 
     return NextResponse.json({
       content: formattedEvents,
@@ -281,11 +265,15 @@ export async function GET(req: NextRequest) {
       totalElements: total,
       totalPages: Math.ceil(total / limit),
       number: page - 1,
-      size: limit
+      size: limit,
+      _performance: {
+        duration,
+        cached: false
+      }
     })
 
   } catch (e: any) {
-    console.error('❌ Prisma Events API error:', e)
-    return NextResponse.json({ message: e?.message || 'List failed' }, { status: 500 })
+    console.error('❌ Events API error:', e)
+    return NextResponse.json({ message: e?.message || 'Failed' }, { status: 500 })
   }
 }
