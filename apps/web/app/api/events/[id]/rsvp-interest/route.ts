@@ -8,49 +8,54 @@ export const dynamic = 'force-dynamic'
 // GET /api/events/[id]/rsvp-interest - Get RSVP interest count and user status
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const eventId = BigInt(params.id)
+    const eventId = String(params.id)
     const session = await getServerSession(authOptions as any)
 
-    // Get total counts by response type
-    const counts = await prisma.$queryRaw<any[]>`
-      SELECT 
-        response_type,
-        COUNT(*)::int as count
-      FROM rsvp_interests
-      WHERE event_id = ${eventId}
-      GROUP BY response_type
-    `
+    // Get total counts by status
+    const counts = await prisma.rSVP.groupBy({
+      by: ['status'],
+      where: { eventId: eventId },
+      _count: { status: true }
+    })
 
     const summary = {
       going: 0,
-      maybe: 0,
+      maybe: 0, // Maps to INTERESTED
       notGoing: 0,
       pending: 0,
       total: 0
     }
 
-    counts.forEach((row: any) => {
-      const type = row.response_type?.toLowerCase()
-      if (type === 'going') summary.going = row.count
-      else if (type === 'maybe') summary.maybe = row.count
-      else if (type === 'not_going') summary.notGoing = row.count
-      else if (type === 'pending') summary.pending = row.count
+    counts.forEach((row) => {
+      const count = row._count.status
+      const status = row.status
+
+      if (status === 'GOING') summary.going = count
+      else if (status === 'INTERESTED') summary.maybe = count
+      else if (status === 'NOT_GOING') summary.notGoing = count
+      else if (status === 'YET_TO_RESPOND') summary.pending = count
     })
 
     summary.total = summary.going + summary.maybe + summary.notGoing + summary.pending
 
     // Check if current user has responded
     let userResponse = null
-    if (session && (session as any).user) {
-      const email = ((session as any).user as any).email
-      const result = await prisma.$queryRaw<any[]>`
-        SELECT response_type, created_at
-        FROM rsvp_interests
-        WHERE event_id = ${eventId} AND email = ${email}
-        LIMIT 1
-      `
-      if (result.length > 0) {
-        userResponse = result[0].response_type
+    if (session && (session as any).user && (session as any).user.id) {
+      const userId = BigInt((session as any).user.id)
+      const userRsvp = await prisma.rSVP.findUnique({
+        where: {
+          eventId_userId: {
+            eventId: eventId,
+            userId: userId
+          }
+        }
+      })
+
+      if (userRsvp) {
+        // Map back to frontend expected values
+        if (userRsvp.status === 'GOING') userResponse = 'GOING'
+        else if (userRsvp.status === 'INTERESTED') userResponse = 'MAYBE'
+        else if (userRsvp.status === 'NOT_GOING') userResponse = 'NOT_GOING'
       }
     }
 
@@ -69,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = BigInt(params.id)
+    const eventId = String(params.id) // RSVP uses String eventId
     const body = await req.json()
     const { responseType = 'GOING' } = body
 
@@ -78,51 +83,72 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
     const userId = user.id ? BigInt(user.id) : null
 
-    // Validate response type
-    if (!['GOING', 'MAYBE', 'NOT_GOING', 'PENDING'].includes(responseType)) {
+    // Validate response type (frontend sends MAYBE, map to schema INTERESTED)
+    const validMap: Record<string, string> = {
+      'GOING': 'GOING',
+      'MAYBE': 'INTERESTED',
+      'NOT_GOING': 'NOT_GOING',
+      'PENDING': 'YET_TO_RESPOND'
+    }
+    const status = validMap[responseType]
+
+    if (!status) {
       return NextResponse.json({ error: 'Invalid response type' }, { status: 400 })
     }
 
-    // Insert or update RSVP interest
-    await prisma.$executeRaw`
-      INSERT INTO rsvp_interests (event_id, user_id, name, email, response_type, status, created_at, updated_at)
-      VALUES (${eventId}, ${userId}, ${name}, ${email}, ${responseType}, 'NOT_REGISTERED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      ON CONFLICT (event_id, email)
-      DO UPDATE SET 
-        response_type = ${responseType},
-        updated_at = CURRENT_TIMESTAMP
-    `
-
-    console.log(`✅ RSVP Interest recorded: ${email} - ${responseType} for event ${eventId}`)
-
-    // Also mirror this into RSVP guests so organizers can see the interest in "RSVP Management"
-    try {
-      const statusMap: Record<string, string> = {
-        'GOING': 'GOING',
-        'MAYBE': 'INTERESTED',
-        'NOT_GOING': 'NOT_GOING',
-        'PENDING': 'YET_TO_RESPOND'
+    // 1. Upsert into RSVP table (for logged-in user tracking)
+    // Try to find existing RSVP 
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: eventId,
+          userId: userId as bigint
+        }
       }
-      const guestStatus = statusMap[String(responseType)] || 'YET_TO_RESPOND'
+    })
 
-      // Best-effort upsert using Prisma model if available
-      const existing: any = await (prisma as any).rsvpGuest.findFirst({
-        where: { eventId: String(eventId), email }
-      }).catch(() => null)
-
-      if (existing?.id) {
-        await (prisma as any).rsvpGuest.update({
-          where: { id: existing.id },
-          data: { name, status: guestStatus }
-        }).catch(()=>{})
-      } else {
-        await (prisma as any).rsvpGuest.create({
-          data: { eventId: String(eventId), name, email, status: guestStatus }
-        }).catch(()=>{})
-      }
-    } catch (mirrorErr) {
-      console.warn('RSVP interest mirrored to rsvp_guest skipped:', mirrorErr)
+    if (existingRsvp) {
+      await prisma.rSVP.update({
+        where: { id: existingRsvp.id },
+        data: { status: status as any }
+      })
+    } else {
+      await prisma.rSVP.create({
+        data: {
+          eventId: eventId,
+          userId: userId,
+          email: email,
+          status: status as any
+        }
+      })
     }
+
+    // 2. Mirror to RsvpGuest table (for admin list view)
+    // Find guest by email and event
+    const existingGuest = await prisma.rsvpGuest.findFirst({
+      where: {
+        eventId: eventId,
+        email: email
+      }
+    })
+
+    if (existingGuest) {
+      await prisma.rsvpGuest.update({
+        where: { id: existingGuest.id },
+        data: { status: status as any, name: name }
+      })
+    } else {
+      await prisma.rsvpGuest.create({
+        data: {
+          eventId: eventId,
+          name: name,
+          email: email,
+          status: status as any
+        }
+      })
+    }
+
+    console.log(`✅ RSVP Interest recorded: ${email} - ${status} for event ${eventId}`)
 
     return NextResponse.json({
       success: true,
