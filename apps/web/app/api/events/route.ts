@@ -164,15 +164,16 @@ export async function GET(req: NextRequest) {
     // 1. Role-based filtering
     if (userRole === 'SUPER_ADMIN') {
       // Super Admin sees ALL events.
-      // Optional: if a specific tenant is requested via header/param, we could filter,
-      // but standard Super Admin view is usually global.
+      console.log('✅ SUPER_ADMIN detected - No tenant filtering applied')
     } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
       // Company/Tenant Admin sees ONLY their company's events
       if (tenantId) {
         where.tenantId = tenantId
+        console.log(`🏢 Tenant Admin - Filtering by tenantId: ${tenantId}`)
         // If they want "my events", it just means their tenant's events in this context
       } else {
         where.tenantId = 'non-existent-tenant' // blocked
+        console.log('⚠️ Tenant Admin without tenantId - Blocking access')
       }
     } else {
       // Regular User / Public / Staff
@@ -186,9 +187,11 @@ export async function GET(req: NextRequest) {
         })
         const registeredEventIds = registrations.map(r => r.eventId)
         where.id = { in: registeredEventIds }
+        console.log(`👤 User "My Events" - ${registeredEventIds.length} registered events`)
       } else {
         // Public/Discovery mode
         where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
+        console.log('🌍 Public mode - Filtering by published statuses')
       }
     }
 
@@ -200,15 +203,20 @@ export async function GET(req: NextRequest) {
         { city: { contains: search, mode: 'insensitive' } },
         { venue: { contains: search, mode: 'insensitive' } }
       ]
+      console.log(`🔎 Search filter applied: "${search}"`)
     }
 
     if (statusParam && statusParam !== 'ALL') {
       where.status = statusParam
+      console.log(`📊 Status filter: ${statusParam}`)
     }
 
     if (modeParam && modeParam !== 'ALL') {
       where.eventMode = modeParam
+      console.log(`🎭 Mode filter: ${modeParam}`)
     }
+
+    console.log('📋 Final where clause:', JSON.stringify(where, null, 2))
 
     // 3. Execute Query
     const [events, total] = await Promise.all([
@@ -222,6 +230,8 @@ export async function GET(req: NextRequest) {
       }),
       prisma.event.count({ where })
     ])
+
+    console.log(`📊 Query results: Found ${events.length} events (Total: ${total})`)
 
     // 4. Get Registration Counts
     const eventIds = events.map(e => e.id)

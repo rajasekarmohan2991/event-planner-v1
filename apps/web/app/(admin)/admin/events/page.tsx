@@ -30,13 +30,29 @@ export default function EventsPage() {
   const loadEvents = async () => {
     try {
       setLoading(true)
+      console.log('🔄 Fetching events from /api/events...')
+
       const res = await fetch('/api/events', { cache: 'no-store' })
+
+      console.log('📡 API Response Status:', res.status, res.statusText)
+
       if (res.ok) {
         const data = await res.json()
+        console.log('📦 API Response Data:', data)
+        console.log(`✅ Loaded ${data.events?.length || 0} events`)
+
         setEvents(data.events || [])
+
+        if (!data.events || data.events.length === 0) {
+          console.warn('⚠️  No events returned from API')
+          console.warn('💡 Check server logs for role/permission issues')
+        }
+      } else {
+        const errorText = await res.text()
+        console.error('❌ API Error Response:', errorText)
       }
     } catch (error) {
-      console.error('Error loading events:', error)
+      console.error('❌ Error loading events:', error)
     } finally {
       setLoading(false)
     }
@@ -125,8 +141,8 @@ export default function EventsPage() {
             key={tab}
             onClick={() => setFilter(tab)}
             className={`px-4 py-2 font-medium capitalize ${filter === tab
-                ? 'border-b-2 border-indigo-600 text-indigo-600'
-                : 'text-gray-600 hover:text-gray-900'
+              ? 'border-b-2 border-indigo-600 text-indigo-600'
+              : 'text-gray-600 hover:text-gray-900'
               }`}
           >
             {tab}
@@ -180,9 +196,9 @@ export default function EventsPage() {
                     {event.name}
                   </h3>
                   <span className={`ml-2 px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700' :
-                      event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                        event.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                          'bg-yellow-100 text-yellow-700'
+                    event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                      event.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                        'bg-yellow-100 text-yellow-700'
                     }`}>
                     {event.status}
                   </span>
