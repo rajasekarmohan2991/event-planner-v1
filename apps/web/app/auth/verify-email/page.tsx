@@ -33,6 +33,11 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
     const result = await verifyEmailToken(token, email, name)
 
     if (!result.success) {
+      // Special handling: if verifying an already-verified user, treat it as success
+      if (result.message === 'Already verified') {
+        return redirect('/auth/login?verified=1')
+      }
+
       return (
         <VerifyEmailClient
           status="error"

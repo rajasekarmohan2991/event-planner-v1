@@ -41,12 +41,12 @@ export default function BrowseEventsPage() {
   const [selectedCity, setSelectedCity] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [priceFilter, setPriceFilter] = useState('all')
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
   const [nearbyCity, setNearbyCity] = useState('')
   const [loadingLocation, setLoadingLocation] = useState(false)
   const [popularCities, setPopularCities] = useState<string[]>([])
-  const [allCities, setAllCities] = useState<{city: string, country: string}[]>([])
-  
+  const [allCities, setAllCities] = useState<{ city: string, country: string }[]>([])
+
   // Category cards - Simple icon style (matching Image 1)
   const categoryCards: CategoryCard[] = [
     {
@@ -62,7 +62,7 @@ export default function BrowseEventsPage() {
     {
       name: "Art",
       image: "🎨",
-      color: "from-purple-500 to-pink-600" 
+      color: "from-purple-500 to-pink-600"
     },
     {
       name: "Music",
@@ -71,7 +71,7 @@ export default function BrowseEventsPage() {
     },
     {
       name: "Food",
-      image: "🍔", 
+      image: "🍔",
       color: "from-orange-500 to-red-600"
     },
     {
@@ -105,7 +105,7 @@ export default function BrowseEventsPage() {
   useEffect(() => {
     filterEvents()
   }, [events, searchQuery, selectedCity, selectedCategory, priceFilter])
-  
+
   // Extract all unique categories from events
   useEffect(() => {
     if (events.length > 0) {
@@ -114,7 +114,7 @@ export default function BrowseEventsPage() {
       setPopularCities(cities)
     }
   }, [events])
-  
+
   // Get user's location
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -154,7 +154,7 @@ export default function BrowseEventsPage() {
       )
     }
   }
-  
+
   // Load global cities dataset
   const loadWorldCities = async () => {
     try {
@@ -197,7 +197,7 @@ export default function BrowseEventsPage() {
       setLoading(true)
       // Use public endpoint to allow non-admin users to browse events
       const res = await fetch('/api/events/public?limit=50', { cache: 'no-store' })
-      
+
       if (res.ok) {
         const data = await res.json()
         // Public endpoint returns an array directly
@@ -232,7 +232,7 @@ export default function BrowseEventsPage() {
 
     // Category filter - match either exact or partial category name
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(event => 
+      filtered = filtered.filter(event =>
         event.category === selectedCategory ||
         event.category?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
         selectedCategory.toLowerCase().includes(event.category?.toLowerCase() || '')
@@ -298,7 +298,7 @@ export default function BrowseEventsPage() {
                   <MapPin className="w-4 h-4 inline mr-1" /> City
                 </label>
                 {nearbyCity && (
-                  <button 
+                  <button
                     onClick={() => setSelectedCity(nearbyCity)}
                     className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                   >
@@ -312,12 +312,12 @@ export default function BrowseEventsPage() {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
               >
                 <option value="all">All Cities</option>
-                
+
                 {/* Nearby city (if available) */}
                 {nearbyCity && (
                   <option value={nearbyCity}>{nearbyCity} (Near Me)</option>
                 )}
-                
+
                 {/* Popular cities from events */}
                 {popularCities.length > 0 && (
                   <optgroup label="Popular Cities">
@@ -326,11 +326,11 @@ export default function BrowseEventsPage() {
                     ))}
                   </optgroup>
                 )}
-                
+
                 {/* World cities */}
                 {allCities.length > 0 && (
                   <optgroup label="Worldwide">
-                    {allCities.map(({city, country}) => (
+                    {allCities.map(({ city, country }) => (
                       <option key={`${city}-${country}`} value={city}>{city}, {country}</option>
                     ))}
                   </optgroup>
@@ -365,7 +365,7 @@ export default function BrowseEventsPage() {
               <Compass className="w-4 h-4" />
               {loadingLocation ? 'Detecting location...' : userLocation ? 'Refresh location' : 'Use my location'}
             </button>
-            
+
             {selectedCity !== 'all' && selectedCity !== nearbyCity && (
               <button
                 onClick={() => setSelectedCity('all')}
@@ -392,27 +392,24 @@ export default function BrowseEventsPage() {
               <div
                 key={index}
                 onClick={() => setSelectedCategory(card.name)}
-                className={`flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 ${
-                  selectedCategory === card.name
+                className={`flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 ${selectedCategory === card.name
                     ? 'scale-110'
                     : 'hover:scale-105 opacity-70 hover:opacity-100'
-                }`}
+                  }`}
               >
                 {/* Icon Circle */}
-                <div className={`w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center text-3xl shadow-md ${
-                  selectedCategory === card.name
+                <div className={`w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center text-3xl shadow-md ${selectedCategory === card.name
                     ? 'border-indigo-500 shadow-lg'
                     : 'border-gray-200'
-                }`}>
+                  }`}>
                   {card.image}
                 </div>
-                
+
                 {/* Category Name */}
-                <span className={`text-sm font-medium text-center max-w-[100px] leading-tight ${
-                  selectedCategory === card.name
+                <span className={`text-sm font-medium text-center max-w-[100px] leading-tight ${selectedCategory === card.name
                     ? 'text-indigo-600 font-semibold'
                     : 'text-gray-700'
-                }`}>
+                  }`}>
                   {card.name}
                 </span>
               </div>
@@ -476,22 +473,22 @@ export default function BrowseEventsPage() {
                   <h3 className="text-xl font-bold text-gray-900 mb-4 line-clamp-2">
                     {event.name}
                   </h3>
-                  
+
                   {/* Event Details in a clean layout with icons */}
                   <div className="flex flex-col space-y-3 mb-4">
                     {/* Date */}
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-gray-500" />
                       <span className="text-gray-700">
-                        {new Date(event.startsAt).toLocaleDateString('en-IN', { 
+                        {new Date(event.startsAt).toLocaleDateString('en-IN', {
                           weekday: 'short',
-                          day: 'numeric', 
-                          month: 'short', 
+                          day: 'numeric',
+                          month: 'short',
                           year: 'numeric'
                         })}
                       </span>
                     </div>
-                    
+
                     {/* Time */}
                     <div className="flex items-center gap-2">
                       <Clock className="w-5 h-5 text-gray-500" />
@@ -503,7 +500,7 @@ export default function BrowseEventsPage() {
                         })}
                       </span>
                     </div>
-                    
+
                     {/* Duration - Calculate from start/end time */}
                     <div className="flex items-center gap-2">
                       <Clock className="w-5 h-5 text-gray-500" />
@@ -511,32 +508,32 @@ export default function BrowseEventsPage() {
                         {Math.round((new Date(event.endsAt).getTime() - new Date(event.startsAt).getTime()) / (1000 * 60))} minutes
                       </span>
                     </div>
-                    
+
                     {/* Age Limit */}
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-gray-500" />
                       <span className="text-gray-700">Age Limit - All ages</span>
                     </div>
-                    
+
                     {/* Language */}
                     <div className="flex items-center gap-2">
                       <span className="w-5 h-5 flex items-center justify-center text-gray-500">🗣️</span>
                       <span className="text-gray-700">English</span>
                     </div>
-                    
+
                     {/* Category */}
                     <div className="flex items-center gap-2">
                       <span className="w-5 h-5 flex items-center justify-center text-gray-500">🎭</span>
                       <span className="text-gray-700">{event.category}</span>
                     </div>
-                    
+
                     {/* Location */}
                     <div className="flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-gray-500" />
                       <span className="text-gray-700">{event.venue}: {event.city}</span>
                     </div>
                   </div>
-                  
+
                   {/* Alert Message */}
                   <div className="bg-yellow-50 p-3 rounded-lg mb-4">
                     <div className="flex items-center gap-2">
@@ -544,7 +541,7 @@ export default function BrowseEventsPage() {
                       <span className="text-sm text-yellow-800">Bookings are filling fast for {event.city}</span>
                     </div>
                   </div>
-                  
+
                   {/* Price and Buttons */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -557,7 +554,7 @@ export default function BrowseEventsPage() {
                         </div>
                         <p className="text-orange-500 text-sm font-medium">Filling Fast</p>
                       </div>
-                      
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -568,11 +565,16 @@ export default function BrowseEventsPage() {
                         Register
                       </button>
                     </div>
-                    
+
                     {/* I'm Interested Button */}
                     <button
                       onClick={async (e) => {
                         e.stopPropagation()
+                        const btn = e.currentTarget
+                        btn.disabled = true
+                        const originalText = btn.innerHTML
+                        btn.innerHTML = 'Saving...'
+
                         try {
                           const res = await fetch(`/api/events/${event.id}/rsvp-interest`, {
                             method: 'POST',
@@ -580,17 +582,33 @@ export default function BrowseEventsPage() {
                             // 'I'm Interested' maps to MAYBE for RSVP interests
                             body: JSON.stringify({ responseType: 'MAYBE' })
                           })
+
+                          if (res.status === 401) {
+                            window.location.href = `/auth/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`
+                            return
+                          }
+
                           if (res.ok) {
                             toast({
                               title: "Interest Recorded!",
                               description: "We'll keep you updated about this event.",
                             })
+                            btn.innerHTML = '💙 Interested'
+                          } else {
+                            throw new Error('Failed')
                           }
                         } catch (error) {
                           console.error('Error recording interest:', error)
+                          toast({
+                            title: "Action Failed",
+                            description: "Could not save interest. Please try again.",
+                            variant: "destructive"
+                          })
+                          btn.innerHTML = originalText
+                          btn.disabled = false
                         }
                       }}
-                      className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg border border-blue-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       💙 I'm Interested
                     </button>
