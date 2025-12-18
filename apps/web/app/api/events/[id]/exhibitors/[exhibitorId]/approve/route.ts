@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
 
   try {
     const body = await req.json().catch(() => ({}))
-    const finalAmount = body.finalAmount || undefined
+    const userId = (session as any)?.user?.id
 
     // Load exhibitor with booths
     const exhibitor = await prisma.exhibitor.findUnique({
@@ -27,52 +27,131 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       return NextResponse.json({ message: 'Exhibitor not found' }, { status: 404 })
     }
 
-    // Basic guard: ensure exhibitor belongs to this event
+    // Ensure exhibitor belongs to this event
     if (exhibitor.eventId && params.id && String(exhibitor.eventId) !== String(params.id)) {
       return NextResponse.json({ message: 'Exhibitor does not belong to this event' }, { status: 400 })
     }
 
-    // Find first RESERVED booth
-    const reservedBooth = exhibitor.booths.find(b => b.status === 'RESERVED')
-    const assignedBooth = exhibitor.booths.find(b => b.status === 'ASSIGNED')
-
-    if (assignedBooth) {
-      return NextResponse.json({ message: 'Exhibitor already approved', boothId: assignedBooth.id })
+    // Check if email is confirmed
+    if (!exhibitor.emailConfirmed) {
+      return NextResponse.json({ message: 'Exhibitor email must be confirmed first' }, { status: 400 })
     }
 
-    if (!reservedBooth) {
-      return NextResponse.json({ message: 'No reserved booth found for this exhibitor' }, { status: 409 })
+    // Check if already approved
+    if (exhibitor.adminApproved) {
+      return NextResponse.json({ message: 'Exhibitor already approved' })
     }
 
-    // Approve: set booth to ASSIGNED
-    const updatedBooth = await prisma.booth.update({
-      where: { id: reservedBooth.id },
-      data: { status: 'ASSIGNED', ...(typeof finalAmount === 'number' ? { priceInr: Math.round(finalAmount) } : {}) }
+    // Update exhibitor with approval
+    const updated = await prisma.exhibitor.update({
+      where: { id: params.exhibitorId },
+      data: {
+        adminApproved: true,
+        approvedBy: userId,
+        approvedAt: new Date(),
+        status: 'PAYMENT_PENDING'
+      }
     })
 
-    const to = exhibitor.contactEmail || ''
-    if (to) {
-      const subject = 'Exhibitor Approval - Booth Assigned'
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color:#16a34a;">Your Exhibitor Registration is Approved</h2>
-          <p>Dear ${exhibitor.contactName || exhibitor.name || 'Exhibitor'},</p>
-          <p>Your registration has been approved and a booth has been assigned.</p>
-          <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;margin:16px 0;">
-            <p style="margin:0;"><strong>Booth Number:</strong> ${updatedBooth.boothNumber || 'TBD'}</p>
-            <p style="margin:0;"><strong>Status:</strong> ${updatedBooth.status}</p>
-            <p style="margin:0;"><strong>Price (INR):</strong> ${updatedBooth.priceInr ?? 0}</p>
-          </div>
-          <p>Our team will contact you with further instructions.</p>
-          <p style="color:#64748b;font-size:12px;">This is an automated message from Event Planner.</p>
-        </div>
-      `
-      await sendEmail({ to, subject, html })
+    // Update booth status
+    const reservedBooth = exhibitor.booths.find(b => b.status === 'RESERVED')
+    if (reservedBooth) {
+      await prisma.booth.update({
+        where: { id: reservedBooth.id },
+        data: { status: 'ASSIGNED' }
+      })
     }
 
-    return NextResponse.json({ 
-      message: 'Exhibitor approved and booth assigned',
-      booth: { id: updatedBooth.id, status: updatedBooth.status, priceInr: updatedBooth.priceInr }
+    // Fetch event details
+    const event = await prisma.event.findUnique({
+      where: { id: BigInt(params.id) },
+      select: { name: true }
+    })
+    const eventName = event?.name || `Event #${params.id}`
+
+    // Send approval email with payment instructions
+    const to = exhibitor.contactEmail || ''
+    if (to) {
+      sendEmail({
+        to,
+        subject: `Exhibitor Registration Approved - ${eventName}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+              .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
+              .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #10b981; }
+              .payment-box { background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 5px; margin: 20px 0; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>✅ Registration Approved!</h1>
+                <p>Exhibitor Registration for ${eventName}</p>
+              </div>
+              <div class="content">
+                <p>Hi <strong>${exhibitor.contactName}</strong>,</p>
+                
+                <div class="success">
+                  <strong>✓ Your exhibitor registration has been approved!</strong>
+                </div>
+                
+                <div class="info">
+                  <strong>Company:</strong> ${exhibitor.name}<br>
+                  <strong>Booth Size:</strong> ${exhibitor.boothOption}<br>
+                  <strong>Status:</strong> Payment Pending
+                </div>
+                
+                <div class="payment-box">
+                  <h3 style="margin-top: 0;">💳 Payment Required</h3>
+                  <p><strong>Amount Due:</strong> ₹${(exhibitor.paymentAmount || 0).toLocaleString()}</p>
+                  <p>Please complete your payment to confirm your booth allocation.</p>
+                  <p><strong>Payment Methods:</strong></p>
+                  <ul>
+                    <li>Bank Transfer</li>
+                    <li>Credit/Debit Card</li>
+                    <li>UPI</li>
+                  </ul>
+                  <p style="font-size: 12px; color: #666;">
+                    Payment instructions will be sent separately or contact the event organizer.
+                  </p>
+                </div>
+                
+                <div class="info">
+                  <strong>Next Steps:</strong><br>
+                  1. Complete payment<br>
+                  2. Booth will be allocated<br>
+                  3. Receive QR code for event access
+                </div>
+                
+                <div class="footer">
+                  <p>EventPlanner © 2025 | All rights reserved</p>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      }).catch(err => console.error('Failed to send approval email:', err))
+    }
+
+    console.log(`Exhibitor approved: ${exhibitor.id} by user: ${userId}`)
+
+    return NextResponse.json({
+      message: 'Exhibitor approved successfully. Payment instructions sent.',
+      exhibitor: {
+        id: updated.id,
+        company: updated.name,
+        status: updated.status,
+        approvedAt: updated.approvedAt
+      }
     })
   } catch (e: any) {
     console.error('Approval error:', e)
