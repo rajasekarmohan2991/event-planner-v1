@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadToSupabase, uploadMultipleToSupabase } from '@/lib/supabase-storage'
 
-export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
 
 /**
  * Upload Image to Supabase Storage
