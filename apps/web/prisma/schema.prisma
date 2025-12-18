@@ -709,6 +709,8 @@ model EventSession {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  speakers    SessionSpeaker[]
+
   @@map("sessions")
 }
 
@@ -1227,11 +1229,12 @@ model Speaker {
 }
 
 model SessionSpeaker {
-  id        BigInt    @id @default(autoincrement())
-  sessionId BigInt    @map("session_id")
-  speakerId BigInt    @map("speaker_id")
+  id        BigInt       @id @default(autoincrement())
+  sessionId BigInt       @map("session_id")
+  speakerId BigInt       @map("speaker_id")
   
-  speaker   Speaker   @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+  session   EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  speaker   Speaker      @relation(fields: [speakerId], references: [id], onDelete: Cascade)
   
   @@unique([sessionId, speakerId])
   @@map("session_speakers")
