@@ -106,53 +106,53 @@ export default function CompanyDashboardPage() {
 
       {/* Stats Cards - Enterprise Level */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Total Events - Purple Gradient */}
-        <div className="bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 dark:from-purple-600 dark:via-purple-700 dark:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 group">
+        {/* Total Events - Soft Lavender */}
+        <div className="bg-gradient-to-br from-purple-50 via-purple-100 to-indigo-100 dark:from-purple-100 dark:via-purple-200 dark:to-indigo-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-purple-200/50">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-5 w-5 text-white/90" />
-                <p className="text-sm font-medium text-white/90">Total Events</p>
+                <Calendar className="h-5 w-5 text-purple-600" />
+                <p className="text-sm font-medium text-purple-700">Total Events</p>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-1">{dashboard.stats.totalEvents}</h3>
-              <p className="text-sm text-white/80">All events created</p>
+              <h3 className="text-4xl font-bold text-purple-900 mb-1">{dashboard.stats.totalEvents}</h3>
+              <p className="text-sm text-purple-600">All events created</p>
             </div>
-            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg group-hover:bg-white/20 transition-all">
-              <Calendar className="h-8 w-8 text-white" />
+            <div className="p-4 bg-purple-200/30 rounded-lg group-hover:bg-purple-200/50 transition-all">
+              <Calendar className="h-8 w-8 text-purple-600" />
             </div>
           </div>
         </div>
 
-        {/* Team Members - Teal Gradient */}
-        <div className="bg-gradient-to-br from-teal-500 via-emerald-500 to-green-600 dark:from-teal-600 dark:via-emerald-600 dark:to-green-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 group">
+        {/* Team Members - Soft Mint */}
+        <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 dark:from-emerald-100 dark:via-teal-100 dark:to-green-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-emerald-200/50">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-white/90" />
-                <p className="text-sm font-medium text-white/90">Team Members</p>
+                <Users className="h-5 w-5 text-emerald-600" />
+                <p className="text-sm font-medium text-emerald-700">Team Members</p>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-1">{dashboard.stats.totalMembers}</h3>
-              <p className="text-sm text-white/80">Active team size</p>
+              <h3 className="text-4xl font-bold text-emerald-900 mb-1">{dashboard.stats.totalMembers}</h3>
+              <p className="text-sm text-emerald-600">Active team size</p>
             </div>
-            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg group-hover:bg-white/20 transition-all">
-              <Users className="h-8 w-8 text-white" />
+            <div className="p-4 bg-emerald-200/30 rounded-lg group-hover:bg-emerald-200/50 transition-all">
+              <Users className="h-8 w-8 text-emerald-600" />
             </div>
           </div>
         </div>
 
-        {/* Total Registrations - Blue Gradient */}
-        <div className="bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 dark:from-blue-600 dark:via-cyan-600 dark:to-blue-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 group">
+        {/* Total Registrations - Soft Sky Blue */}
+        <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 dark:from-blue-100 dark:via-sky-100 dark:to-cyan-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-blue-200/50">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Settings className="h-5 w-5 text-white/90" />
-                <p className="text-sm font-medium text-white/90">Total Registrations</p>
+                <Settings className="h-5 w-5 text-blue-600" />
+                <p className="text-sm font-medium text-blue-700">Total Registrations</p>
               </div>
-              <h3 className="text-4xl font-bold text-white mb-1">{dashboard.stats.totalRegistrations}</h3>
-              <p className="text-sm text-white/80">All registrations</p>
+              <h3 className="text-4xl font-bold text-blue-900 mb-1">{dashboard.stats.totalRegistrations}</h3>
+              <p className="text-sm text-blue-600">All registrations</p>
             </div>
-            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg group-hover:bg-white/20 transition-all">
-              <Settings className="h-8 w-8 text-white" />
+            <div className="p-4 bg-blue-200/30 rounded-lg group-hover:bg-blue-200/50 transition-all">
+              <Settings className="h-8 w-8 text-blue-600" />
             </div>
           </div>
         </div>
