@@ -449,13 +449,42 @@ export default function RegisterWithSeatsPage() {
               maxSeats={10}
             />
 
+            {/* Price Breakdown */}
+            {selectedSeats.length > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="font-semibold text-gray-700 mb-2">Price Details</h3>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Base Price ({selectedSeats.length} seats):</span>
+                    <span>₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Convenience Fee (2% + ₹15):</span>
+                    <span>₹{convenienceFee}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax (18% GST):</span>
+                    <span>₹{taxAmount}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 mt-2 font-bold text-gray-900 text-base">
+                    <span>Total Payable:</span>
+                    <span>₹{totalPrice}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-indigo-600 mt-3 flex items-center gap-1">
+                  <IndianRupee className="w-3 h-3" />
+                  Promo codes can be applied in the next step
+                </p>
+              </div>
+            )}
+
             <div className="mt-6 flex justify-end">
               <button
                 onClick={handleReserveSeats}
                 disabled={selectedSeats.length === 0 || loading}
                 className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {loading ? 'Reserving...' : `Reserve ${selectedSeats.length} Seat(s) - ₹${totalPrice}`}
+                {loading ? 'Reserving...' : `Reserve ${selectedSeats.length} Seat(s)`}
               </button>
             </div>
           </div>
