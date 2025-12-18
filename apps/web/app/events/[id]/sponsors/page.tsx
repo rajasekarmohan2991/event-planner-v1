@@ -5,7 +5,7 @@ import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 
-type SponsorItem = { id: number; name: string; tier: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'|'PARTNER'; logoUrl?: string; website?: string }
+type SponsorItem = { id: number; name: string; tier: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'PARTNER'; logoUrl?: string; website?: string }
 
 export default function EventSponsorsPage({ params }: { params: { id: string } }) {
   const { status } = useSession()
@@ -15,11 +15,37 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
   const [notice, setNotice] = useState<string | null>(null)
 
   const [name, setName] = useState('')
+  const [amount, setAmount] = useState<number>(0)
   const [tier, setTier] = useState<SponsorItem['tier']>('BRONZE')
   const [website, setWebsite] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  // Default tier thresholds (can be customized per event later)
+  const tierThresholds = {
+    platinum: 500000,  // ₹5,00,000
+    gold: 250000,      // ₹2,50,000
+    silver: 100000,    // ₹1,00,000
+    bronze: 50000      // ₹50,000
+  }
+
+  // Auto-calculate tier based on amount
+  const calculateTier = (amt: number): SponsorItem['tier'] => {
+    if (amt >= tierThresholds.platinum) return 'PLATINUM'
+    if (amt >= tierThresholds.gold) return 'GOLD'
+    if (amt >= tierThresholds.silver) return 'SILVER'
+    if (amt >= tierThresholds.bronze) return 'BRONZE'
+    return 'PARTNER'
+  }
+
+  // Auto-assign tier when amount changes
+  useEffect(() => {
+    if (amount > 0) {
+      const calculatedTier = calculateTier(amount)
+      setTier(calculatedTier)
+    }
+  }, [amount])
 
   const canSubmit = useMemo(() => name.trim().length > 0 && tier, [name, tier])
 
@@ -31,7 +57,7 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
       const data = await res.json()
       const content = Array.isArray(data?.content) ? data.content : []
       setItems(content)
-    } catch (e:any) {
+    } catch (e: any) {
       setError(e?.message || 'Failed to load sponsors')
     } finally {
       setLoading(false)
@@ -60,25 +86,43 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-500 mb-1">Company Name</label>
-            <input value={name} onChange={e=>setName(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., New Age Sponsor" />
+            <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., New Age Sponsor" />
           </div>
           <div>
+            <label className="block text-xs text-slate-500 mb-1">Contribution Amount (₹)</label>
+            <input
+              type="number"
+              value={amount || ''}
+              onChange={e => setAmount(Number(e.target.value))}
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              placeholder="e.g., 250000"
+            />
+            {amount > 0 && (
+              <p className="text-xs text-indigo-600 mt-1">
+                Auto-assigned tier: {calculateTier(amount)}
+              </p>
+            )}
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Tier</label>
-            <select value={tier} onChange={e=>setTier(e.target.value as SponsorItem['tier'])} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="PLATINUM">PLATINUM</option>
-              <option value="GOLD">GOLD</option>
-              <option value="SILVER">SILVER</option>
-              <option value="BRONZE">BRONZE</option>
-              <option value="PARTNER">PARTNER</option>
+            <select value={tier} onChange={e => setTier(e.target.value as SponsorItem['tier'])} className="w-full rounded-md border px-3 py-2 text-sm">
+              <option value="PLATINUM">PLATINUM (≥ ₹{tierThresholds.platinum.toLocaleString('en-IN')})</option>
+              <option value="GOLD">GOLD (≥ ₹{tierThresholds.gold.toLocaleString('en-IN')})</option>
+              <option value="SILVER">SILVER (≥ ₹{tierThresholds.silver.toLocaleString('en-IN')})</option>
+              <option value="BRONZE">BRONZE (≥ ₹{tierThresholds.bronze.toLocaleString('en-IN')})</option>
+              <option value="PARTNER">PARTNER (&lt; ₹{tierThresholds.bronze.toLocaleString('en-IN')})</option>
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {amount > 0 ? 'Auto-assigned based on amount (you can override)' : 'Enter amount to auto-assign tier'}
+            </p>
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Website</label>
-            <input value={website} onChange={e=>setWebsite(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://example.com" />
+            <input value={website} onChange={e => setWebsite(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://example.com" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Logo URL</label>
-            <input value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://..." />
+            <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://..." />
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Or upload logo</label>
@@ -94,10 +138,10 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
                   const fd = new FormData()
                   fd.append('file', file)
                   const res = await fetch('/api/uploads', { method: 'POST', body: fd })
-                  const data = await res.json().catch(()=>null)
+                  const data = await res.json().catch(() => null)
                   if (!res.ok) throw new Error(data?.message || 'Upload failed')
                   if (data?.url) setLogoUrl(data.url)
-                } catch (err:any) {
+                } catch (err: any) {
                   setUploadError(err?.message || 'Upload failed')
                 } finally {
                   setUploading(false)
@@ -109,7 +153,7 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
             {logoUrl ? (
               <div className="mt-2 flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt="Preview" className="h-10 w-10 rounded object-cover border"/>
+                <img src={logoUrl} alt="Preview" className="h-10 w-10 rounded object-cover border" />
                 <span className="text-xs text-slate-500">Preview</span>
               </div>
             ) : null}
@@ -119,21 +163,27 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
           <button
             className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
             disabled={!canSubmit}
-            onClick={async ()=>{
+            onClick={async () => {
               try {
                 setError(null)
-                const payload = { name, tier, website: website || undefined, logoUrl: logoUrl || undefined }
+                const payload = {
+                  name,
+                  tier,
+                  amount: amount || 0,
+                  website: website || undefined,
+                  logoUrl: logoUrl || undefined
+                }
                 const res = await fetch(`/api/events/${params.id}/sponsors`, {
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(payload)
                 })
-                const data = await res.json().catch(()=>null)
+                const data = await res.json().catch(() => null)
                 if (!res.ok) throw new Error(data?.message || 'Create failed')
-                setName(''); setTier('BRONZE'); setWebsite(''); setLogoUrl('')
+                setName(''); setAmount(0); setTier('BRONZE'); setWebsite(''); setLogoUrl('')
                 await load()
-              } catch (e:any) {
+              } catch (e: any) {
                 setError(e?.message || 'Create failed')
               }
             }}
@@ -153,7 +203,7 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
         ) : (
           <ul className="divide-y">
             {items.map(s => (
-              <SponsorRow key={s.id} item={s} eventId={params.id} onChanged={load} setBanner={(m)=>{ setNotice(m); setTimeout(()=> setNotice(null), 2500) }} />
+              <SponsorRow key={s.id} item={s} eventId={params.id} onChanged={load} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
             ))}
           </ul>
         )}
@@ -164,30 +214,30 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
   )
 }
 
-function SponsorRow({ item, eventId, onChanged, setBanner }:{ item: SponsorItem; eventId: string; onChanged: ()=>void; setBanner:(m:string)=>void }){
+function SponsorRow({ item, eventId, onChanged, setBanner }: { item: SponsorItem; eventId: string; onChanged: () => void; setBanner: (m: string) => void }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(item.name)
   const [tier, setTier] = useState<SponsorItem['tier']>(item.tier)
   const [website, setWebsite] = useState(item.website || '')
   const [logoUrl, setLogoUrl] = useState(item.logoUrl || '')
   const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string|undefined>()
+  const [err, setErr] = useState<string | undefined>()
 
-  const save = async ()=>{
+  const save = async () => {
     if (!name.trim()) { setErr('Name is required'); return }
-    try{
+    try {
       setBusy(true); setErr(undefined)
       const payload = { name: name.trim(), tier, website: website || undefined, logoUrl: logoUrl || undefined }
-      const res = await fetch(`/api/events/${eventId}/sponsors/${item.id}`, { method:'PUT', credentials:'include', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
-      const data = await res.json().catch(()=>null)
-      if (!res.ok) throw new Error(data?.message||'Update failed')
+      const res = await fetch(`/api/events/${eventId}/sponsors/${item.id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || 'Update failed')
       setEditing(false); setBanner('Sponsor updated'); await onChanged()
-    }catch(e:any){ setErr(e?.message||'Update failed') }
-    finally{ setBusy(false) }
+    } catch (e: any) { setErr(e?.message || 'Update failed') }
+    finally { setBusy(false) }
   }
-  const del = async ()=>{
+  const del = async () => {
     if (!confirm('Delete this sponsor?')) return
-    try{ setBusy(true); const res = await fetch(`/api/events/${eventId}/sponsors/${item.id}`, { method:'DELETE', credentials:'include' }); if(!res.ok){ const t=await res.text(); throw new Error(t||'Delete failed')}; setBanner('Sponsor deleted'); await onChanged() }catch(e:any){ setErr(e?.message||'Delete failed') } finally{ setBusy(false) }
+    try { setBusy(true); const res = await fetch(`/api/events/${eventId}/sponsors/${item.id}`, { method: 'DELETE', credentials: 'include' }); if (!res.ok) { const t = await res.text(); throw new Error(t || 'Delete failed') }; setBanner('Sponsor deleted'); await onChanged() } catch (e: any) { setErr(e?.message || 'Delete failed') } finally { setBusy(false) }
   }
 
   return (
@@ -196,14 +246,14 @@ function SponsorRow({ item, eventId, onChanged, setBanner }:{ item: SponsorItem;
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {item.logoUrl ? <img src={item.logoUrl} alt={item.name} className="h-8 w-8 rounded object-cover"/> : <AvatarIcon seed={`sponsor:${item.name}`} size={32} squared />}
+            {item.logoUrl ? <img src={item.logoUrl} alt={item.name} className="h-8 w-8 rounded object-cover" /> : <AvatarIcon seed={`sponsor:${item.name}`} size={32} squared />}
             <div className="min-w-0">
               <div className="text-sm font-medium truncate">{item.name} <span className="text-xs text-slate-500">· {item.tier}</span></div>
               {item.website ? <a className="text-xs text-indigo-600 hover:underline truncate" href={item.website} target="_blank" rel="noreferrer">{item.website}</a> : null}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={()=> setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
+            <button onClick={() => setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
             <button onClick={del} className="rounded-md border border-rose-300 text-rose-700 px-2 py-1 text-xs hover:bg-rose-50">Delete</button>
           </div>
         </div>
@@ -211,20 +261,20 @@ function SponsorRow({ item, eventId, onChanged, setBanner }:{ item: SponsorItem;
         <div className="space-y-2">
           {err && <div className="text-xs text-rose-600">{err}</div>}
           <div className="grid md:grid-cols-2 gap-2">
-            <input value={name} onChange={e=>setName(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Name" />
-            <select value={tier} onChange={e=>setTier(e.target.value as SponsorItem['tier'])} className="rounded-md border px-2 py-1.5 text-sm">
+            <input value={name} onChange={e => setName(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Name" />
+            <select value={tier} onChange={e => setTier(e.target.value as SponsorItem['tier'])} className="rounded-md border px-2 py-1.5 text-sm">
               <option value="PLATINUM">PLATINUM</option>
               <option value="GOLD">GOLD</option>
               <option value="SILVER">SILVER</option>
               <option value="BRONZE">BRONZE</option>
               <option value="PARTNER">PARTNER</option>
             </select>
-            <input value={website} onChange={e=>setWebsite(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm" placeholder="Website URL" />
-            <input value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm" placeholder="Logo URL" />
+            <input value={website} onChange={e => setWebsite(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm" placeholder="Website URL" />
+            <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm" placeholder="Logo URL" />
           </div>
           <div className="flex items-center gap-2">
             <button disabled={busy} onClick={save} className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60">Save</button>
-            <button disabled={busy} onClick={()=> setEditing(false)} className="rounded-md border px-3 py-1.5 text-xs">Cancel</button>
+            <button disabled={busy} onClick={() => setEditing(false)} className="rounded-md border px-3 py-1.5 text-xs">Cancel</button>
           </div>
         </div>
       )}
