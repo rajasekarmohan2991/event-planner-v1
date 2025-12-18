@@ -90,23 +90,34 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive } = body
+    let { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive } = body
 
-    if (!code || !discountType || typeof discountAmount !== 'number') {
-      console.log('[API] Validation failed:', { code, discountType, discountAmountType: typeof discountAmount })
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 })
+    // Sanitize and validate inputs
+    code = String(code || '').trim().toUpperCase()
+    discountType = String(discountType || 'PERCENT').toUpperCase()
+    discountAmount = Number(discountAmount)
+
+    // Validate required fields
+    if (!code) {
+      console.log('[API] Validation failed: Missing code')
+      return NextResponse.json({ message: 'Code is required' }, { status: 400 })
+    }
+
+    if (isNaN(discountAmount)) {
+      console.log('[API] Validation failed: discountAmount is not a number', body.discountAmount)
+      return NextResponse.json({ message: 'Discount amount must be a number' }, { status: 400 })
     }
 
     // Use Prisma model for consistency
     const promoCode = await prisma.promoCode.create({
       data: {
         eventId: BigInt(eventId),
-        code: String(code).trim().toUpperCase(),
-        type: String(discountType || 'PERCENT').toUpperCase(),
+        code,
+        type: discountType,
         amount: discountAmount,
-        maxRedemptions: maxUses ?? -1,
-        perUserLimit: maxUsesPerUser ?? 1,
-        minOrderAmount: minOrderAmount ?? 0,
+        maxRedemptions: Number(maxUses) || -1,
+        perUserLimit: Number(maxUsesPerUser) || 1,
+        minOrderAmount: Number(minOrderAmount) || 0,
         startsAt: startDate ? new Date(startDate) : null,
         endsAt: endDate ? new Date(endDate) : null,
         isActive: isActive !== false,
