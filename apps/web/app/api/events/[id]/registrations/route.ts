@@ -150,10 +150,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Build registration data JSON from form data
     const formData = parsed?.data || parsed
 
+    console.log('📥 Registration API received:', {
+      eventId: params.id,
+      hasSession: !!session,
+      parsedKeys: Object.keys(parsed || {}),
+      formDataKeys: Object.keys(formData || {}),
+      email: formData?.email,
+      firstName: formData?.firstName,
+      lastName: formData?.lastName
+    })
+
     // Validate required fields
     if (!formData?.email || !formData?.firstName || !formData?.lastName) {
+      console.error('❌ Missing required fields:', {
+        hasEmail: !!formData?.email,
+        hasFirstName: !!formData?.firstName,
+        hasLastName: !!formData?.lastName,
+        receivedFields: Object.keys(formData || {})
+      })
       return NextResponse.json({
-        message: 'Missing required fields: email, firstName, and lastName are required'
+        message: 'Missing required fields: email, firstName, and lastName are required',
+        received: Object.keys(formData || {})
       }, { status: 400 })
     }
 
