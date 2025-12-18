@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email'
 import { sendSMS, buildShareLink } from '@/lib/messaging'
 import { logActivity, ActivityActions, EntityTypes } from '@/lib/activity'
 import { getTenantId } from '@/lib/tenant-context'
+import QRCode from 'qrcode'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -519,14 +520,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const registration = result
 
+    // ============================================
+    // PHASE 5: QR CODE GENERATION
+    // ============================================
+
     // Generate QR code for check-in
     const qrData = {
+      type: 'EVENT_REGISTRATION',
       registrationId: String(registration.id),
       eventId: params.id,
       email: registrationData.email,
       name: `${registrationData.firstName} ${registrationData.lastName}`.trim(),
-      type: registrationData.type,
+      ticketType: registrationData.type,
+      checkInCode: `REG-${params.id}-${registration.id}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
       timestamp: new Date().toISOString()
+    }
+
+    // Generate QR code as data URL (base64 image)
+    let qrCodeDataURL = ''
+    try {
+      qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData), {
+        errorCorrectionLevel: 'H',
+        type: 'image/png',
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+      console.log('✅ QR code generated successfully')
+    } catch (qrError) {
+      console.error('❌ QR code generation failed:', qrError)
+      // Continue without QR code if generation fails
     }
 
     // Add QR code data to response
@@ -536,8 +562,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       dataJson: registrationData,
       type: registration.type,
       createdAt: registration.createdAt,
-      qrCode: Buffer.from(JSON.stringify(qrData)).toString('base64'),
-      checkInUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${params.id}/checkin?token=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
+      qrCode: qrCodeDataURL, // Actual QR code image (data URL)
+      qrCodeData: JSON.stringify(qrData), // Raw data for verification
+      checkInCode: qrData.checkInCode,
+      checkInUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${params.id}/checkin?code=${qrData.checkInCode}`
     }
 
     // Fetch event name for activity logging
@@ -568,12 +596,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 
     // Send confirmation email with QR code (async, don't wait)
-    if (registrationData.email) {
-      const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(response.qrCode)}`
-
+    if (registrationData.email && qrCodeDataURL) {
       sendEmail({
         to: registrationData.email,
-        subject: 'Event Registration Confirmation - Your Ticket',
+        subject: `Event Registration Confirmed - ${eventName}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -585,7 +611,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
               .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
               .ticket { background: white; border: 2px dashed #667eea; padding: 20px; margin: 20px 0; border-radius: 10px; text-align: center; }
               .qr-code { margin: 20px 0; }
-              .qr-code img { max-width: 200px; height: auto; border: 3px solid #667eea; border-radius: 10px; }
+              .qr-code img { max-width: 300px; height: auto; border: 3px solid #667eea; border-radius: 10px; }
+              .check-in-code { background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 18px; font-weight: bold; color: #667eea; margin: 10px 0; }
               .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; }
               .button { display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
               .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
@@ -595,7 +622,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             <div class="container">
               <div class="header">
                 <h1>🎉 Registration Confirmed!</h1>
-                <p>Your ticket is ready</p>
+                <p>Your ticket for ${eventName} is ready</p>
               </div>
               <div class="content">
                 <p>Hi <strong>${registrationData.firstName}</strong>,</p>
@@ -604,6 +631,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 <div class="ticket">
                   <h2>Your Event Ticket</h2>
                   <div class="info">
+                    <strong>Event:</strong> ${eventName}<br>
                     <strong>Registration ID:</strong> ${String(registration.id)}<br>
                     <strong>Name:</strong> ${registrationData.firstName} ${registrationData.lastName}<br>
                     <strong>Email:</strong> ${registrationData.email}<br>
@@ -612,8 +640,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                   
                   <div class="qr-code">
                     <p><strong>Your QR Code Ticket:</strong></p>
-                    <img src="${qrCodeImageUrl}" alt="QR Code Ticket" />
+                    <img src="${qrCodeDataURL}" alt="QR Code Ticket" />
                     <p style="font-size: 12px; color: #666;">Show this QR code at the event entrance</p>
+                  </div>
+                  
+                  <div class="check-in-code">
+                    Check-in Code: ${qrData.checkInCode}
                   </div>
                   
                   <a href="${response.checkInUrl}" class="button">View Ticket Online</a>
