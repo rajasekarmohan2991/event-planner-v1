@@ -42,6 +42,39 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true)
   const triedGenerateRef = useRef<boolean>(false)
 
+  // Moved usage of useMemo to top level to avoid conditional hook execution (React Error #310)
+  const sections = useMemo(() => Object.keys(groupedSeats), [groupedSeats])
+  const totalPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
+  const availableSeats = seats.filter(s => s.available && !s.reservationStatus).length
+
+  // Visual Map Logic - Computed unconditionally
+  const hasCoordinates = seats.some(s => (s.xCoordinate || 0) !== 0 || (s.yCoordinate || 0) !== 0)
+  const useVisualMap = viewMode !== 'table' && hasCoordinates
+
+  const mapDimensions = useMemo(() => {
+    if (!hasCoordinates) return { width: 1000, height: 800 }
+
+    // Find bounds
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    seats.forEach(s => {
+      const x = Number(s.xCoordinate || 0)
+      const y = Number(s.yCoordinate || 0)
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    })
+
+    // Add padding
+    const padding = 100
+    const width = (maxX - minX) + (padding * 2)
+    const height = (maxY - minY) + (padding * 2)
+
+    // Check if result is valid number
+    if (!isFinite(width) || !isFinite(height)) return { width: 1000, height: 800 }
+    return { width: Math.max(width, 800), height: Math.max(height, 600) }
+  }, [seats, hasCoordinates])
+
   useEffect(() => {
     fetchSeats()
   }, [eventId, ticketClassFilter])
@@ -203,9 +236,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
     return Array.from(colSet).sort((a, b) => parseInt(a) - parseInt(b))
   }
 
-  const sections = useMemo(() => Object.keys(groupedSeats), [groupedSeats])
-  const totalPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
-  const availableSeats = seats.filter(s => s.available && !s.reservationStatus).length
+
 
   if (loading) {
     return (
@@ -238,33 +269,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
   const currentSectionSeats = selectedSection ? groupedSeats[selectedSection] : {}
   const rows = Object.keys(currentSectionSeats).sort()
 
-  // Visual Map Logic
-  const hasCoordinates = seats.some(s => (s.xCoordinate || 0) !== 0 || (s.yCoordinate || 0) !== 0)
-  const useVisualMap = viewMode !== 'table' && hasCoordinates
 
-  const mapDimensions = useMemo(() => {
-    if (!hasCoordinates) return { width: 1000, height: 800 }
-
-    // Find bounds
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-    seats.forEach(s => {
-      const x = Number(s.xCoordinate || 0)
-      const y = Number(s.yCoordinate || 0)
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    })
-
-    // Add padding
-    const padding = 100
-    const width = (maxX - minX) + (padding * 2)
-    const height = (maxY - minY) + (padding * 2)
-
-    // Check if result is valid number
-    if (!isFinite(width) || !isFinite(height)) return { width: 1000, height: 800 }
-    return { width: Math.max(width, 800), height: Math.max(height, 600) }
-  }, [seats, hasCoordinates])
 
   return (
     <div className="space-y-6">

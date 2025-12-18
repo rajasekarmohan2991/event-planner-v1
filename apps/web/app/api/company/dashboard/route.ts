@@ -17,82 +17,44 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No company associated with this user' }, { status: 400 })
     }
 
-    // Fetch real company data
-    const company = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: {
-        id: true,
-        name: true,
-        plan: true,
-        status: true,
-      }
-    })
+    // Parallel fetching for efficiency
+    const [company, latestEvents, totalEvents, membersCount, totalRegistrations] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          plan: true,
+          status: true,
+        }
+      }),
+      prisma.event.findMany({
+        where: { tenantId: tenantId },
+        orderBy: { startsAt: 'desc' },
+        take: 5
+      }),
+      prisma.event.count({ where: { tenantId: tenantId } }),
+      prisma.tenantMember.count({ where: { tenantId: tenantId, status: 'ACTIVE' } }),
+      prisma.registration.count({ where: { tenantId: tenantId } }) // Optimized: count direct tenant registrations
+    ])
 
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
-    // Fetch company events directly from DB (bypassing legacy Java API)
-    const events = await prisma.event.findMany({
-      where: {
-        tenantId: tenantId
-      },
-      orderBy: {
-        startsAt: 'desc'
-      },
-      take: 5
-    })
-
-    // Fetch company members count
-    const membersCount = await prisma.tenantMember.count({
-      where: {
-        tenantId: tenantId,
-        status: 'ACTIVE'
-      }
-    })
-
-    // Fetch registration counts per event (top 5) and total
-    const eventIds = events.map((e: any) => e.id)
-    let totalRegistrations = 0
-    let registrationCounts: Record<string, number> = {}
+    // Get counts for the top 5 events only to save DB load
+    const eventIds = latestEvents.map(e => e.id)
+    const registrationCounts: Record<string, number> = {}
 
     if (eventIds.length > 0) {
-      try {
-        const counts = await prisma.registration.groupBy({
-          by: ['eventId'],
-          where: {
-            eventId: {
-              in: eventIds
-            }
-          },
-          _count: {
-            _all: true
-          }
-        })
-
-        registrationCounts = counts.reduce((acc: any, c: any) => {
-          acc[String(c.eventId)] = c._count._all
-          return acc
-        }, {})
-
-        // Get total for ALL events (for stats)
-        totalRegistrations = await prisma.registration.count({
-          where: {
-            // We can't easily filter by tenantId on registration if it's not populated, 
-            // but we can filter by events belonging to tenant.
-            eventId: {
-              in: (await prisma.event.findMany({
-                where: { tenantId: tenantId },
-                select: { id: true }
-              })).map(e => e.id)
-            }
-          }
-        })
-      } catch (e) {
-        console.error('Error fetching registration stats:', e)
-        registrationCounts = {}
-        totalRegistrations = 0
-      }
+      const counts = await prisma.registration.groupBy({
+        by: ['eventId'],
+        where: { eventId: { in: eventIds } },
+        _count: { eventId: true }
+      })
+      counts.forEach(c => {
+        registrationCounts[String(c.eventId)] = c._count.eventId
+      })
     }
 
     const dashboard = {
@@ -102,8 +64,8 @@ export async function GET(req: NextRequest) {
         plan: company.plan,
         status: company.status
       },
-      events: events.map((e: any) => ({
-        id: String(e.id),
+      events: latestEvents.map((e) => ({
+        id: String(e.id), // String ID for frontend
         name: e.name,
         start_date: e.startsAt,
         end_date: e.endsAt,
@@ -114,9 +76,9 @@ export async function GET(req: NextRequest) {
         _count: { registrations: registrationCounts[String(e.id)] || 0 }
       })),
       stats: {
-        totalEvents: events.length,
+        totalEvents,
         totalMembers: membersCount,
-        totalRegistrations: totalRegistrations
+        totalRegistrations
       }
     }
 

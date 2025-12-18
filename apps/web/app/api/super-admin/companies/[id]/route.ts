@@ -69,57 +69,50 @@ export async function GET(
       }
     })
 
-    // Fetch company events from Java API with timeout
+    // Fetch company events directly from Prisma
     let eventsList: any[] = []
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 1500) // 1.5s timeout
-
-      const eventsRes = await fetch(`${process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'}/api/events`, {
-        headers: {
-          'x-tenant-id': tenantId,
-        },
-        signal: controller.signal
+      eventsList = await prisma.event.findMany({
+        where: { tenantId: tenantId },
+        orderBy: { startsAt: 'desc' }
       })
-      clearTimeout(timeoutId)
-
-      const eventsData = eventsRes.ok ? await eventsRes.json() : []
-      // Handle both pagination (content) and array responses
-      eventsList = Array.isArray(eventsData) ? eventsData : (eventsData.content || [])
     } catch (error) {
-      console.warn('Failed to fetch events from Java API:', error)
-      // Continue with empty list to avoid blocking the UI
+      console.error('Failed to fetch events from Prisma:', error)
+      eventsList = []
     }
 
     // Calculate real-time registrations for each event
-    const eventIds = eventsList.map((e: any) => parseInt(e.id)).filter((id: number) => !isNaN(id))
-    const registrationCounts: Record<number, number> = {}
+    // Convert BigInt IDs to numbers/strings safely
+    const eventIds = eventsList.map((e: any) => e.id)
+    const registrationCounts: Record<string, number> = {}
 
     if (eventIds.length > 0) {
-      const regCounts = await prisma.$queryRaw<any[]>`
-        SELECT event_id, COUNT(*)::int as count
-        FROM registrations
-        WHERE event_id = ANY(${eventIds}::bigint[])
-          AND tenant_id = ${tenantId}
-        GROUP BY event_id
-      `
-      regCounts.forEach((row: any) => {
-        registrationCounts[Number(row.event_id)] = row.count
+      // Prisma groupBy is safer for aggregations
+      const regCounts = await prisma.registration.groupBy({
+        by: ['eventId'],
+        where: {
+          eventId: { in: eventIds },
+          tenantId: tenantId
+        },
+        _count: { eventId: true }
+      })
+      regCounts.forEach((row) => {
+        registrationCounts[String(row.eventId)] = row._count.eventId
       })
     }
 
     // Map events with real registration counts
     const events = eventsList.map((e: any) => ({
-      id: e.id,
+      id: String(e.id),
       name: e.name,
-      start_date: e.startsAt || e.startDate,
-      end_date: e.endsAt || e.endDate,
-      location: e.location || e.city || 'Online',
+      start_date: e.startsAt,
+      end_date: e.endsAt,
+      location: e.city || e.venue || 'Online',
       status: e.status,
-      priceInr: e.priceInr || e.price_inr || 0,
-      capacity: e.expectedAttendees || e.capacity || e.seats || e.maxCapacity || 0,
+      priceInr: e.priceInr || 0,
+      capacity: e.expectedAttendees || 0,
       _count: {
-        registrations: registrationCounts[e.id] || 0
+        registrations: registrationCounts[String(e.id)] || 0
       }
     }))
 

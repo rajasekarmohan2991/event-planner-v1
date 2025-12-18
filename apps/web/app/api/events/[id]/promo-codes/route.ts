@@ -28,7 +28,7 @@ async function ensurePromoTable() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_promo_codes_event ON promo_codes(event_id)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes(code)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_promo_codes_active ON promo_codes(is_active)`)
-  } catch {}
+  } catch { }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -65,7 +65,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(response)
   } catch (e: any) {
     console.error('Error fetching promo codes:', e)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: e?.message || 'Failed to load promo codes',
       error: process.env.NODE_ENV === 'development' ? e.stack : undefined
     }, { status: 500 })
@@ -79,10 +79,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     await ensurePromoTable()
-    const body = await req.json()
+    const rawBody = await req.text()
+    console.log('[API] Promo Code Raw Body:', rawBody)
+
+    let body
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      console.log('[API] Failed to parse JSON body')
+      return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive } = body
 
     if (!code || !discountType || typeof discountAmount !== 'number') {
+      console.log('[API] Validation failed:', { code, discountType, discountAmountType: typeof discountAmount })
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 })
     }
 
@@ -126,7 +137,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Promo code already exists' }, { status: 409 })
     }
     console.error('Error creating promo code:', e)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: msg || 'Failed to create promo code',
       error: process.env.NODE_ENV === 'development' ? e.stack : undefined
     }, { status: 500 })

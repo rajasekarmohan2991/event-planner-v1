@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Search, IndianRupee, FileText, Building2 } from 'lucide-react'
+import { Plus, Search, IndianRupee, FileText, Building2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -163,6 +163,8 @@ export default function CompanyVendorsPage() {
     defaultValues: { eventId: '', name: '', category: 'Other', status: 'pending', contract: false, costInr: 0 }
   })
 
+  const backToEventId = searchParams?.get('eventId')
+
   const [open, setOpen] = useState(false)
 
   const onSubmit = async (values: VendorFormValues) => {
@@ -186,9 +188,18 @@ export default function CompanyVendorsPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Vendor Management</h1>
-          <p className="text-sm text-gray-600">Manage vendors and service providers</p>
+        <div className="flex items-center gap-4">
+          {backToEventId && (
+            <Link href={`/events/${backToEventId}/manage`}>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">Vendor Management</h1>
+            <p className="text-sm text-gray-600">Manage vendors and service providers</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) form.setValue('eventId', selectedEvent || events[0]?.id || '') }}>

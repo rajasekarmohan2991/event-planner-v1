@@ -245,10 +245,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         for (const row of rows) {
           const rowNumber = row.number || row.label
           const seatsInRow = row.seats || row.count || 10
+          const seatType = row.tier || section.tier || section.type || 'Standard'
           for (let seatNum = 1; seatNum <= seatsInRow; seatNum++) {
             const xCoord = (row.xOffset || 0) + (seatNum * 50)
             const yCoord = row.yOffset || 0
-            await insertSeat(sectionName, String(rowNumber), seatNum, section.type || 'Standard', basePrice, xCoord, yCoord)
+            await insertSeat(sectionName, String(rowNumber), seatNum, seatType, basePrice, xCoord, yCoord)
           }
         }
       }

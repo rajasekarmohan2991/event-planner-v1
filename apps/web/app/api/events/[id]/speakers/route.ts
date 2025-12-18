@@ -24,12 +24,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     const raw = await req.json()
-    const eventId = BigInt(params.id)
-    const event = await prisma.event.findUnique({ where: { id: eventId } })
+    const eventIdString = params.id
+    console.log(`🔊 Creating speaker for event ${eventIdString}`)
+
+    // Try finding event
+    let event = null
+    try {
+      event = await prisma.event.findFirst({
+        where: { id: BigInt(eventIdString) }
+      })
+    } catch (e) {
+      console.error(`❌ Failed to query event ${eventIdString}:`, e)
+    }
 
     if (!event) {
-      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+      console.error(`❌ Event ${eventIdString} not found in DB`)
+      // Fallback: Check if it exists as a string ID just in case of schema mismatch (unlikely but safe)
+      // or check if it was just created but replication lag? (Unlikely with Prisma)
+      return NextResponse.json({ message: `Event ${eventIdString} not found` }, { status: 404 })
     }
+
+    console.log(`✅ Found event: ${event.name} (${event.id})`)
 
     // 1. Create Speaker
     const speaker = await prisma.speaker.create({
@@ -42,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         linkedin: raw.linkedin,
         twitter: raw.twitter,
         website: raw.website,
-        eventId: eventId,
+        eventId: BigInt(eventIdString),
         tenantId: event.tenantId
       }
     })
@@ -53,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const sessionData = await prisma.eventSession.create({
       data: {
-        eventId: eventId,
+        eventId: BigInt(eventIdString),
         tenantId: event.tenantId,
         title: raw.sessionTitle || `Keynote: ${speaker.name}`,
         description: raw.sessionDescription || `Session by ${speaker.name}`,

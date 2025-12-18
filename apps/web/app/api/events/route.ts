@@ -20,11 +20,11 @@ async function resolveTenantId(session: any, req: NextRequest): Promise<string |
   try {
     const superAdmin = await prisma.tenant.findUnique({ where: { slug: 'super-admin' }, select: { id: true } })
     if (superAdmin?.id) return superAdmin.id
-  } catch {}
+  } catch { }
   try {
     const anyActive = await prisma.tenant.findFirst({ where: { status: 'ACTIVE' }, select: { id: true } })
     if (anyActive?.id) return anyActive.id
-  } catch {}
+  } catch { }
   return undefined
 }
 
@@ -36,9 +36,14 @@ export async function POST(req: NextRequest) {
     return permissionError
   }
 
-  const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  // Parse incoming JSON safely and sanitize to match Java API expectations
+  const session = await getServerSession(authOptions as any) as any
+  const user = session?.user
+
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
+  // Parse incoming JSON safely
   const raw = await req.text()
   let incoming: any = {}
   try {
@@ -46,234 +51,231 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
   }
+
   const sanitizeNum = (v: any) => (v === null || v === undefined || v === '' ? undefined : Number(v))
   const sanitizeStr = (v: any) => (v === null || v === undefined ? undefined : String(v))
-  const toIso = (v: any) => {
-    try {
-      if (!v) return undefined
-      const d = new Date(v)
-      if (Number.isNaN(d.getTime())) return undefined
-      return d.toISOString()
-    } catch {
-      return undefined
-    }
+  const toDate = (v: any) => {
+    if (!v) return new Date()
+    const d = new Date(v)
+    return isNaN(d.getTime()) ? new Date() : d
   }
-  // Build sanitized payload aligned with Java EventRequest
-  const payload = {
-    name: sanitizeStr(incoming.name) || 'Untitled Event',
-    venue: sanitizeStr(incoming.venue) || 'TBD',
-    address: sanitizeStr(incoming.address),
-    city: sanitizeStr(incoming.city) || 'Mumbai',
-    startsAt: toIso(incoming.startsAt || incoming.startDate),
-    endsAt: toIso(incoming.endsAt || incoming.endDate),
-    priceInr: sanitizeNum(incoming.priceInr) ?? 0,
-    description: sanitizeStr(incoming.description),
-    bannerUrl: sanitizeStr(incoming.bannerUrl || incoming.imageUrl),
-    category: (sanitizeStr(incoming.category) || 'CONFERENCE')!.toUpperCase(),
-    eventMode: (sanitizeStr(incoming.eventMode) || 'IN_PERSON')!.toUpperCase(),
-    budgetInr: sanitizeNum(incoming.budgetInr),
-    expectedAttendees: sanitizeNum(incoming.expectedAttendees ?? incoming.capacity),
-    termsAndConditions: sanitizeStr(incoming.termsAndConditions),
-    disclaimer: sanitizeStr(incoming.disclaimer),
-    eventManagerName: sanitizeStr(incoming.eventManagerName),
-    eventManagerContact: sanitizeStr(incoming.eventManagerContact),
-    eventManagerEmail: sanitizeStr(incoming.eventManagerEmail),
-  }
-  
-  console.log('📝 POST /api/events')
-  console.log('👤 User:', (session as any)?.user?.email, 'Role:', (session as any)?.user?.role)
-  try {
-    const keys = Object.keys(payload).filter((k) => (payload as any)[k] !== undefined)
-    console.log('📦 Sanitized keys:', keys)
-  } catch {}
-  
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-    // Tenant and role headers for Java API (robust fallback)
-    const tenantId = await resolveTenantId(session, req)
-    const tenantRole = (session as any)?.user?.tenantRole as string | undefined
-    const role = tenantRole || ((session as any)?.user?.role as string | undefined)
-    if (tenantId) headers['x-tenant-id'] = tenantId
-    if (role) headers['x-user-role'] = role
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-    
-    console.log('🔑 Headers:', { tenantId, role, hasToken: !!accessToken })
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout for Java Backend
 
-    console.log('🌐 Calling:', `${API_BASE}/events`)
-    
-    const res: Response = await fetch(`${API_BASE}/events`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      credentials: 'include',
-      signal: controller.signal,
+  // Resolve Tenant ID
+  const tenantId = await resolveTenantId(session, req)
+
+  // Default values
+  const name = sanitizeStr(incoming.name) || 'Untitled Event'
+  const startsAt = toDate(incoming.startsAt || incoming.startDate)
+  const endsAt = toDate(incoming.endsAt || incoming.endDate)
+
+  if (endsAt < startsAt) {
+    // Basic validation fix
+    endsAt.setTime(startsAt.getTime() + 3600000) // +1 hour
+  }
+
+  try {
+    console.log(`📝 Creating event via Prisma: "${name}" for Tenant: ${tenantId}`)
+
+    const event = await prisma.event.create({
+      data: {
+        name,
+        description: sanitizeStr(incoming.description),
+        startsAt,
+        endsAt,
+        status: 'DRAFT', // Default to DRAFT
+        venue: sanitizeStr(incoming.venue) || 'TBD',
+        address: sanitizeStr(incoming.address),
+        city: sanitizeStr(incoming.city) || 'Mumbai',
+        priceInr: sanitizeNum(incoming.priceInr) ?? 0,
+        bannerUrl: sanitizeStr(incoming.bannerUrl || incoming.imageUrl),
+        category: (sanitizeStr(incoming.category) || 'CONFERENCE').toUpperCase(),
+        eventMode: (sanitizeStr(incoming.eventMode) || 'IN_PERSON').toUpperCase(),
+        budgetInr: sanitizeNum(incoming.budgetInr),
+        expectedAttendees: sanitizeNum(incoming.expectedAttendees ?? incoming.capacity),
+        tenantId: tenantId, // CRITICAL: Link to tenant
+        termsAndConditions: sanitizeStr(incoming.termsAndConditions),
+
+        // Manager info
+        eventManagerName: sanitizeStr(incoming.eventManagerName),
+        eventManagerContact: sanitizeStr(incoming.eventManagerContact),
+        eventManagerEmail: sanitizeStr(incoming.eventManagerEmail),
+
+        // Legal
+        disclaimer: sanitizeStr(incoming.disclaimer),
+      }
     })
-    clearTimeout(timeoutId)
-    
-    const text: string = await res.text()
-    const isJson: boolean = (res.headers.get('content-type') || '').includes('application/json')
-    const resPayload: any = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    
-    console.log('📊 Java API Response:', res.status, resPayload)
-    
-    if (!res.ok) {
-      console.error('❌ Java API Error:', res.status, resPayload)
-      return NextResponse.json(resPayload || { message: 'Create failed' }, { status: res.status })
+
+    console.log('✅ Event created successfully:', event.id)
+
+    // Convert BigInt to string for response
+    const safeEvent = {
+      ...event,
+      id: String(event.id)
     }
-    
-    console.log('✅ Event created successfully:', resPayload?.id)
-    
+
     // Log activity
     logActivity({
-      userId: (session as any)?.user?.id,
-      userName: (session as any)?.user?.name,
-      userEmail: (session as any)?.user?.email,
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
       action: ActivityActions.EVENT_CREATED,
       entityType: EntityTypes.EVENT,
-      entityId: resPayload?.id?.toString(),
-      entityName: resPayload?.name || 'New Event',
-      description: `Event "${resPayload?.name || 'New Event'}" was created`,
-      metadata: { eventId: resPayload?.id },
+      entityId: safeEvent.id,
+      entityName: safeEvent.name,
+      description: `Event "${safeEvent.name}" was created`,
+      metadata: { eventId: safeEvent.id },
       tenantId,
     }).catch(err => console.error('Failed to log activity:', err))
-    
-    return NextResponse.json(resPayload)
+
+    return NextResponse.json(safeEvent)
   } catch (e: any) {
-    console.error('❌ Exception in POST /api/events:', e)
+    console.error('❌ Prisma Create Event Error:', e)
     return NextResponse.json({ message: e?.message || 'Create failed' }, { status: 500 })
   }
 }
 
 export async function GET(req: NextRequest) {
-  // Check permission for viewing events
-  const permissionError = await checkPermissionInRoute('events.view')
-  if (permissionError) return permissionError
+  // Check permission for viewing events (optional)
+  // const permissionError = await checkPermissionInRoute('events.view')
+  // if (permissionError) return permissionError
 
-  const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
+  const session = await getServerSession(authOptions as any) as any
   const url = new URL(req.url)
   const isMyEvents = url.searchParams.get('my') === 'true'
-  
-  try {
-    const headers: Record<string, string> = {}
-    const tenantId = await resolveTenantId(session, req)
-    const role = (session as any)?.user?.role as string | undefined
-    const userId = (session as any)?.user?.id
-    
-    console.log(`🔍 GET /api/events - tenant: ${tenantId}, role: ${role}, user: ${(session as any)?.user?.email}, my: ${isMyEvents}`)
-    
-    if (tenantId) headers['x-tenant-id'] = tenantId
-    if (role) headers['x-user-role'] = role
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-    
-    // If requesting user's own events, add user filter
-    let apiUrl = `${API_BASE}/events`
-    if (isMyEvents && userId) {
-      const params = new URLSearchParams(url.searchParams)
-      params.set('createdBy', userId)
-      apiUrl += `?${params.toString()}`
-    } else {
-      apiUrl += url.search || ''
-    }
-    
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
+  const search = url.searchParams.get('search')
+  const statusParam = url.searchParams.get('status')
+  const modeParam = url.searchParams.get('eventMode')
+  const sortBy = url.searchParams.get('sortBy') || 'startsAt'
+  const sortDir = url.searchParams.get('sortDir') || 'desc'
+  const page = parseInt(url.searchParams.get('page') || '1')
+  const limit = parseInt(url.searchParams.get('limit') || '10')
+  const skip = (page - 1) * limit
 
-    const res = await fetch(apiUrl, {
-      headers,
-      credentials: 'include',
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-    
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    
-    console.log(`📊 API Response: status=${res.status}, events=${payload?.content?.length || 0}`)
-    
-    if (!res.ok) return NextResponse.json(payload || { message: 'List failed' }, { status: res.status })
-    
-    // Get registration counts for all events
-    const eventIds = (payload?.content || payload || []).map((e: any) => parseInt(e.id)).filter((id: number) => !isNaN(id))
-    let registrationCounts: Record<number, number> = {}
-    
-    if (eventIds.length > 0) {
-      try {
-        const counts = await prisma.$queryRaw<any[]>`
-          SELECT event_id, COUNT(*)::int as count
-          FROM registrations
-          WHERE event_id = ANY(${eventIds}::bigint[])
-            AND tenant_id = ${tenantId}
-          GROUP BY event_id
-        `
-        registrationCounts = counts.reduce((acc: any, row: any) => {
-          acc[row.event_id] = row.count
-          return acc
-        }, {})
-      } catch (e) {
-        console.error('Failed to fetch registration counts:', e)
+  try {
+    const userRole = (session as any)?.user?.role as string | undefined
+    const userId = (session as any)?.user?.id
+    // effective tenant for admin views
+    const tenantId = (session as any)?.user?.currentTenantId
+
+    console.log(`🔍 GET /api/events (Prisma) - User: ${session?.user?.email}, Role: ${userRole}, Tenant: ${tenantId}`)
+
+    const where: any = {}
+
+    // 1. Role-based filtering
+    if (userRole === 'SUPER_ADMIN') {
+      // Super Admin sees ALL events.
+      // Optional: if a specific tenant is requested via header/param, we could filter,
+      // but standard Super Admin view is usually global.
+    } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
+      // Company/Tenant Admin sees ONLY their company's events
+      if (tenantId) {
+        where.tenantId = tenantId
+        // If they want "my events", it just means their tenant's events in this context
+      } else {
+        where.tenantId = 'non-existent-tenant' // blocked
+      }
+    } else {
+      // Regular User / Public / Staff
+      // Should see Public events
+      if (isMyEvents && userId) {
+        // Since 'createdBy' doesn't exist on Event model, we cannot easy filter by creator.
+        // If 'my events' means 'events I am attending':
+        const registrations = await prisma.registration.findMany({
+          where: { userId: BigInt(userId) },
+          select: { eventId: true }
+        })
+        const registeredEventIds = registrations.map(r => r.eventId)
+        where.id = { in: registeredEventIds }
+      } else {
+        // Public/Discovery mode
+        where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
       }
     }
-    
-    // Transform the response to match frontend expectations
-    // Filter out TRASHED events unless explicitly requested
-    const showTrashed = url.searchParams.get('showTrashed') === 'true'
-    const allEvents = payload?.content || payload || []
-    
-    const events = allEvents
-      .map((raw: any) => ({
-        ...raw,
-        status: (raw.status || '').toUpperCase(),
-      }))
-      .filter((event: any) => showTrashed || event.status !== 'TRASHED')
-      .map((event: any) => {
-        const startDate = new Date(event.startsAt || event.startDate)
-        const endDate = new Date(event.endsAt || event.endDate)
-        const now = new Date()
-        
-        // Determine actual status based on dates
-        let actualStatus = event.status
-        if (event.status !== 'DRAFT' && event.status !== 'CANCELLED' && event.status !== 'TRASHED') {
-          if (now < startDate) {
-            actualStatus = 'UPCOMING'
-          } else if (now >= startDate && now <= endDate) {
-            actualStatus = 'LIVE'
-          } else {
-            actualStatus = 'COMPLETED'
-          }
-        }
-        
-        return {
-          ...event,
-          // Map Java API fields to frontend expected fields
-          startDate: event.startsAt || event.startDate,
-          endDate: event.endsAt || event.endDate,
-          location: event.city || event.venue || event.location || 'No location',
-          bannerImage: event.bannerUrl || event.bannerImage || null,
-          priceInr: event.priceInr || event.price_inr || 0,
-          capacity: event.expectedAttendees || event.capacity || event.seats || event.maxCapacity || 0,
-          status: actualStatus, // normalized & calculated
-          // Add registration count
-          registrationCount: registrationCounts[parseInt(event.id)] || 0
+
+    // 2. Apply Filters
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { venue: { contains: search, mode: 'insensitive' } }
+      ]
+    }
+
+    if (statusParam && statusParam !== 'ALL') {
+      where.status = statusParam
+    }
+
+    if (modeParam && modeParam !== 'ALL') {
+      where.eventMode = modeParam
+    }
+
+    // 3. Execute Query
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        orderBy: {
+          [sortBy]: sortDir.toLowerCase() === 'asc' ? 'asc' : 'desc'
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.event.count({ where })
+    ])
+
+    // 4. Get Registration Counts
+    const eventIds = events.map(e => e.id)
+    let registrationCounts: Record<string, number> = {}
+
+    if (eventIds.length > 0) {
+      const counts = await prisma.registration.groupBy({
+        by: ['eventId'],
+        where: {
+          eventId: { in: eventIds }
+        },
+        _count: {
+          eventId: true
         }
       })
-    
-    const response = {
-      events,
-      totalElements: payload?.totalElements || events.length,
-      totalPages: payload?.totalPages || 1,
-      currentPage: payload?.number || 0
+      counts.forEach(c => {
+        registrationCounts[String(c.eventId)] = c._count.eventId
+      })
     }
-    
-    return NextResponse.json(response)
+
+    // 5. Transform for Frontend
+    const formattedEvents = events.map(event => {
+      // Calculate derived status if needed
+      const now = new Date()
+      let derivedStatus = event.status
+      // Logic for status derivation
+      if (['PUBLISHED', 'UPCOMING'].includes(event.status)) {
+        if (now > event.endsAt) derivedStatus = 'COMPLETED'
+        else if (now >= event.startsAt && now <= event.endsAt) derivedStatus = 'LIVE'
+      }
+
+      return {
+        ...event,
+        id: String(event.id), // Ensure ID is string for frontend
+        status: derivedStatus,
+        startDate: event.startsAt,
+        endDate: event.endsAt,
+        location: event.city || event.venue,
+        bannerImage: event.bannerUrl,
+        registrationCount: registrationCounts[String(event.id)] || 0
+      }
+    })
+
+    return NextResponse.json({
+      content: formattedEvents,
+      events: formattedEvents,
+      totalElements: total,
+      totalPages: Math.ceil(total / limit),
+      number: page - 1,
+      size: limit
+    })
+
   } catch (e: any) {
-    console.error('Events API error:', e)
+    console.error('❌ Prisma Events API error:', e)
     return NextResponse.json({ message: e?.message || 'List failed' }, { status: 500 })
   }
 }

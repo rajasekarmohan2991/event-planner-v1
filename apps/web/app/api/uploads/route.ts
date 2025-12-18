@@ -117,7 +117,15 @@ export async function POST(req: NextRequest) {
     }
 
     const dest = path.join(uploadsDir, fileName)
-    await writeFile(dest, buffer)
+
+    console.log(`📂 Uploading to local FS: ${dest}`)
+
+    try {
+      await writeFile(dest, buffer)
+    } catch (writeErr: any) {
+      console.error(`❌ Upload writeFile failed at ${dest}:`, writeErr)
+      throw new Error(`Failed to write file to ${dest}: ${writeErr.message}`)
+    }
 
     const url = `/uploads/${fileName}`
     return NextResponse.json({
@@ -128,7 +136,10 @@ export async function POST(req: NextRequest) {
       provider: 'local'
     })
   } catch (e: any) {
-    console.error('General upload error:', e)
-    return NextResponse.json({ message: e?.message || 'Upload failed' }, { status: 500 })
+    console.error('❌ General upload error:', e)
+    return NextResponse.json({
+      message: e?.message || 'Upload failed',
+      details: e.toString()
+    }, { status: 500 })
   }
 }

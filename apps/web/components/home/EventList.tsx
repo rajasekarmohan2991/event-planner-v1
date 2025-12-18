@@ -36,6 +36,8 @@ const STATUS_TABS = [
 export default function EventList() {
   const { data: session } = useSession()
   const accessToken = (session as any)?.accessToken as string | undefined
+  const userRole = (session as any)?.user?.role as string | undefined
+  const isAdmin = ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'OWNER', 'EVENT_MANAGER'].includes(userRole || '')
   const [events, setEvents] = useState<EventItem[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [banner, setBanner] = useState<string | null>(null)
@@ -207,40 +209,40 @@ export default function EventList() {
     const missing = cities.filter(c => !cityCoords[c.toLowerCase()])
     if (missing.length === 0) return
     let aborted = false
-    ;(async () => {
-      const updates: Record<string, { lat: number; lon: number }> = {}
-      
-      await Promise.all(missing.map(async (city) => {
-        try {
-          // Check database cache first
-          const cacheRes = await fetch(`/api/geocoding-cache?city=${encodeURIComponent(city)}`)
-          if (cacheRes.ok) {
-            const cached = await cacheRes.json()
-            updates[city.toLowerCase()] = { lat: cached.lat, lon: cached.lon }
-            return
-          }
-          
-          // Fetch from external API
-          const res = await fetch(`/api/geo/city?q=${encodeURIComponent(city)}`)
-          if (res.ok) {
-            const data = await res.json()
-            const coords = { lat: Number(data.lat), lon: Number(data.lon) }
-            updates[city.toLowerCase()] = coords
-            
-            // Save to database cache (fire and forget)
-            fetch('/api/geocoding-cache', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ city, ...coords })
-            }).catch(() => {})
-          }
-        } catch {}
-      }))
+      ; (async () => {
+        const updates: Record<string, { lat: number; lon: number }> = {}
 
-      if (!aborted && Object.keys(updates).length) {
-        setCityCoords(prev => ({ ...prev, ...updates }))
-      }
-    })()
+        await Promise.all(missing.map(async (city) => {
+          try {
+            // Check database cache first
+            const cacheRes = await fetch(`/api/geocoding-cache?city=${encodeURIComponent(city)}`)
+            if (cacheRes.ok) {
+              const cached = await cacheRes.json()
+              updates[city.toLowerCase()] = { lat: cached.lat, lon: cached.lon }
+              return
+            }
+
+            // Fetch from external API
+            const res = await fetch(`/api/geo/city?q=${encodeURIComponent(city)}`)
+            if (res.ok) {
+              const data = await res.json()
+              const coords = { lat: Number(data.lat), lon: Number(data.lon) }
+              updates[city.toLowerCase()] = coords
+
+              // Save to database cache (fire and forget)
+              fetch('/api/geocoding-cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ city, ...coords })
+              }).catch(() => { })
+            }
+          } catch { }
+        }))
+
+        if (!aborted && Object.keys(updates).length) {
+          setCityCoords(prev => ({ ...prev, ...updates }))
+        }
+      })()
     return () => { aborted = true }
   }, [filtered, cityCoords])
 
@@ -337,7 +339,7 @@ export default function EventList() {
           </div>
         )}
 
-        <div id="events-list" className={viewMode==='grid' ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-3"} tabIndex={-1}>
+        <div id="events-list" className={viewMode === 'grid' ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-3"} tabIndex={-1}>
           {filtered.length === 0 ? (
             <div className="flex items-center gap-4 rounded-md border p-6 bg-white dark:bg-slate-900">
               <div className="shrink-0">
@@ -360,8 +362,8 @@ export default function EventList() {
               <ModernEventCard
                 key={x.id}
                 event={x}
-                onEdit={(id) => router.push(`/events/${id}/info`)}
-                onDelete={(event) => setConfirm({ open: true, type: event.status === 'TRASHED' ? 'delete' as any : 'trash', target: event })}
+                onEdit={isAdmin ? (id) => router.push(`/events/${id}/info`) : undefined}
+                onDelete={isAdmin ? (event) => setConfirm({ open: true, type: event.status === 'TRASHED' ? 'delete' as any : 'trash', target: event }) : undefined}
               />
             ))
           ) : (
@@ -372,128 +374,143 @@ export default function EventList() {
                 onClick={() => router.push(`/events/${x.id}`)}
               >
                 <div className="flex items-start gap-4">
-                    {/* Thumbnail: static OSM map if city exists, else banner/placeholder */}
-                    <div className="w-64 h-40 rounded-md overflow-hidden border bg-slate-50 flex items-center justify-center relative">
-                      {(() => {
-                        const src = getThumbSrc(x)
-                        const failed = thumbFailed[x.id]
-                        const shouldAnimate = failed || !src
-                        if (shouldAnimate) {
-                          return (
-                            <div className="w-full h-full grid place-items-center">
-                              <div className="w-full h-full">
-                                <AvatarIcon seed={getEventBadgeSeed(x)} query={getEventBadgeQuery(x)} size={160} className="!w-full !h-full object-cover rounded-md" squared />
-                              </div>
-                            </div>
-                          )
-                        }
-                        const mapHref = getMapLink(x)
+                  {/* Thumbnail: static OSM map if city exists, else banner/placeholder */}
+                  <div className="w-64 h-40 rounded-md overflow-hidden border bg-slate-50 flex items-center justify-center relative">
+                    {(() => {
+                      const src = getThumbSrc(x)
+                      const failed = thumbFailed[x.id]
+                      const shouldAnimate = failed || !src
+                      if (shouldAnimate) {
                         return (
-                          <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e)=> e.stopPropagation()} className="block w-full h-full">
-                            <img
-                              src={src}
-                              alt={x.city ? `Map of ${x.city}` : 'Event banner'}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
-                              loading="lazy"
-                              onError={() => setThumbFailed(prev => ({ ...prev, [x.id]: true }))}
-                            />
-                            {/* Hover shine */}
-                            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                          </a>
+                          <div className="w-full h-full grid place-items-center">
+                            <div className="w-full h-full">
+                              <AvatarIcon seed={getEventBadgeSeed(x)} query={getEventBadgeQuery(x)} size={160} className="!w-full !h-full object-cover rounded-md" squared />
+                            </div>
+                          </div>
                         )
-                      })()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <Link href={`/events/${x.id}`} className="text-base font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 truncate block flex items-center gap-2">
-                            <AvatarIcon seed={getEventBadgeSeed(x)} size={24} query={getEventBadgeQuery(x)} />
-                            {x.name || "Untitled Event"}
-                          </Link>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                            <span>📅 {formatDateRange(x.startsAt, x.endsAt) || 'Dates TBA'}</span>
-                            <span>🪪 {x.eventMode === 'IN_PERSON' ? 'In-Person Event' : x.eventMode === 'VIRTUAL' ? 'Virtual Event' : 'Hybrid Event'}</span>
-                            <a
-                              href={getMapLink(x)}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e)=> { e.preventDefault(); e.stopPropagation() }}
-                              className="underline decoration-dotted hover:decoration-solid"
-                              title={x.city ? `Open ${x.city} in Google Maps` : 'Open location in Google Maps'}
-                            >
-                              📍 {x.city || 'Location not added'}
-                            </a>
-                            <span>👥 1 Organizers</span>
-                            <span>👤 0 Attendees</span>
-                          </div>
+                      }
+                      const mapHref = getMapLink(x)
+                      return (
+                        <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="block w-full h-full">
+                          <img
+                            src={src}
+                            alt={x.city ? `Map of ${x.city}` : 'Event banner'}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
+                            loading="lazy"
+                            onError={() => setThumbFailed(prev => ({ ...prev, [x.id]: true }))}
+                          />
+                          {/* Hover shine */}
+                          <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        </a>
+                      )
+                    })()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link href={`/events/${x.id}`} className="text-base font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 truncate block flex items-center gap-2">
+                          <AvatarIcon seed={getEventBadgeSeed(x)} size={24} query={getEventBadgeQuery(x)} />
+                          {x.name || "Untitled Event"}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>📅 {formatDateRange(x.startsAt, x.endsAt) || 'Dates TBA'}</span>
+                          <span>🪪 {x.eventMode === 'IN_PERSON' ? 'In-Person Event' : x.eventMode === 'VIRTUAL' ? 'Virtual Event' : 'Hybrid Event'}</span>
+                          <a
+                            href={getMapLink(x)}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                            className="underline decoration-dotted hover:decoration-solid"
+                            title={x.city ? `Open ${x.city} in Google Maps` : 'Open location in Google Maps'}
+                          >
+                            📍 {x.city || 'Location not added'}
+                          </a>
+                          <span>👥 {x.registrationCount || 0} Registered</span>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200" title="Starting price">
-                            {formatPrice(x.priceInr)}
-                          </div>
-                          {(() => { const s = statusStyle(x.status); const I = s.Icon; return (
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200" title="Starting price">
+                          {formatPrice(x.priceInr)}
+                        </div>
+                        {(() => {
+                          const s = statusStyle(x.status); const I = s.Icon; return (
                             <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border ${s.cls}`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${s.dot} animate-pulse`} />
                               <I className="h-3.5 w-3.5" />
                               {x.status}
                             </span>
-                          )})()}
-                          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                            {/* Edit icon button */}
-                            <button
-                              className="inline-flex items-center justify-center h-9 w-9 rounded-md border text-indigo-600 hover:bg-indigo-50"
-                              title="Edit"
-                              aria-label="Edit"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                const url = `/events/${x.id}/info`
-                                router.push(url)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            {x.status !== 'LIVE' && (
+                          )
+                        })()}
+                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                          {isAdmin && (
+                            <>
                               <button
-                                className="inline-flex items-center justify-center h-9 w-9 rounded-md border text-rose-600 hover:bg-rose-50"
-                                title={x.status === 'TRASHED' ? 'Delete permanently' : 'Move to Trash'}
-                                aria-label="Delete"
+                                className="inline-flex items-center justify-center h-9 w-9 rounded-md border text-indigo-600 hover:bg-indigo-50"
+                                title="Edit"
+                                aria-label="Edit"
                                 onClick={(e) => {
-                                  e.preventDefault(); e.stopPropagation()
-                                  setConfirm({ open: true, type: x.status === 'TRASHED' ? 'delete' as any : 'trash', target: x })
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  const url = `/events/${x.id}/info`
+                                  router.push(url)
                                 }}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Pencil className="h-4 w-4" />
                               </button>
-                            )}
-                            <span className="text-slate-400">|</span>
-                            <button 
-                              className="text-indigo-600 hover:underline" 
-                              onClick={(e) => { 
-                                e.preventDefault()
+                              {x.status !== 'LIVE' && (
+                                <button
+                                  className="inline-flex items-center justify-center h-9 w-9 rounded-md border text-rose-600 hover:bg-rose-50"
+                                  title={x.status === 'TRASHED' ? 'Delete permanently' : 'Move to Trash'}
+                                  aria-label="Delete"
+                                  onClick={(e) => {
+                                    e.preventDefault(); e.stopPropagation()
+                                    setConfirm({ open: true, type: x.status === 'TRASHED' ? 'delete' as any : 'trash', target: x })
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                              <span className="text-slate-400">|</span>
+                            </>
+                          )}
+                          <button
+                            className="text-indigo-600 hover:underline"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setPreviewTarget(x)
+                            }}
+                          >
+                            Preview
+                          </button>
+                          <a
+                            className="text-indigo-600 hover:underline"
+                            href={process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE ? `${process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE}/${x.id}` : '#'}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => { if (!process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE) { e.preventDefault() } }}
+                          >
+                            View Website
+                          </a>
+                          {!isAdmin && ['LIVE', 'UPCOMING', 'PUBLISHED'].includes(x.status) && (
+                            <button
+                              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 ml-2"
+                              onClick={(e) => {
                                 e.stopPropagation()
-                                setPreviewTarget(x)
+                                router.push(`/events/${x.id}/register`)
                               }}
                             >
-                              Preview
+                              Register
                             </button>
-                            <a
-                              className="text-indigo-600 hover:underline"
-                              href={process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE ? `${process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE}/${x.id}` : '#'}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => { if (!process.env.NEXT_PUBLIC_EVENT_MICROSITES_BASE) { e.preventDefault() } }}
-                            >
-                              View Website
-                            </a>
-                          </div>
+                          )}
                         </div>
                       </div>
-                      <div className="mt-2 text-xs text-muted-foreground">RA • Last modified a day ago</div>
                     </div>
+                    <div className="mt-2 text-xs text-muted-foreground">Last modified a day ago</div>
                   </div>
                 </div>
-              ))
+              </div>
+            ))
           )}
         </div>
 
@@ -527,7 +544,7 @@ export default function EventList() {
               {confirm.type === 'cancel' ? 'Cancel Event?' : confirm.type === 'delete' ? 'Delete Permanently?' : 'Move to Trash?'}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {confirm.type === 'cancel' 
+              {confirm.type === 'cancel'
                 ? `Are you sure you want to cancel "${confirm.target.name}"? This will mark the event as cancelled.`
                 : confirm.type === 'delete'
                   ? `This will permanently delete "${confirm.target.name}". This action cannot be undone.`
@@ -543,18 +560,18 @@ export default function EventList() {
               <button
                 onClick={async () => {
                   if (!confirm.target) return
-                  
+
                   // Check authentication
                   if (!accessToken) {
-                    toast({ 
-                      title: 'Authentication required', 
-                      description: 'Please log out and log back in to refresh your session.', 
-                      variant: 'destructive' as any 
+                    toast({
+                      title: 'Authentication required',
+                      description: 'Please log out and log back in to refresh your session.',
+                      variant: 'destructive' as any
                     })
                     setConfirm({ open: false, type: null, target: null })
                     return
                   }
-                  
+
                   try {
                     if (confirm.type === 'cancel') {
                       await cancelEvent(String(confirm.target.id), accessToken)
@@ -569,16 +586,15 @@ export default function EventList() {
                     setConfirm({ open: false, type: null, target: null })
                     load(page)
                   } catch (err: any) {
-                    toast({ 
-                      title: confirm.type === 'cancel' ? 'Cancel failed' : 'Trash failed', 
-                      description: err?.message || 'Operation failed', 
-                      variant: 'destructive' as any 
+                    toast({
+                      title: confirm.type === 'cancel' ? 'Cancel failed' : 'Trash failed',
+                      description: err?.message || 'Operation failed',
+                      variant: 'destructive' as any
                     })
                   }
                 }}
-                className={`rounded-md px-4 py-2 text-sm font-medium text-white ${
-                  confirm.type === 'cancel' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'
-                }`}
+                className={`rounded-md px-4 py-2 text-sm font-medium text-white ${confirm.type === 'cancel' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
               >
                 {confirm.type === 'cancel' ? 'Cancel Event' : 'Move to Trash'}
               </button>
@@ -597,7 +613,7 @@ function PreviewModal({ target, onClose }: { target: any, onClose: () => void })
   if (!target) return null
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-xl border bg-white shadow-xl dark:bg-slate-900" onClick={(e)=>e.stopPropagation()}>
+      <div className="w-full max-w-2xl rounded-xl border bg-white shadow-xl dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b">
           <div className="font-semibold">Preview • {target?.name || 'Untitled Event'}</div>
           <button className="text-sm px-2 py-1 rounded border hover:bg-slate-50" onClick={onClose}>Close</button>
