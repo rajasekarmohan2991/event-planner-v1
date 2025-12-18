@@ -337,7 +337,33 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         if (promo) {
           const now = new Date()
 
-          // Validate promo code
+          // ============================================
+          // PHASE 4: PROMO CODE 30-MIN EXPIRY RULE
+          // ============================================
+
+          // Calculate promo expiry time (30 minutes before event start)
+          const promoExpiryTime = new Date(eventStart.getTime() - 30 * 60 * 1000)
+
+          // Check if promo code has expired (30 mins before event)
+          if (now > promoExpiryTime) {
+            return NextResponse.json({
+              message: 'Promo code expired (codes expire 30 minutes before event start)',
+              details: {
+                expiryTime: promoExpiryTime.toLocaleString(),
+                eventStartTime: eventStart.toLocaleString(),
+                currentTime: now.toLocaleString()
+              }
+            }, { status: 400 })
+          }
+
+          console.log('✅ Promo code timing validation passed:', {
+            promoCode: promo.code,
+            expiryTime: promoExpiryTime.toISOString(),
+            eventStart: eventStart.toISOString(),
+            timeRemaining: `${Math.round((promoExpiryTime.getTime() - now.getTime()) / (1000 * 60))} minutes`
+          })
+
+          // Validate promo code dates
           if (promo.startsAt && promo.startsAt > now) {
             return NextResponse.json({ message: 'Promo code not yet active' }, { status: 400 })
           }
