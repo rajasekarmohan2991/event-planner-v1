@@ -29,7 +29,35 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
   const [autoFetching, setAutoFetching] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
+  const [event, setEvent] = useState<any>(null)
+
   const canSubmit = useMemo(() => title.trim().length > 0 && startTime && endTime, [title, startTime, endTime])
+
+  // Validate session times against event times
+  const validateSessionTime = (sessionStart: string, sessionEnd: string) => {
+    if (!event) return { valid: true, message: '' }
+
+    const eventStart = new Date(event.startsAt || event.startDate)
+    const eventEnd = new Date(event.endsAt || event.endDate)
+    const sessStart = new Date(sessionStart)
+    const sessEnd = new Date(sessionEnd)
+
+    if (sessStart < eventStart) {
+      return {
+        valid: false,
+        message: `Session cannot start before event starts (${eventStart.toLocaleString()})`
+      }
+    }
+
+    if (sessEnd > eventEnd) {
+      return {
+        valid: false,
+        message: `Session cannot end after event ends (${eventEnd.toLocaleString()})`
+      }
+    }
+
+    return { valid: true, message: '' }
+  }
 
   // Auto-fetch session details when selected
   const handleSessionSelect = async (sessionId: string) => {
@@ -50,12 +78,12 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
     try {
       setAutoFetching(true)
       setSelectedSessionId(sessionId)
-      
+
       const res = await fetch(`/api/events/${params.id}/sessions/${sessionId}`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to fetch session details')
-      
+
       const apiSessionData = await res.json()
-      
+
       // Auto-populate form fields
       setTitle(apiSessionData.title || '')
       setDescription(apiSessionData.description || '')
@@ -64,7 +92,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
       setRoom(apiSessionData.room || '')
       setTrack(apiSessionData.track || '')
       setCapacity(apiSessionData.capacity ? String(apiSessionData.capacity) : '')
-      
+
       // Auto-populate speakers if available
       if (apiSessionData.speakers && apiSessionData.speakers.length > 0) {
         const speakerIds = apiSessionData.speakers.map((s: any) => parseInt(s.id))
@@ -72,7 +100,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
       } else if (apiSessionData.speakerIds && apiSessionData.speakerIds.length > 0) {
         setSelectedSpeakers(apiSessionData.speakerIds)
       }
-      
+
       setNotice(`✓ Session details loaded: ${apiSessionData.title}`)
       setTimeout(() => setNotice(null), 3000)
     } catch (e: any) {
@@ -94,8 +122,8 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
       if (sp.ok) {
         const sdata = await sp.json()
         const sc = Array.isArray(sdata?.content) ? sdata.content : []
-        setSpeakers(sc.map((s:any)=>({ 
-          id: s.id, 
+        setSpeakers(sc.map((s: any) => ({
+          id: s.id,
           name: s.name,
           title: s.title,
           bio: s.bio,
@@ -103,7 +131,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
           email: s.email
         })))
       }
-    } catch (e:any) {
+    } catch (e: any) {
       setError(e?.message || 'Failed to load sessions')
     } finally {
       setLoading(false)
@@ -111,7 +139,25 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
   }
 
   useEffect(() => {
-    if (status !== 'loading') load()
+    const fetchData = async () => {
+      if (status === 'loading') return
+
+      // Fetch event details for validation
+      try {
+        const eventRes = await fetch(`/api/events/${params.id}`, { credentials: 'include' })
+        if (eventRes.ok) {
+          const eventData = await eventRes.json()
+          setEvent(eventData)
+        }
+      } catch (e) {
+        console.error('Failed to fetch event:', e)
+      }
+
+      // Fetch sessions
+      await load()
+    }
+
+    fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, params.id])
 
@@ -137,7 +183,23 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
         </div>
         {error && <div className="text-sm text-rose-600">{error}</div>}
         {notice && <div className="text-sm text-green-600">{notice}</div>}
-        
+
+        {/* Event Time Range Info */}
+        {event && (event.startsAt || event.startDate) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <div className="text-xs font-semibold text-blue-900 mb-1">
+              📅 Event Time Range
+            </div>
+            <div className="text-xs text-blue-700">
+              {new Date(event.startsAt || event.startDate).toLocaleString()}
+              {' → '}
+              {new Date(event.endsAt || event.endDate).toLocaleString()}
+            </div>
+            <div className="text-xs text-blue-600 mt-1">
+              ℹ️ Sessions must be created within this time range
+            </div>
+          </div>
+        )}
         {/* Session Selector for Auto-Fetch */}
         {items.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
@@ -162,35 +224,35 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
             </p>
           </div>
         )}
-        
+
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-500 mb-1">Title</label>
-            <input value={title} onChange={e=>setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Opening Keynote" />
+            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Opening Keynote" />
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">Track</label>
-            <input value={track} onChange={e=>setTrack(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Main" />
+            <input value={track} onChange={e => setTrack(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Main" />
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">Room</label>
-            <input value={room} onChange={e=>setRoom(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Hall A" />
+            <input value={room} onChange={e => setRoom(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Hall A" />
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">Capacity</label>
-            <input type="number" value={capacity} onChange={e=>setCapacity(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., 200" />
+            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., 200" />
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">Starts</label>
-            <input type="datetime-local" value={startTime} onChange={e=>setStartTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
+            <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">Ends</label>
-            <input type="datetime-local" value={endTime} onChange={e=>setEndTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
+            <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Description</label>
-            <textarea value={description} onChange={e=>setDescription(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Session details" />
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Session details" />
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Select Speakers</label>
@@ -285,13 +347,20 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
           <button
             className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
             disabled={!canSubmit}
-            onClick={async ()=>{
+            onClick={async () => {
               try {
                 setError(null)
                 if (!title.trim()) { setError('Title is required'); return }
                 if (!startTime) { setError('Start time is required'); return }
                 if (!endTime) { setError('End time is required'); return }
                 if (new Date(endTime) <= new Date(startTime)) { setError('End time must be after start time'); return }
+
+                // Validate session time against event time
+                const validation = validateSessionTime(startTime, endTime)
+                if (!validation.valid) {
+                  setError(validation.message)
+                  return
+                }
                 const payload = {
                   title: title.trim(),
                   description: description || undefined,
@@ -309,11 +378,11 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(payload)
                 })
-                const data = await res.json().catch(()=>null)
+                const data = await res.json().catch(() => null)
                 if (!res.ok) throw new Error(data?.message || 'Create failed')
                 setTitle(''); setDescription(''); setStartTime(''); setEndTime(''); setRoom(''); setTrack(''); setCapacity(''); setSelectedSpeakers([])
                 await load()
-              } catch (e:any) {
+              } catch (e: any) {
                 setError(e?.message || 'Create failed')
               }
             }}
@@ -329,22 +398,20 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setViewMode('calendar')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'calendar' 
-                ? 'bg-white text-indigo-600 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             <Calendar className="h-4 w-4" />
             Calendar
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'list' 
-                ? 'bg-white text-indigo-600 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'list'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             <List className="h-4 w-4" />
             List
@@ -360,8 +427,8 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
           No sessions yet. Create your first session above!
         </div>
       ) : viewMode === 'calendar' ? (
-        <SessionCalendarView 
-          sessions={items} 
+        <SessionCalendarView
+          sessions={items}
           onSessionClick={(sessionId) => {
             handleSessionSelect(String(sessionId))
             window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -372,7 +439,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
           <div className="p-3 text-sm font-medium border-b">All Sessions</div>
           <ul className="divide-y">
             {items.map(s => (
-              <SessionRow key={s.id} item={s} eventId={params.id} onChanged={load} speakers={speakers} setBanner={(m)=>{ setNotice(m); setTimeout(()=> setNotice(null), 2500) }} />
+              <SessionRow key={s.id} item={s} eventId={params.id} onChanged={load} speakers={speakers} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
             ))}
           </ul>
         </div>
@@ -383,23 +450,23 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
   )
 }
 
-function SessionRow({ item, eventId, onChanged, speakers, setBanner }:{ item: SessionItem; eventId: string; onChanged: ()=>void; speakers: SpeakerItem[]; setBanner:(m:string)=>void }){
+function SessionRow({ item, eventId, onChanged, speakers, setBanner }: { item: SessionItem; eventId: string; onChanged: () => void; speakers: SpeakerItem[]; setBanner: (m: string) => void }) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(item.title)
-  const [startTime, setStartTime] = useState(() => new Date(item.startTime).toISOString().slice(0,16))
-  const [endTime, setEndTime] = useState(() => new Date(item.endTime).toISOString().slice(0,16))
+  const [startTime, setStartTime] = useState(() => new Date(item.startTime).toISOString().slice(0, 16))
+  const [endTime, setEndTime] = useState(() => new Date(item.endTime).toISOString().slice(0, 16))
   const [room, setRoom] = useState(item.room || '')
   const [track, setTrack] = useState(item.track || '')
   const [capacity, setCapacity] = useState<string>(item.capacity ? String(item.capacity) : '')
   const [description, setDescription] = useState(item.description || '')
   const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string|undefined>()
+  const [err, setErr] = useState<string | undefined>()
   const [attachId, setAttachId] = useState<string>('')
 
-  const save = async ()=>{
+  const save = async () => {
     if (!title.trim() || !startTime || !endTime) { setErr('Title, start and end are required'); return }
     if (new Date(endTime) <= new Date(startTime)) { setErr('End time must be after start'); return }
-    try{
+    try {
       setBusy(true); setErr(undefined)
       const payload = {
         title: title.trim(),
@@ -410,23 +477,23 @@ function SessionRow({ item, eventId, onChanged, speakers, setBanner }:{ item: Se
         track: track || undefined,
         capacity: capacity ? Number(capacity) : undefined,
       }
-      const res = await fetch(`/api/events/${eventId}/sessions/${item.id}`, { method:'PUT', credentials:'include', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
-      const data = await res.json().catch(()=>null)
-      if (!res.ok) throw new Error(data?.message||'Update failed')
+      const res = await fetch(`/api/events/${eventId}/sessions/${item.id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || 'Update failed')
       setEditing(false); setBanner('Session updated'); await onChanged()
-    }catch(e:any){ setErr(e?.message||'Update failed') }
-    finally{ setBusy(false) }
+    } catch (e: any) { setErr(e?.message || 'Update failed') }
+    finally { setBusy(false) }
   }
-  const del = async ()=>{
+  const del = async () => {
     if (!confirm('Delete this session?')) return
-    try{ setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}`, { method:'DELETE', credentials:'include' }); if(!res.ok) { const t=await res.text(); throw new Error(t||'Delete failed')}; setBanner('Session deleted'); await onChanged() }catch(e:any){ setErr(e?.message||'Delete failed') } finally{ setBusy(false) }
+    try { setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}`, { method: 'DELETE', credentials: 'include' }); if (!res.ok) { const t = await res.text(); throw new Error(t || 'Delete failed') }; setBanner('Session deleted'); await onChanged() } catch (e: any) { setErr(e?.message || 'Delete failed') } finally { setBusy(false) }
   }
-  const attach = async ()=>{
+  const attach = async () => {
     if (!attachId) return
-    try{ setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}/speakers/${attachId}`, { method:'POST', credentials:'include' }); const t=await res.text(); if(!res.ok) throw new Error(t||'Attach failed'); setBanner('Speaker attached'); setAttachId('') }catch(e:any){ setErr(e?.message||'Attach failed') } finally{ setBusy(false) }
+    try { setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}/speakers/${attachId}`, { method: 'POST', credentials: 'include' }); const t = await res.text(); if (!res.ok) throw new Error(t || 'Attach failed'); setBanner('Speaker attached'); setAttachId('') } catch (e: any) { setErr(e?.message || 'Attach failed') } finally { setBusy(false) }
   }
-  const detach = async (speakerId:number)=>{
-    try{ setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}/speakers/${speakerId}`, { method:'DELETE', credentials:'include' }); const t=await res.text(); if(!res.ok) throw new Error(t||'Detach failed'); setBanner('Speaker detached') }catch(e:any){ setErr(e?.message||'Detach failed') } finally{ setBusy(false) }
+  const detach = async (speakerId: number) => {
+    try { setBusy(true); const res = await fetch(`/api/events/${eventId}/sessions/${item.id}/speakers/${speakerId}`, { method: 'DELETE', credentials: 'include' }); const t = await res.text(); if (!res.ok) throw new Error(t || 'Detach failed'); setBanner('Speaker detached') } catch (e: any) { setErr(e?.message || 'Detach failed') } finally { setBusy(false) }
   }
 
   return (
@@ -441,7 +508,7 @@ function SessionRow({ item, eventId, onChanged, speakers, setBanner }:{ item: Se
             <div className="text-xs text-slate-500 truncate">{new Date(item.startTime).toLocaleString()} → {new Date(item.endTime).toLocaleString()} {item.room ? `· ${item.room}` : ''}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={()=> setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
+            <button onClick={() => setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
             <button onClick={del} className="rounded-md border border-rose-300 text-rose-700 px-2 py-1 text-xs hover:bg-rose-50">Delete</button>
           </div>
         </div>
@@ -449,23 +516,23 @@ function SessionRow({ item, eventId, onChanged, speakers, setBanner }:{ item: Se
         <div className="space-y-2">
           {err && <div className="text-xs text-rose-600">{err}</div>}
           <div className="grid md:grid-cols-2 gap-2">
-            <input value={title} onChange={e=>setTitle(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
-            <input type="text" value={track} onChange={e=>setTrack(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Track" />
-            <input type="text" value={room} onChange={e=>setRoom(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Room" />
-            <input type="number" value={capacity} onChange={e=>setCapacity(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Capacity" />
-            <input type="datetime-local" value={startTime} onChange={e=>setStartTime(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
-            <input type="datetime-local" value={endTime} onChange={e=>setEndTime(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
-            <textarea value={description} onChange={e=>setDescription(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm min-h-16" placeholder="Description"/>
+            <input value={title} onChange={e => setTitle(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
+            <input type="text" value={track} onChange={e => setTrack(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Track" />
+            <input type="text" value={room} onChange={e => setRoom(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Room" />
+            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Capacity" />
+            <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
+            <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" />
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm min-h-16" placeholder="Description" />
           </div>
           <div className="flex items-center gap-2">
             <button disabled={busy} onClick={save} className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60">Save</button>
-            <button disabled={busy} onClick={()=> setEditing(false)} className="rounded-md border px-3 py-1.5 text-xs">Cancel</button>
+            <button disabled={busy} onClick={() => setEditing(false)} className="rounded-md border px-3 py-1.5 text-xs">Cancel</button>
           </div>
           {/* Attach speaker */}
           <div className="pt-2 border-t mt-2">
             <div className="text-xs text-slate-600 mb-1">Attach Speaker</div>
             <div className="flex items-center gap-2">
-              <select value={attachId} onChange={e=>setAttachId(e.target.value)} className="rounded-md border px-2 py-1 text-xs">
+              <select value={attachId} onChange={e => setAttachId(e.target.value)} className="rounded-md border px-2 py-1 text-xs">
                 <option value="">Select speaker</option>
                 {speakers.map(sp => (<option key={sp.id} value={sp.id}>{sp.name}</option>))}
               </select>
