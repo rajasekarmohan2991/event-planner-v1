@@ -718,7 +718,55 @@ model BoothAsset {
 // ==============================
 // Event Website Design
 // ==============================
+// Budget & Vendor Management
+// ==============================
 
+model EventBudget {
+  id          String   @id @default(cuid())
+  eventId     String   @map("event_id")
+  category    String   // VENUE, CATERING, MARKETING, STAFF, EQUIPMENT, MISC
+  description String?
+  budgeted    Decimal  @db.Decimal(10, 2)
+  spent       Decimal  @default(0) @db.Decimal(10, 2)
+  remaining   Decimal  @default(0) @db.Decimal(10, 2)
+  status      String   @default("ACTIVE") // ACTIVE, EXCEEDED, COMPLETED
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenantId    String?  @map("tenant_id")
+
+  @@index([eventId, category])
+  @@map("event_budgets")
+}
+
+model EventVendor {
+  id              String   @id @default(cuid())
+  eventId         String   @map("event_id")
+  name            String
+  category        String   // VENUE, CATERING, MARKETING, STAFF, EQUIPMENT, MISC
+  contactName     String?  @map("contact_name")
+  contactEmail    String?  @map("contact_email")
+  contactPhone    String?  @map("contact_phone")
+  contractAmount  Decimal  @map("contract_amount") @db.Decimal(10, 2)
+  paidAmount      Decimal  @default(0) @map("paid_amount") @db.Decimal(10, 2)
+  paymentStatus   String   @default("PENDING") @map("payment_status") // PENDING, PARTIAL, PAID, OVERDUE
+  paymentDueDate  DateTime? @map("payment_due_date")
+  status          String   @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  notes           String?  @db.Text
+  contractUrl     String?  @map("contract_url")
+  invoiceUrl      String?  @map("invoice_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenantId        String?  @map("tenant_id")
+
+  @@index([eventId, category])
+  @@index([paymentStatus])
+  @@map("event_vendors")
+}
+
+// ==============================
+// Event Microsites
+// ==============================
 enum SiteStatus {
   DRAFT
   PUBLISHED
