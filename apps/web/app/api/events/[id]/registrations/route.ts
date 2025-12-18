@@ -175,6 +175,54 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // ============================================
+    // PHASE 3: EVENT TIMING VALIDATION
+    // ============================================
+
+    // Fetch event to validate timing
+    const event = await prisma.event.findUnique({
+      where: { id: eventId }
+    })
+
+    if (!event) {
+      return NextResponse.json({
+        message: 'Event not found'
+      }, { status: 404 })
+    }
+
+    const now = new Date()
+    const eventStart = new Date(event.startsAt || event.startDate)
+    const eventEnd = new Date(event.endsAt || event.endDate)
+
+    // 1. Check if event has ended
+    if (now > eventEnd) {
+      return NextResponse.json({
+        message: 'This event has ended. Registration is closed.',
+        details: {
+          eventEnded: eventEnd.toLocaleString(),
+          currentTime: now.toLocaleString()
+        }
+      }, { status: 400 })
+    }
+
+    // 2. Check if event has already started
+    if (now > eventStart) {
+      return NextResponse.json({
+        message: 'This event has already started. Registration is closed.',
+        details: {
+          eventStarted: eventStart.toLocaleString(),
+          currentTime: now.toLocaleString()
+        }
+      }, { status: 400 })
+    }
+
+    console.log('✅ Event timing validation passed:', {
+      eventId: params.id,
+      eventName: event.name,
+      startsAt: eventStart.toISOString(),
+      endsAt: eventEnd.toISOString()
+    })
+
+    // ============================================
     // PHASE 2: TICKET CLASS VALIDATION (SELLING POINT!)
     // ============================================
 

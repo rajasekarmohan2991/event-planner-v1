@@ -68,10 +68,67 @@ export async function POST(req: NextRequest) {
   const startsAt = toDate(incoming.startsAt || incoming.startDate)
   const endsAt = toDate(incoming.endsAt || incoming.endDate)
 
-  if (endsAt < startsAt) {
-    // Basic validation fix
-    endsAt.setTime(startsAt.getTime() + 3600000) // +1 hour
+  // ============================================
+  // PHASE 3: DATE/TIME VALIDATION
+  // ============================================
+
+  const now = new Date()
+
+  // 1. Start date must be in the future (allow creating events for today)
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  if (startsAt < startOfToday) {
+    return NextResponse.json({
+      message: 'Event start date cannot be in the past',
+      details: {
+        provided: startsAt.toISOString(),
+        minimum: startOfToday.toISOString()
+      }
+    }, { status: 400 })
   }
+
+  // 2. End date must be after start date
+  if (endsAt <= startsAt) {
+    return NextResponse.json({
+      message: 'Event end date must be after start date',
+      details: {
+        startDate: startsAt.toISOString(),
+        endDate: endsAt.toISOString()
+      }
+    }, { status: 400 })
+  }
+
+  // 3. Reasonable duration check (max 365 days)
+  const durationMs = endsAt.getTime() - startsAt.getTime()
+  const durationDays = durationMs / (1000 * 60 * 60 * 24)
+
+  if (durationDays > 365) {
+    return NextResponse.json({
+      message: 'Event duration cannot exceed 365 days',
+      details: {
+        duration: `${Math.round(durationDays)} days`,
+        maximum: '365 days'
+      }
+    }, { status: 400 })
+  }
+
+  // 4. Minimum duration check (at least 1 hour)
+  const durationHours = durationMs / (1000 * 60 * 60)
+
+  if (durationHours < 1) {
+    return NextResponse.json({
+      message: 'Event must be at least 1 hour long',
+      details: {
+        duration: `${Math.round(durationHours * 60)} minutes`,
+        minimum: '1 hour'
+      }
+    }, { status: 400 })
+  }
+
+  console.log('✅ Event date validation passed:', {
+    startsAt: startsAt.toISOString(),
+    endsAt: endsAt.toISOString(),
+    duration: `${Math.round(durationDays)} days, ${Math.round(durationHours % 24)} hours`
+  })
 
   try {
     console.log(`📝 Creating event via Prisma: "${name}" for Tenant: ${tenantId}`)
