@@ -636,6 +636,38 @@ model Exhibitor {
   // Additional fees
   electricalAccess    Boolean  @default(false) @map("electrical_access")
   displayTables       Boolean  @default(false) @map("display_tables")
+  
+  // Stepper Workflow Fields
+  status              String   @default("PENDING_CONFIRMATION") // PENDING_CONFIRMATION, AWAITING_APPROVAL, PAYMENT_PENDING, PAYMENT_COMPLETED, BOOTH_ALLOCATED, CONFIRMED, REJECTED, CANCELLED
+  
+  // Email Confirmation
+  emailConfirmed      Boolean  @default(false) @map("email_confirmed")
+  confirmationToken   String?  @unique @map("confirmation_token")
+  confirmedAt         DateTime? @map("confirmed_at")
+  
+  // Admin Approval
+  adminApproved       Boolean  @default(false) @map("admin_approved")
+  approvedBy          String?  @map("approved_by")
+  approvedAt          DateTime? @map("approved_at")
+  rejectionReason     String?  @map("rejection_reason")
+  
+  // Payment
+  paymentStatus       String   @default("PENDING") @map("payment_status") // PENDING, COMPLETED, FAILED
+  paymentAmount       Decimal? @map("payment_amount") @db.Decimal(10, 2)
+  paymentMethod       String?  @map("payment_method")
+  paymentReference    String?  @map("payment_reference")
+  paidAt              DateTime? @map("paid_at")
+  
+  // Booth Allocation
+  boothAllocated      Boolean  @default(false) @map("booth_allocated")
+  allocatedBy         String?  @map("allocated_by")
+  allocatedAt         DateTime? @map("allocated_at")
+  
+  // QR Code
+  qrCode              String?  @map("qr_code") @db.Text
+  qrCodeData          String?  @map("qr_code_data") @db.Text
+  checkInCode         String?  @unique @map("check_in_code")
+  
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
   booths              Booth[]
