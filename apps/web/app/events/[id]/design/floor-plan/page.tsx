@@ -227,8 +227,20 @@ export default function FloorPlanDesignerPage({ params }: { params: { id: string
         body: JSON.stringify({ floorPlan })
       })
 
-      if (!res.ok) throw new Error('Failed to generate seats')
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text()
+        console.error('❌ Received non-JSON response:', text.substring(0, 200))
+        throw new Error('Server error: Expected JSON but received HTML. The API endpoint may not exist.')
+      }
+
       const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Failed to generate seats')
+      }
+
       alert('Floor plan saved and seats generated successfully!')
       loadSavedPlans()
       setActiveTool('plans')
