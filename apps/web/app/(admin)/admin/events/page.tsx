@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, MapPin, Users, Edit, Trash2, Plus, Eye, Ticket } from 'lucide-react'
 import dynamicImport from 'next/dynamic'
+import BackButton from '@/components/ui/back-button'
 
 const LottieAnimation = dynamicImport(() => import('@/components/animations/LottieAnimation').then(mod => mod.LottieAnimation), { ssr: false })
 
@@ -47,7 +48,7 @@ export default function EventsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return
-    
+
     try {
       const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -93,6 +94,10 @@ export default function EventsPage() {
 
   return (
     <div className="p-6">
+      <div className="mb-4">
+        <BackButton fallbackUrl="/admin" />
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12">
@@ -119,11 +124,10 @@ export default function EventsPage() {
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-4 py-2 font-medium capitalize ${
-              filter === tab
+            className={`px-4 py-2 font-medium capitalize ${filter === tab
                 ? 'border-b-2 border-indigo-600 text-indigo-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             {tab}
           </button>
@@ -141,7 +145,7 @@ export default function EventsPage() {
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
           <p className="text-gray-600 mb-4">
-            {filter === 'all' 
+            {filter === 'all'
               ? 'Create your first event to get started'
               : `No ${filter} events at the moment`
             }
@@ -158,8 +162,8 @@ export default function EventsPage() {
               {/* Banner Image */}
               {event.bannerImage && (
                 <div className="w-full h-48 bg-gray-200 overflow-hidden">
-                  <img 
-                    src={event.bannerImage} 
+                  <img
+                    src={event.bannerImage}
                     alt={event.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -168,37 +172,36 @@ export default function EventsPage() {
                   />
                 </div>
               )}
-              
+
               {/* Card Header */}
               <div className="p-6 flex-1">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
                     {event.name}
                   </h3>
-                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${
-                    event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700' :
-                    event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                    event.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
-                    'bg-yellow-100 text-yellow-700'
-                  }`}>
+                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700' :
+                      event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                        event.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
+                    }`}>
                     {event.status}
                   </span>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">
                   {event.description || 'new events to be listed'}
                 </p>
-                
+
                 {/* Event Details */}
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">
-                      {event.startDate && event.startDate !== 'Invalid Date' 
-                        ? new Date(event.startDate).toLocaleDateString() 
+                      {event.startDate && event.startDate !== 'Invalid Date'
+                        ? new Date(event.startDate).toLocaleDateString()
                         : 'Invalid Date'} - {event.endDate && event.endDate !== 'Invalid Date'
-                        ? new Date(event.endDate).toLocaleDateString()
-                        : 'Invalid Date'}
+                          ? new Date(event.endDate).toLocaleDateString()
+                          : 'Invalid Date'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -217,7 +220,7 @@ export default function EventsPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Bottom Actions Bar */}
               <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
                 <span className="font-semibold text-lg text-indigo-600">

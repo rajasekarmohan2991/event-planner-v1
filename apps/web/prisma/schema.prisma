@@ -1333,3 +1333,23 @@ model SeatReservation {
   @@index([seatId])
   @@index([expiresAt])
 }
+
+// ==============================
+// Admin Permissions Matrix
+// ==============================
+
+model ModuleAccess {
+  id          String   @id @default(cuid())
+  moduleName  String   @map("module_name")
+  role        String
+  canView     Boolean  @default(false) @map("can_view")
+  canCreate   Boolean  @default(false) @map("can_create")
+  canEdit     Boolean  @default(false) @map("can_edit")
+  canDelete   Boolean  @default(false) @map("can_delete")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([moduleName, role])
+  @@map("module_access_matrix")
+}
