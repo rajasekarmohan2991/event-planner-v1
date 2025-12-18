@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { SocialSignUp, TermsCheckbox } from './SocialSignUp'
 
 const MotionButton = motion(Button)
 const MotionAlert = motion(Alert)
@@ -62,6 +63,9 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   companyName: z.string().optional(),
   companySlug: z.string().optional(),
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the terms and conditions',
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -91,6 +95,7 @@ export function RegisterForm() {
       confirmPassword: '',
       companyName: '',
       companySlug: '',
+      acceptTerms: false,
     },
   })
 
@@ -252,8 +257,8 @@ export function RegisterForm() {
                 type="button"
                 onClick={() => setRegistrationType('individual')}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${registrationType === 'individual'
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  ? 'border-blue-600 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
                   }`}
               >
                 <User className={`w-6 h-6 mb-2 ${registrationType === 'individual' ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -263,8 +268,8 @@ export function RegisterForm() {
                 type="button"
                 onClick={() => setRegistrationType('company')}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${registrationType === 'company'
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  ? 'border-blue-600 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
                   }`}
               >
                 <Building2 className={`w-6 h-6 mb-2 ${registrationType === 'company' ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -476,11 +481,30 @@ export function RegisterForm() {
               />
             </motion.div>
 
+            {/* Terms and Conditions */}
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
+                name="acceptTerms"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <TermsCheckbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        error={form.formState.errors.acceptTerms?.message}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </motion.div>
+
             <motion.div variants={itemVariants}>
               <MotionButton
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                disabled={isLoading || !form.watch('acceptTerms')}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
               >
@@ -490,9 +514,14 @@ export function RegisterForm() {
                     Creating account...
                   </>
                 ) : (
-                  'Create account'
+                  'Sign up now'
                 )}
               </MotionButton>
+            </motion.div>
+
+            {/* Social Sign Up */}
+            <motion.div variants={itemVariants}>
+              <SocialSignUp />
             </motion.div>
 
             <motion.div
