@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getAuthSession } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
@@ -7,22 +8,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
-    const { 
-      rating, 
-      feedback, 
+    const {
+      rating,
+      feedback,
       category,
       anonymous,
       recommendations,
       wouldRecommend,
-      improvements 
+      improvements
     } = await req.json()
 
     const eventId = parseInt(params.id)
     const userId = (session.user as any)?.id
 
     // Create feedback entry
+    const feedbackId = crypto.randomUUID()
     const feedbackEntry = await prisma.$queryRaw`
       INSERT INTO event_feedback (
+        id,
         event_id, 
         user_id, 
         rating, 
@@ -35,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         created_at
       )
       VALUES (
+        ${feedbackId},
         ${eventId}, 
         ${anonymous ? null : userId}, 
         ${rating}, 

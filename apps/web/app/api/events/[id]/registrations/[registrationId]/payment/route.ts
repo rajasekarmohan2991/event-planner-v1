@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST(
-  req: NextRequest, 
+  req: NextRequest,
   { params }: { params: { id: string; registrationId: string } }
 ) {
   try {
@@ -15,7 +16,7 @@ export async function POST(
 
     const { paymentMethod, amount, status } = await req.json()
     const eventId = parseInt(params.id)
-    const registrationId = parseInt(params.registrationId)
+    const registrationId = params.registrationId
 
     // Update registration with payment information
     const updated = await prisma.$queryRaw`
@@ -45,10 +46,14 @@ export async function POST(
 
     // Record payment row for history
     try {
-      const amountInMinor = Math.round(Number(amount || 0) * 100)
+      const amountInMinor = Math.round(Number(amount || 0) * 100) // Convert to minor units (paise)
+      const paymentStatus = Number(amount || 0) > 0 ? 'COMPLETED' : 'FREE'
+
+      const paymentId = crypto.randomUUID()
       const userId = (session as any)?.user?.id ? BigInt((session as any).user.id) : null
       await prisma.$executeRaw`
         INSERT INTO payments (
+          id,
           registration_id,
           event_id,
           user_id,
@@ -60,7 +65,8 @@ export async function POST(
           created_at,
           updated_at
         ) VALUES (
-          ${BigInt(registrationId)},
+          ${paymentId},
+          ${registrationId},
           ${eventId},
           ${userId},
           ${amountInMinor},
@@ -86,7 +92,7 @@ export async function POST(
       paymentStatus: 'paid',
       timestamp: new Date().toISOString()
     }
-    
+
     const qrCode = Buffer.from(JSON.stringify(qrData)).toString('base64')
     const checkInUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${eventId}/checkin?token=${qrCode}`
 
@@ -94,7 +100,7 @@ export async function POST(
     try {
       const eventRes = await fetch(`${process.env.NEXTAUTH_URL}/api/events/${eventId}`)
       const eventData = eventRes.ok ? await eventRes.json() : null
-      
+
       const emailHtml = `
         <!DOCTYPE html>
         <html>

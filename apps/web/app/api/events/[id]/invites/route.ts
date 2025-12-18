@@ -91,12 +91,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     for (const invitee of inviteeList) {
       const { email, name, organization, category, discountCode } = invitee
       const inviteCode = crypto.randomBytes(16).toString('hex')
+      const inviteId = crypto.randomUUID()
 
       try {
         // Insert invite
         await prisma.$executeRaw`
-          INSERT INTO event_invites (event_id, email, invitee_name, organization, category, discount_code, invite_code, invited_by, expires_at, status)
-          VALUES (${eventId}, ${email}, ${name || null}, ${organization || null}, ${category || 'General'}, ${discountCode || null}, ${inviteCode}, ${userId}, ${expiresAt}, 'PENDING')
+          INSERT INTO event_invites (id, event_id, email, invitee_name, organization, category, discount_code, invite_code, invited_by, expires_at, status)
+          VALUES (${inviteId}, ${eventId}, ${email}, ${name || null}, ${organization || null}, ${category || 'General'}, ${discountCode || null}, ${inviteCode}, ${userId}, ${expiresAt}, 'PENDING')
           ON CONFLICT (event_id, email) 
           DO UPDATE SET 
             invitee_name = ${name || null},
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         // Send invite email (build robust absolute URL)
         const baseUrl = ((process.env.NEXTAUTH_URL || req.nextUrl.origin) || '').replace(/\/$/, '')
         const responseUrl = `${baseUrl}/events/${eventId}/invite-response?code=${inviteCode}`
-        
+
         await sendEmail({
           to: email,
           subject: `🎟️ You're Invited: ${eventDetails.title}`,
