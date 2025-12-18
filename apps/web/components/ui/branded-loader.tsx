@@ -12,8 +12,8 @@ export function BrandedLoader({ text = "Loading...", className }: BrandedLoaderP
     return (
         <div className={cn("flex h-full min-h-[50vh] w-full flex-col items-center justify-center gap-6 p-8", className)}>
             <div className="relative flex flex-col items-center justify-center gap-6">
-                {/* Ayphen Logo - Smaller and clearer */}
-                <div className="relative w-40 h-16">
+                {/* Ayphen Logo - Smaller size with reduced font */}
+                <div className="relative w-32 h-12">
                     <Image
                         src="/images/ayphen-logo.png"
                         alt="Ayphen Technologies"
@@ -26,7 +26,7 @@ export function BrandedLoader({ text = "Loading...", className }: BrandedLoaderP
 
                 {/* Loading text with animated dots */}
                 <div className="flex flex-col items-center gap-3">
-                    <p className="text-sm text-gray-700 font-medium">{text}</p>
+                    <p className="text-xs text-gray-600 font-medium">{text}</p>
                     <div className="flex gap-1.5">
                         <span className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                         <span className="w-2 h-2 bg-pink-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>

@@ -154,19 +154,22 @@ export async function GET(req: NextRequest) {
     const userId = (session as any)?.user?.id
     const tenantId = (session as any)?.user?.currentTenantId
 
-    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, Role: ${userRole}`)
+    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, Role: ${userRole}, Tenant: ${tenantId}`)
+    console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
 
     const where: any = {}
 
     // 1. Role-based filtering
     if (userRole === 'SUPER_ADMIN') {
-      console.log('✅ SUPER_ADMIN - No filtering')
+      console.log('✅ SUPER_ADMIN - No filtering applied')
+      // No where clause for SUPER_ADMIN - they see everything
     } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
       if (tenantId) {
         where.tenantId = tenantId
         console.log(`🏢 Tenant filtering: ${tenantId}`)
       } else {
         where.tenantId = 'non-existent'
+        console.log('⚠️ No tenantId - blocking access')
       }
     } else {
       if (isMyEvents && userId) {
@@ -175,8 +178,10 @@ export async function GET(req: NextRequest) {
           select: { eventId: true }
         })
         where.id = { in: registrations.map(r => r.eventId) }
+        console.log(`👤 My Events: ${registrations.length} registrations`)
       } else {
         where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
+        console.log('🌍 Public mode - published events only')
       }
     }
 
@@ -187,9 +192,18 @@ export async function GET(req: NextRequest) {
         { description: { contains: search, mode: 'insensitive' } },
         { city: { contains: search, mode: 'insensitive' } }
       ]
+      console.log(`🔎 Search: "${search}"`)
     }
-    if (statusParam && statusParam !== 'ALL') where.status = statusParam
-    if (modeParam && modeParam !== 'ALL') where.eventMode = modeParam
+    if (statusParam && statusParam !== 'ALL') {
+      where.status = statusParam
+      console.log(`📊 Status filter: ${statusParam}`)
+    }
+    if (modeParam && modeParam !== 'ALL') {
+      where.eventMode = modeParam
+      console.log(`🎭 Mode filter: ${modeParam}`)
+    }
+
+    console.log('📋 Final WHERE clause:', JSON.stringify(where, null, 2))
 
     // 3. Execute optimized query with minimal fields
     const [events, total] = await Promise.all([
