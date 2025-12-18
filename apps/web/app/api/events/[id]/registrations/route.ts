@@ -266,41 +266,47 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       // 4. QUANTITY LIMITS (SELLING POINT!)
-      if (ticket.minQuantity && quantity < ticket.minQuantity) {
+      const minQty = (ticket as any).minQuantity
+      const maxQty = (ticket as any).maxQuantity
+
+      if (minQty && quantity < minQty) {
         return NextResponse.json({
-          message: `Minimum ${ticket.minQuantity} tickets required for "${ticket.name}"`
+          message: `Minimum ${minQty} tickets required for "${ticket.name}"`
         }, { status: 400 })
       }
 
-      if (ticket.maxQuantity && quantity > ticket.maxQuantity) {
+      if (maxQty && quantity > maxQty) {
         return NextResponse.json({
-          message: `Maximum ${ticket.maxQuantity} tickets allowed for "${ticket.name}"`
+          message: `Maximum ${maxQty} tickets allowed for "${ticket.name}"`
         }, { status: 400 })
       }
 
       // 5. SALES PERIOD (SELLING POINT!)
       const now = new Date()
+      const salesStart = (ticket as any).salesStartAt
+      const salesEnd = (ticket as any).salesEndAt
 
-      if (ticket.salesStartAt && now < ticket.salesStartAt) {
+      if (salesStart && now < new Date(salesStart)) {
         return NextResponse.json({
-          message: `Ticket sales for "${ticket.name}" start on ${ticket.salesStartAt.toLocaleString()}`
+          message: `Ticket sales for "${ticket.name}" start on ${new Date(salesStart).toLocaleString()}`
         }, { status: 400 })
       }
 
-      if (ticket.salesEndAt && now > ticket.salesEndAt) {
+      if (salesEnd && now > new Date(salesEnd)) {
         return NextResponse.json({
-          message: `Ticket sales for "${ticket.name}" ended on ${ticket.salesEndAt.toLocaleString()}`
+          message: `Ticket sales for "${ticket.name}" ended on ${new Date(salesEnd).toLocaleString()}`
         }, { status: 400 })
       }
 
       // 6. USER TYPE RESTRICTIONS (SELLING POINT!)
-      if (ticket.allowedUserTypes) {
-        const allowedTypes = ticket.allowedUserTypes.split(',').map(t => t.trim())
+      const allowedTypes = (ticket as any).allowedUserTypes
+      if (allowedTypes) {
+        const allowedList = allowedTypes.split(',').map((t: string) => t.trim())
         const userType = (session as any)?.user?.userType || 'GENERAL'
 
-        if (!allowedTypes.includes(userType)) {
+        if (!allowedList.includes(userType)) {
           return NextResponse.json({
-            message: `"${ticket.name}" is only available for: ${allowedTypes.join(', ')}`
+            message: `"${ticket.name}" is only available for: ${allowedList.join(', ')}`
           }, { status: 400 })
         }
       }
