@@ -191,8 +191,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const now = new Date()
-    const eventStart = new Date(event.startsAt || event.startDate)
-    const eventEnd = new Date(event.endsAt || event.endDate)
+    const eventStart = new Date(event.startsAt)
+    const eventEnd = new Date(event.endsAt)
 
     // 1. Check if event has ended
     if (now > eventEnd) {
