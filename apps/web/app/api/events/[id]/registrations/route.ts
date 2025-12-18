@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       paramIndex++
     }
     if (status) {
-      whereConditions.push(`(data_json->>'status') = $${paramIndex}`)
+      whereConditions.push(`(data_json::jsonb->>'status') = $${paramIndex}`)
       queryParams.push(status)
       paramIndex++
     }
