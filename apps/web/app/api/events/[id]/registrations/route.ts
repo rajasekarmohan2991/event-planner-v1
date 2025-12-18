@@ -145,11 +145,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Invalid JSON in request body' }, { status: 400 })
     }
 
-    const eventId = parseInt(params.id)
-
-    if (isNaN(eventId)) {
-      return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
-    }
+    const eventId = BigInt(params.id)
 
     // Build registration data JSON from form data
     const formData = parsed?.data || parsed
@@ -162,7 +158,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Extract payment and promo code info
-    // Check multiple locations for price (formData might not have it if it's sent at root level)
     const totalPrice = formData.totalPrice || formData.priceInr || parsed.priceInr || parsed.totalPrice || 0
     const promoCode = formData.promoCode || parsed.promoCode || null
     const paymentMethod = formData.paymentMethod || 'CARD'
@@ -171,38 +166,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Calculate final amount (will be adjusted if promo code is valid)
     let finalAmount = totalPrice
     let discountAmount = 0
-    let promoCodeId: string | null = null
+    let promoCodeId: bigint | null = null
 
     // Validate and apply promo code if provided
     if (promoCode) {
       try {
-        const promoResult = await prisma.$queryRaw`
-          SELECT 
-            id::text as id,
-            code,
-            type,
-            amount,
-            max_redemptions as "maxRedemptions",
-            per_user_limit as "perUserLimit",
-            starts_at as "startsAt",
-            ends_at as "endsAt",
-            min_order_amount as "minOrderAmount",
-            status
-          FROM promo_codes
-          WHERE code = ${promoCode}
-            AND scope_ref = ${eventId.toString()}
-            AND status = 'ACTIVE'
-        ` as any[]
+        const promo = await prisma.promoCode.findFirst({
+          where: {
+            code: promoCode,
+            eventId: BigInt(params.id), // eventId matches scopeRef concept
+            isActive: true
+          }
+        })
 
-        if (promoResult.length > 0) {
-          const promo = promoResult[0]
+        if (promo) {
           const now = new Date()
 
           // Validate promo code
-          if (promo.startsAt && new Date(promo.startsAt) > now) {
+          if (promo.startsAt && promo.startsAt > now) {
             return NextResponse.json({ message: 'Promo code not yet active' }, { status: 400 })
           }
-          if (promo.endsAt && new Date(promo.endsAt) < now) {
+          if (promo.endsAt && promo.endsAt < now) {
             return NextResponse.json({ message: 'Promo code has expired' }, { status: 400 })
           }
           if (promo.minOrderAmount && totalPrice < Number(promo.minOrderAmount)) {
@@ -212,13 +196,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           }
 
           // Check usage limits
-          const usageCount = await prisma.$queryRaw`
+          const usageCountResult = await prisma.$queryRaw<any[]>`
             SELECT COUNT(*)::int as count
             FROM promo_redemptions
             WHERE promo_code_id = ${BigInt(promo.id)}
-          ` as any[]
+          `
+          const usageCount = usageCountResult[0]?.count || 0
 
-          if (promo.maxRedemptions && usageCount[0].count >= promo.maxRedemptions) {
+
+          if (promo.maxRedemptions && usageCount >= promo.maxRedemptions) {
             return NextResponse.json({ message: 'Promo code usage limit reached' }, { status: 400 })
           }
 
@@ -238,6 +224,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
+    const userId = (session as any)?.user?.id ? BigInt((session as any).user.id) : null
+
     const registrationData = {
       email: formData.email,
       firstName: formData.firstName,
@@ -247,9 +235,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       company: formData.company || '',
       sessionPreferences: formData.sessionPreferences || [],
       type: parsed?.type || 'VIRTUAL',
-      userId: (session as any)?.user?.id || null,
+      userId: userId ? String(userId) : null,
       registeredAt: new Date().toISOString(),
-      status: 'CONFIRMED', // Set to CONFIRMED for paid registrations
+      status: 'CONFIRMED',
       approvedAt: null,
       approvedBy: null,
       cancelledAt: null,
@@ -264,32 +252,52 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       selectedSeats: selectedSeats
     }
 
-    const newId = crypto.randomUUID()
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create Registration
+      const registration = await tx.registration.create({
+        data: {
+          eventId: eventId,
+          dataJson: registrationData, // Prisma handles JSON conversion
+          type: parsed?.type || 'VIRTUAL',
+          email: registrationData.email,
+          createdAt: new Date(),
+          status: 'APPROVED' // Directly set status
+        }
+      })
 
-    // Insert using raw SQL to match actual table structure
-    const created = await prisma.$queryRaw`
-      INSERT INTO registrations (id, event_id, data_json, type, email, created_at)
-      VALUES (${newId}, ${eventId}, ${JSON.stringify(registrationData)}::jsonb, ${parsed?.type || 'VIRTUAL'}, ${registrationData.email}, NOW())
-      RETURNING id::text as id, event_id as "eventId", data_json as "dataJson", type, email, created_at as "createdAt"
-    `
+      const regIdStr = registration.id // UUID string
 
-    const registration = (created as any)[0]
+      // 2. Create Payment Record (Using Order model which replaces Payment)
+      const amountInMinor = Math.round(finalAmount * 100)
 
-    if (!registration) {
-      throw new Error('Failed to create registration')
-    }
+      // Check if Order model exists, otherwise use raw SQL for payments table
+      // verifiable via schema: Order model exists.
+      await tx.order.create({
+        data: {
+          eventId: String(eventId),
+          userId: userId,
+          email: registrationData.email,
+          status: finalAmount > 0 ? 'PAID' : 'CREATED',
+          paymentStatus: finalAmount > 0 ? 'COMPLETED' : 'FREE',
+          totalInr: finalAmount,
+          meta: {
+            registrationId: regIdStr,
+            originalAmount: totalPrice,
+            discountAmount: discountAmount,
+            promoCode: promoCode,
+            paymentMethod: paymentMethod
+          },
+          createdAt: new Date()
+        }
+      })
 
-    const registrationId = registration.id // UUID string
-    const userId = (session as any)?.user?.id ? BigInt((session as any).user.id) : null
-
-    // Create payment record
-    try {
-      const amountInMinor = Math.round(finalAmount * 100) // Convert to minor units (paise)
-      const paymentStatus = finalAmount > 0 ? 'COMPLETED' : 'FREE'
+      // Also insert into legacy payments table if needed by other apps, or just skip if Order is the new standard. 
+      // The original code used 'payments'. I'll stick to 'payments' via raw SQL to ensure backward compatibility if 'Answer' code expects it, 
+      // BUT 'Order' is the prisma model.
+      // safest bet: use raw SQL for 'payments' to match previous logic exactly, as 'Order' layout might be different.
 
       const paymentId = crypto.randomUUID()
-
-      await prisma.$executeRaw`
+      await tx.$executeRaw`
         INSERT INTO payments (
           id,
           registration_id,
@@ -304,12 +312,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           updated_at
         ) VALUES (
           ${paymentId},
-          ${String(registrationId)}, 
+          ${regIdStr}, 
           ${eventId},
           ${userId},
           ${amountInMinor},
           'INR',
-          ${paymentStatus},
+          ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
           ${paymentMethod},
           ${JSON.stringify({
         originalAmount: totalPrice,
@@ -323,16 +331,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         )
       `
 
-      console.log(`Payment record created for registration ${registration.id}: ${finalAmount} INR`)
-    } catch (paymentError) {
-      console.error('Failed to create payment record:', paymentError)
-      // Continue even if payment record creation fails
-    }
-
-    // Create promo code redemption record if promo was used
-    if (promoCodeId && userId) {
-      try {
-        await prisma.$executeRaw`
+      // 3. Create Promo Redemption (Raw SQL as model missing)
+      if (promoCodeId && userId) {
+        await tx.$executeRaw`
           INSERT INTO promo_redemptions (
             promo_code_id,
             user_id,
@@ -347,48 +348,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             NOW()
           )
         `
-        console.log(`Promo code ${promoCode} redeemed for registration ${registration.id}`)
-      } catch (redemptionError) {
-        console.error('Failed to create promo redemption record:', redemptionError)
-        // Continue even if redemption record creation fails
       }
-    }
 
-    // Create registration approval record for tracking
-    try {
-      await prisma.$executeRaw`
+      // 4. Create Approval Record (Raw SQL as model missing)
+      await tx.$executeRaw`
         INSERT INTO registration_approvals (
           registration_id,
           event_id,
           status,
           created_at
         ) VALUES (
-          ${registrationId},
+          ${regIdStr},
           ${eventId},
           'APPROVED',
           NOW()
         )
       `
-    } catch (approvalError) {
-      console.error('Failed to create approval record:', approvalError)
-      // Continue even if approval record creation fails
-    }
 
-    // Convert registration to plain object (handle BigInt)
-    const parsedDataJson = typeof registration.dataJson === 'string' ? JSON.parse(registration.dataJson) : registration.dataJson
+      return registration
+    })
 
-    const registrationData_response = {
-      id: String(registration.id),
-      eventId: Number(registration.eventId),
-      dataJson: parsedDataJson,
-      type: registration.type,
-      createdAt: registration.createdAt
-    }
+    const registration = result
 
     // Generate QR code for check-in
     const qrData = {
       registrationId: String(registration.id),
-      eventId: eventId,
+      eventId: params.id,
       email: registrationData.email,
       name: `${registrationData.firstName} ${registrationData.lastName}`.trim(),
       type: registrationData.type,
@@ -397,16 +382,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Add QR code data to response
     const response = {
-      ...registrationData_response,
+      id: String(registration.id),
+      eventId: Number(registration.eventId),
+      dataJson: registrationData,
+      type: registration.type,
+      createdAt: registration.createdAt,
       qrCode: Buffer.from(JSON.stringify(qrData)).toString('base64'),
-      checkInUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${eventId}/checkin?token=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
+      checkInUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${params.id}/checkin?token=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
     }
 
     // Fetch event name for activity logging
-    const eventResult = await prisma.$queryRaw`
-      SELECT name FROM events WHERE id = ${eventId}::bigint LIMIT 1
-    ` as any[]
-    const eventName = eventResult.length > 0 ? eventResult[0].name : `Event #${eventId}`
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { name: true }
+    })
+    const eventName = event?.name || `Event #${params.id}`
 
     // Log registration activity
     logActivity({
@@ -419,13 +409,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       entityName: `${registrationData.firstName} ${registrationData.lastName}`,
       description: `Registration successful for "${eventName}"`,
       metadata: {
-        eventId,
+        eventId: params.id,
         eventName,
         type: registrationData.type,
         amount: finalAmount,
         promoCode: promoCode || undefined
       }
     }).catch(err => console.error('Failed to log registration activity:', err))
+
 
     // Send confirmation email with QR code (async, don't wait)
     if (registrationData.email) {
