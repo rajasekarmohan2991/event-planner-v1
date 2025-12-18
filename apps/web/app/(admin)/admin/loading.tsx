@@ -1,5 +1,5 @@
-import { BrandedLoader } from '@/components/ui/branded-loader';
+import { BrandedLoader } from '@/components/ui/branded-loader'
 
-export default function AdminLoading() {
-  return <BrandedLoader text="Loading Dashboard..." />;
+export default function Loading() {
+  return <BrandedLoader text="Loading Admin Panel..." className="h-screen bg-white" />
 }

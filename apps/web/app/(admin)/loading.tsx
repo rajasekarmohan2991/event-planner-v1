@@ -1,5 +1,5 @@
 import { BrandedLoader } from '@/components/ui/branded-loader'
 
 export default function Loading() {
-  return <BrandedLoader text="Loading Admin Module..." />
+  return <BrandedLoader text="Loading..." className="h-screen bg-white" />
 }

@@ -1,5 +1,5 @@
 import { BrandedLoader } from '@/components/ui/branded-loader'
 
 export default function Loading() {
-  return <BrandedLoader text="Loading Events..." />
+  return <BrandedLoader text="Loading Events..." className="h-screen bg-white" />
 }
