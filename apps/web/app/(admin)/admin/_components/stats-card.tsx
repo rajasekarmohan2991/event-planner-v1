@@ -12,27 +12,27 @@ interface StatsCardProps {
   href?: string;
 }
 
-// Color schemes for different card types
+// Color schemes for different card types - Lighter, more vibrant
 const cardStyles = [
   {
-    // Purple gradient - for first card
-    bg: 'bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 dark:from-purple-600 dark:via-purple-700 dark:to-indigo-700',
-    iconBg: 'bg-white/10 backdrop-blur-sm group-hover:bg-white/20',
+    // Purple gradient - lighter and more vibrant
+    bg: 'bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500 dark:from-purple-500 dark:via-purple-600 dark:to-indigo-600',
+    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
   },
   {
-    // Teal gradient - for second card
-    bg: 'bg-gradient-to-br from-teal-500 via-emerald-500 to-green-600 dark:from-teal-600 dark:via-emerald-600 dark:to-green-700',
-    iconBg: 'bg-white/10 backdrop-blur-sm group-hover:bg-white/20',
+    // Teal/Green gradient - lighter and more vibrant
+    bg: 'bg-gradient-to-br from-teal-400 via-emerald-400 to-green-500 dark:from-teal-500 dark:via-emerald-500 dark:to-green-600',
+    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
   },
   {
-    // Blue gradient - for third card
-    bg: 'bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 dark:from-blue-600 dark:via-cyan-600 dark:to-blue-700',
-    iconBg: 'bg-white/10 backdrop-blur-sm group-hover:bg-white/20',
+    // Blue/Cyan gradient - lighter and more vibrant
+    bg: 'bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-500 dark:from-blue-500 dark:via-cyan-500 dark:to-blue-600',
+    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
   },
   {
-    // Orange gradient - for fourth card
-    bg: 'bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-600 dark:from-orange-600 dark:via-amber-600 dark:to-yellow-700',
-    iconBg: 'bg-white/10 backdrop-blur-sm group-hover:bg-white/20',
+    // Orange/Amber gradient - lighter and more vibrant
+    bg: 'bg-gradient-to-br from-orange-400 via-amber-400 to-yellow-500 dark:from-orange-500 dark:via-amber-500 dark:to-yellow-600',
+    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
   },
 ];
 

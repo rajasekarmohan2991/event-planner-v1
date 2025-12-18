@@ -9,12 +9,52 @@ const bigIntReplacer = (key: string, value: any) =>
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const speakers = await prisma.speaker.findMany({
-      where: { eventId: BigInt(params.id) }
+    console.log('📡 Fetching speakers for event:', params.id)
+
+    // Get pagination params from URL
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get('page') || '0')
+    const size = parseInt(searchParams.get('size') || '20')
+
+    // Validate event ID
+    let eventId: bigint
+    try {
+      eventId = BigInt(params.id)
+    } catch (e) {
+      console.error('❌ Invalid event ID:', params.id)
+      return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
+    }
+
+    // Fetch speakers with pagination
+    const [speakers, total] = await Promise.all([
+      prisma.speaker.findMany({
+        where: { eventId },
+        skip: page * size,
+        take: size,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.speaker.count({
+        where: { eventId }
+      })
+    ])
+
+    console.log(`✅ Found ${speakers.length} speakers (total: ${total})`)
+
+    return NextResponse.json({
+      data: JSON.parse(JSON.stringify(speakers, bigIntReplacer)),
+      pagination: {
+        page,
+        size,
+        total,
+        totalPages: Math.ceil(total / size)
+      }
     })
-    return NextResponse.json(JSON.parse(JSON.stringify(speakers, bigIntReplacer)))
   } catch (e: any) {
-    return NextResponse.json({ message: e?.message || 'Failed to load speakers' }, { status: 500 })
+    console.error('❌ Failed to load speakers:', e)
+    return NextResponse.json({
+      message: e?.message || 'Failed to load speakers',
+      error: e?.toString()
+    }, { status: 500 })
   }
 }
 
