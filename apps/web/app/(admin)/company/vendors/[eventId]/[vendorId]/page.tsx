@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
-const CATEGORIES = ['Catering','Venue','Photography','Entertainment','Decoration','Other'] as const
-const STATUSES = ['booked','pending','cancelled'] as const
+const CATEGORIES = ['Catering', 'Venue', 'Photography', 'Entertainment', 'Decoration', 'Other'] as const
+const STATUSES = ['booked', 'pending', 'cancelled'] as const
 
 const schema = z.object({
   name: z.string().min(2),
@@ -42,13 +42,13 @@ type Vendor = {
   contract?: boolean
   contractUrl?: string
   attachments?: { id: string; url: string; name?: string; kind?: string; uploadedAt: string }[]
-  status: 'booked'|'pending'|'cancelled'
+  status: 'booked' | 'pending' | 'cancelled'
   notes?: string
   createdAt: string
   updatedAt: string
 }
 
-type Log = { t: string; type: string; by?: string | null; [k: string]: any }
+type Log = { t: string; type: string; by?: string | null;[k: string]: any }
 
 export default function VendorDetailsPage() {
   const params = useParams<{ eventId: string; vendorId: string }>()
@@ -61,7 +61,7 @@ export default function VendorDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [originalStatus, setOriginalStatus] = useState<'booked'|'pending'|'cancelled'>('pending')
+  const [originalStatus, setOriginalStatus] = useState<'booked' | 'pending' | 'cancelled'>('pending')
   const [attUploading, setAttUploading] = useState(false)
   const [attUploadError, setAttUploadError] = useState<string | null>(null)
   const [attName, setAttName] = useState('')
@@ -71,6 +71,67 @@ export default function VendorDetailsPage() {
     resolver: zodResolver(schema),
     defaultValues: { name: '', category: 'Other', status: 'pending', contract: false, costInr: 0, contractUrl: '', reason: '' }
   })
+
+  const onRemoveContract = async () => {
+    if (!confirm('Remove contract for this vendor?')) return
+    const res = await fetch(`/api/events/${eventId}/vendors`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ vendorId, contract: false, contractUrl: '' })
+    })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(d?.error || 'Failed to remove contract')
+      return
+    }
+    await load()
+  }
+
+  const onUploadAttachment = async (file: File) => {
+    try {
+      setAttUploadError(null)
+      setAttUploading(true)
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || 'Upload failed')
+      const url = data?.url
+      if (!url) throw new Error('No URL returned')
+      const patch = await fetch(`/api/events/${eventId}/vendors`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ vendorId, addAttachment: { url, name: attName || file.name, kind: attKind } })
+      })
+      const pd = await patch.json().catch(() => null)
+      if (!patch.ok) throw new Error(pd?.error || 'Failed to add attachment')
+      setAttName('')
+      setAttKind('invoice')
+      await load()
+    } catch (e: any) {
+      setAttUploadError(e?.message || 'Upload failed')
+    } finally {
+      setAttUploading(false)
+    }
+  }
+
+  const onRemoveAttachment = async (id: string) => {
+    if (!confirm('Remove this attachment?')) return
+    const res = await fetch(`/api/events/${eventId}/vendors`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ vendorId, removeAttachmentId: id })
+    })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(d?.error || 'Failed to remove attachment')
+      return
+    }
+    await load()
+  }
 
   const load = async () => {
     try {
@@ -96,66 +157,6 @@ export default function VendorDetailsPage() {
         setOriginalStatus(found.status)
       }
 
-  const onRemoveContract = async () => {
-    if (!confirm('Remove contract for this vendor?')) return
-    const res = await fetch(`/api/events/${eventId}/vendors`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ vendorId, contract: false, contractUrl: '' })
-    })
-    const d = await res.json().catch(()=>({}))
-    if (!res.ok) {
-      alert(d?.error || 'Failed to remove contract')
-      return
-    }
-    await load()
-  }
-
-  const onUploadAttachment = async (file: File) => {
-    try {
-      setAttUploadError(null)
-      setAttUploading(true)
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/uploads', { method: 'POST', body: fd })
-      const data = await res.json().catch(()=>null)
-      if (!res.ok) throw new Error(data?.message || 'Upload failed')
-      const url = data?.url
-      if (!url) throw new Error('No URL returned')
-      const patch = await fetch(`/api/events/${eventId}/vendors`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ vendorId, addAttachment: { url, name: attName || file.name, kind: attKind } })
-      })
-      const pd = await patch.json().catch(()=>null)
-      if (!patch.ok) throw new Error(pd?.error || 'Failed to add attachment')
-      setAttName('')
-      setAttKind('invoice')
-      await load()
-    } catch (e:any) {
-      setAttUploadError(e?.message || 'Upload failed')
-    } finally {
-      setAttUploading(false)
-    }
-  }
-
-  const onRemoveAttachment = async (id: string) => {
-    if (!confirm('Remove this attachment?')) return
-    const res = await fetch(`/api/events/${eventId}/vendors`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ vendorId, removeAttachmentId: id })
-    })
-    const d = await res.json().catch(()=>({}))
-    if (!res.ok) {
-      alert(d?.error || 'Failed to remove attachment')
-      return
-    }
-    await load()
-  }
       const lr = await fetch(`/api/events/${eventId}/vendors/${vendorId}/logs`, { credentials: 'include' })
       const ld = await lr.json()
       setLogs(Array.isArray(ld.logs) ? ld.logs : [])
@@ -189,7 +190,7 @@ export default function VendorDetailsPage() {
       body: JSON.stringify({ vendorId })
     })
     if (!res.ok) {
-      const d = await res.json().catch(()=>({}))
+      const d = await res.json().catch(() => ({}))
       alert(d?.error || 'Failed to delete vendor')
       return
     }
@@ -208,7 +209,7 @@ export default function VendorDetailsPage() {
           <div className="text-sm text-gray-600">{vendor.category}</div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={vendor.status==='booked' ? 'bg-green-100 text-green-700' : vendor.status==='pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}>{vendor.status}</Badge>
+          <Badge className={vendor.status === 'booked' ? 'bg-green-100 text-green-700' : vendor.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}>{vendor.status}</Badge>
           <Button variant="secondary" onClick={onRemoveContract} disabled={!vendor.contract && !vendor.contractUrl}>Remove Contract</Button>
           <Button variant="destructive" onClick={onDelete}>Delete</Button>
         </div>
@@ -231,7 +232,7 @@ export default function VendorDetailsPage() {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Select"/></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(c => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
                       </SelectContent>
@@ -246,7 +247,7 @@ export default function VendorDetailsPage() {
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Select"/></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="booked">Booked</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
@@ -268,8 +269,8 @@ export default function VendorDetailsPage() {
                 <FormField control={form.control} name="contract" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Contract</FormLabel>
-                    <Select value={String(field.value||'false')} onValueChange={(v)=>field.onChange(v==='true')}>
-                      <SelectTrigger><SelectValue placeholder="No"/></SelectTrigger>
+                    <Select value={String(field.value || 'false')} onValueChange={(v) => field.onChange(v === 'true')}>
+                      <SelectTrigger><SelectValue placeholder="No" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Yes</SelectItem>
                         <SelectItem value="false">No</SelectItem>
@@ -335,13 +336,13 @@ export default function VendorDetailsPage() {
                       const fd = new FormData()
                       fd.append('file', file)
                       const res = await fetch('/api/uploads', { method: 'POST', body: fd })
-                      const data = await res.json().catch(()=>null)
+                      const data = await res.json().catch(() => null)
                       if (!res.ok) throw new Error(data?.message || 'Upload failed')
                       if (data?.url) {
                         form.setValue('contractUrl', data.url)
                         form.setValue('contract', true)
                       }
-                    } catch (err:any) {
+                    } catch (err: any) {
                       setUploadError(err?.message || 'Upload failed')
                     } finally {
                       setUploading(false)
@@ -352,7 +353,7 @@ export default function VendorDetailsPage() {
                 {uploadError ? <div className="mt-1 text-xs text-rose-600">{uploadError}</div> : null}
                 {form.watch('contractUrl') ? (
                   <div className="mt-2 text-xs">
-                    <a href={form.watch('contractUrl')||'#'} target="_blank" className="text-blue-600 underline">View uploaded contract</a>
+                    <a href={form.watch('contractUrl') || '#'} target="_blank" className="text-blue-600 underline">View uploaded contract</a>
                   </div>
                 ) : null}
               </div>
@@ -406,12 +407,12 @@ export default function VendorDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
               <div>
                 <div className="text-xs text-slate-500 mb-1">Attachment Name</div>
-                <Input value={attName} onChange={e=>setAttName(e.target.value)} placeholder="e.g., Advance Invoice" />
+                <Input value={attName} onChange={e => setAttName(e.target.value)} placeholder="e.g., Advance Invoice" />
               </div>
               <div>
                 <div className="text-xs text-slate-500 mb-1">Type</div>
                 <Select value={attKind} onValueChange={setAttKind}>
-                  <SelectTrigger><SelectValue placeholder="Type"/></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="invoice">Invoice</SelectItem>
                     <SelectItem value="contract">Contract</SelectItem>
@@ -421,17 +422,17 @@ export default function VendorDetailsPage() {
               </div>
               <div>
                 <div className="text-xs text-slate-500 mb-1">Upload File</div>
-                <input type="file" onChange={e=>{ const f=e.target.files?.[0]; if (f) onUploadAttachment(f) }} />
+                <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) onUploadAttachment(f) }} />
                 {attUploading ? <div className="mt-1 text-xs text-slate-500">Uploading...</div> : null}
                 {attUploadError ? <div className="mt-1 text-xs text-rose-600">{attUploadError}</div> : null}
               </div>
             </div>
 
             <div className="space-y-2">
-              {(vendor.attachments||[]).length === 0 ? (
+              {(vendor.attachments || []).length === 0 ? (
                 <div className="text-sm text-gray-600">No attachments.</div>
               ) : (
-                (vendor.attachments||[]).map(a => (
+                (vendor.attachments || []).map(a => (
                   <div key={a.id} className="flex items-center justify-between border rounded p-2 text-sm">
                     <div className="truncate">
                       <div className="font-medium">{a.name || 'Attachment'}</div>
@@ -439,7 +440,7 @@ export default function VendorDetailsPage() {
                       <a href={a.url} target="_blank" className="text-blue-600 underline break-all">{a.url}</a>
                     </div>
                     <div>
-                      <Button variant="outline" onClick={()=>onRemoveAttachment(a.id)}>Remove</Button>
+                      <Button variant="outline" onClick={() => onRemoveAttachment(a.id)}>Remove</Button>
                     </div>
                   </div>
                 ))
