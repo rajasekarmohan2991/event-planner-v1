@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const limitParam = searchParams.get('limit') || '10'
     const limit = parseInt(limitParam)
     console.log('[public events] limit =', limit)
-    
+
     // Fetch public events directly from database
     let events = await prisma.$queryRaw<any[]>`
       SELECT 
@@ -73,12 +73,12 @@ export async function GET(req: NextRequest) {
       createdAt: event.createdAt
     }))
 
-    return NextResponse.json(formattedEvents)
+    return NextResponse.json({ events: formattedEvents })
   } catch (error: any) {
     console.error('Error fetching public events:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch public events',
-      message: error.message 
+      message: error.message
     }, { status: 500 })
   }
 }

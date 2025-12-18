@@ -41,32 +41,36 @@ export default function UserDashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        // Fetch upcoming public events
-        const eventsRes = await fetch('/api/events/public?limit=6', {
-          credentials: 'include'
-        })
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json()
-          setUpcomingEvents(eventsData.events || [])
+        const [eventsRes, registrationsRes, myEventsRes] = await Promise.allSettled([
+          fetch('/api/events/public?limit=6', { credentials: 'include' }),
+          fetch('/api/registrations/my', { credentials: 'include' }),
+          fetch('/api/events?my=true', { credentials: 'include' })
+        ])
+
+        // 1. Upcoming Events
+        if (eventsRes.status === 'fulfilled' && eventsRes.value.ok) {
+          try {
+            const data = await eventsRes.value.json()
+            setUpcomingEvents(data.events || [])
+          } catch (e) { console.error('Failed to parse public events', e) }
         }
 
-        // Fetch user's registrations
-        const registrationsRes = await fetch('/api/registrations/my', {
-          credentials: 'include'
-        })
-        if (registrationsRes.ok) {
-          const registrationsData = await registrationsRes.json()
-          setMyRegistrations(registrationsData.registrations || [])
+        // 2. My Registrations
+        if (registrationsRes.status === 'fulfilled' && registrationsRes.value.ok) {
+          try {
+            const data = await registrationsRes.value.json()
+            setMyRegistrations(data.registrations || [])
+          } catch (e) { console.error('Failed to parse registrations', e) }
         }
 
-        // Fetch events created by me (including drafts)
-        const myEventsRes = await fetch('/api/events?my=true', {
-          credentials: 'include'
-        })
-        if (myEventsRes.ok) {
-          const myEventsData = await myEventsRes.json()
-          setMyCreatedEvents(myEventsData.events || [])
+        // 3. My Created/Related Events
+        if (myEventsRes.status === 'fulfilled' && myEventsRes.value.ok) {
+          try {
+            const data = await myEventsRes.value.json()
+            setMyCreatedEvents(data.events || [])
+          } catch (e) { console.error('Failed to parse my events', e) }
         }
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
       } finally {
