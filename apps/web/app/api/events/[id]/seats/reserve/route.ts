@@ -24,95 +24,116 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const userId = (session as any)?.user?.id || null
     const tenantId = getTenantId()
 
-    // Clean up expired reservations
-    await prisma.$executeRaw`
-      UPDATE seat_reservations
-      SET status = 'EXPIRED'
-      WHERE event_id = ${eventId}
-        AND status = 'RESERVED'
-        AND expires_at < NOW()
-    `
+    // 1. Clean up expired reservations
+    await prisma.seatReservation.updateMany({
+      where: {
+        eventId: BigInt(eventId),
+        status: 'RESERVED',
+        expiresAt: { lt: new Date() }
+      },
+      data: { status: 'EXPIRED' }
+    })
 
-    // Check if seats are available
-    const seatIdsStr = seatIds.map(id => `'${id}'`).join(',')
-    const unavailableSeats = await prisma.$queryRawUnsafe(`
-      SELECT si.id::text, si.row_number, si.seat_number
-      FROM seat_inventory si
-      LEFT JOIN seat_reservations sr ON si.id = sr.seat_id 
-        AND sr.status IN ('RESERVED', 'LOCKED', 'CONFIRMED')
-        AND (sr.expires_at IS NULL OR sr.expires_at > NOW())
-      WHERE si.id IN (${seatIdsStr})
-        AND (si.is_available = false OR sr.id IS NOT NULL)
-    `)
+    const bigIntSeatIds = seatIds.map((id: string | number) => BigInt(id))
 
-    if ((unavailableSeats as any[]).length > 0) {
-      return NextResponse.json({ 
+    // 2. Get seat details and check availability
+    // Check for active reservations
+    const activeReservations = await prisma.seatReservation.findMany({
+      where: {
+        seatId: { in: bigIntSeatIds },
+        status: { in: ['RESERVED', 'LOCKED', 'CONFIRMED'] },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } }
+        ]
+      },
+      select: { seatId: true }
+    })
+
+    if (activeReservations.length > 0) {
+      const occupiedIds = activeReservations.map(r => String(r.seatId))
+      return NextResponse.json({
+        error: 'Some seats are no longer available',
+        unavailableSeats: occupiedIds.map(id => ({ id, reason: 'Reserved' }))
+      }, { status: 409 })
+    }
+
+    // Check inventory status
+    const seats = await prisma.seatInventory.findMany({
+      where: {
+        id: { in: bigIntSeatIds }
+      }
+    })
+
+    // Verify all seats found and available
+    const unavailableSeats = []
+    const seatMap = new Map()
+    seats.forEach(s => seatMap.set(String(s.id), s))
+
+    for (const id of seatIds) {
+      const s = seatMap.get(String(id))
+      if (!s) {
+        unavailableSeats.push({ id, reason: 'Not found' })
+      } else if (!s.isAvailable) {
+        unavailableSeats.push({ id, reason: 'Unavailable' })
+      }
+    }
+
+    if (unavailableSeats.length > 0) {
+      return NextResponse.json({
         error: 'Some seats are no longer available',
         unavailableSeats
       }, { status: 409 })
     }
 
-    // Get seat details with pricing
-    const seats = await prisma.$queryRawUnsafe(`
-      SELECT 
-        id::text,
-        section,
-        row_number as "rowNumber",
-        seat_number as "seatNumber",
-        base_price as "basePrice"
-      FROM seat_inventory
-      WHERE id IN (${seatIdsStr})
-    `)
+    // 3. Create reservations (10-minute lock)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+    const reservations: any[] = []
 
     // Calculate total price
-    const totalPrice = (seats as any[]).reduce((sum, seat) => sum + parseFloat(seat.basePrice), 0)
+    const totalPrice = seats.reduce((sum, seat) => sum + seat.basePrice, 0)
 
-    // Create reservations (15-minute lock)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
-    const reservations = []
-
-    for (const seatId of seatIds) {
-      const seat = (seats as any[]).find(s => s.id === seatId)
-      
-      const reservation = await prisma.$queryRaw`
-        INSERT INTO seat_reservations (
-          event_id,
-          seat_id,
-          user_id,
-          user_email,
-          status,
-          expires_at,
-          payment_status,
-          price_paid,
-          tenant_id
-        ) VALUES (
-          ${eventId},
-          ${BigInt(seatId)},
-          ${userId ? BigInt(userId) : null},
-          ${userEmail},
-          'RESERVED',
-          ${expiresAt},
-          'PENDING',
-          ${seat.basePrice},
-          ${tenantId || null}
-        )
-        RETURNING 
-          id::text,
-          seat_id::text as "seatId",
-          status,
-          expires_at as "expiresAt"
-      `
-
-      reservations.push((reservation as any[])[0])
-    }
+    // Use transaction for atomic reservation
+    await prisma.$transaction(async (tx) => {
+      for (const seat of seats) {
+        const res = await tx.seatReservation.create({
+          data: {
+            eventId: BigInt(eventId),
+            seatId: seat.id,
+            userId: userId ? BigInt(userId) : null,
+            userEmail: userEmail,
+            status: 'RESERVED',
+            expiresAt: expiresAt,
+            tenantId: tenantId
+          }
+        })
+        reservations.push(res)
+      }
+    })
 
     // Notify listeners
-    try { publish(eventId, { type: 'reserved', seatIds }) } catch {}
+    try { publish(eventId, { type: 'reserved', seatIds }) } catch { }
+
+    // Convert BigInts to strings for JSON response
+    const safeReservations = reservations.map(r => ({
+      ...r,
+      id: r.id,
+      seatId: String(r.seatId),
+      eventId: String(r.eventId),
+      userId: r.userId ? String(r.userId) : null
+    }))
+
+    const safeSeats = seats.map(s => ({
+      ...s,
+      id: String(s.id),
+      eventId: String(s.eventId),
+      basePrice: s.basePrice // Assuming int
+    }))
 
     return NextResponse.json({
       success: true,
-      reservations,
-      seats,
+      reservations: safeReservations,
+      seats: safeSeats,
       totalPrice,
       expiresAt,
       owner: userEmail || null,
@@ -121,7 +142,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('Error reserving seats:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to reserve seats',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })
@@ -152,7 +173,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     `)
 
     // Notify listeners on release
-    try { publish(eventId, { type: 'released', seatIds }) } catch {}
+    try { publish(eventId, { type: 'released', seatIds }) } catch { }
 
     return NextResponse.json({
       success: true,
@@ -161,7 +182,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   } catch (error: any) {
     console.error('Error releasing seats:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to release seats',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })
