@@ -92,10 +92,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; }
-            .button { display: inline-block; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #2d2d2d; }
+            .button { display: inline-block; padding: 15px 30px; background: #1a1a1a; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
             .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
           </style>
         </head>

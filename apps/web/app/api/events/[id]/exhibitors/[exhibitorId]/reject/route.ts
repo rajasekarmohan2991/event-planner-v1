@@ -60,10 +60,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
               .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
               .warning { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; padding: 15px; border-radius: 5px; margin: 20px 0; }
-              .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #ef4444; }
+              .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #2d2d2d; }
               .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
             </style>
           </head>

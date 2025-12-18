@@ -82,10 +82,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .header { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
               .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
               .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
-              .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #10b981; }
+              .info { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #2d2d2d; }
               .payment-box { background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 5px; margin: 20px 0; }
               .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
             </style>
