@@ -14,34 +14,34 @@ function CommunicateContent() {
   const { status } = useSession()
   const params = useParams<{ id: string }>()
   const eventId = String(params?.id || '')
-  
+
   const [event, setEvent] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'email' | 'sms' | 'whatsapp' | 'share'>('email')
-  
+
   // Email state
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [sending, setSending] = useState(false)
   const [emailResult, setEmailResult] = useState<string | null>(null)
-  
+
   // Invite state
   const [inviteEmails, setInviteEmails] = useState('')
   const [inviting, setInviting] = useState(false)
   const [inviteResult, setInviteResult] = useState<string | null>(null)
-  
+
   // SMS state
   const [smsMessage, setSmsMessage] = useState('')
   const [smsPhones, setSmsPhones] = useState<string[]>([])
   const [sendingSms, setSendingSms] = useState(false)
   const [smsResult, setSmsResult] = useState<string | null>(null)
   const [loadingPhones, setLoadingPhones] = useState(false)
-  
+
   // WhatsApp state
   const [waMessage, setWaMessage] = useState('')
   const [waPhones, setWaPhones] = useState<string[]>([])
   const [sendingWa, setSendingWa] = useState(false)
   const [waResult, setWaResult] = useState<string | null>(null)
-  
+
   // Share state
   const [copied, setCopied] = useState(false)
   const [shareLink, setShareLink] = useState('')
@@ -57,14 +57,14 @@ function CommunicateContent() {
           setEvent(data)
           setEmailSubject(`You're invited to ${data.name}!`)
           setEmailBody(`Hi there!\n\nYou're invited to ${data.name}.\n\nEvent Details:\n- Date: ${data.startTime ? new Date(data.startTime).toLocaleDateString() : 'TBD'}\n- Location: ${data.venue || 'TBD'}\n\nRegister now to secure your spot!\n\nBest regards,\nEvent Team`)
-          
+
           // Set share link
           const publicUrl = `${window.location.origin}/events/${eventId}/public`
           setShareLink(publicUrl)
-          
+
           // Generate QR code
           generateQRCode(publicUrl)
-          
+
           // Set default SMS message
           setSmsMessage(`You're invited to ${data.name}! View details: ${publicUrl}`)
           setWaMessage(`🎉 You're invited to ${data.name}!\n\nView details and register: ${publicUrl}`)
@@ -85,7 +85,23 @@ function CommunicateContent() {
         // Handle both array and object with registrations property
         const registrations = Array.isArray(data) ? data : (data.registrations || [])
         const phones = registrations
-          .map((r: any) => r.phone || r.contactPhone || r.cellPhone || r.workPhone)
+          .map((r: any) => {
+            // Robustly extract phone number from various possible locations
+            let data = r
+            if (r.dataJson) {
+              try {
+                data = typeof r.dataJson === 'string' ? JSON.parse(r.dataJson) : r.dataJson
+              } catch (e) {
+                console.error('Failed to parse registration dataJson', e)
+              }
+            } else if (r.data_json) { // Handle snake_case from raw query
+              try {
+                data = typeof r.data_json === 'string' ? JSON.parse(r.data_json) : r.data_json
+              } catch (e) { }
+            }
+
+            return data.phone || data.contactPhone || data.cellPhone || data.workPhone || r.phone || r.contactPhone
+          })
           .filter((p: string) => p && p.trim())
         console.log('📞 Loaded phone numbers:', phones)
         setSmsPhones(phones)
@@ -146,12 +162,12 @@ function CommunicateContent() {
           dryRun: false
         })
       })
-      
+
       if (!res.ok) {
         const error = await res.json()
         throw new Error(error.error || 'Failed to send emails')
       }
-      
+
       const data = await res.json()
       setEmailResult(`✅ Successfully sent ${data.sent} emails to attendees!`)
     } catch (e: any) {
@@ -230,11 +246,10 @@ function CommunicateContent() {
         <div className="flex gap-4">
           <button
             onClick={() => setActiveTab('email')}
-            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === 'email'
+            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'email'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
@@ -243,11 +258,10 @@ function CommunicateContent() {
           </button>
           <button
             onClick={() => setActiveTab('sms')}
-            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === 'sms'
+            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'sms'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
@@ -256,11 +270,10 @@ function CommunicateContent() {
           </button>
           <button
             onClick={() => setActiveTab('whatsapp')}
-            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === 'whatsapp'
+            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'whatsapp'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
@@ -269,11 +282,10 @@ function CommunicateContent() {
           </button>
           <button
             onClick={() => setActiveTab('share')}
-            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === 'share'
+            className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'share'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <Share2 className="w-4 h-4" />
@@ -317,9 +329,8 @@ function CommunicateContent() {
               </button>
             </div>
             {inviteResult && (
-              <div className={`p-3 rounded-md text-sm ${
-                inviteResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-              }`}>
+              <div className={`p-3 rounded-md text-sm ${inviteResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
                 {inviteResult}
               </div>
             )}
@@ -364,9 +375,8 @@ function CommunicateContent() {
               </button>
             </div>
             {emailResult && (
-              <div className={`p-3 rounded-md text-sm ${
-                emailResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-              }`}>
+              <div className={`p-3 rounded-md text-sm ${emailResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
                 {emailResult}
               </div>
             )}
@@ -391,7 +401,7 @@ function CommunicateContent() {
                 {loadingPhones ? 'Loading...' : `Load Phone Numbers (${smsPhones.length})`}
               </button>
             </div>
-            
+
             <p className="text-sm text-muted-foreground">
               Send SMS messages to all registered attendees with phone numbers
             </p>
@@ -466,9 +476,8 @@ function CommunicateContent() {
             </div>
 
             {smsResult && (
-              <div className={`p-3 rounded-md text-sm ${
-                smsResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-              }`}>
+              <div className={`p-3 rounded-md text-sm ${smsResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
                 {smsResult}
               </div>
             )}
@@ -523,7 +532,7 @@ function CommunicateContent() {
                 {loadingPhones ? 'Loading...' : `Load Phone Numbers (${waPhones.length})`}
               </button>
             </div>
-            
+
             <p className="text-sm text-muted-foreground">
               Send WhatsApp messages to all registered attendees with phone numbers
             </p>
@@ -596,9 +605,8 @@ function CommunicateContent() {
             </div>
 
             {waResult && (
-              <div className={`p-3 rounded-md text-sm ${
-                waResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-              }`}>
+              <div className={`p-3 rounded-md text-sm ${waResult.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
                 {waResult}
               </div>
             )}

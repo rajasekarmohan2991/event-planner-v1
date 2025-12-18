@@ -10,13 +10,13 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const tenantId = (session.user as any).currentTenantId
-    
+
     if (!tenantId) {
       return NextResponse.json({ error: 'No company associated' }, { status: 400 })
     }
@@ -44,18 +44,40 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
+    const tenantId = (session.user as any).currentTenantId
+    const userId = BigInt((session.user as any).id)
     const userRole = (session.user as any).role
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+
+    if (!tenantId) {
+      return NextResponse.json({ error: 'No company associated' }, { status: 400 })
     }
 
-    const tenantId = (session.user as any).currentTenantId
-    
+    // Check permissions: Allow System Admins OR Tenant Admins/Owners
+    const isSystemAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(userRole)
+    let isTenantAdmin = false
+
+    if (!isSystemAdmin) {
+      const member = await prisma.tenantMember.findUnique({
+        where: {
+          tenantId_userId: {
+            tenantId: tenantId,
+            userId: userId
+          }
+        }
+      })
+      // Check for various admin-like roles (handling potentially different enum values)
+      isTenantAdmin = member !== null && ['OWNER', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(member.role)
+    }
+
+    if (!isSystemAdmin && !isTenantAdmin) {
+      return NextResponse.json({ error: 'Admin permissions required' }, { status: 403 })
+    }
+
     if (!tenantId) {
       return NextResponse.json({ error: 'No company associated' }, { status: 400 })
     }
@@ -96,8 +118,8 @@ export async function POST(req: NextRequest) {
 
     if (existingInvite) {
       // Be idempotent: treat existing pending invite as success to avoid blocking UI
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         duplicate: true,
         invite: {
           ...existingInvite,
@@ -124,7 +146,7 @@ export async function POST(req: NextRequest) {
       where: { id: tenantId },
       select: { name: true }
     })
-    
+
     const companyName = tenant?.name || 'Event Planner'
     const inviteLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/auth/register?invite=${invite.id}`
 
@@ -136,13 +158,13 @@ export async function POST(req: NextRequest) {
       // Don't fail the request if email fails, but log it
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       invite: {
         ...invite,
         invitedBy: invite.invitedBy.toString()
       },
-      message: 'Invitation sent successfully' 
+      message: 'Invitation sent successfully'
     })
   } catch (error: any) {
     console.error('Error creating team invite:', error)

@@ -6,13 +6,13 @@ import prisma from '@/lib/prisma'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const tenantId = (session.user as any).currentTenantId
-    
+
     if (!tenantId) {
       return NextResponse.json({ error: 'No company associated with this user' }, { status: 400 })
     }
@@ -32,15 +32,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
-    // Fetch company events from Java API
-    const eventsRes = await fetch(`${process.env.INTERNAL_API_BASE_URL || 'http://localhost:8081'}/api/events`, {
-      headers: {
-        'x-tenant-id': tenantId,
-      }
+    // Fetch company events directly from DB (bypassing legacy Java API)
+    const events = await prisma.event.findMany({
+      where: {
+        tenantId: tenantId
+      },
+      orderBy: {
+        startsAt: 'desc'
+      },
+      take: 5
     })
-    
-    const eventsData = eventsRes.ok ? await eventsRes.json() : []
-    const events = (eventsData.content || eventsData || []).slice(0, 5)
 
     // Fetch company members count
     const membersCount = await prisma.tenantMember.count({
@@ -51,24 +52,44 @@ export async function GET(req: NextRequest) {
     })
 
     // Fetch registration counts per event (top 5) and total
-    const eventIds = events.map((e: any) => parseInt(e.id)).filter((id: number) => !isNaN(id))
+    const eventIds = events.map((e: any) => e.id)
     let totalRegistrations = 0
-    let registrationCounts: Record<number, number> = {}
-    
+    let registrationCounts: Record<string, number> = {}
+
     if (eventIds.length > 0) {
       try {
-        const rows = await prisma.$queryRaw<any[]>`
-          SELECT event_id, COUNT(*)::int as count
-          FROM registrations
-          WHERE event_id = ANY(${eventIds}::bigint[])
-          GROUP BY event_id
-        `
-        registrationCounts = rows.reduce((acc: any, r: any) => {
-          acc[Number(r.event_id)] = Number(r.count) || 0
+        const counts = await prisma.registration.groupBy({
+          by: ['eventId'],
+          where: {
+            eventId: {
+              in: eventIds
+            }
+          },
+          _count: {
+            _all: true
+          }
+        })
+
+        registrationCounts = counts.reduce((acc: any, c: any) => {
+          acc[String(c.eventId)] = c._count._all
           return acc
         }, {})
-        totalRegistrations = Object.values(registrationCounts).reduce((a, b) => a + b, 0)
+
+        // Get total for ALL events (for stats)
+        totalRegistrations = await prisma.registration.count({
+          where: {
+            // We can't easily filter by tenantId on registration if it's not populated, 
+            // but we can filter by events belonging to tenant.
+            eventId: {
+              in: (await prisma.event.findMany({
+                where: { tenantId: tenantId },
+                select: { id: true }
+              })).map(e => e.id)
+            }
+          }
+        })
       } catch (e) {
+        console.error('Error fetching registration stats:', e)
         registrationCounts = {}
         totalRegistrations = 0
       }
@@ -82,15 +103,15 @@ export async function GET(req: NextRequest) {
         status: company.status
       },
       events: events.map((e: any) => ({
-        id: e.id,
+        id: String(e.id),
         name: e.name,
-        start_date: e.startsAt || e.startDate,
-        end_date: e.endsAt || e.endDate,
+        start_date: e.startsAt,
+        end_date: e.endsAt,
         status: e.status,
-        location: e.location || e.city || 'Online',
-        priceInr: e.priceInr || e.price_inr || 0,
-        capacity: e.expectedAttendees || e.capacity || e.seats || e.maxCapacity || 0,
-        _count: { registrations: registrationCounts[parseInt(e.id)] || 0 }
+        location: e.venue || e.city || 'Online',
+        priceInr: e.priceInr || 0,
+        capacity: e.expectedAttendees || 0,
+        _count: { registrations: registrationCounts[String(e.id)] || 0 }
       })),
       stats: {
         totalEvents: events.length,
