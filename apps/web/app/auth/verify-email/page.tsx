@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import VerifyEmailClient from './VerifyEmailClient'
-import { headers } from 'next/headers'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { XCircle } from 'lucide-react'
@@ -17,37 +16,27 @@ interface VerifyEmailPageProps {
 
 // Note: Metadata moved to layout.tsx since this is now a client component
 
+import { verifyEmailToken } from '@/lib/email-verification'
+
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   const { token, email, name } = searchParams
 
   if (!token || !email) {
     return (
-      <VerifyEmailClient 
-        status="error" 
-        message="Missing verification parameters. Please open the link from your email or request a new one." 
+      <VerifyEmailClient
+        status="error"
+        message="Missing verification parameters. Please open the link from your email or request a new one."
       />
     )
   }
   try {
-    const h = headers()
-    const host = h.get('x-forwarded-host') || h.get('host') || ''
-    const proto = h.get('x-forwarded-proto') || 'https'
-    const envBase = (process.env.NEXTAUTH_URL || '').replace(/\/$/, '')
-    const baseUrl = envBase || (host ? `${proto}://${host}` : '')
-    const apiUrl = `${baseUrl}/api/auth/verify`
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ token, email, name }),
-      cache: 'no-store',
-    })
+    const result = await verifyEmailToken(token, email, name)
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
+    if (!result.success) {
       return (
-        <VerifyEmailClient 
-          status="error" 
-          message={data?.error || 'Verification failed. Please request a new link.'} 
+        <VerifyEmailClient
+          status="error"
+          message={result.error || 'Verification failed. Please request a new link.'}
         />
       )
     }
@@ -62,13 +51,13 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
           <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center">
             <XCircle className="h-10 w-10 text-red-500" />
           </div>
-          
+
           <div className="space-y-4">
             <h1 className="text-2xl font-bold text-gray-900">Verification Failed</h1>
             <p className="text-gray-600">
               An error occurred while verifying your email. Please try again later.
             </p>
-            
+
             <div className="pt-4">
               <Button asChild>
                 <Link href="/auth/login">
