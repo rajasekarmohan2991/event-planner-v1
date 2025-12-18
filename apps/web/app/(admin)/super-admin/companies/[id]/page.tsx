@@ -354,32 +354,43 @@ export default function CompanyDetailsPage() {
         <div className="flex-1 min-w-0">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow border h-full">
+            {/* Total Events Card - Blue Gradient */}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 rounded-lg shadow-lg border border-blue-400/20 h-full">
               <div className="flex items-center gap-3">
-                <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Calendar className="h-8 w-8 text-white" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold">{company.events.length}</div>
-                  <div className="text-gray-600">Total Events</div>
+                  <div className="text-3xl font-bold text-white">{company.events.length}</div>
+                  <div className="text-blue-100 font-medium">Total Events</div>
                 </div>
               </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow border h-full">
+
+            {/* Team Members Card - Green Gradient */}
+            <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 p-6 rounded-lg shadow-lg border border-green-400/20 h-full">
               <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-green-600" />
+                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold">{company.members.length}</div>
-                  <div className="text-gray-600">Team Members</div>
+                  <div className="text-3xl font-bold text-white">{company.members.length}</div>
+                  <div className="text-green-100 font-medium">Team Members</div>
                 </div>
               </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow border h-full">
+
+            {/* Total Registrations Card - Purple Gradient */}
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 p-6 rounded-lg shadow-lg border border-purple-400/20 h-full">
               <div className="flex items-center gap-3">
-                <Settings className="h-8 w-8 text-purple-600" />
+                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Settings className="h-8 w-8 text-white" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold">
+                  <div className="text-3xl font-bold text-white">
                     {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
                   </div>
-                  <div className="text-gray-600">Total Registrations</div>
+                  <div className="text-purple-100 font-medium">Total Registrations</div>
                 </div>
               </div>
             </div>
@@ -440,7 +451,7 @@ export default function CompanyDetailsPage() {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">Billing Email</span>
-                    <span className="font-medium">{company.billingEmail}</span>
+                    <span className="font-medium">{company.billingEmail?.replace(/[<>]/g, '') || 'Not set'}</span>
                   </div>
                   {company.trialEndsAt && (
                     <div className="flex justify-between items-center text-sm">
