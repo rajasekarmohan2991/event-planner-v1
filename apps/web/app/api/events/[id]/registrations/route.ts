@@ -313,40 +313,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // BUT 'Order' is the prisma model.
       // safest bet: use raw SQL for 'payments' to match previous logic exactly, as 'Order' layout might be different.
 
-      const paymentId = crypto.randomUUID()
-      await tx.$executeRaw`
-        INSERT INTO payments (
-          id,
-          registration_id,
-          event_id,
-          user_id,
-          amount_in_minor,
-          currency,
-          status,
-          payment_method,
-          payment_details,
-          created_at,
-          updated_at
-        ) VALUES (
-          ${paymentId},
-          ${regIdStr}, 
-          ${eventId},
-          ${userId},
-          ${amountInMinor},
-          'INR',
-          ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
-          ${paymentMethod},
-          ${JSON.stringify({
-        originalAmount: totalPrice,
-        discountAmount: discountAmount,
-        finalAmount: finalAmount,
-        promoCode: promoCode,
-        paymentMethod: paymentMethod
-      })}::jsonb,
-          NOW(),
-          NOW()
-        )
-      `
+      // Legacy payments table insert removed - using Order model instead
+      // The payments table doesn't have the correct schema (missing registration_id column)
 
       // 3. Create Promo Redemption (Raw SQL as model missing)
       if (promoCodeId && userId) {
