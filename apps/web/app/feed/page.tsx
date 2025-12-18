@@ -55,7 +55,7 @@ export default function FeedPage() {
 
   const createPost = async () => {
     if (!newPostContent.trim() && selectedFiles.length === 0) return
-    
+
     try {
       setPosting(true)
       const formData = new FormData()
@@ -138,7 +138,7 @@ export default function FeedPage() {
       <div className="max-w-2xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h1 className="text-2xl font-bold mb-4">Community Feed</h1>
-          
+
           {/* Create Post */}
           <div className="border-t pt-4">
             <textarea
@@ -148,7 +148,7 @@ export default function FeedPage() {
               className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               rows={3}
             />
-            
+
             {selectedFiles.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {selectedFiles.map((file, idx) => (
@@ -170,7 +170,7 @@ export default function FeedPage() {
             )}
 
             <div className="flex items-center justify-between mt-3">
-              <label className="cursor-pointer text-gray-600 hover:text-indigo-600">
+              <label className="cursor-pointer text-gray-600 hover:text-indigo-600 transition-colors">
                 <ImageIcon className="w-5 h-5" />
                 <input
                   type="file"
@@ -178,17 +178,26 @@ export default function FeedPage() {
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
+                    console.log('📸 Files selected:', e.target.files?.length)
                     if (e.target.files) {
-                      setSelectedFiles(Array.from(e.target.files))
+                      const files = Array.from(e.target.files)
+                      console.log('✅ Setting files:', files.map(f => f.name))
+                      setSelectedFiles(files)
                     }
                   }}
                 />
               </label>
-              
+
               <button
-                onClick={createPost}
+                type="button"
+                onClick={() => {
+                  console.log('🚀 Post button clicked')
+                  console.log('Content:', newPostContent)
+                  console.log('Files:', selectedFiles.length)
+                  createPost()
+                }}
                 disabled={posting || (!newPostContent.trim() && selectedFiles.length === 0)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="relative z-10 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
               >
                 <Send className="w-4 h-4" />
                 {posting ? 'Posting...' : 'Post'}
