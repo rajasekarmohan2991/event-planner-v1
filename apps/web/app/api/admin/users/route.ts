@@ -19,15 +19,15 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = (session.user as any).role
     const currentTenantId = (session.user as any).currentTenantId
-    
+
     if (!['SUPER_ADMIN', 'ADMIN'].includes(userRole)) {
-      return NextResponse.json({ 
-        error: 'Access denied', 
+      return NextResponse.json({
+        error: 'Access denied',
         message: 'Admin access required',
-        userRole 
+        userRole
       }, { status: 403 })
     }
 
@@ -39,11 +39,11 @@ export async function GET(req: NextRequest) {
 
     // Use raw SQL to avoid Prisma schema issues and handle BigInt
     let users, totalResult
-    
+
     // SUPER_ADMIN sees all users, ADMIN sees only their tenant's users
     const isSuperAdmin = userRole === 'SUPER_ADMIN'
     const tenantFilter = isSuperAdmin ? '' : `AND tm."tenantId" = '${currentTenantId}'`
-    
+
     if (q) {
       if (isSuperAdmin) {
         if (companyId) {
@@ -243,7 +243,7 @@ export async function GET(req: NextRequest) {
         `
       }
     }
-    
+
     // Transform the data to match the expected format
     const transformedUsers = (users as any[]).map(user => ({
       id: parseInt(user.id),
@@ -262,7 +262,7 @@ export async function GET(req: NextRequest) {
         email: user.approverEmail
       } : null
     }))
-    
+
     const total = (totalResult as any)[0]?.count || 0
 
     return NextResponse.json({
@@ -273,8 +273,8 @@ export async function GET(req: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error fetching users:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch users', 
+    return NextResponse.json({
+      error: 'Failed to fetch users',
       details: error.message
     }, { status: 500 })
   }
@@ -287,21 +287,35 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = (session.user as any).role
-    if (userRole !== 'SUPER_ADMIN') {
-      return NextResponse.json({ 
-        error: 'Access denied', 
-        message: 'Only Super Admin can create users'
+    const currentTenantId = (session.user as any).currentTenantId
+
+    // Allow SUPER_ADMIN and ADMIN (company admin) to create users
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'OWNER'].includes(userRole)) {
+      return NextResponse.json({
+        error: 'Access denied',
+        message: 'Admin access required to create users'
       }, { status: 403 })
     }
 
     const body = await req.json()
     const { name, email, password, role, companyId } = body
 
+    // Company admins can only create users for their own company
+    const isSuperAdmin = userRole === 'SUPER_ADMIN'
+    const targetTenantId = companyId || currentTenantId
+
+    if (!isSuperAdmin && companyId && companyId !== currentTenantId) {
+      return NextResponse.json({
+        error: 'Access denied',
+        message: 'You can only create users for your own company'
+      }, { status: 403 })
+    }
+
     // Validation
     if (!name || !email || !password || !role) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Missing required fields',
         message: 'Name, email, password, and role are required'
       }, { status: 400 })
@@ -311,9 +325,9 @@ export async function POST(req: NextRequest) {
     const existingUser = await prisma.$queryRaw`
       SELECT id FROM users WHERE email = ${email} LIMIT 1
     `
-    
+
     if ((existingUser as any[]).length > 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'User already exists',
         message: 'A user with this email already exists'
       }, { status: 409 })
@@ -341,7 +355,7 @@ export async function POST(req: NextRequest) {
     const newUser = (result as any[])[0]
 
     // Ensure membership in the specified company (if provided)
-    const targetTenantId = companyId || (process.env.DEFAULT_TENANT_ID || 'default-tenant')
+    // targetTenantId already defined above
     try {
       await prisma.$executeRaw`
         INSERT INTO tenant_members ("tenantId", "userId", role, status, "invitedAt", "joinedAt")
@@ -375,8 +389,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newUser, { status: 201 })
   } catch (error: any) {
     console.error('Error creating user:', error)
-    return NextResponse.json({ 
-      error: 'Failed to create user', 
+    return NextResponse.json({
+      error: 'Failed to create user',
       message: error.message
     }, { status: 500 })
   }

@@ -107,52 +107,52 @@ export default function CompanyDashboardPage() {
       {/* Stats Cards - Enterprise Level */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Total Events - Soft Lavender */}
-        <div className="bg-gradient-to-br from-purple-50 via-purple-100 to-indigo-100 dark:from-purple-100 dark:via-purple-200 dark:to-indigo-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-purple-200/50">
+        <div className="bg-gradient-to-br from-purple-50 via-purple-100 to-indigo-100 dark:from-purple-100 dark:via-purple-200 dark:to-indigo-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 group border border-purple-200/50">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-5 w-5 text-purple-600" />
-                <p className="text-sm font-medium text-purple-700">Total Events</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="h-4 w-4 text-purple-600" />
+                <p className="text-xs font-medium text-purple-700">Total Events</p>
               </div>
-              <h3 className="text-4xl font-bold text-purple-900 mb-1">{dashboard.stats.totalEvents}</h3>
-              <p className="text-sm text-purple-600">All events created</p>
+              <h3 className="text-2xl font-bold text-purple-900 mb-0.5">{dashboard.stats.totalEvents}</h3>
+              <p className="text-xs text-purple-600">All events created</p>
             </div>
-            <div className="p-4 bg-purple-200/30 rounded-lg group-hover:bg-purple-200/50 transition-all">
-              <Calendar className="h-8 w-8 text-purple-600" />
+            <div className="p-3 bg-purple-200/30 rounded-lg group-hover:bg-purple-200/50 transition-all">
+              <Calendar className="h-6 w-6 text-purple-600" />
             </div>
           </div>
         </div>
 
         {/* Team Members - Soft Mint */}
-        <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 dark:from-emerald-100 dark:via-teal-100 dark:to-green-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-emerald-200/50">
+        <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 dark:from-emerald-100 dark:via-teal-100 dark:to-green-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 group border border-emerald-200/50">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-emerald-600" />
-                <p className="text-sm font-medium text-emerald-700">Team Members</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-emerald-600" />
+                <p className="text-xs font-medium text-emerald-700">Team Members</p>
               </div>
-              <h3 className="text-4xl font-bold text-emerald-900 mb-1">{dashboard.stats.totalMembers}</h3>
-              <p className="text-sm text-emerald-600">Active team size</p>
+              <h3 className="text-2xl font-bold text-emerald-900 mb-0.5">{dashboard.stats.totalMembers}</h3>
+              <p className="text-xs text-emerald-600">Active team size</p>
             </div>
-            <div className="p-4 bg-emerald-200/30 rounded-lg group-hover:bg-emerald-200/50 transition-all">
-              <Users className="h-8 w-8 text-emerald-600" />
+            <div className="p-3 bg-emerald-200/30 rounded-lg group-hover:bg-emerald-200/50 transition-all">
+              <Users className="h-6 w-6 text-emerald-600" />
             </div>
           </div>
         </div>
 
         {/* Total Registrations - Soft Sky Blue */}
-        <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 dark:from-blue-100 dark:via-sky-100 dark:to-cyan-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 group border border-blue-200/50">
+        <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 dark:from-blue-100 dark:via-sky-100 dark:to-cyan-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-4 group border border-blue-200/50">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Settings className="h-5 w-5 text-blue-600" />
-                <p className="text-sm font-medium text-blue-700">Total Registrations</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Settings className="h-4 w-4 text-blue-600" />
+                <p className="text-xs font-medium text-blue-700">Total Registrations</p>
               </div>
-              <h3 className="text-4xl font-bold text-blue-900 mb-1">{dashboard.stats.totalRegistrations}</h3>
-              <p className="text-sm text-blue-600">All registrations</p>
+              <h3 className="text-2xl font-bold text-blue-900 mb-0.5">{dashboard.stats.totalRegistrations}</h3>
+              <p className="text-xs text-blue-600">All registrations</p>
             </div>
-            <div className="p-4 bg-blue-200/30 rounded-lg group-hover:bg-blue-200/50 transition-all">
-              <Settings className="h-8 w-8 text-blue-600" />
+            <div className="p-3 bg-blue-200/30 rounded-lg group-hover:bg-blue-200/50 transition-all">
+              <Settings className="h-6 w-6 text-blue-600" />
             </div>
           </div>
         </div>
