@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, 
-  LogOut, 
-  User, 
-  Settings, 
-  HelpCircle, 
+import {
+  X,
+  LogOut,
+  User,
+  Settings,
+  HelpCircle,
   ChevronDown,
   LayoutDashboard,
   Calendar,
@@ -24,11 +24,11 @@ import {
 import { signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
 } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
@@ -55,10 +55,10 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
-  
+
   // Check if user is SUPER_ADMIN
   const isSuperAdmin = (session?.user as any)?.role === 'SUPER_ADMIN'
-  
+
   const navItems: NavItem[] = [
     {
       name: 'Dashboard',
@@ -121,9 +121,9 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
           </div>
           <h1 className="text-lg font-semibold text-gray-800 whitespace-nowrap">Event Planner</h1>
         </div>
-        
+
         <div className="flex items-center">
-          <button 
+          <button
             onClick={toggleSidebar}
             className={cn(
               "p-1.5 rounded-md hover:bg-gray-100 transition-colors",
@@ -146,7 +146,7 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {navItems.map((item, index) => {
           const isItemActive = isActive(item.href, item.exact)
-          
+
           return (
             <TooltipProvider key={item.href} delayDuration={100}>
               <Tooltip>
@@ -206,7 +206,7 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
       <div className="p-4 border-t border-gray-200 space-y-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button 
+            <button
               className={cn(
                 "w-full flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors",
                 isCollapsed ? 'justify-center' : 'justify-between'
@@ -246,14 +246,8 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/admin/settings" className="w-full cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
               onClick={handleSignOut}
             >
@@ -265,9 +259,9 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
 
         {!isCollapsed && (
           <div className="border-t border-gray-100 pt-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="w-full text-gray-500 hover:text-gray-700 justify-start"
               asChild
             >

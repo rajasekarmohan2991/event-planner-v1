@@ -70,12 +70,6 @@ export function UserNav({ user }: { user?: User | null }) {
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </a>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href="/settings">
-              Settings
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </a>
-          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
