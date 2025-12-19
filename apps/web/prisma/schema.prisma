@@ -173,7 +173,6 @@ model Tenant {
   
   @@index([status])
   @@index([plan])
-  @@index([subdomain])
   @@map("tenants")
 }
 
