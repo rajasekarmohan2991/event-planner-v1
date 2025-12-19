@@ -18,25 +18,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const permissions = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT 
-        id::text,
-        module_name as "moduleName",
-        role,
-        can_view as "canView",
-        can_create as "canCreate",
-        can_edit as "canEdit",
-        can_delete as "canDelete",
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-      FROM module_access_matrix
-      ORDER BY module_name, role
-    `)
+    try {
+      const permissions = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT 
+          id::text,
+          module_name as "moduleName",
+          role,
+          can_view as "canView",
+          can_create as "canCreate",
+          can_edit as "canEdit",
+          can_delete as "canDelete",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM module_access_matrix
+        ORDER BY module_name, role
+      `)
 
-    return NextResponse.json({ permissions })
+      return NextResponse.json({ permissions })
+    } catch (dbError: any) {
+      // If table doesn't exist, return empty array
+      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        console.warn('module_access_matrix table does not exist, returning empty permissions')
+        return NextResponse.json({ permissions: [] })
+      }
+      throw dbError
+    }
   } catch (error: any) {
     console.error('Error fetching module access:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch module access',
       message: error.message
     }, { status: 500 })
@@ -60,7 +69,7 @@ export async function POST(req: NextRequest) {
     const { moduleName, role, canView, canCreate, canEdit, canDelete } = body
 
     if (!moduleName || !role) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Missing required fields',
         message: 'moduleName and role are required'
       }, { status: 400 })
@@ -106,7 +115,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(updated[0])
   } catch (error: any) {
     console.error('Error updating module access:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to update module access',
       message: error.message
     }, { status: 500 })
@@ -130,7 +139,7 @@ export async function PUT(req: NextRequest) {
     const { permissions } = body
 
     if (!Array.isArray(permissions)) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Invalid request',
         message: 'permissions must be an array'
       }, { status: 400 })
@@ -164,7 +173,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, updated: permissions.length })
   } catch (error: any) {
     console.error('Error batch updating module access:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to batch update module access',
       message: error.message
     }, { status: 500 })
