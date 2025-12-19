@@ -216,14 +216,43 @@ export async function GET(req: NextRequest) {
     console.log(`🔍 GET /api/events - User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}, Tenant: ${tenantId}`)
     console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
     console.log(`🔑 Full session.user:`, JSON.stringify((session as any)?.user, null, 2))
-    console.log('🚀 SUPER_ADMIN FIX DEPLOYED - Version 2025-12-19-15:15')
 
     const where: any = {}
 
-    // TEMPORARY BYPASS: Showing ALL events to diagnose the issue
-    console.log('⚠️⚠️⚠️ TEMPORARY BYPASS: Showing ALL events regardless of role ⚠️⚠️⚠️')
-    console.log(`User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}`)
-    // No filtering applied - will show all events in database
+    // CRITICAL: Check session.user.role FIRST (this is the system-level role)
+    // session.user.role = SUPER_ADMIN (platform-wide access)
+    // session.user.tenantRole = TENANT_ADMIN (company-specific role)
+    const isSuperAdmin = sessionRole?.toUpperCase() === 'SUPER_ADMIN'
+    const isTenantAdmin = tenantRole?.toUpperCase() === 'TENANT_ADMIN' ||
+      ['EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(tenantRole?.toUpperCase() || '')
+
+    // 1. Role-based filtering - SUPER_ADMIN takes precedence
+    if (isSuperAdmin) {
+      // SUPER_ADMIN sees ALL platform-level events (no tenant filtering)
+      console.log('✅ SUPER_ADMIN detected - Showing ALL platform events (no tenant filter)')
+      // No where clause - they see everything
+    } else if (isTenantAdmin) {
+      // Company/Tenant admins see ONLY their company's events
+      if (tenantId) {
+        where.tenantId = tenantId
+        console.log(`🏢 TENANT_ADMIN - Showing events for tenant: ${tenantId}`)
+      } else {
+        // If no tenantId, show all events for admins (fallback)
+        console.log(`⚠️ TENANT_ADMIN - No tenantId, showing all events as fallback`)
+      }
+    } else {
+      if (isMyEvents && userId) {
+        const registrations = await prisma.registration.findMany({
+          where: { userId: BigInt(userId) },
+          select: { eventId: true }
+        })
+        where.id = { in: registrations.map(r => r.eventId) }
+        console.log(`👤 My Events: ${registrations.length} registrations`)
+      } else {
+        where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
+        console.log('🌍 Public mode - published events only')
+      }
+    }
 
     // 2. Apply filters
     if (search) {
