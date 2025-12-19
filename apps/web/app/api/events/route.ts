@@ -274,6 +274,7 @@ export async function GET(req: NextRequest) {
     console.log('📋 Final WHERE clause:', JSON.stringify(where, null, 2))
 
     // 3. Execute optimized query with minimal fields
+    console.log('🔍 About to query events with where:', where)
     const [events, total] = await Promise.all([
       prisma.event.findMany({
         where,
@@ -299,6 +300,9 @@ export async function GET(req: NextRequest) {
       }),
       prisma.event.count({ where })
     ])
+
+    console.log(`✅ Query completed: Found ${events.length} events out of ${total} total`)
+    console.log(`📊 First event:`, events[0] ? { id: events[0].id, name: events[0].name, status: events[0].status } : 'none')
 
     // 4. Get registration counts in batch
     const eventIds = events.map(e => e.id)
