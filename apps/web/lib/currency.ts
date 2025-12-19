@@ -49,8 +49,8 @@ export function formatPrice(amount: number, currencyCode?: string): string {
   return formatCurrency(amount, currency);
 }
 
-// Approximate exchange rates relative to USD (Base)
-const EXCHANGE_RATES: Record<string, number> = {
+// Approximate exchange rates relative to USD (Base) - FALLBACK ONLY
+const FALLBACK_EXCHANGE_RATES: Record<string, number> = {
   'USD': 1,
   'EUR': 0.92,
   'GBP': 0.79,
@@ -63,16 +63,55 @@ const EXCHANGE_RATES: Record<string, number> = {
   'KRW': 1370,
 };
 
-export function convertPrice(amount: number, fromCurrency: string, toCurrency: string): number {
+// Fetch live exchange rates from API
+export async function fetchExchangeRates(): Promise<Record<string, number>> {
+  try {
+    const response = await fetch('/api/currency/rates')
+    if (!response.ok) {
+      console.warn('Failed to fetch exchange rates, using fallback')
+      return FALLBACK_EXCHANGE_RATES
+    }
+    const data = await response.json()
+    return data.rates || FALLBACK_EXCHANGE_RATES
+  } catch (error) {
+    console.error('Error fetching exchange rates:', error)
+    return FALLBACK_EXCHANGE_RATES
+  }
+}
+
+// Convert price using live rates (async)
+export async function convertPriceAsync(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
   if (fromCurrency === toCurrency) return amount;
-  
-  const fromRate = EXCHANGE_RATES[fromCurrency] || 1;
-  const toRate = EXCHANGE_RATES[toCurrency] || 1;
-  
+
+  const rates = await fetchExchangeRates()
+  const fromRate = rates[fromCurrency] || 1;
+  const toRate = rates[toCurrency] || 1;
+
   // Convert to USD first, then to target currency
   const amountInUSD = amount / fromRate;
   const convertedAmount = amountInUSD * toRate;
-  
+
+  // Round nicely
+  if (convertedAmount > 1000) {
+    return Math.round(convertedAmount / 100) * 100; // Round to nearest 100 for large numbers
+  } else if (convertedAmount > 100) {
+    return Math.round(convertedAmount / 10) * 10; // Round to nearest 10
+  } else {
+    return Math.round(convertedAmount);
+  }
+}
+
+// Synchronous version using fallback rates (for immediate rendering)
+export function convertPrice(amount: number, fromCurrency: string, toCurrency: string): number {
+  if (fromCurrency === toCurrency) return amount;
+
+  const fromRate = FALLBACK_EXCHANGE_RATES[fromCurrency] || 1;
+  const toRate = FALLBACK_EXCHANGE_RATES[toCurrency] || 1;
+
+  // Convert to USD first, then to target currency
+  const amountInUSD = amount / fromRate;
+  const convertedAmount = amountInUSD * toRate;
+
   // Round nicely
   if (convertedAmount > 1000) {
     return Math.round(convertedAmount / 100) * 100; // Round to nearest 100 for large numbers
@@ -86,7 +125,7 @@ export function convertPrice(amount: number, fromCurrency: string, toCurrency: s
 // Get currency from company settings or default
 export async function getCompanyCurrency(companyId?: string): Promise<Currency> {
   if (!companyId) return DEFAULT_CURRENCY;
-  
+
   try {
     // This would fetch from company settings in a real implementation
     // For now, return default
@@ -102,3 +141,4 @@ export function getGlobalDefaultCurrency(): Currency {
   // This could be stored in system settings
   return DEFAULT_CURRENCY;
 }
+
