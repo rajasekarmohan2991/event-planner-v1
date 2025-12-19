@@ -31,7 +31,7 @@ const OPERATIONS: Permission[] = [
   { operation: 'System Settings', permission: 'admin.system', description: 'Configure system settings' },
 ]
 
-const ROLES = ['SUPER_ADMIN', 'ADMIN', 'EVENT_MANAGER', 'USER']
+const ROLES = ['SUPER_ADMIN', 'ADMIN', 'EVENT_MANAGER', 'ORGANIZER', 'USER']
 
 export default function PermissionsMatrixPage() {
   const [permissions, setPermissions] = useState<RolePermissions>({})
@@ -60,7 +60,7 @@ export default function PermissionsMatrixPage() {
     ROLES.forEach(role => {
       defaultPerms[role] = {}
       OPERATIONS.forEach(op => {
-        // Set permissions exactly as shown in the reference image
+        // Set permissions based on role hierarchy
         if (role === 'SUPER_ADMIN') {
           // Super Admin: ALL permissions ✓
           defaultPerms[role][op.permission] = true
@@ -81,6 +81,9 @@ export default function PermissionsMatrixPage() {
             'events.edit',
             'analytics.view'
           ].includes(op.permission)
+        } else if (role === 'ORGANIZER') {
+          // Organizer: View Events ✓ only
+          defaultPerms[role][op.permission] = ['events.view'].includes(op.permission)
         } else if (role === 'USER') {
           // User: Only View Events ✓
           defaultPerms[role][op.permission] = ['events.view'].includes(op.permission)
@@ -189,7 +192,8 @@ export default function PermissionsMatrixPage() {
                       <span className="text-xs text-gray-500 mt-1">
                         {role === 'SUPER_ADMIN' ? 'Full Access' :
                           role === 'ADMIN' ? 'Management' :
-                            role === 'EVENT_MANAGER' ? 'Events Only' : 'Basic'}
+                            role === 'EVENT_MANAGER' ? 'Events Only' :
+                              role === 'ORGANIZER' ? 'View Only' : 'Basic'}
                       </span>
                     </div>
                   </th>
@@ -271,7 +275,7 @@ export default function PermissionsMatrixPage() {
       </div>
 
       {/* Role Descriptions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-semibold text-blue-900">SUPER ADMIN</h4>
           <p className="text-sm text-blue-700 mt-1">
@@ -288,6 +292,12 @@ export default function PermissionsMatrixPage() {
           <h4 className="font-semibold text-purple-900">EVENT MANAGER</h4>
           <p className="text-sm text-purple-700 mt-1">
             Focused on event management. Can create, edit events and view analytics.
+          </p>
+        </div>
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h4 className="font-semibold text-orange-900">ORGANIZER</h4>
+          <p className="text-sm text-orange-700 mt-1">
+            View-only access. Can view events but cannot create or modify them.
           </p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
