@@ -3,13 +3,25 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+// Shared interface for invite data
+interface InviteData {
+  valid: boolean
+  email?: string
+  inviteCode?: string
+  inviteeName?: string
+  category?: string
+  organization?: string
+  discountCode?: string
+  error?: string
+}
+
 // Virtual Attendee Registration Form
-export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
+export function VirtualRegistrationForm({ eventId, inviteData }: { eventId: string; inviteData?: InviteData | null }) {
   const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
+    email: inviteData?.email || "",
     phone: "",
     sessionPreferences: [] as string[]
   })
@@ -46,7 +58,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       const res = await fetch(`/api/events/${eventId}/registrations`, {
         method: 'POST',
@@ -54,7 +66,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
         credentials: 'include',
         body: JSON.stringify({ type: 'VIRTUAL', data: formData })
       })
-      
+
       if (res.ok) {
         const registrationData = await res.json()
         // Store registration data for payment page
@@ -83,7 +95,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
           <input
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             placeholder="First Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -94,7 +106,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
           <input
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             placeholder="Last Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -108,7 +120,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="your.email@example.com"
           className="w-full rounded-md border px-3 py-2 text-sm"
           required
@@ -121,7 +133,7 @@ export function VirtualRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="tel"
           value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           placeholder="+1 (555) 123-4567"
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
@@ -213,7 +225,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       const res = await fetch(`/api/events/${eventId}/registrations`, {
         method: 'POST',
@@ -221,7 +233,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
         credentials: 'include',
         body: JSON.stringify({ type: 'SPEAKER', data: formData })
       })
-      
+
       if (res.ok) {
         const registrationData = await res.json()
         localStorage.setItem('pendingRegistration', JSON.stringify(registrationData))
@@ -248,7 +260,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
           <input
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             placeholder="First Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -259,7 +271,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
           <input
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             placeholder="Last Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -273,7 +285,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="your.email@example.com"
           className="w-full rounded-md border px-3 py-2 text-sm"
           required
@@ -286,7 +298,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="tel"
           value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           placeholder="+1 (555) 123-4567"
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
@@ -298,7 +310,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="text"
           value={formData.jobTitle}
-          onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
           placeholder="e.g. Senior Developer"
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
@@ -310,7 +322,7 @@ export function SpeakerRegistrationForm({ eventId }: { eventId: string }) {
         <input
           type="text"
           value={formData.company}
-          onChange={(e) => setFormData({...formData, company: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
           placeholder="e.g. Tech Corp"
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
