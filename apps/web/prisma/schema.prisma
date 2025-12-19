@@ -1278,6 +1278,10 @@ model Event {
   speakers           Speaker[]
   floorPlans         FloorPlan[]
 
+  @@index([tenantId, startsAt]) // Optimize tenant dashboard sorting
+  @@index([tenantId, status])   // Optimize tenant status filtering
+  @@index([startsAt])           // Optimize platform-level sorting
+  @@index([status])             // Optimize platform-level filtering
   @@map("events")
 }
 

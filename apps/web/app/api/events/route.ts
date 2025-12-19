@@ -271,7 +271,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           name: true,
-          description: true,
+          // description: true, // Removed for performance optimization (list view doesn't need full text)
           status: true,
           startsAt: true,
           endsAt: true,
@@ -332,7 +332,7 @@ export async function GET(req: NextRequest) {
     const duration = Date.now() - startTime
     console.log(`⚡ Query completed in ${duration}ms - ${events.length} events`)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       content: formattedEvents,
       events: formattedEvents,
       totalElements: total,
@@ -344,6 +344,11 @@ export async function GET(req: NextRequest) {
         cached: false
       }
     })
+
+    // Add Cache-Control header (cache for 10 seconds to prevent rapid re-fetching)
+    response.headers.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=59')
+
+    return response
 
   } catch (e: any) {
     console.error('❌ Events API error:', e)
