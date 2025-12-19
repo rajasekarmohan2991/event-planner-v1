@@ -1285,8 +1285,9 @@ model Event {
   eventManagerContact String?  @map("event_manager_contact")
   eventManagerEmail  String?   @map("event_manager_email")
 
-  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenant             Tenant?      @relation(fields: [tenantId], references: [id])
   speakers           Speaker[]
+  floorPlans         FloorPlan[]
 
   @@map("events")
 }
@@ -1448,4 +1449,130 @@ model ModuleAccess {
 
   @@unique([moduleName, role])
   @@map("module_access_matrix")
+}
+
+// ==============================
+// Floor Plan Designer
+// ==============================
+
+enum PricingTier {
+  VIP
+  PREMIUM
+  GENERAL
+}
+
+enum FloorPlanObjectType {
+  GRID
+  ROUND_TABLE
+  STANDING
+  STAGE
+  ENTRY
+  EXIT
+  RESTROOM
+  BAR
+  VIP_LOUNGE
+  CUSTOM
+}
+
+enum FloorPlanStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Gender {
+  MEN
+  WOMEN
+  MIXED
+}
+
+model FloorPlan {
+  id              String            @id @default(cuid())
+  eventId         String
+  name            String
+  description     String?
+  canvasWidth     Int               @default(1200)
+  canvasHeight    Int               @default(800)
+  backgroundColor String            @default("#ffffff")
+  gridSize        Int               @default(20)
+  
+  // Pricing tiers
+  vipPrice        Decimal           @default(0) @db.Decimal(10, 2)
+  premiumPrice    Decimal           @default(0) @db.Decimal(10, 2)
+  generalPrice    Decimal           @default(0) @db.Decimal(10, 2)
+  
+  // Capacity
+  totalCapacity   Int               @default(0)
+  vipCapacity     Int               @default(0)
+  premiumCapacity Int               @default(0)
+  generalCapacity Int               @default(0)
+  
+  // Gender segregation
+  menCapacity     Int               @default(0)
+  womenCapacity   Int               @default(0)
+  
+  // Layout data (JSON)
+  layoutData      Json?             // Stores all objects on canvas
+  
+  status          FloorPlanStatus   @default(DRAFT)
+  version         Int               @default(1)
+  
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  tenantId        String?           @map("tenant_id")
+  
+  event           Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  objects         FloorPlanObject[]
+  
+  @@index([eventId])
+  @@index([tenantId])
+  @@map("floor_plans")
+}
+
+model FloorPlanObject {
+  id              String              @id @default(cuid())
+  floorPlanId     String              @map("floor_plan_id")
+  
+  // Object type
+  type            FloorPlanObjectType
+  subType         String?             @map("sub_type") // RECTANGLE, SQUARE, THEATER, STADIUM
+  
+  // Position and dimensions
+  x               Float
+  y               Float
+  width           Float
+  height          Float
+  rotation        Float               @default(0)
+  
+  // Seating details
+  rows            Int?
+  cols            Int?
+  seatsPerRow     Int?                @map("seats_per_row")
+  totalSeats      Int                 @default(0) @map("total_seats")
+  
+  // Pricing tier
+  pricingTier     PricingTier?        @map("pricing_tier")
+  pricePerSeat    Decimal?            @db.Decimal(10, 2) @map("price_per_seat")
+  
+  // Gender
+  gender          Gender?
+  
+  // Styling
+  fillColor       String              @default("#3b82f6") @map("fill_color")
+  strokeColor     String              @default("#1e40af") @map("stroke_color")
+  opacity         Float               @default(1.0)
+  
+  // Label
+  label           String?
+  
+  // Metadata
+  metadata        Json?
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  
+  floorPlan       FloorPlan           @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  
+  @@index([floorPlanId])
+  @@map("floor_plan_objects")
 }
