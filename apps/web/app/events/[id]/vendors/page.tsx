@@ -1,0 +1,397 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Plus, X } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import ManageTabs from '@/components/events/ManageTabs'
+
+const CATEGORIES = ['CATERING', 'VENUE', 'PHOTOGRAPHY', 'ENTERTAINMENT', 'DECORATION', 'OTHER'] as const
+
+interface Vendor {
+    id?: string
+    name: string
+    category: string
+    status: 'BOOKED' | 'ACTIVE' | 'CANCELLED'
+    contractAmount: number
+    paidAmount?: number
+    isTemporary?: boolean
+    contactName?: string
+    contactEmail?: string
+    contactPhone?: string
+}
+
+interface Budget {
+    category: string
+    budgeted: number
+    spent: number
+    remaining: number
+    vendors: Vendor[]
+}
+
+export default function EventVendorsPage() {
+    const params = useParams()
+    const eventId = params?.id as string
+
+    const [budgets, setBudgets] = useState<Budget[]>([])
+    const [tempVendors, setTempVendors] = useState<Vendor[]>([])
+    const [isAddingVendor, setIsAddingVendor] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState<string>('')
+    const [loading, setLoading] = useState(false)
+
+    const [vendorForm, setVendorForm] = useState({
+        name: '',
+        contactName: '',
+        contactEmail: '',
+        contactPhone: '',
+        contractAmount: 0
+    })
+
+    // Fetch budgets and vendors
+    useEffect(() => {
+        if (eventId) {
+            fetchBudgetsAndVendors()
+        }
+    }, [eventId])
+
+    const fetchBudgetsAndVendors = async () => {
+        try {
+            setLoading(true)
+
+            // Fetch vendors
+            const vendorRes = await fetch(`/api/events/${eventId}/vendors`)
+            const vendorData = await vendorRes.json()
+
+            // Create budgets for each category
+            const categoryBudgets: Budget[] = CATEGORIES.map(category => {
+                const categoryVendors = (vendorData.vendors || []).filter(
+                    (v: Vendor) => v.category === category && v.status !== 'CANCELLED'
+                )
+
+                const spent = categoryVendors.reduce((sum: number, v: Vendor) =>
+                    sum + Number(v.contractAmount || 0), 0
+                )
+
+                return {
+                    category,
+                    budgeted: 100000, // Default budget, can be customized
+                    spent,
+                    remaining: 100000 - spent,
+                    vendors: categoryVendors
+                }
+            })
+
+            setBudgets(categoryBudgets)
+        } catch (error) {
+            console.error('Failed to fetch data:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Handle vendor name change - show as BOOKED
+    const handleVendorNameChange = (name: string) => {
+        setVendorForm(prev => ({ ...prev, name }))
+
+        if (name.trim() && selectedCategory) {
+            const existingIndex = tempVendors.findIndex(
+                v => v.category === selectedCategory && v.isTemporary
+            )
+
+            if (existingIndex >= 0) {
+                setTempVendors(prev => prev.map((v, i) =>
+                    i === existingIndex ? { ...v, name } : v
+                ))
+            } else {
+                setTempVendors(prev => [...prev, {
+                    name,
+                    category: selectedCategory,
+                    status: 'BOOKED',
+                    contractAmount: 0,
+                    isTemporary: true
+                }])
+            }
+        }
+    }
+
+    // Cancel temp vendor
+    const handleCancelTempVendor = (vendor: Vendor) => {
+        setTempVendors(prev => prev.filter(v => v !== vendor))
+
+        if (vendorForm.name === vendor.name && selectedCategory === vendor.category) {
+            setVendorForm({
+                name: '',
+                contactName: '',
+                contactEmail: '',
+                contactPhone: '',
+                contractAmount: 0
+            })
+        }
+    }
+
+    // Save vendor
+    const handleSaveVendor = async () => {
+        try {
+            setLoading(true)
+
+            const response = await fetch(`/api/events/${eventId}/vendors`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: vendorForm.name,
+                    category: selectedCategory,
+                    contactName: vendorForm.contactName,
+                    contactEmail: vendorForm.contactEmail,
+                    contactPhone: vendorForm.contactPhone,
+                    contractAmount: vendorForm.contractAmount,
+                    status: 'ACTIVE' // Change from BOOKED to ACTIVE on save
+                })
+            })
+
+            if (response.ok) {
+                // Clear temp vendors for this category
+                setTempVendors(prev => prev.filter(v => v.category !== selectedCategory))
+
+                // Reset form
+                setVendorForm({
+                    name: '',
+                    contactName: '',
+                    contactEmail: '',
+                    contactPhone: '',
+                    contractAmount: 0
+                })
+                setSelectedCategory('')
+                setIsAddingVendor(false)
+
+                // Refresh data
+                await fetchBudgetsAndVendors()
+
+                alert('Vendor added successfully!')
+            } else {
+                const error = await response.json()
+                alert(`Failed to save vendor: ${error.message || 'Unknown error'}`)
+            }
+        } catch (error) {
+            console.error('Failed to save vendor:', error)
+            alert('Failed to save vendor')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Budget Card Component
+    const BudgetCard = ({ budget }: { budget: Budget }) => {
+        const allVendors = [
+            ...budget.vendors,
+            ...tempVendors.filter(v => v.category === budget.category)
+        ]
+
+        return (
+            <Card className="bg-white">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold">{budget.category}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    <div className="space-y-1 text-sm">
+                        <p>Budget: <span className="font-medium">₹{budget.budgeted.toLocaleString()}</span></p>
+                        <p>Spent: <span className="font-medium">₹{budget.spent.toLocaleString()}</span></p>
+                        <p className="text-green-600 font-semibold">
+                            Remaining: ₹{budget.remaining.toLocaleString()}
+                        </p>
+                    </div>
+
+                    {allVendors.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                            <p className="text-xs font-semibold text-gray-600">Vendors:</p>
+                            {allVendors.map((vendor, index) => (
+                                <div
+                                    key={vendor.id || `temp-${index}`}
+                                    className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{vendor.name}</p>
+                                        {vendor.contractAmount > 0 && (
+                                            <p className="text-xs text-gray-500">
+                                                ₹{vendor.contractAmount.toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 ml-2">
+                                        <Badge
+                                            variant={
+                                                vendor.status === 'BOOKED' ? 'secondary' :
+                                                    vendor.status === 'ACTIVE' ? 'default' :
+                                                        'destructive'
+                                            }
+                                            className={
+                                                vendor.status === 'BOOKED' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+                                                    vendor.status === 'ACTIVE' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
+                                                        ''
+                                            }
+                                        >
+                                            {vendor.status}
+                                        </Badge>
+
+                                        {vendor.isTemporary && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleCancelTempVendor(vendor)}
+                                                className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (loading && budgets.length === 0) {
+        return (
+            <div className="space-y-6">
+                <ManageTabs eventId={eventId} />
+                <div className="p-6">Loading...</div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <ManageTabs eventId={eventId} />
+
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold">Budgets</h1>
+                    <p className="text-sm text-muted-foreground">Event ID: {eventId}</p>
+                </div>
+                <Button onClick={() => setIsAddingVendor(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Vendor
+                </Button>
+            </div>
+
+            {/* Budget Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {budgets.map((budget) => (
+                    <BudgetCard key={budget.category} budget={budget} />
+                ))}
+            </div>
+
+            {/* Add Vendor Dialog */}
+            <Dialog open={isAddingVendor} onOpenChange={setIsAddingVendor}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Add Vendor</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        {/* Category Selection */}
+                        <div className="space-y-2">
+                            <Label htmlFor="category">Category *</Label>
+                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {CATEGORIES.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Vendor Name - This triggers BOOKED status */}
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Vendor Name *</Label>
+                            <Input
+                                id="name"
+                                value={vendorForm.name}
+                                onChange={(e) => handleVendorNameChange(e.target.value)}
+                                placeholder="Enter vendor name"
+                                disabled={!selectedCategory}
+                            />
+                            {!selectedCategory && (
+                                <p className="text-xs text-gray-500">Select a category first</p>
+                            )}
+                        </div>
+
+                        {/* Contact Details */}
+                        <div className="space-y-2">
+                            <Label htmlFor="contactName">Contact Name</Label>
+                            <Input
+                                id="contactName"
+                                value={vendorForm.contactName}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, contactName: e.target.value }))}
+                                placeholder="Contact person name"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contactEmail">Contact Email</Label>
+                            <Input
+                                id="contactEmail"
+                                type="email"
+                                value={vendorForm.contactEmail}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                placeholder="email@example.com"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contactPhone">Contact Phone</Label>
+                            <Input
+                                id="contactPhone"
+                                value={vendorForm.contactPhone}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                                placeholder="+1234567890"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contractAmount">Contract Amount *</Label>
+                            <Input
+                                id="contractAmount"
+                                type="number"
+                                value={vendorForm.contractAmount}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, contractAmount: Number(e.target.value) }))}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsAddingVendor(false)
+                                const tempVendor = tempVendors.find(v => v.category === selectedCategory)
+                                if (tempVendor) handleCancelTempVendor(tempVendor)
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSaveVendor}
+                            disabled={!vendorForm.name || !selectedCategory || loading}
+                        >
+                            {loading ? 'Saving...' : 'Save Vendor'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    )
+}

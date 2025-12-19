@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 export default function ManageTabs({ eventId }: { eventId: string }) {
   const pathname = usePathname()
   const base = `/events/${eventId}`
-  const vendorsHref = `/company/vendors?eventId=${encodeURIComponent(eventId)}`
   const tabs = [
     { href: `${base}/info`, label: 'Event Info' },
     { href: `${base}/speakers`, label: 'Speakers' },
@@ -15,7 +14,7 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
 
     { href: `${base}/sponsors`, label: 'Sponsors' },
     { href: `${base}/design/floor-plan`, label: 'Floor Plan' },
-    { href: vendorsHref, label: 'Vendors' },
+    { href: `${base}/vendors`, label: 'Vendors' },
     { href: `${base}/exhibitor-registration`, label: 'Exhibitor Registration' },
     { href: `${base}/promote`, label: 'Promote' },
     { href: `${base}/engagement`, label: 'Engagement' },
