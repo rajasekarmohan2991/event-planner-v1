@@ -207,28 +207,37 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit
 
   try {
-    const userRole = (session as any)?.user?.role as string | undefined
+    // Get role from multiple sources for robustness
+    const sessionRole = (session as any)?.user?.role as string | undefined
+    const tenantRole = (session as any)?.user?.tenantRole as string | undefined
+    const userRole = sessionRole?.toUpperCase() || tenantRole?.toUpperCase() || ''
     const userId = (session as any)?.user?.id
     const tenantId = (session as any)?.user?.currentTenantId
 
-    // console.log(`🔍 GET /api/events - User: ${session?.user?.email}, Role: ${userRole}, Tenant: ${tenantId}`)
+    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}, Normalized: ${userRole}, Tenant: ${tenantId}`)
+    console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
+    console.log(`🔑 Full session.user:`, JSON.stringify((session as any)?.user, null, 2))
 
     const where: any = {}
 
+    // Check if user is a super admin (case-insensitive)
+    const isSuperAdmin = userRole === 'SUPER_ADMIN' || sessionRole === 'SUPER_ADMIN'
+    const isAdmin = ['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole) ||
+      ['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(sessionRole || '')
+
     // 1. Role-based filtering
-    if (userRole === 'SUPER_ADMIN') {
+    if (isSuperAdmin) {
       // SUPER_ADMIN sees ALL platform-level events (no tenant filtering)
       console.log('✅ SUPER_ADMIN - Showing ALL platform events (no tenant filter)')
       // No where clause - they see everything
-    } else if (['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole || '')) {
+    } else if (isAdmin) {
       // Company/Tenant admins see ONLY their company's events
       if (tenantId) {
         where.tenantId = tenantId
         console.log(`🏢 ${userRole} - Showing events for tenant: ${tenantId}`)
       } else {
-        // If no tenantId, show only public events
-        where.status = { in: ['LIVE', 'PUBLISHED', 'UPCOMING', 'COMPLETED'] }
-        console.log(`⚠️ ${userRole} - No tenantId, showing public events only`)
+        // If no tenantId, show all events for admins (fallback)
+        console.log(`⚠️ ${userRole} - No tenantId, showing all events as fallback`)
       }
     } else {
       if (isMyEvents && userId) {
@@ -271,7 +280,7 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           name: true,
-          // description: true, // Removed for performance optimization (list view doesn't need full text)
+          description: true,
           status: true,
           startsAt: true,
           endsAt: true,
@@ -332,7 +341,7 @@ export async function GET(req: NextRequest) {
     const duration = Date.now() - startTime
     console.log(`⚡ Query completed in ${duration}ms - ${events.length} events`)
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       content: formattedEvents,
       events: formattedEvents,
       totalElements: total,
@@ -344,11 +353,6 @@ export async function GET(req: NextRequest) {
         cached: false
       }
     })
-
-    // Add Cache-Control header (cache for 10 seconds to prevent rapid re-fetching)
-    response.headers.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=59')
-
-    return response
 
   } catch (e: any) {
     console.error('❌ Events API error:', e)

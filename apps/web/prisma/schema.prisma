@@ -321,7 +321,7 @@ model Registration {
   approvalMode   String?             @map("approval_mode")// MANUAL or AUTOMATIC
   approvalNotes  String?             @map("approval_notes")
   createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
   tenantId       String?             @map("tenant_id")
   
   // Fields required by current API implementation
@@ -1278,10 +1278,6 @@ model Event {
   speakers           Speaker[]
   floorPlans         FloorPlan[]
 
-  @@index([tenantId, startsAt]) // Optimize tenant dashboard sorting
-  @@index([tenantId, status])   // Optimize tenant status filtering
-  @@index([startsAt])           // Optimize platform-level sorting
-  @@index([status])             // Optimize platform-level filtering
   @@map("events")
 }
 
