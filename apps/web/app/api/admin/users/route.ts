@@ -38,16 +38,17 @@ export async function GET(req: NextRequest) {
     const companyId = (searchParams.get('companyId') || '').trim()
 
     // Use raw SQL to avoid Prisma schema issues and handle BigInt
-    let users, totalResult
-
     // SUPER_ADMIN sees all users, ADMIN sees only their tenant's users
     const isSuperAdmin = userRole === 'SUPER_ADMIN'
-    const tenantFilter = isSuperAdmin ? '' : `AND tm."tenantId" = '${currentTenantId}'`
+
+    // Prepare promises for parallel execution
+    let usersPromise
+    let countPromise
 
     if (q) {
       if (isSuperAdmin) {
         if (companyId) {
-          users = await prisma.$queryRaw`
+          usersPromise = prisma.$queryRaw`
             SELECT 
               u.id::text as id,
               u.name,
@@ -70,8 +71,15 @@ export async function GET(req: NextRequest) {
             ORDER BY u.created_at DESC
             LIMIT ${limit} OFFSET ${(page - 1) * limit}
           `
+          countPromise = prisma.$queryRaw`
+            SELECT COUNT(*)::int as count 
+            FROM users u
+            INNER JOIN tenant_members tm ON u.id = tm."userId"
+            WHERE tm."tenantId" = ${companyId}
+              AND (u.name ILIKE ${`%${q}%`} OR u.email ILIKE ${`%${q}%`} OR u.role ILIKE ${`%${q}%`})
+          `
         } else {
-          users = await prisma.$queryRaw`
+          usersPromise = prisma.$queryRaw`
             SELECT 
               u.id::text as id,
               u.name,
@@ -93,10 +101,15 @@ export async function GET(req: NextRequest) {
             ORDER BY u.created_at DESC
             LIMIT ${limit} OFFSET ${(page - 1) * limit}
           `
+          countPromise = prisma.$queryRaw`
+            SELECT COUNT(*)::int as count 
+            FROM users u
+            WHERE (u.name ILIKE ${`%${q}%`} OR u.email ILIKE ${`%${q}%`} OR u.role ILIKE ${`%${q}%`})
+          `
         }
       } else {
         // ADMIN: only show users from their tenant
-        users = await prisma.$queryRaw`
+        usersPromise = prisma.$queryRaw`
           SELECT 
             u.id::text as id,
             u.name,
@@ -119,26 +132,7 @@ export async function GET(req: NextRequest) {
           ORDER BY u.created_at DESC
           LIMIT ${limit} OFFSET ${(page - 1) * limit}
         `
-      }
-
-      if (isSuperAdmin) {
-        if (companyId) {
-          totalResult = await prisma.$queryRaw`
-            SELECT COUNT(*)::int as count 
-            FROM users u
-            INNER JOIN tenant_members tm ON u.id = tm."userId"
-            WHERE tm."tenantId" = ${companyId}
-              AND (u.name ILIKE ${`%${q}%`} OR u.email ILIKE ${`%${q}%`} OR u.role ILIKE ${`%${q}%`})
-          `
-        } else {
-          totalResult = await prisma.$queryRaw`
-            SELECT COUNT(*)::int as count 
-            FROM users u
-            WHERE (u.name ILIKE ${`%${q}%`} OR u.email ILIKE ${`%${q}%`} OR u.role ILIKE ${`%${q}%`})
-          `
-        }
-      } else {
-        totalResult = await prisma.$queryRaw`
+        countPromise = prisma.$queryRaw`
           SELECT COUNT(*)::int as count 
           FROM users u
           INNER JOIN tenant_members tm ON u.id = tm."userId"
@@ -149,7 +143,7 @@ export async function GET(req: NextRequest) {
     } else {
       if (isSuperAdmin) {
         if (companyId) {
-          users = await prisma.$queryRaw`
+          usersPromise = prisma.$queryRaw`
             SELECT 
               u.id::text as id,
               u.name,
@@ -171,8 +165,14 @@ export async function GET(req: NextRequest) {
             ORDER BY u.created_at DESC
             LIMIT ${limit} OFFSET ${(page - 1) * limit}
           `
+          countPromise = prisma.$queryRaw`
+            SELECT COUNT(*)::int as count 
+            FROM users u
+            INNER JOIN tenant_members tm ON u.id = tm."userId"
+            WHERE tm."tenantId" = ${companyId}
+          `
         } else {
-          users = await prisma.$queryRaw`
+          usersPromise = prisma.$queryRaw`
             SELECT 
               u.id::text as id,
               u.name,
@@ -193,10 +193,14 @@ export async function GET(req: NextRequest) {
             ORDER BY u.created_at DESC
             LIMIT ${limit} OFFSET ${(page - 1) * limit}
           `
+          countPromise = prisma.$queryRaw`
+            SELECT COUNT(*)::int as count 
+            FROM users u
+          `
         }
       } else {
         // ADMIN: only show users from their tenant
-        users = await prisma.$queryRaw`
+        usersPromise = prisma.$queryRaw`
           SELECT 
             u.id::text as id,
             u.name,
@@ -218,24 +222,7 @@ export async function GET(req: NextRequest) {
           ORDER BY u.created_at DESC
           LIMIT ${limit} OFFSET ${(page - 1) * limit}
         `
-      }
-
-      if (isSuperAdmin) {
-        if (companyId) {
-          totalResult = await prisma.$queryRaw`
-            SELECT COUNT(*)::int as count 
-            FROM users u
-            INNER JOIN tenant_members tm ON u.id = tm."userId"
-            WHERE tm."tenantId" = ${companyId}
-          `
-        } else {
-          totalResult = await prisma.$queryRaw`
-            SELECT COUNT(*)::int as count 
-            FROM users u
-          `
-        }
-      } else {
-        totalResult = await prisma.$queryRaw`
+        countPromise = prisma.$queryRaw`
           SELECT COUNT(*)::int as count 
           FROM users u
           INNER JOIN tenant_members tm ON u.id = tm."userId"
@@ -243,6 +230,10 @@ export async function GET(req: NextRequest) {
         `
       }
     }
+
+    // Execute in parallel
+    const [users, totalResult] = await Promise.all([usersPromise, countPromise])
+
 
     // Transform the data to match the expected format
     const transformedUsers = (users as any[]).map(user => ({

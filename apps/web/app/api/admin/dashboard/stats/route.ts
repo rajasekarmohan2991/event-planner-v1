@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     // Get tenant ID from session
     const tenantId = (session as any).user.currentTenantId
-    
+
     console.log(`Fetching Dashboard Stats for Role=${userRole}, Tenant=${tenantId}`)
 
     let totalEvents = 0
@@ -42,56 +42,57 @@ export async function GET(req: NextRequest) {
 
     if (userRole === 'SUPER_ADMIN') {
       // SUPER_ADMIN gets global stats
-      // Use Prisma Client methods where possible for better reliability
+      // Use concurrent execution for all counts
       const [
-        eventsCount, 
-        upcomingCount, 
-        usersCount, 
-        tenantsCount
+        eventsCount,
+        upcomingCount,
+        usersCount,
+        tenantsCount,
+        regResult
       ] = await Promise.all([
         prisma.event.count(),
         prisma.event.count({ where: { startsAt: { gte: now } } }),
         prisma.user.count(),
-        prisma.tenant.count()
+        prisma.tenant.count(),
+        prisma.$queryRaw`
+          SELECT COUNT(*)::int as count 
+          FROM registrations 
+          WHERE created_at >= ${sevenDaysAgo}
+        `
       ])
-      
-      // Use raw query for registrations since we want to be safe with table/model names
-      const regResult = await prisma.$queryRaw`
-        SELECT COUNT(*)::int as count 
-        FROM registrations 
-        WHERE created_at >= ${sevenDaysAgo}
-      `
+
       const regCount = (regResult as any)[0]?.count || 0
 
       totalEvents = eventsCount
       upcomingEvents = upcomingCount
       totalUsers = usersCount
       recentRegistrations = Number(regCount)
-      
+
       // Exclude self (Super Admin tenant) if count > 0
       totalCompanies = Math.max(0, tenantsCount - 1)
-      
+
     } else {
       // Others get tenant-scoped stats
       const targetTenantId = tenantId || 'default-tenant'
-      
+
       const [
-        eventsCount, 
-        upcomingCount, 
-        usersCount
+        eventsCount,
+        upcomingCount,
+        usersCount,
+        regResult
       ] = await Promise.all([
         prisma.event.count({ where: { tenantId: targetTenantId } }),
         prisma.event.count({ where: { tenantId: targetTenantId, startsAt: { gte: now } } }),
-        prisma.tenantMember.count({ where: { tenantId: targetTenantId } })
+        prisma.tenantMember.count({ where: { tenantId: targetTenantId } }),
+        prisma.$queryRaw`
+          SELECT COUNT(*)::int as count 
+          FROM registrations 
+          WHERE tenant_id = ${targetTenantId} AND created_at >= ${sevenDaysAgo}
+        `
       ])
-      
-      const regResult = await prisma.$queryRaw`
-        SELECT COUNT(*)::int as count 
-        FROM registrations 
-        WHERE tenant_id = ${targetTenantId} AND created_at >= ${sevenDaysAgo}
-      `
+
       const regCount = (regResult as any)[0]?.count || 0
-      
+
       totalEvents = eventsCount
       upcomingEvents = upcomingCount
       totalUsers = usersCount
@@ -99,11 +100,11 @@ export async function GET(req: NextRequest) {
       totalCompanies = 0 // Regular admins don't manage companies
     }
 
-    console.log('Stats computed:', { 
-      totalEvents, 
-      upcomingEvents, 
-      totalUsers, 
-      totalCompanies 
+    console.log('Stats computed:', {
+      totalEvents,
+      upcomingEvents,
+      totalUsers,
+      totalCompanies
     })
 
     return NextResponse.json({
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error)
-    
+
     // Return safe defaults on error
     return NextResponse.json({
       totalEvents: 0,

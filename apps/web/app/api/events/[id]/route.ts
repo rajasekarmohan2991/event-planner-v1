@@ -14,7 +14,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (permissionError) return permissionError
 
   const session = await getServerSession(authOptions as any)
-  
+
   // Check authentication
   if (!session || !(session as any).user) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
@@ -24,7 +24,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const tenantRole = (session as any)?.user?.tenantRole as string | undefined
   const role = tenantRole || ((session as any)?.user?.role as string | undefined)
   console.log(`🗑️ DELETE event ${params.id} - User role: ${role}`)
-  
+
   if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     console.log(`❌ DELETE denied - role ${role} is not SUPER_ADMIN or ADMIN`)
     return NextResponse.json({ message: 'Only SUPER_ADMIN or ADMIN can delete events' }, { status: 403 })
@@ -32,7 +32,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const accessToken = (session as any)?.accessToken as string | undefined
   const userId = (session as any)?.user?.id
-  
+
   try {
     const headers: Record<string, string> = {}
     const inboundTenant = req.headers.get('x-tenant-id') || undefined
@@ -41,23 +41,23 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (role) headers['x-user-role'] = role
     if (userId) headers['x-user-id'] = userId
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-    
+
     console.log(`📡 Calling DELETE ${API_BASE}/events/${params.id}`, { tenantId, role, userId })
-    
+
     const res = await fetch(`${API_BASE}/events/${params.id}`, {
       method: 'DELETE',
       headers,
       credentials: 'include',
     })
-    
+
     console.log(`📊 DELETE response: ${res.status}`)
-    
+
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
       console.log(`❌ DELETE failed:`, body)
       return NextResponse.json(body || { message: 'Failed to delete event' }, { status: res.status })
     }
-    
+
     console.log(`✅ Event ${params.id} deleted successfully`)
     return new NextResponse(null, { status: 204 })
   } catch (err: any) {
@@ -69,41 +69,18 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions as any)
   const accessToken = (session as any)?.accessToken as string | undefined
-  
+
   // Validate that ID is numeric
   if (isNaN(Number(params.id))) {
-    return NextResponse.json({ 
-      message: 'Invalid event ID. Event ID must be numeric.' 
+    return NextResponse.json({
+      message: 'Invalid event ID. Event ID must be numeric.'
     }, { status: 400 })
   }
-  
+
   const eventId = parseInt(params.id)
-  
-  // Try Java API first, fallback to Prisma if it fails
-  try {
-    const headers: Record<string, string> = {}
-    const inboundTenant = req.headers.get('x-tenant-id') || undefined
-    const tenantId = ((session as any)?.user?.currentTenantId as string | undefined) || inboundTenant || process.env.DEFAULT_TENANT_ID || 'default-tenant'
-    const tenantRole = (session as any)?.user?.tenantRole as string | undefined
-    const role = tenantRole || ((session as any)?.user?.role as string | undefined)
-    if (tenantId) headers['x-tenant-id'] = tenantId
-    if (role) headers['x-user-role'] = role
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-    const res = await fetch(`${API_BASE}/events/${params.id}`, {
-      headers,
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    if (res.ok) return NextResponse.json(payload)
-    // If Java API returns 404 or error, try Prisma fallback
-  } catch (err: any) {
-    console.log('Java API failed, trying Prisma fallback:', err.message)
-  }
-  
-  // Prisma fallback - fetch directly from database (select only existing columns)
+
+
+  // Use Prisma directly for better performance (Java API was failing/slow)
   try {
     const event = await prisma.$queryRaw`
       SELECT 
@@ -146,7 +123,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const session = await getServerSession(authOptions as any)
   const accessToken = (session as any)?.accessToken as string | undefined
   const body = await req.text()
-  
+
   console.log(`🔄 PUT /api/events/${params.id} - User: ${(session as any)?.user?.email}, Role: ${(session as any)?.user?.role}`)
 
   try {
@@ -158,33 +135,33 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const tenantRole = (session as any)?.user?.tenantRole as string | undefined
     const role = tenantRole || ((session as any)?.user?.role as string | undefined)
     const userId = (session as any)?.user?.id
-    
+
     if (tenantId) headers['x-tenant-id'] = tenantId
     if (role) headers['x-user-role'] = role
     if (userId) headers['x-user-id'] = userId
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`
-    
+
     console.log(`📡 Calling Java API: ${API_BASE}/events/${params.id}`)
     console.log(`📋 Headers:`, { tenantId, role, userId, hasToken: !!accessToken })
-    
+
     const res = await fetch(`${API_BASE}/events/${params.id}`, {
       method: 'PUT',
       headers,
       body,
       credentials: 'include',
     })
-    
+
     const text = await res.text()
     const isJson = (res.headers.get('content-type') || '').includes('application/json')
     const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    
+
     console.log(`📊 Java API Response: status=${res.status}, payload=`, payload)
-    
+
     if (!res.ok) {
       console.log(`❌ PUT event failed: ${res.status} - ${JSON.stringify(payload)}`)
       return NextResponse.json(payload || { message: 'Failed to update event' }, { status: res.status })
     }
-    
+
     console.log(`✅ PUT event successful`)
     return NextResponse.json(payload)
   } catch (err: any) {
