@@ -13,7 +13,6 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
     { href: `${base}/team`, label: 'Team' },
 
     { href: `${base}/sponsors`, label: 'Sponsors' },
-    { href: `${base}/floor-plan`, label: 'Floor Plan' },
     { href: `${base}/vendors`, label: 'Vendors' },
     { href: `${base}/exhibitor-registration`, label: 'Exhibitor Registration' },
     { href: `${base}/promote`, label: 'Promote' },
