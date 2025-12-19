@@ -207,37 +207,38 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit
 
   try {
-    // Get role from multiple sources for robustness
+    // Get role from multiple sources - PRIORITIZE session.user.role over tenantRole
     const sessionRole = (session as any)?.user?.role as string | undefined
     const tenantRole = (session as any)?.user?.tenantRole as string | undefined
-    const userRole = sessionRole?.toUpperCase() || tenantRole?.toUpperCase() || ''
     const userId = (session as any)?.user?.id
     const tenantId = (session as any)?.user?.currentTenantId
 
-    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}, Normalized: ${userRole}, Tenant: ${tenantId}`)
+    console.log(`🔍 GET /api/events - User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}, Tenant: ${tenantId}`)
     console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
     console.log(`🔑 Full session.user:`, JSON.stringify((session as any)?.user, null, 2))
 
     const where: any = {}
 
-    // Check if user is a super admin (case-insensitive)
-    const isSuperAdmin = userRole === 'SUPER_ADMIN' || sessionRole === 'SUPER_ADMIN'
-    const isAdmin = ['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(userRole) ||
-      ['TENANT_ADMIN', 'EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(sessionRole || '')
+    // CRITICAL: Check session.user.role FIRST (this is the system-level role)
+    // session.user.role = SUPER_ADMIN (platform-wide access)
+    // session.user.tenantRole = TENANT_ADMIN (company-specific role)
+    const isSuperAdmin = sessionRole?.toUpperCase() === 'SUPER_ADMIN'
+    const isTenantAdmin = tenantRole?.toUpperCase() === 'TENANT_ADMIN' ||
+      ['EVENT_MANAGER', 'OWNER', 'ADMIN', 'MANAGER'].includes(tenantRole?.toUpperCase() || '')
 
-    // 1. Role-based filtering
+    // 1. Role-based filtering - SUPER_ADMIN takes precedence
     if (isSuperAdmin) {
       // SUPER_ADMIN sees ALL platform-level events (no tenant filtering)
-      console.log('✅ SUPER_ADMIN - Showing ALL platform events (no tenant filter)')
+      console.log('✅ SUPER_ADMIN detected - Showing ALL platform events (no tenant filter)')
       // No where clause - they see everything
-    } else if (isAdmin) {
+    } else if (isTenantAdmin) {
       // Company/Tenant admins see ONLY their company's events
       if (tenantId) {
         where.tenantId = tenantId
-        console.log(`🏢 ${userRole} - Showing events for tenant: ${tenantId}`)
+        console.log(`🏢 TENANT_ADMIN - Showing events for tenant: ${tenantId}`)
       } else {
         // If no tenantId, show all events for admins (fallback)
-        console.log(`⚠️ ${userRole} - No tenantId, showing all events as fallback`)
+        console.log(`⚠️ TENANT_ADMIN - No tenantId, showing all events as fallback`)
       }
     } else {
       if (isMyEvents && userId) {
