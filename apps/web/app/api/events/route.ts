@@ -216,6 +216,7 @@ export async function GET(req: NextRequest) {
     console.log(`🔍 GET /api/events - User: ${session?.user?.email}, SessionRole: ${sessionRole}, TenantRole: ${tenantRole}, Tenant: ${tenantId}`)
     console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
     console.log(`🔑 Full session.user:`, JSON.stringify((session as any)?.user, null, 2))
+    console.log('🚀 SUPER_ADMIN FIX DEPLOYED - Version 2025-12-19-15:15')
 
     const where: any = {}
 
