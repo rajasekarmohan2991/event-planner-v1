@@ -12,27 +12,39 @@ interface StatsCardProps {
   href?: string;
 }
 
-// Color schemes for different card types - Lighter, more vibrant
+// Color schemes for different card types - Light, subtle pastels (NO YELLOW)
 const cardStyles = [
   {
-    // Purple gradient - lighter and more vibrant
-    bg: 'bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500 dark:from-purple-500 dark:via-purple-600 dark:to-indigo-600',
-    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
+    // Soft Lavender - light purple
+    bg: 'bg-gradient-to-br from-purple-50 via-purple-100 to-indigo-100 dark:from-purple-100 dark:via-purple-200 dark:to-indigo-200',
+    iconBg: 'bg-purple-200/40 group-hover:bg-purple-200/60',
+    textColor: 'text-purple-900',
+    iconColor: 'text-purple-600',
+    descColor: 'text-purple-700',
   },
   {
-    // Teal/Green gradient - lighter and more vibrant
-    bg: 'bg-gradient-to-br from-teal-400 via-emerald-400 to-green-500 dark:from-teal-500 dark:via-emerald-500 dark:to-green-600',
-    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
+    // Soft Mint - light green
+    bg: 'bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 dark:from-emerald-100 dark:via-teal-100 dark:to-green-200',
+    iconBg: 'bg-emerald-200/40 group-hover:bg-emerald-200/60',
+    textColor: 'text-emerald-900',
+    iconColor: 'text-emerald-600',
+    descColor: 'text-emerald-700',
   },
   {
-    // Blue/Cyan gradient - lighter and more vibrant
-    bg: 'bg-gradient-to-br from-blue-400 via-cyan-400 to-blue-500 dark:from-blue-500 dark:via-cyan-500 dark:to-blue-600',
-    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
+    // Soft Sky Blue - light blue
+    bg: 'bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 dark:from-blue-100 dark:via-sky-100 dark:to-cyan-200',
+    iconBg: 'bg-blue-200/40 group-hover:bg-blue-200/60',
+    textColor: 'text-blue-900',
+    iconColor: 'text-blue-600',
+    descColor: 'text-blue-700',
   },
   {
-    // Orange/Amber gradient - lighter and more vibrant
-    bg: 'bg-gradient-to-br from-orange-400 via-amber-400 to-yellow-500 dark:from-orange-500 dark:via-amber-500 dark:to-yellow-600',
-    iconBg: 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30',
+    // Soft Rose - light pink (NO YELLOW!)
+    bg: 'bg-gradient-to-br from-rose-50 via-pink-50 to-rose-100 dark:from-rose-100 dark:via-pink-100 dark:to-rose-200',
+    iconBg: 'bg-rose-200/40 group-hover:bg-rose-200/60',
+    textColor: 'text-rose-900',
+    iconColor: 'text-rose-600',
+    descColor: 'text-rose-700',
   },
 ];
 
@@ -65,23 +77,23 @@ export function StatsCard({
     <Card
       className={cn(
         style.bg,
-        'rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-0 group',
+        'rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200/50 group',
         href && 'cursor-pointer',
         className
       )}
       onClick={handleClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-white/90">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
+        <CardTitle className={cn('text-sm font-medium', style.descColor)}>
           {title}
         </CardTitle>
         <div className={cn('p-2 rounded-lg transition-all', style.iconBg)}>
-          <Icon className="h-4 w-4 text-white" />
+          <Icon className={cn('h-4 w-4', style.iconColor)} />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold text-white mb-1">{value}</div>
-        <p className="text-sm text-white/80">
+      <CardContent className="pb-4">
+        <div className={cn('text-2xl font-bold mb-1', style.textColor)}>{value}</div>
+        <p className={cn('text-xs', style.descColor)}>
           {description}
         </p>
       </CardContent>
