@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const confirmationToken = crypto.randomBytes(32).toString('hex')
 
     // Create Exhibitor with stepper workflow fields
-    const exhibitor = await prisma.exhibitor.create({
+    const exhibitor = await (prisma as any).exhibitor.create({
       data: {
         eventId: params.id,
         name: body.company_name || 'Unknown Company',
