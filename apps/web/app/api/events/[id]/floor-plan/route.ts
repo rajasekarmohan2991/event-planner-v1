@@ -7,28 +7,42 @@ export const dynamic = 'force-dynamic'
 
 // GET - List all floor plans for an event
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    // GET method fixes
     try {
-        const session = await getServerSession(authOptions as any)
+        const session = await getServerSession(authOptions as any) as any
         if (!session) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
         const eventId = params.id
+        const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN'
+
         console.log('📐 Fetching floor plans for event:', eventId)
 
-        // Fetch floor plans with safe type casting
-        const floorPlans = await (prisma as any).floorPlan?.findMany({
-            where: { eventId },
+        const queryArgs: any = {
+            where: { eventId: BigInt(eventId) },
             include: {
                 objects: true
             },
             orderBy: { createdAt: 'desc' }
-        }) || []
+        }
+
+        if (isSuperAdmin) {
+            queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
+        }
+
+        // Fetch floor plans with safe type casting
+        const floorPlans = await (prisma as any).floorPlan?.findMany(queryArgs) || []
 
         console.log(`✅ Found ${floorPlans.length} floor plans`)
 
+        // Handle serialization of BigInt
+        const serialized = JSON.parse(JSON.stringify(floorPlans, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        ))
+
         return NextResponse.json({
-            floorPlans,
+            floorPlans: serialized,
             total: floorPlans.length
         })
     } catch (error: any) {
@@ -67,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         // Create floor plan with safe type casting
         const floorPlan = await (prisma as any).floorPlan.create({
             data: {
-                eventId,
+                eventId: BigInt(eventId),
                 name: body.name || 'New Floor Plan',
                 description: body.description || null,
                 canvasWidth: body.canvasWidth || 1200,
@@ -92,9 +106,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         console.log('✅ Floor plan created:', floorPlan.id)
 
+        // Serialize BigInt in response
+        const serialized = JSON.parse(JSON.stringify(floorPlan, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        ))
+
         return NextResponse.json({
             message: 'Floor plan created successfully',
-            floorPlan
+            floorPlan: serialized
         }, { status: 201 })
     } catch (error: any) {
         console.error('❌ Error creating floor plan:', error)

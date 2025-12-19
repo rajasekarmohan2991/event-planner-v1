@@ -7,14 +7,23 @@ import { authOptions, checkUserRole } from '@/lib/auth'
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const eventId = params.id
-    
-    const exhibitors = await prisma.exhibitor.findMany({
+
+    const session = await getServerSession(authOptions) as any
+    const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN'
+
+    const queryArgs: any = {
       where: { eventId },
       include: {
         booths: true
       },
       orderBy: { createdAt: 'desc' }
-    })
+    }
+
+    if (isSuperAdmin) {
+      queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
+    }
+
+    const exhibitors = await prisma.exhibitor.findMany(queryArgs)
 
     // Map to format expected by frontend (snake_case)
     const items = exhibitors.map(ex => {
@@ -22,11 +31,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       const booth = ex.booths[0]
       let status = 'PENDING'
       let payment_status = 'PENDING' // Default
-      
+
       if (booth) {
         if (booth.status === 'RESERVED') status = 'PENDING_APPROVAL'
         if (booth.status === 'ASSIGNED') status = 'APPROVED'
-        
+
         // Map price
         // payment_status is not explicitly in model, assuming derived or PENDING for now
       }
@@ -47,7 +56,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         created_at: ex.createdAt
       }
     })
-    
+
     return NextResponse.json(items)
   } catch (error: any) {
     console.error('Exhibitors fetch error:', error)
@@ -62,17 +71,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!session?.user) {
       return NextResponse.json({ message: 'Unauthorized - Please log in' }, { status: 401 })
     }
-    
-    const eventId = BigInt(params.id)
+
+    const eventId = params.id
     const body = await req.json().catch(() => ({}))
-    
+
     // Validate required fields
     if (!body.company && !body.name) {
-      return NextResponse.json({ 
-        error: 'Company name or exhibitor name is required' 
+      return NextResponse.json({
+        error: 'Company name or exhibitor name is required'
       }, { status: 400 })
     }
-    
+
     // Use raw SQL to insert exhibitor (table uses bigint IDs)
     const created = await prisma.$queryRaw`
       INSERT INTO exhibitors (
@@ -123,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         notes,
         created_at as "createdAt"
     ` as any[]
-    
+
     return NextResponse.json(created[0], { status: 201 })
   } catch (error: any) {
     console.error('Exhibitor creation error:', error)
