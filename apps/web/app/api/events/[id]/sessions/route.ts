@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     const eventId = BigInt(params.id);
-    
+
     // Fetch sessions with speakers
     const sessions = await prisma.eventSession.findMany({
       where: {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           INNER JOIN session_speakers ss ON s.id = ss.speaker_id
           WHERE ss.session_id = ${session.id}
         `;
-        
+
         return {
           ...session,
           speakers: speakers || []
@@ -95,11 +95,41 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // Ignore if exists
     }
 
-    // Get tenant_id from the event
-    const event = await prisma.$queryRaw<any[]>`
-      SELECT tenant_id FROM events WHERE id = ${eventId} LIMIT 1
+    // Get event details for validation
+    const eventResult = await prisma.$queryRaw<any[]>`
+      SELECT tenant_id, starts_at as "startsAt", ends_at as "endsAt" FROM events WHERE id = ${eventId} LIMIT 1
     `;
-    const tenantId = event[0]?.tenant_id || null;
+    const eventData = eventResult[0];
+    const tenantId = eventData?.tenant_id || null;
+
+    if (!eventData) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    // Validate Session Timing
+    const eventStart = new Date(eventData.startsAt);
+    const eventEnd = new Date(eventData.endsAt);
+    const sessionStart = new Date(body.startTime);
+    const sessionEnd = new Date(body.endTime);
+
+    if (sessionStart >= sessionEnd) {
+      return NextResponse.json({
+        error: 'Invalid session duration',
+        message: 'Session start time must be before end time'
+      }, { status: 400 });
+    }
+
+    // Allow 1 hour buffer? No, user said "strictly".
+    if (sessionStart < eventStart || sessionEnd > eventEnd) {
+      return NextResponse.json({
+        error: 'Session outside event hours',
+        message: `Session time (${sessionStart.toLocaleString()} - ${sessionEnd.toLocaleString()}) must be strictly within event duration (${eventStart.toLocaleString()} - ${eventEnd.toLocaleString()})`,
+        range: {
+          eventStart: eventStart.toISOString(),
+          eventEnd: eventEnd.toISOString()
+        }
+      }, { status: 400 });
+    }
 
     const newSession = await prisma.eventSession.create({
       data: {

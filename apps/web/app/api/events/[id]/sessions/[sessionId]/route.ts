@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
     }
 
     const sessionId = BigInt(params.sessionId);
-    
+
     // Get session with speaker details using raw SQL
     const sessions = await prisma.$queryRaw<any[]>`
       SELECT 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
     }
 
     const eventSession = sessions[0];
-    
+
     // Get speaker details from session_speakers junction table
     let speakers = [];
     try {
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string, 
         INNER JOIN session_speakers ss ON sp.id = ss.speaker_id
         WHERE ss.session_id = ${sessionId}
       `;
-      
+
       speakers = speakerResults;
     } catch (e) {
       console.error('Error fetching speakers:', e);
@@ -87,6 +87,40 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
     if (body.room !== undefined) updateData.room = body.room || null;
     if (body.track !== undefined) updateData.track = body.track || null;
     if (body.capacity !== undefined) updateData.capacity = body.capacity ? parseInt(body.capacity) : null;
+
+    // Validate time updates
+    if (updateData.startTime || updateData.endTime) {
+      const eventId = BigInt(params.id);
+
+      const [eventResult, currentSession] = await Promise.all([
+        prisma.$queryRaw<any[]>`SELECT starts_at as "startsAt", ends_at as "endsAt" FROM events WHERE id = ${eventId} LIMIT 1`,
+        prisma.eventSession.findUnique({ where: { id: sessionId }, select: { startTime: true, endTime: true } })
+      ]);
+
+      const eventData = eventResult[0];
+
+      if (eventData && currentSession) {
+        const finalStart = updateData.startTime ? new Date(updateData.startTime) : currentSession.startTime;
+        const finalEnd = updateData.endTime ? new Date(updateData.endTime) : currentSession.endTime;
+        const eventStart = new Date(eventData.startsAt);
+        const eventEnd = new Date(eventData.endsAt);
+
+        if (finalStart >= finalEnd) {
+          return NextResponse.json({
+            error: 'Invalid session duration',
+            message: 'Session start time must be before end time'
+          }, { status: 400 });
+        }
+
+        if (finalStart < eventStart || finalEnd > eventEnd) {
+          return NextResponse.json({
+            error: 'Session outside event hours',
+            message: `Session time (${finalStart.toLocaleString()} - ${finalEnd.toLocaleString()}) must be strictly within event duration (${eventStart.toLocaleString()} - ${eventEnd.toLocaleString()})`,
+            details: { eventStart, eventEnd }
+          }, { status: 400 });
+        }
+      }
+    }
 
     const updatedSession = await prisma.eventSession.update({
       where: { id: sessionId },
