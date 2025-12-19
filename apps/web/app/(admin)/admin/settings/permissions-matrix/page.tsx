@@ -45,8 +45,9 @@ export default function PermissionsMatrixPage() {
 
   const loadPermissions = async () => {
     try {
+      const defaultPerms = getDefaultPermissions()
+      setPermissions(defaultPerms)
       setLoading(false)
-      setPermissions(getDefaultPermissions())
     } catch (error) {
       console.error('Error loading permissions:', error)
       setPermissions(getDefaultPermissions())
