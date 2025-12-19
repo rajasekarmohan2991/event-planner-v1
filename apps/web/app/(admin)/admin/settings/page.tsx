@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Settings, Database, Mail, Shield, Globe, Bell, Users, Lock, CreditCard, Edit2 } from 'lucide-react'
 import Link from 'next/link'
 import { EditModal, ToggleModal } from '@/components/admin/EditModal'
+import CurrencyConverter from '@/components/ui/CurrencyConverter'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -308,6 +309,11 @@ export default function SettingsPage() {
             </label>
           </div>
         </div>
+      </div>
+
+      {/* Currency Converter */}
+      <div className="bg-white rounded-lg border shadow-sm p-6">
+        <CurrencyConverter />
       </div>
 
 
