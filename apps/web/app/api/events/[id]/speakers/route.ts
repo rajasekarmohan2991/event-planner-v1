@@ -25,14 +25,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
     }
 
+    const session = await getServerSession(authOptions as any) as any;
+    const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+
+    const queryArgs: any = {
+      where: { eventId },
+      skip: page * size,
+      take: size,
+      orderBy: { createdAt: 'desc' }
+    };
+
+    if (isSuperAdmin) {
+      // Defensive bypass in case Speaker is added to tenant middleware
+      queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
+    }
+
     // Fetch speakers with pagination - use type assertion for safety
     const [speakers, total] = await Promise.all([
-      (prisma as any).speaker?.findMany({
-        where: { eventId },
-        skip: page * size,
-        take: size,
-        orderBy: { createdAt: 'desc' }
-      }) || [],
+      (prisma as any).speaker?.findMany(queryArgs) || [],
       (prisma as any).speaker?.count({
         where: { eventId }
       }) || 0

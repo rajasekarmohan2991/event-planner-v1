@@ -15,14 +15,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const category = searchParams.get('category')
     const paymentStatus = searchParams.get('paymentStatus')
 
-    const vendors = await (prisma as any).eventVendor?.findMany({
+    const isSuperAdmin = (session as any)?.user?.role === 'SUPER_ADMIN'; // session is already awaited above
+
+    const queryArgs: any = {
       where: {
         eventId: params.id,
         ...(category && { category }),
         ...(paymentStatus && { paymentStatus })
       },
       orderBy: { createdAt: 'desc' }
-    }) || []
+    };
+
+    if (isSuperAdmin) {
+      // Defensive bypass
+      queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
+    }
+
+    const vendors = await (prisma as any).eventVendor?.findMany(queryArgs) || []
 
     // Calculate totals
     const totals = vendors.reduce((acc, vendor) => ({

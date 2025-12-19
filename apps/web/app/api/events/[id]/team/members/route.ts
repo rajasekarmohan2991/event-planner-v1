@@ -15,11 +15,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     console.log('📡 Fetching team members for event:', eventId)
 
-    // Fetch assigned roles (Confirmed members) - use safe type casting
-    const assignments = await (prisma as any).eventRoleAssignment?.findMany({
+    // Check if SUPER ADMIN to bypass tenant filter
+    const userRole = (session.user as any)?.role;
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+    // Prepare query args
+    const queryArgs: any = {
       where: { eventId: eventId },
       orderBy: { createdAt: 'desc' }
-    }) || []
+    };
+
+    // CRITICAL: Bypass tenant middleware for SUPER_ADMIN
+    if (isSuperAdmin) {
+      queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
+    }
+
+    // Fetch assigned roles (Confirmed members) - use safe type casting
+    const assignments = await (prisma as any).eventRoleAssignment?.findMany(queryArgs) || []
 
     console.log(`✅ Found ${assignments.length} role assignments`)
 

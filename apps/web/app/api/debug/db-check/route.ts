@@ -25,6 +25,25 @@ export async function GET(req: NextRequest) {
             select: { id: true, name: true, slug: true }
         })
 
+        // Check Speaker table
+        let speakerCount = -1;
+        try {
+            speakerCount = await (prisma as any).speaker.count();
+        } catch (e) { console.log('Speaker check failed:', e) }
+
+        // Check Vendor table
+        let vendorCount = -1;
+        try {
+            vendorCount = await (prisma as any).eventVendor.count();
+        } catch (e) { console.log('Vendor check failed:', e) }
+
+        // Check Team table
+        let teamCount = -1;
+        try {
+            teamCount = await (prisma as any).eventRoleAssignment.count();
+        } catch (e) { console.log('Team check failed:', e) }
+
+
         // 4. Count users
         const totalUsers = await prisma.user.count()
 
@@ -49,7 +68,12 @@ export async function GET(req: NextRequest) {
             tenantCount: tenants.length,
             tenants,
             userCount: totalUsers,
-            databaseUrl: maskedUrl.substring(0, 80) + '...'
+            databaseUrl: maskedUrl.substring(0, 80) + '...',
+            diagnostics: {
+                speakerCount,
+                vendorCount,
+                teamCount
+            }
         })
     } catch (error: any) {
         return NextResponse.json({
