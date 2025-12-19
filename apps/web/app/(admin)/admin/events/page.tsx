@@ -25,7 +25,7 @@ export default function EventsPage() {
   const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'past' | 'draft'>('all')
+  const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all')
 
   const loadEvents = async () => {
     try {
@@ -79,9 +79,8 @@ export default function EventsPage() {
   }
 
   const filteredEvents = events.filter(event => {
-    // Include Drafts in "All"
+    // Include all events in "All" tab
     if (filter === 'all') return true
-    if (filter === 'draft') return event.status === 'DRAFT'
     if (filter === 'upcoming') {
       const startDate = new Date(event.startDate)
       return startDate > new Date() && event.status !== 'DRAFT'
@@ -136,7 +135,7 @@ export default function EventsPage() {
 
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-6 border-b">
-        {(['all', 'upcoming', 'past', 'draft'] as const).map((tab) => (
+        {(['all', 'upcoming', 'past'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
