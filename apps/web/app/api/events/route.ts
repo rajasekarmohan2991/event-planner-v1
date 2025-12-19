@@ -213,6 +213,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`🔍 GET /api/events - User: ${session?.user?.email}, Role: ${userRole}, Tenant: ${tenantId}`)
     console.log(`📋 Session exists: ${!!session}, User ID: ${userId}`)
+    console.log(`🔑 Full session.user:`, JSON.stringify((session as any)?.user, null, 2))
 
     const where: any = {}
 
