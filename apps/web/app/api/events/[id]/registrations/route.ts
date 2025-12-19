@@ -179,9 +179,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // PHASE 3: EVENT TIMING VALIDATION
     // ============================================
 
-    // Fetch event to validate timing
-    const event = await prisma.event.findUnique({
-      where: { id: eventId }
+    // Fetch event to validate timing - Bypass tenant check for SUPER_ADMIN
+    const isSuperAdmin = (session as any)?.user?.role === 'SUPER_ADMIN'
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        ...(isSuperAdmin ? { tenantId: { not: '00000000-0000-0000-0000-000000000000' } } : {})
+      }
     })
 
     if (!event) {
@@ -234,8 +238,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       console.log('🎫 Validating ticket class:', ticketId)
 
       // 1. Fetch ticket class
-      const ticket = await prisma.ticket.findUnique({
-        where: { id: ticketId }
+      const ticket = await prisma.ticket.findFirst({
+        where: {
+          id: ticketId,
+          ...(isSuperAdmin ? { tenantId: { not: '00000000-0000-0000-0000-000000000000' } } : {})
+        }
       })
 
       if (!ticket) {
@@ -337,7 +344,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           where: {
             code: promoCode,
             eventId: BigInt(params.id), // eventId matches scopeRef concept
-            isActive: true
+            isActive: true,
+            ...(isSuperAdmin ? { tenantId: { not: '00000000-0000-0000-0000-000000000000' } } : {})
           }
         })
 

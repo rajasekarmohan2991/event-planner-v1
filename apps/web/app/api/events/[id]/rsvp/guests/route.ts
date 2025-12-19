@@ -8,7 +8,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const eventId = params.id
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-  const allowed = await requireEventRole(eventId, ['STAFF','ORGANIZER','OWNER'])
+  const isSuperAdmin = (session as any)?.user?.role === 'SUPER_ADMIN'
+  const allowed = isSuperAdmin ? true : await requireEventRole(eventId, ['STAFF', 'ORGANIZER', 'OWNER'])
   if (!allowed) return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
@@ -40,12 +41,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return []
       })
     ])
-    
+
     console.log('📊 RSVP guests fetched:', { total, itemsCount: items.length, eventId })
     return NextResponse.json({ total, page, pageSize, items })
   } catch (e: any) {
     console.error('❌ RSVP guests API error:', e)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: e?.message || 'Failed to load guests',
       error: process.env.NODE_ENV === 'development' ? e.stack : undefined
     }, { status: 500 })
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const eventId = params.id
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-  const allowed = await requireEventRole(eventId, ['STAFF','ORGANIZER','OWNER'])
+  const isSuperAdmin = (session as any)?.user?.role === 'SUPER_ADMIN'
+  const allowed = isSuperAdmin ? true : await requireEventRole(eventId, ['STAFF', 'ORGANIZER', 'OWNER'])
   if (!allowed) return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
 
   const body = await req.json().catch(() => ({}))
