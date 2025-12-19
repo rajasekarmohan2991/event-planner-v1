@@ -62,6 +62,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -70,6 +71,8 @@ model Session {
   userId       BigInt
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -691,6 +694,7 @@ model Booth {
   tenantId    String?     @map("tenant_id")
 
   @@index([eventId, boothNumber])
+  @@index([exhibitorId])
   @@map("booths")
 }
 
@@ -1316,6 +1320,7 @@ model SessionSpeaker {
   speaker   Speaker      @relation(fields: [speakerId], references: [id], onDelete: Cascade)
   
   @@unique([sessionId, speakerId])
+  @@index([speakerId])
   @@map("session_speakers")
 }
 
