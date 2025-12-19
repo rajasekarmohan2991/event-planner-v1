@@ -165,24 +165,16 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
         {/* Seat Selection Banner */}
         {!checkingSeats && hasSeats && (
           <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/20 rounded-lg">
-                  <Armchair className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">Seat Selection Available!</h3>
-                  <p className="text-indigo-100 mt-1">
-                    This event has reserved seating. Choose your preferred seats from our interactive 2D floor plan.
-                  </p>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-lg">
+                <Armchair className="w-8 h-8" />
               </div>
-              <button
-                onClick={() => router.push(`/events/${params.id}/register-with-seats`)}
-                className="px-6 py-3 bg-white text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors whitespace-nowrap"
-              >
-                Select Seats →
-              </button>
+              <div>
+                <h3 className="text-xl font-bold">Reserverd Seating Event</h3>
+                <p className="text-indigo-100 mt-1">
+                  Please fill in your registration details below. You will be able to select your seats in the next step.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -331,20 +323,20 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         if (res.ok) {
           const event = await res.json()
           setEventData(event)
-          
+
           // Auto-set attendance mode for non-HYBRID events
           if (event.eventMode === 'IN_PERSON') {
-            setFormData(prev => ({...prev, attendanceMode: 'IN_PERSON'}))
+            setFormData(prev => ({ ...prev, attendanceMode: 'IN_PERSON' }))
           } else if (event.eventMode === 'VIRTUAL') {
-            setFormData(prev => ({...prev, attendanceMode: 'VIRTUAL'}))
+            setFormData(prev => ({ ...prev, attendanceMode: 'VIRTUAL' }))
           }
           // For HYBRID, user must choose
-          
+
           // Convert price from INR to paise (multiply by 100)
           // Only use event price, no demo overrides unless explicitly requested
           const urlParams = new URLSearchParams(window.location.search)
           const demoPrice = urlParams.get('demoPrice')
-          
+
           // Only apply demo price if explicitly set, otherwise use event price or 0
           let priceInPaise = 0
           if (demoPrice && demoPrice !== '0') {
@@ -352,7 +344,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
           } else if (event.priceInr && event.priceInr > 0) {
             priceInPaise = event.priceInr * 100
           }
-          
+
           setTicketPrice(priceInPaise)
         }
       } catch (error) {
@@ -404,7 +396,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Check if seats are available for this event
     if (hasSeats) {
       // Store form data and redirect to seat selection
@@ -417,21 +409,21 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
       router.push(`/events/${eventId}/register-with-seats`)
       return
     }
-    
+
     // Proceed with normal registration if no seats
     const finalAmount = promoDiscount ? promoDiscount.finalAmount : ticketPrice
     const res = await fetch(`/api/events/${eventId}/registrations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ 
-        type: 'GENERAL', 
+      body: JSON.stringify({
+        type: 'GENERAL',
         email: formData.email,
         phone: formData.phone,
         ticketId: 'general',
         priceInr: finalAmount,
         promoCode: promoDiscount?.code,
-        data: formData 
+        data: formData
       })
     })
     if (res.ok) {
@@ -458,7 +450,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
           <input
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             placeholder="First Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -469,7 +461,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
           <input
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             placeholder="Last Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -483,7 +475,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="sample@example.com"
           className="w-full rounded-md border px-3 py-2 text-sm"
           required
@@ -500,7 +492,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
               name="gender"
               value="Male"
               checked={formData.gender === "Male"}
-              onChange={(e) => setFormData({...formData, gender: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
             />
             <span className="text-sm">Male</span>
           </label>
@@ -510,7 +502,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
               name="gender"
               value="Female"
               checked={formData.gender === "Female"}
-              onChange={(e) => setFormData({...formData, gender: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
             />
             <span className="text-sm">Female</span>
           </label>
@@ -523,7 +515,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         <input
           type="tel"
           value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
           required
         />
@@ -535,7 +527,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         <input
           type="text"
           value={formData.emergencyContact}
-          onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -550,7 +542,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
               name="parking"
               value="Yes"
               checked={formData.parking === "Yes"}
-              onChange={(e) => setFormData({...formData, parking: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, parking: e.target.value })}
             />
             <span className="text-sm">Yes</span>
           </label>
@@ -560,7 +552,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
               name="parking"
               value="No"
               checked={formData.parking === "No"}
-              onChange={(e) => setFormData({...formData, parking: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, parking: e.target.value })}
             />
             <span className="text-sm">No</span>
           </label>
@@ -578,7 +570,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
                 name="attendanceMode"
                 value="IN_PERSON"
                 checked={formData.attendanceMode === "IN_PERSON"}
-                onChange={(e) => setFormData({...formData, attendanceMode: e.target.value as "IN_PERSON"})}
+                onChange={(e) => setFormData({ ...formData, attendanceMode: e.target.value as "IN_PERSON" })}
                 required
               />
               <span className="text-sm">In Person</span>
@@ -589,7 +581,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
                 name="attendanceMode"
                 value="VIRTUAL"
                 checked={formData.attendanceMode === "VIRTUAL"}
-                onChange={(e) => setFormData({...formData, attendanceMode: e.target.value as "VIRTUAL"})}
+                onChange={(e) => setFormData({ ...formData, attendanceMode: e.target.value as "VIRTUAL" })}
                 required
               />
               <span className="text-sm">Virtual</span>
@@ -614,9 +606,9 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
                   checked={formData.dietaryRestrictions.includes(option)}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setFormData({...formData, dietaryRestrictions: [...formData.dietaryRestrictions, option]})
+                      setFormData({ ...formData, dietaryRestrictions: [...formData.dietaryRestrictions, option] })
                     } else {
-                      setFormData({...formData, dietaryRestrictions: formData.dietaryRestrictions.filter(d => d !== option)})
+                      setFormData({ ...formData, dietaryRestrictions: formData.dietaryRestrictions.filter(d => d !== option) })
                     }
                   }}
                   className="rounded border-gray-300"
@@ -637,7 +629,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
             className="w-full px-3 py-2 border rounded-lg text-sm"
             onChange={(e) => {
               if (e.target.value && !formData.dietaryRestrictions.includes(e.target.value)) {
-                setFormData({...formData, dietaryRestrictions: [...formData.dietaryRestrictions, e.target.value]})
+                setFormData({ ...formData, dietaryRestrictions: [...formData.dietaryRestrictions, e.target.value] })
               }
             }}
           />
@@ -657,9 +649,9 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
                   checked={formData.activities.includes(session.title)}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setFormData({...formData, activities: [...formData.activities, session.title]})
+                      setFormData({ ...formData, activities: [...formData.activities, session.title] })
                     } else {
-                      setFormData({...formData, activities: formData.activities.filter(a => a !== session.title)})
+                      setFormData({ ...formData, activities: formData.activities.filter(a => a !== session.title) })
                     }
                   }}
                 />
@@ -677,7 +669,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
       {/* Promo Code Section */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4">Payment & Promo Code</h3>
-        
+
         <div className="bg-slate-50 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Ticket Price:</span>
@@ -748,7 +740,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         type="submit"
         className="w-full rounded-md bg-indigo-600 px-4 py-3 text-white font-medium hover:bg-indigo-700"
       >
-Submit Registration
+        Submit Registration
       </button>
     </form>
   )
@@ -794,7 +786,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
           // VIP is typically 3x the base price, but default to 0 if no price set
           const urlParams = new URLSearchParams(window.location.search)
           const demoPrice = urlParams.get('demoPrice')
-          
+
           // Only apply demo price if explicitly set, otherwise use event price or 0
           let vipPriceInPaise = 0
           if (demoPrice && demoPrice !== '0') {
@@ -802,7 +794,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
           } else if (event.priceInr && event.priceInr > 0) {
             vipPriceInPaise = event.priceInr * 3 * 100
           }
-          
+
           setTicketPrice(vipPriceInPaise)
         }
       } catch (error) {
@@ -854,7 +846,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Check if seats are available for this event
     if (hasSeats) {
       // Store form data and redirect to seat selection
@@ -868,20 +860,20 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
       router.push(`/events/${eventId}/register/seats?ticketClass=VIP`)
       return
     }
-    
+
     const finalAmount = promoDiscount ? promoDiscount.finalAmount : ticketPrice
     const res = await fetch(`/api/events/${eventId}/registrations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ 
-        type: 'VIP', 
+      body: JSON.stringify({
+        type: 'VIP',
         email: formData.email,
         phone: formData.cellPhone || formData.workPhone,
         ticketId: 'vip',
         priceInr: finalAmount / 100, // Convert paise to rupees
         promoCode: promoDiscount?.code,
-        data: formData 
+        data: formData
       })
     })
     if (res.ok) {
@@ -907,7 +899,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.prefix}
-          onChange={(e) => setFormData({...formData, prefix: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, prefix: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -919,7 +911,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
           <input
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
             placeholder="First Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -930,7 +922,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
           <input
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
             placeholder="Last Name"
             className="w-full rounded-md border px-3 py-2 text-sm"
             required
@@ -944,7 +936,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.preferredPronouns}
-          onChange={(e) => setFormData({...formData, preferredPronouns: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, preferredPronouns: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -955,7 +947,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="sample@example.com"
           className="w-full rounded-md border px-3 py-2 text-sm"
           required
@@ -968,7 +960,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="tel"
           value={formData.workPhone}
-          onChange={(e) => setFormData({...formData, workPhone: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, workPhone: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -979,7 +971,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="tel"
           value={formData.cellPhone}
-          onChange={(e) => setFormData({...formData, cellPhone: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, cellPhone: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -990,7 +982,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.jobTitle}
-          onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1001,7 +993,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.company}
-          onChange={(e) => setFormData({...formData, company: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1012,7 +1004,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.flightArrival}
-          onChange={(e) => setFormData({...formData, flightArrival: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, flightArrival: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1023,7 +1015,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.flightDeparture}
-          onChange={(e) => setFormData({...formData, flightDeparture: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, flightDeparture: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1034,7 +1026,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.pickupLocation}
-          onChange={(e) => setFormData({...formData, pickupLocation: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1045,7 +1037,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.dropoffLocation}
-          onChange={(e) => setFormData({...formData, dropoffLocation: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1056,7 +1048,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         <input
           type="text"
           value={formData.spouseInfo}
-          onChange={(e) => setFormData({...formData, spouseInfo: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, spouseInfo: e.target.value })}
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
@@ -1071,7 +1063,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
               name="vipNetworking"
               value="Yes"
               checked={formData.vipNetworking === "Yes"}
-              onChange={(e) => setFormData({...formData, vipNetworking: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, vipNetworking: e.target.value })}
             />
             <span className="text-sm">Yes</span>
           </label>
@@ -1081,7 +1073,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
               name="vipNetworking"
               value="No"
               checked={formData.vipNetworking === "No"}
-              onChange={(e) => setFormData({...formData, vipNetworking: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, vipNetworking: e.target.value })}
             />
             <span className="text-sm">No</span>
           </label>
@@ -1098,7 +1090,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
               name="eventGifts"
               value="Yes"
               checked={formData.eventGifts === "Yes"}
-              onChange={(e) => setFormData({...formData, eventGifts: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, eventGifts: e.target.value })}
             />
             <span className="text-sm">Yes</span>
           </label>
@@ -1108,7 +1100,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
               name="eventGifts"
               value="No"
               checked={formData.eventGifts === "No"}
-              onChange={(e) => setFormData({...formData, eventGifts: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, eventGifts: e.target.value })}
             />
             <span className="text-sm">No</span>
           </label>
@@ -1118,7 +1110,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
       {/* Promo Code Section */}
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4">Payment & Promo Code</h3>
-        
+
         <div className="bg-slate-50 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">VIP Ticket Price:</span>
@@ -1189,7 +1181,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         type="submit"
         className="w-full rounded-md bg-indigo-600 px-4 py-3 text-white font-medium hover:bg-indigo-700"
       >
-Submit VIP Registration
+        Submit VIP Registration
       </button>
     </form>
   )
