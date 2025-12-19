@@ -164,6 +164,11 @@ export async function checkPermissionInRoute(
   let hasAccess = false
   let requiredPermission = ''
 
+  // Fast-path: Super Admin has full access to all resources
+  if (user.role === 'SUPER_ADMIN') {
+    return null
+  }
+
   // Fast-path: Tenant Admins can perform any events.* action
   const permList = Array.isArray(permission) ? permission : [permission]
   const isAllEventsOps = permList.every(p => typeof p === 'string' && p.startsWith('events.'))
