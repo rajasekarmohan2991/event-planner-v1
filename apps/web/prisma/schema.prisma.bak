@@ -962,6 +962,20 @@ model Lookup {
 // Design Module - Floor Plans & Banners
 // ==============================
 
+model FloorPlan {
+  id              String   @id @default(cuid())
+  eventId         String
+  name            String
+  config          Json     // Stores all form data (hall specs, seating, etc.)
+  imageData       String   @db.Text // Base64 encoded PNG image
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenantId        String?
+  
+  @@index([eventId])
+  @@index([tenantId])
+}
 
 model EventBanner {
   id              String   @id @default(cuid())
