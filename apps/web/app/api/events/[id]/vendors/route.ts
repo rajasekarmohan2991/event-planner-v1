@@ -58,13 +58,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       paymentDueDate,
       notes,
       contractUrl,
-      invoiceUrl
+      invoiceUrl,
+      status // Allow status to be set (BOOKED, ACTIVE, etc.)
     } = body
     const tenantId = getTenantId()
 
-    if (!name || !category || !contractAmount) {
+    if (!name || !category) {
       return NextResponse.json({
-        message: 'Name, category, and contract amount required'
+        message: 'Name and category are required'
       }, { status: 400 })
     }
 
@@ -76,11 +77,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         contactName,
         contactEmail,
         contactPhone,
-        contractAmount: Number(contractAmount),
+        contractAmount: contractAmount ? Number(contractAmount) : 0,
         paidAmount: 0,
         paymentStatus: 'PENDING',
         paymentDueDate: paymentDueDate ? new Date(paymentDueDate) : null,
-        status: 'ACTIVE',
+        status: status || 'BOOKED', // Default to BOOKED for new vendors
         notes,
         contractUrl,
         invoiceUrl,
