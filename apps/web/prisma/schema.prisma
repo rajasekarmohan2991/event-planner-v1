@@ -1474,7 +1474,7 @@ enum Gender {
 
 model FloorPlan {
   id              String            @id @default(cuid())
-  eventId         String
+  eventId         BigInt
   name            String
   description     String?
   canvasWidth     Int               @default(1200)
