@@ -15,14 +15,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const category = searchParams.get('category')
     const paymentStatus = searchParams.get('paymentStatus')
 
-    const vendors = await prisma.eventVendor.findMany({
+    const vendors = await (prisma as any).eventVendor?.findMany({
       where: {
         eventId: params.id,
         ...(category && { category }),
         ...(paymentStatus && { paymentStatus })
       },
       orderBy: { createdAt: 'desc' }
-    })
+    }) || []
 
     // Calculate totals
     const totals = vendors.reduce((acc, vendor) => ({
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }, { status: 400 })
     }
 
-    const vendor = await prisma.eventVendor.create({
+    const vendor = await (prisma as any).eventVendor.create({
       data: {
         eventId: params.id,
         name,
@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ message: 'Vendor ID required' }, { status: 400 })
     }
 
-    const current = await prisma.eventVendor.findUnique({
+    const current = await (prisma as any).eventVendor.findUnique({
       where: { id: vendorId }
     })
 
@@ -137,7 +137,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       paymentStatus = 'OVERDUE'
     }
 
-    const updated = await prisma.eventVendor.update({
+    const updated = await (prisma as any).eventVendor.update({
       where: { id: vendorId },
       data: {
         ...(paidAmount !== undefined && { paidAmount: newPaidAmount }),
@@ -172,7 +172,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ message: 'Vendor ID required' }, { status: 400 })
     }
 
-    await prisma.eventVendor.delete({
+    await (prisma as any).eventVendor.delete({
       where: { id: vendorId }
     })
 
