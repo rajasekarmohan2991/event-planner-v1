@@ -17,7 +17,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = params.id
 
-    const vendorsRaw = await prisma.$queryRaw`
+    // Build WHERE clause
+    let whereClause = `WHERE event_id = '${eventId}'`
+    if (category) whereClause += ` AND category = '${category}'`
+    if (paymentStatus) whereClause += ` AND payment_status = '${paymentStatus}'`
+
+    const vendorsRaw = await prisma.$queryRawUnsafe(`
       SELECT 
         id,
         event_id as "eventId",
@@ -38,11 +43,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         updated_at as "updatedAt",
         tenant_id as "tenantId"
       FROM event_vendors
-      WHERE event_id = ${eventId}
-      ${category ? prisma.$queryRawUnsafe`AND category = ${category}` : prisma.$queryRawUnsafe``}
-      ${paymentStatus ? prisma.$queryRawUnsafe`AND payment_status = ${paymentStatus}` : prisma.$queryRawUnsafe``}
+      ${whereClause}
       ORDER BY created_at DESC
-    ` as any[]
+    `) as any[]
 
     return NextResponse.json({
       vendors: vendorsRaw,

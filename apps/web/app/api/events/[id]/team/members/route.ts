@@ -58,10 +58,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
 
   } catch (error: any) {
-    console.error('❌ Error fetching team members (Raw SQL):', error)
+    console.error('❌ Error fetching team members:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      eventId: params.id
+    })
     return NextResponse.json({
       message: 'Failed to load team members',
       error: error.message,
+      details: error.code
     }, { status: 500 })
   }
 }
