@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // 1. Fetch Exhibitors (Raw SQL)
     const exhibitorsRaw = await prisma.$queryRaw`
       SELECT * FROM exhibitors 
-      WHERE event_id = ${BigInt(eventId)} 
+      WHERE event_id = ${eventId} 
       ORDER BY created_at DESC
     ` as any[]
 
@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     try {
       boothsRaw = await prisma.$queryRaw`
           SELECT * FROM booths 
-          WHERE event_id = ${BigInt(eventId)}
+          WHERE event_id = ${eventId}
         ` as any[]
     } catch {
       // Table booths might not exist

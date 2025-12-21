@@ -6,7 +6,7 @@ import crypto from 'crypto'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const eventId = BigInt(params.id)
+    const eventId = params.id
     const tenantId = getTenantId()
     const body = await req.json()
 

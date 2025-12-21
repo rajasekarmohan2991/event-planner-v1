@@ -123,7 +123,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         created_at,
         updated_at
       ) VALUES (
-        ${BigInt(params.id)},
+        ${params.id},
         ${name},
         ${category},
         ${contactName},
