@@ -4,75 +4,87 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-// Universal query helper that tries both column name formats
+// Universal query that tries ALL possible column name variations
 async function querySpeakers(eventId: bigint, size: number, offset: number) {
-  try {
-    // Try event_id first (snake_case)
-    return await prisma.$queryRaw`
+  const variations = [
+    // Variation 1: event_id (snake_case, bigint)
+    () => prisma.$queryRaw`
       SELECT 
-        id::text as id,
-        name,
-        title,
-        bio,
-        photo_url as "photoUrl",
-        email,
-        linkedin,
-        twitter,
-        website,
-        event_id::text as "eventId",
-        tenant_id as "tenantId",
-        created_at as "createdAt",
-        updated_at as "updatedAt"
+        id::text as id, name, title, bio,
+        photo_url as "photoUrl", email, linkedin, twitter, website,
+        event_id::text as "eventId", tenant_id as "tenantId",
+        created_at as "createdAt", updated_at as "updatedAt"
       FROM speakers
       WHERE event_id = ${eventId}
-      ORDER BY created_at DESC
-      LIMIT ${size}
-      OFFSET ${offset}
-    ` as any[]
-  } catch (e: any) {
-    if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
-      // Fallback to eventId (camelCase)
-      return await prisma.$queryRaw`
-        SELECT 
-          id::text as id,
-          name,
-          title,
-          bio,
-          photo_url as "photoUrl",
-          email,
-          linkedin,
-          twitter,
-          website,
-          "eventId"::text as "eventId",
-          tenant_id as "tenantId",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM speakers
-        WHERE "eventId" = ${eventId}
-        ORDER BY created_at DESC
-        LIMIT ${size}
-        OFFSET ${offset}
-      ` as any[]
+      ORDER BY created_at DESC LIMIT ${size} OFFSET ${offset}
+    `,
+    // Variation 2: eventId (camelCase quoted, bigint)
+    () => prisma.$queryRaw`
+      SELECT 
+        id::text as id, name, title, bio,
+        photo_url as "photoUrl", email, linkedin, twitter, website,
+        "eventId"::text as "eventId", tenant_id as "tenantId",
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM speakers
+      WHERE "eventId" = ${eventId}
+      ORDER BY created_at DESC LIMIT ${size} OFFSET ${offset}
+    `,
+    // Variation 3: eventId (camelCase unquoted, bigint)
+    () => prisma.$queryRaw`
+      SELECT 
+        id::text as id, name, title, bio,
+        photo_url as "photoUrl", email, linkedin, twitter, website,
+        eventId::text as "eventId", tenant_id as "tenantId",
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM speakers
+      WHERE eventId = ${eventId}
+      ORDER BY created_at DESC LIMIT ${size} OFFSET ${offset}
+    `,
+    // Variation 4: event_id as string
+    () => prisma.$queryRaw`
+      SELECT 
+        id::text as id, name, title, bio,
+        photo_url as "photoUrl", email, linkedin, twitter, website,
+        event_id as "eventId", tenant_id as "tenantId",
+        created_at as "createdAt", updated_at as "updatedAt"
+      FROM speakers
+      WHERE event_id = ${eventId.toString()}
+      ORDER BY created_at DESC LIMIT ${size} OFFSET ${offset}
+    `
+  ]
+
+  for (let i = 0; i < variations.length; i++) {
+    try {
+      const result = await variations[i]() as any[]
+      console.log(`✅ Speakers query succeeded with variation ${i + 1}`)
+      return result
+    } catch (e: any) {
+      console.log(`❌ Variation ${i + 1} failed:`, e.message)
+      if (i === variations.length - 1) {
+        throw new Error(`All query variations failed. Last error: ${e.message}`)
+      }
     }
-    throw e
   }
+  return []
 }
 
 async function countSpeakers(eventId: bigint) {
-  try {
-    const result = await prisma.$queryRaw`
-      SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId}
-    ` as any[]
-    return Number(result[0]?.count || 0)
-  } catch (e: any) {
-    if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
-      const result = await prisma.$queryRaw`
-        SELECT COUNT(*) as count FROM speakers WHERE "eventId" = ${eventId}
-      ` as any[]
+  const variations = [
+    () => prisma.$queryRaw`SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId}`,
+    () => prisma.$queryRaw`SELECT COUNT(*) as count FROM speakers WHERE "eventId" = ${eventId}`,
+    () => prisma.$queryRaw`SELECT COUNT(*) as count FROM speakers WHERE eventId = ${eventId}`,
+    () => prisma.$queryRaw`SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId.toString()}`
+  ]
+
+  for (const variation of variations) {
+    try {
+      const result = await variation() as any[]
       return Number(result[0]?.count || 0)
+    } catch (e) {
+      continue
     }
-    throw e
   }
+  return 0
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -88,6 +100,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
     const eventId = BigInt(eventIdString)
 
+    console.log(`🔍 Querying speakers for event ${eventId}`)
+
     const [speakers, total] = await Promise.all([
       querySpeakers(eventId, size, offset),
       countSpeakers(eventId)
@@ -95,16 +109,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return NextResponse.json({
       data: speakers || [],
-      pagination: {
-        page,
-        size,
-        total,
-        totalPages: Math.ceil(total / size)
-      }
+      pagination: { page, size, total, totalPages: Math.ceil(total / size) }
     })
   } catch (e: any) {
-    console.error('❌ Failed to load speakers:', e)
-    return NextResponse.json({ message: 'Failed to load speakers', error: e.message }, { status: 500 })
+    console.error('❌ Failed to load speakers:', e.message)
+    return NextResponse.json({
+      message: 'Failed to load speakers',
+      error: e.message,
+      hint: 'Check Vercel logs for which query variation worked'
+    }, { status: 500 })
   }
 }
 
@@ -118,48 +131,50 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const events = await prisma.$queryRaw`
       SELECT id, name, tenant_id as "tenantId", starts_at as "startsAt"
-      FROM events 
-      WHERE id = ${eventId}
-      LIMIT 1
+      FROM events WHERE id = ${eventId} LIMIT 1
     ` as any[]
 
     if (!events.length) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
-    const event = events[0]
-    const tenantId = event.tenantId
+    const tenantId = events[0].tenantId
 
-    // Try event_id first, fallback to eventId
-    let speakerResult: any[]
-    try {
-      speakerResult = await prisma.$queryRaw`
-        INSERT INTO speakers (
-          name, title, bio, photo_url, email, linkedin, twitter, website, event_id, tenant_id, created_at, updated_at
-        ) VALUES (
-          ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+    // Try multiple INSERT variations
+    const insertVariations = [
+      () => prisma.$queryRaw`
+        INSERT INTO speakers (name, title, bio, photo_url, email, linkedin, twitter, website, event_id, tenant_id, created_at, updated_at)
+        VALUES (${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
           ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
-          ${eventId}, ${tenantId}, NOW(), NOW()
-        )
+          ${eventId}, ${tenantId}, NOW(), NOW())
         RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
-      ` as any[]
-    } catch (e: any) {
-      if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
-        speakerResult = await prisma.$queryRaw`
-          INSERT INTO speakers (
-            name, title, bio, photo_url, email, linkedin, twitter, website, "eventId", tenant_id, created_at, updated_at
-          ) VALUES (
-            ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
-            ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
-            ${eventId}, ${tenantId}, NOW(), NOW()
-          )
-          RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
-        ` as any[]
-      } else {
-        throw e
+      `,
+      () => prisma.$queryRaw`
+        INSERT INTO speakers (name, title, bio, photo_url, email, linkedin, twitter, website, "eventId", tenant_id, created_at, updated_at)
+        VALUES (${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+          ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
+          ${eventId}, ${tenantId}, NOW(), NOW())
+        RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
+      `,
+      () => prisma.$queryRaw`
+        INSERT INTO speakers (name, title, bio, photo_url, email, linkedin, twitter, website, eventId, tenant_id, created_at, updated_at)
+        VALUES (${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+          ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
+          ${eventId}, ${tenantId}, NOW(), NOW())
+        RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
+      `
+    ]
+
+    for (const variation of insertVariations) {
+      try {
+        const result = await variation() as any[]
+        return NextResponse.json(result[0])
+      } catch (e: any) {
+        console.log('Insert variation failed:', e.message)
+        continue
       }
     }
 
-    return NextResponse.json(speakerResult[0])
+    throw new Error('All INSERT variations failed')
 
   } catch (error: any) {
     console.error('Create speaker failed:', error)
