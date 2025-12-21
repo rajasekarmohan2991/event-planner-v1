@@ -4,22 +4,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+// Universal query helper that tries both column name formats
+async function querySpeakers(eventId: bigint, size: number, offset: number) {
   try {
-    const { searchParams } = new URL(req.url)
-    const page = parseInt(searchParams.get('page') || '0')
-    const size = parseInt(searchParams.get('size') || '20')
-    const offset = page * size
-
-    // Validate ID
-    const eventIdString = params.id
-    if (!eventIdString || isNaN(Number(eventIdString))) {
-      return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
-    }
-    const eventId = BigInt(eventIdString)
-
-    // Fetch speakers - event_id is bigint (confirmed by schema diagnostic)
-    const speakers = await prisma.$queryRaw`
+    // Try event_id first (snake_case)
+    return await prisma.$queryRaw`
       SELECT 
         id::text as id,
         name,
@@ -40,14 +29,69 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       LIMIT ${size}
       OFFSET ${offset}
     ` as any[]
+  } catch (e: any) {
+    if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
+      // Fallback to eventId (camelCase)
+      return await prisma.$queryRaw`
+        SELECT 
+          id::text as id,
+          name,
+          title,
+          bio,
+          photo_url as "photoUrl",
+          email,
+          linkedin,
+          twitter,
+          website,
+          "eventId"::text as "eventId",
+          tenant_id as "tenantId",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
+        FROM speakers
+        WHERE "eventId" = ${eventId}
+        ORDER BY created_at DESC
+        LIMIT ${size}
+        OFFSET ${offset}
+      ` as any[]
+    }
+    throw e
+  }
+}
 
-    const countResult = await prisma.$queryRaw`
-      SELECT COUNT(*) as count 
-      FROM speakers 
-      WHERE event_id = ${eventId}
+async function countSpeakers(eventId: bigint) {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId}
     ` as any[]
+    return Number(result[0]?.count || 0)
+  } catch (e: any) {
+    if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
+      const result = await prisma.$queryRaw`
+        SELECT COUNT(*) as count FROM speakers WHERE "eventId" = ${eventId}
+      ` as any[]
+      return Number(result[0]?.count || 0)
+    }
+    throw e
+  }
+}
 
-    const total = Number(countResult[0]?.count || 0)
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get('page') || '0')
+    const size = parseInt(searchParams.get('size') || '20')
+    const offset = page * size
+
+    const eventIdString = params.id
+    if (!eventIdString || isNaN(Number(eventIdString))) {
+      return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
+    }
+    const eventId = BigInt(eventIdString)
+
+    const [speakers, total] = await Promise.all([
+      querySpeakers(eventId, size, offset),
+      countSpeakers(eventId)
+    ])
 
     return NextResponse.json({
       data: speakers || [],
@@ -72,7 +116,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const raw = await req.json()
     const eventId = BigInt(params.id)
 
-    // 1. Find Event
     const events = await prisma.$queryRaw`
       SELECT id, name, tenant_id as "tenantId", starts_at as "startsAt"
       FROM events 
@@ -86,46 +129,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const event = events[0]
     const tenantId = event.tenantId
 
-    // 2. Insert Speaker - event_id is bigint
-    const speakerResult = await prisma.$queryRaw`
-      INSERT INTO speakers (
-        name, title, bio, photo_url, email, linkedin, twitter, website, event_id, tenant_id, created_at, updated_at
-      ) VALUES (
-        ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
-        ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
-        ${eventId}, ${tenantId}, NOW(), NOW()
-      )
-      RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email, linkedin, twitter, website, event_id::text as "eventId", tenant_id as "tenantId"
-    ` as any[]
-
-    const speaker = speakerResult[0]
-
-    // 3. Create Default Session
-    const startTime = event.startsAt ? new Date(event.startsAt) : new Date()
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
-    const sessionTitle = raw.sessionTitle || `Keynote: ${speaker.name}`
-    const sessionDesc = raw.sessionDescription || `Session by ${speaker.name}`
-
-    const sessionResult = await prisma.$queryRaw`
-      INSERT INTO sessions (
-        event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
-      ) VALUES (
-        ${eventId}, ${tenantId}, ${sessionTitle}, ${sessionDesc}, 
-        ${startTime}, ${endTime}, NOW(), NOW()
-      )
-      RETURNING id
-    ` as any[]
-
-    const sessionId = sessionResult[0]?.id
-
-    // 4. Link speaker to session
-    if (sessionId && speaker.id) {
-      await prisma.$executeRawUnsafe(`
-            INSERT INTO session_speakers (session_id, speaker_id) VALUES ($1, $2)
-        `, sessionId, BigInt(speaker.id))
+    // Try event_id first, fallback to eventId
+    let speakerResult: any[]
+    try {
+      speakerResult = await prisma.$queryRaw`
+        INSERT INTO speakers (
+          name, title, bio, photo_url, email, linkedin, twitter, website, event_id, tenant_id, created_at, updated_at
+        ) VALUES (
+          ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+          ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
+          ${eventId}, ${tenantId}, NOW(), NOW()
+        )
+        RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
+      ` as any[]
+    } catch (e: any) {
+      if (e.message?.includes('event_id') && e.message?.includes('does not exist')) {
+        speakerResult = await prisma.$queryRaw`
+          INSERT INTO speakers (
+            name, title, bio, photo_url, email, linkedin, twitter, website, "eventId", tenant_id, created_at, updated_at
+          ) VALUES (
+            ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+            ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
+            ${eventId}, ${tenantId}, NOW(), NOW()
+          )
+          RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email
+        ` as any[]
+      } else {
+        throw e
+      }
     }
 
-    return NextResponse.json(speaker)
+    return NextResponse.json(speakerResult[0])
 
   } catch (error: any) {
     console.error('Create speaker failed:', error)
