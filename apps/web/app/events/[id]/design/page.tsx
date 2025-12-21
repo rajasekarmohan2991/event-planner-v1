@@ -23,7 +23,7 @@ function DesignEditor({ eventId }: { eventId: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([])
-  const [msg, setMsg] = useState<string|null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
 
   async function loadFloorPlans() {
     setLoading(true); setMsg(null)
@@ -33,12 +33,12 @@ function DesignEditor({ eventId }: { eventId: string }) {
         const plans = await r.json()
         setFloorPlans(Array.isArray(plans) ? plans : [])
       }
-    } catch (e:any) {
+    } catch (e: any) {
       console.error('Failed to load floor plans:', e)
     } finally { setLoading(false) }
   }
 
-  useEffect(()=> { if (eventId) loadFloorPlans() }, [eventId])
+  useEffect(() => { if (eventId) loadFloorPlans() }, [eventId])
 
   async function deleteFloorPlan(planId: string) {
     if (!confirm('Delete this floor plan?')) return
@@ -48,7 +48,7 @@ function DesignEditor({ eventId }: { eventId: string }) {
         setFloorPlans(prev => prev.filter(p => p.id !== planId))
         setMsg('Floor plan deleted')
       }
-    } catch (e:any) {
+    } catch (e: any) {
       setMsg('Delete failed')
     }
   }
@@ -97,19 +97,6 @@ function DesignEditor({ eventId }: { eventId: string }) {
             </div>
           </div>
         </Link>
-
-        {/* Theme Customization */}
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-blue-600 rounded-lg">
-              <Palette className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="font-bold text-lg text-blue-900">Theme & Branding</h3>
-          </div>
-          <p className="text-sm text-blue-700">
-            Customize colors, themes, and branding elements for your event
-          </p>
-        </div>
       </div>
 
       {msg && <div className="text-sm text-slate-700 bg-green-50 border border-green-200 rounded p-3 mb-6">{msg}</div>}
