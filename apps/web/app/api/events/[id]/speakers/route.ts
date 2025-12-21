@@ -90,10 +90,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(speakerResult[0])
 
   } catch (error: any) {
-    console.error('Create speaker failed:', error)
+    console.error('❌ Create speaker failed:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    })
+
+    // Check if it's the missing column error
+    if (error.message?.includes('event_id') || error.code === '42703') {
+      return NextResponse.json({
+        message: 'Database migration required',
+        error: 'The event_id column does not exist in speakers table',
+        solution: 'Run POST /api/debug/create-tables to add the missing column',
+        technicalError: error.message
+      }, { status: 500 })
+    }
+
     return NextResponse.json({
       message: error.message,
-      hint: 'Run POST /api/debug/create-tables to add event_id column'
+      hint: 'Check server logs for details'
     }, { status: 500 })
   }
 }
