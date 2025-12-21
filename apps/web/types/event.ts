@@ -18,6 +18,12 @@ export interface BaseEvent {
   slug: string
   createdAt: Date | string
   updatedAt: Date | string
+  termsAndConditions?: string | null
+  disclaimer?: string | null
+  eventManagerName?: string | null
+  eventManagerContact?: string | null
+  eventManagerEmail?: string | null
+  bannerUrl?: string | null
 }
 
 // Event with relations

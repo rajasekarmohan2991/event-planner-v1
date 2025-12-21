@@ -10,64 +10,107 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { emails, role } = body // emails is string[]
-    const eventId = params.id
+    const { emails, role } = body
+    const eventIdString = params.id
+
+    if (isNaN(Number(eventIdString))) {
+      return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
+    }
+    const eventId = BigInt(eventIdString)
 
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
       return NextResponse.json({ message: 'No emails provided' }, { status: 400 })
     }
 
+    // 1. Fetch Event Tenant
+    const events = await prisma.$queryRaw`
+      SELECT id, name, tenant_id as "tenantId" 
+      FROM events 
+      WHERE id = ${eventId} 
+      LIMIT 1
+    ` as any[]
+
+    if (!events.length) {
+      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    }
+
+    const event = events[0]
+    const tenantId = event.tenantId
+
     const results = []
 
     for (const email of emails) {
-      // 1. Check if user already exists
-      const user = await prisma.user.findUnique({ where: { email } })
+      // Find or Create User
+      // Note: User table is standard, Prisma Client manages it well usually. 
+      // But for consistency let's rely on Prisma Client for User (less tenant sensitive usually).
+      // Wait, User table has currentTenantId.
+      let user = await prisma.user.findUnique({ where: { email } })
+      let isNewUser = false
 
-      if (user) {
-        // 2. If exists, assign role directly to EventRoleAssignment
-        await prisma.eventRoleAssignment.upsert({
-          where: {
-            eventId_userId: {
-              eventId: eventId,
-              userId: user.id
+      if (!user) {
+        try {
+          user = await prisma.user.create({
+            data: {
+              name: email.split('@')[0],
+              email: email,
+              role: 'USER',
+              currentTenantId: tenantId
             }
-          },
-          update: { role: 'STAFF' }, // Map 'Event Staff' etc to enum if needed. using STAFF for now.
-          create: {
-            eventId: eventId,
-            userId: user.id,
-            role: 'STAFF'
-          }
-        })
+          })
+          isNewUser = true
+        } catch (err) {
+          console.error(`Failed to create user ${email}`, err)
+          results.push({ email, status: 'failed', reason: 'User creation failed' })
+          continue
+        }
+      }
 
-        // 3. Send email to existing user
-        await sendEmail({
-          to: email,
-          subject: 'You have been added to an event team',
-          text: `You have been added to the event team for event ID ${eventId}. Log in to view details.`,
-          html: `<p>You have been added to the event team for event ID ${eventId}. Log in to view details.</p>`
-        })
+      // 2. Insert/Update Assignment (Raw SQL)
+      // Table: "EventRoleAssignment"
+      // Columns: "eventId", "userId", role, "tenantId"
+      // eventId is String in this table?
+      // Based on previous code: eventId: eventIdString.
+      // We pass it as String.
 
-        results.push({ email, status: 'added' })
-      } else {
-        // 4. If user doesn't exist, we can't create EventRoleAssignment yet (FK constraint).
-        // We just send an invite email. Real implementation would need an 'Invites' table.
+      try {
+        await prisma.$executeRawUnsafe(`
+            INSERT INTO "EventRoleAssignment" ("eventId", "userId", role, "tenantId", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
+            ON CONFLICT ("eventId", "userId") 
+            DO UPDATE SET role = $3, "tenantId" = $4, "updatedAt" = NOW()
+        `, eventIdString, user.id, role || 'STAFF', tenantId)
 
-        await sendEmail({
-          to: email,
-          subject: 'You have been invited to join an event team',
-          text: `You have been invited to join the team for event ID ${eventId}. Please sign up at ${process.env.NEXTAUTH_URL}/auth/signup`,
-          html: `<p>You have been invited to join the team for event ID ${eventId}. Please sign up at <a href="${process.env.NEXTAUTH_URL}/auth/signup">${process.env.NEXTAUTH_URL}/auth/signup</a></p>`
-        })
+        // Send Email
+        if (isNewUser) {
+          await sendEmail({
+            to: email,
+            subject: 'You have been invited to join an event team',
+            text: `You have been invited to join the team for event "${event.name}". An account has been created for you.`,
+            html: `<p>You have been invited to join the team for event <strong>${event.name}</strong>.</p>`
+          }).catch(e => console.error('Email failed', e))
+          results.push({ email, status: 'invited', note: 'Account created' })
+        } else {
+          // ... normal invite email
+          await sendEmail({
+            to: email,
+            subject: 'You have been added to an event team',
+            text: `You have been added to the team for event "${event.name}".`,
+            html: `<p>You have been added to the team for event <strong>${event.name}</strong>.</p>`
+          }).catch(e => console.error('Email failed', e))
+          results.push({ email, status: 'added' })
+        }
 
-        results.push({ email, status: 'invited' })
+      } catch (err: any) {
+        console.error(`Failed to assign role to ${email}`, err)
+        results.push({ email, status: 'failed', reason: err.message })
       }
     }
 
     return NextResponse.json({ message: 'Invites processed', results })
+
   } catch (e: any) {
     console.error('Invite error:', e)
     return NextResponse.json({ message: e?.message || 'Invite failed' }, { status: 500 })

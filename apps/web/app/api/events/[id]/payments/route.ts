@@ -15,7 +15,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     const eventId = BigInt(params.id)
-    const tenantId = getTenantId()
 
     const url = new URL(req.url)
     const page = parseInt(url.searchParams.get('page') || '0')
@@ -88,8 +87,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
   } catch (e: any) {
     console.error('Error fetching payments:', e)
-    return NextResponse.json({ 
-      message: e?.message || 'Failed to fetch payments' 
+    return NextResponse.json({
+      message: e?.message || 'Failed to fetch payments'
     }, { status: 500 })
   }
 }

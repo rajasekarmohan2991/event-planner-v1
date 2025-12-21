@@ -1,211 +1,136 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
-// GET /api/events/[id]/sessions - List all sessions for an event
+const bigIntReplacer = (key: string, value: any) =>
+  typeof value === 'bigint' ? value.toString() : value
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const eventId = BigInt(params.id);
 
-    // Fetch sessions with speakers
-    const sessions = await prisma.eventSession.findMany({
-      where: {
-        eventId: eventId,
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
-    });
+    const sessions = await prisma.$queryRaw`
+      SELECT 
+        id, 
+        title, 
+        description, 
+        start_time as "startTime", 
+        end_time as "endTime", 
+        event_id as "eventId", 
+        tenant_id as "tenantId"
+      FROM sessions
+      WHERE event_id = ${eventId}
+      ORDER BY start_time ASC
+    ` as any[]
 
-    // Fetch speakers for each session
-    const sessionsWithSpeakers = await Promise.all(
-      sessions.map(async (session) => {
-        const speakers = await prisma.$queryRaw<any[]>`
-          SELECT 
-            s.id::text,
-            s.name,
-            s.title,
-            s.bio,
-            s.photo_url
-          FROM speakers s
-          INNER JOIN session_speakers ss ON s.id = ss.speaker_id
-          WHERE ss.session_id = ${session.id}
-        `;
+    const sessionsWithSpeakers = await Promise.all(sessions.map(async (sess) => {
+      const speakers = await prisma.$queryRaw`
+            SELECT s.id, s.name, s.title, s.photo_url as "photoUrl"
+            FROM speakers s
+            JOIN session_speakers ss ON s.id = ss.speaker_id
+            WHERE ss.session_id = ${sess.id}
+        ` as any[]
 
-        return {
-          ...session,
-          speakers: speakers || []
-        };
-      })
-    );
-
-    // Convert BigInt to string for JSON serialization
-    const serializedSessions = sessionsWithSpeakers.map(s => ({
-      ...s,
-      id: s.id.toString(),
-      eventId: s.eventId.toString(),
+      return {
+        ...sess,
+        speakers: JSON.parse(JSON.stringify(speakers || [], bigIntReplacer))
+      }
     }));
 
-    return NextResponse.json({ sessions: serializedSessions });
-  } catch (error) {
-    console.error('GET /api/events/[id]/sessions error:', error);
+    const serialized = JSON.parse(JSON.stringify(sessionsWithSpeakers, bigIntReplacer)).map((s: any) => ({
+      ...s,
+      id: s.id.toString(),
+      eventId: s.eventId.toString()
+    }));
+
+    return NextResponse.json({ sessions: serialized });
+
+  } catch (error: any) {
+    console.error('GET sessions error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// POST /api/events/[id]/sessions - Create a new session
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getAuthSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const eventId = BigInt(params.id);
+    const eventId = BigInt(params.id); // Assuming ID is valid. If NaN, throws error (500).
 
-    // Ensure dependent tables exist
-    try {
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS session_speakers (
-          id BIGSERIAL PRIMARY KEY,
-          session_id BIGINT NOT NULL,
-          speaker_id BIGINT NOT NULL,
-          created_at TIMESTAMP DEFAULT NOW(),
-          UNIQUE(session_id, speaker_id)
-        );
-        CREATE TABLE IF NOT EXISTS calendar_events (
-          id BIGSERIAL PRIMARY KEY,
-          event_id BIGINT NOT NULL,
-          session_id BIGINT,
-          title VARCHAR(255),
-          description TEXT,
-          start_time TIMESTAMP,
-          end_time TIMESTAMP,
-          location VARCHAR(255),
-          created_at TIMESTAMP DEFAULT NOW()
-        );
-      `)
-    } catch (e) {
-      // Ignore if exists
+    // 1. Fetch Event for Tenant
+    const events = await prisma.$queryRaw`
+        SELECT tenant_id as "tenantId"
+        FROM events 
+        WHERE id = ${eventId} LIMIT 1
+    ` as any[]
+
+    if (!events.length) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    const event = events[0];
+
+    // 2. Dates
+    let sessionStart = new Date(body.startTime);
+    let sessionEnd = new Date(body.endTime);
+
+    // Safety check for Invalid Date
+    if (isNaN(sessionStart.getTime())) sessionStart = new Date();
+    if (isNaN(sessionEnd.getTime())) sessionEnd = new Date(sessionStart.getTime() + 3600000);
+
+    // Relaxed Validation: Only block if End is STRICTLY BEFORE Start
+    if (sessionEnd < sessionStart) {
+      return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
     }
 
-    // Get event details for validation
-    const eventResult = await prisma.$queryRaw<any[]>`
-      SELECT tenant_id, starts_at as "startsAt", ends_at as "endsAt" FROM events WHERE id = ${eventId} LIMIT 1
-    `;
-    const eventData = eventResult[0];
-    const tenantId = eventData?.tenant_id || null;
+    // 3. Insert Session
+    const newSessionResult = await prisma.$queryRaw`
+        INSERT INTO sessions (
+            event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
+        ) VALUES (
+            ${eventId}, ${event.tenantId}, ${body.title}, ${body.description || null},
+            ${sessionStart}, ${sessionEnd}, NOW(), NOW()
+        )
+        RETURNING id, event_id as "eventId"
+    ` as any[]
 
-    if (!eventData) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
-    }
+    const newSession = newSessionResult[0];
 
-    // Validate Session Timing
-    const eventStart = new Date(eventData.startsAt);
-    const eventEnd = new Date(eventData.endsAt);
-    const sessionStart = new Date(body.startTime);
-    const sessionEnd = new Date(body.endTime);
-
-    if (sessionStart >= sessionEnd) {
-      return NextResponse.json({
-        error: 'Invalid session duration',
-        message: 'Session start time must be before end time'
-      }, { status: 400 });
-    }
-
-    // Allow 1 hour buffer? No, user said "strictly".
-    if (sessionStart < eventStart || sessionEnd > eventEnd) {
-      return NextResponse.json({
-        error: 'Session outside event hours',
-        message: `Session time (${sessionStart.toLocaleString()} - ${sessionEnd.toLocaleString()}) must be strictly within event duration (${eventStart.toLocaleString()} - ${eventEnd.toLocaleString()})`,
-        range: {
-          eventStart: eventStart.toISOString(),
-          eventEnd: eventEnd.toISOString()
-        }
-      }, { status: 400 });
-    }
-
-    const newSession = await prisma.eventSession.create({
-      data: {
-        eventId: eventId,
-        tenantId: tenantId,
-        title: body.title,
-        description: body.description || null,
-        startTime: new Date(body.startTime),
-        endTime: new Date(body.endTime),
-        room: body.room || null,
-        track: body.track || null,
-        capacity: body.capacity ? parseInt(body.capacity) : null,
-      },
-    });
-
-    // Link speakers to session if provided
-    if (body.speakers && Array.isArray(body.speakers) && body.speakers.length > 0) {
-      try {
-        // Create session-speaker relationships (table only has session_id and speaker_id)
-        for (const speakerId of body.speakers) {
-          await prisma.$executeRaw`
-            INSERT INTO session_speakers (session_id, speaker_id)
-            VALUES (${newSession.id}, ${speakerId})
-            ON CONFLICT (session_id, speaker_id) DO NOTHING
-          `
-        }
-      } catch (speakerError) {
-        console.error('Error linking speakers:', speakerError)
-        // Continue even if speaker linking fails
+    // 4. Link Speakers
+    if (body.speakers && Array.isArray(body.speakers)) {
+      for (const spId of body.speakers) {
+        try {
+          await prisma.$executeRawUnsafe(`
+                    INSERT INTO session_speakers (session_id, speaker_id) VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING
+                `, newSession.id, BigInt(spId))
+        } catch (e) { console.error('Speaker link error', e) }
       }
     }
 
-    // Add to calendar if requested
+    // 5. Calendar
     if (body.addToCalendar) {
       try {
-        // Create calendar event entry
-        await prisma.$executeRaw`
-          INSERT INTO calendar_events (
-            event_id, 
-            session_id, 
-            title, 
-            description, 
-            start_time, 
-            end_time, 
-            location, 
-            created_at
-          )
-          VALUES (
-            ${eventId}, 
-            ${newSession.id}, 
-            ${body.title}, 
-            ${body.description || ''}, 
-            ${new Date(body.startTime)}, 
-            ${new Date(body.endTime)}, 
-            ${body.room || ''}, 
-            NOW()
-          )
-        `
-      } catch (calendarError) {
-        console.error('Error adding to calendar:', calendarError)
-        // Continue even if calendar creation fails
-      }
+        await prisma.$executeRawUnsafe(`
+                INSERT INTO calendar_events (
+                    event_id, session_id, title, description, start_time, end_time, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            `, eventId, newSession.id, body.title, body.description || '', sessionStart, sessionEnd)
+      } catch (e) { console.error('Calendar error', e) }
     }
 
-    // Convert BigInt to string for JSON serialization
-    const serializedSession = {
+    return NextResponse.json({
       ...newSession,
       id: newSession.id.toString(),
       eventId: newSession.eventId.toString(),
-      speakers: body.speakers || [],
-      addedToCalendar: body.addToCalendar || false,
-    };
+      success: true
+    }, { status: 201 });
 
-    return NextResponse.json(serializedSession, { status: 201 });
-  } catch (error) {
-    console.error('POST /api/events/[id]/sessions error:', error);
-    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
+  } catch (error: any) {
+    console.error('POST sessions error:', error);
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

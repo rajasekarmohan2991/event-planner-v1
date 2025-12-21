@@ -292,7 +292,7 @@ export default function EventVendorsPage() {
 
             {/* Add Vendor Dialog */}
             <Dialog open={isAddingVendor} onOpenChange={setIsAddingVendor}>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
                     <DialogHeader>
                         <DialogTitle>Add Vendor</DialogTitle>
                     </DialogHeader>

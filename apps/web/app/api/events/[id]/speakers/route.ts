@@ -1,71 +1,70 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-// Helper to serialize BigInt
 const bigIntReplacer = (key: string, value: any) =>
   typeof value === 'bigint' ? value.toString() : value
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log('📡 Fetching speakers for event:', params.id)
-
-    // Get pagination params from URL
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') || '0')
     const size = parseInt(searchParams.get('size') || '20')
+    const offset = page * size
 
-    // Validate event ID
-    let eventId: bigint
-    try {
-      eventId = BigInt(params.id)
-    } catch (e) {
-      console.error('❌ Invalid event ID:', params.id)
+    // Validate ID
+    const eventIdString = params.id
+    if (!eventIdString || isNaN(Number(eventIdString))) {
       return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
     }
+    const eventId = BigInt(eventIdString)
 
-    const session = await getServerSession(authOptions as any) as any;
-    const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+    // Raw SQL Fetch with explicit BigInt to String conversion
+    const speakers = await prisma.$queryRaw`
+      SELECT 
+        id::text as id,
+        name,
+        title,
+        bio,
+        photo_url as "photoUrl",
+        email,
+        linkedin,
+        twitter,
+        website,
+        event_id::text as "eventId",
+        tenant_id as "tenantId",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM speakers
+      WHERE event_id = ${eventId}
+      ORDER BY created_at DESC
+      LIMIT ${size}
+      OFFSET ${offset}
+    ` as any[]
 
-    const queryArgs: any = {
-      where: { eventId },
-      skip: page * size,
-      take: size,
-      orderBy: { createdAt: 'desc' }
-    };
+    const countResult = await prisma.$queryRaw`
+      SELECT COUNT(*) as count 
+      FROM speakers 
+      WHERE event_id = ${eventId}
+    ` as any[]
 
-    if (isSuperAdmin) {
-      // Defensive bypass in case Speaker is added to tenant middleware
-      queryArgs.where.tenantId = { not: '00000000-0000-0000-0000-000000000000' }
-    }
+    const total = Number(countResult[0]?.count || 0)
 
-    // Fetch speakers with pagination - use type assertion for safety
-    const [speakers, total] = await Promise.all([
-      (prisma as any).speaker?.findMany(queryArgs) || [],
-      (prisma as any).speaker?.count({
-        where: { eventId }
-      }) || 0
-    ])
-
-    console.log(`✅ Found ${speakers?.length || 0} speakers (total: ${total})`)
-
+    // Return directly - IDs already converted to strings
     return NextResponse.json({
-      data: JSON.parse(JSON.stringify(speakers || [], bigIntReplacer)),
+      data: speakers || [],
       pagination: {
         page,
         size,
-        total: total || 0,
-        totalPages: Math.ceil((total || 0) / size)
+        total,
+        totalPages: Math.ceil(total / size)
       }
     })
   } catch (e: any) {
     console.error('❌ Failed to load speakers:', e)
-    return NextResponse.json({
-      message: e?.message || 'Failed to load speakers',
-      error: e?.toString(),
-      details: 'The Speaker model may not be available yet. Please run: npx prisma generate'
-    }, { status: 500 })
+    return NextResponse.json({ message: 'Failed to load speakers', error: e.message }, { status: 500 })
   }
 }
 
@@ -75,68 +74,64 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     const raw = await req.json()
-    const eventIdString = params.id
-    console.log(`🔊 Creating speaker for event ${eventIdString}`)
+    const eventId = BigInt(params.id)
 
-    // Try finding event
-    let event = null
-    try {
-      event = await prisma.event.findFirst({
-        where: { id: BigInt(eventIdString) }
-      })
-    } catch (e) {
-      console.error(`❌ Failed to query event ${eventIdString}:`, e)
+    // 1. Find Event (Raw SQL)
+    const events = await prisma.$queryRaw`
+      SELECT id, name, tenant_id as "tenantId", starts_at as "startsAt"
+      FROM events 
+      WHERE id = ${eventId}
+      LIMIT 1
+    ` as any[]
+
+    if (!events.length) {
+      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
+    const event = events[0]
+    const tenantId = event.tenantId
 
-    if (!event) {
-      console.error(`❌ Event ${eventIdString} not found in DB`)
-      // Fallback: Check if it exists as a string ID just in case of schema mismatch (unlikely but safe)
-      // or check if it was just created but replication lag? (Unlikely with Prisma)
-      return NextResponse.json({ message: `Event ${eventIdString} not found` }, { status: 404 })
-    }
+    // 2. Insert Speaker (Raw SQL)
+    // Table: speakers (lowercase)
+    const speakerResult = await prisma.$queryRaw`
+      INSERT INTO speakers (
+        name, title, bio, photo_url, email, linkedin, twitter, website, event_id, tenant_id, created_at, updated_at
+      ) VALUES (
+        ${raw.name}, ${raw.title || null}, ${raw.bio || null}, ${raw.photoUrl || null}, 
+        ${raw.email || null}, ${raw.linkedin || null}, ${raw.twitter || null}, ${raw.website || null},
+        ${eventId}, ${tenantId}, NOW(), NOW()
+      )
+      RETURNING id::text as id, name, title, bio, photo_url as "photoUrl", email, linkedin, twitter, website, event_id::text as "eventId", tenant_id as "tenantId"
+    ` as any[]
 
-    console.log(`✅ Found event: ${event.name} (${event.id})`)
+    const speaker = speakerResult[0]
 
-    // 1. Create Speaker - use type assertion for safety
-    const speaker = await (prisma as any).speaker.create({
-      data: {
-        name: raw.name,
-        title: raw.title,
-        bio: raw.bio,
-        photoUrl: raw.photoUrl,
-        email: raw.email,
-        linkedin: raw.linkedin,
-        twitter: raw.twitter,
-        website: raw.website,
-        eventId: BigInt(eventIdString),
-        tenantId: event.tenantId
-      }
-    })
-
-    // 2. Create Default Session (1 hour duration from Event Start or Now)
-    const startTime = event.startsAt || new Date()
+    // 3. Create Default Session (Raw SQL)
+    // Table: sessions (lowercase)
+    const startTime = event.startsAt ? new Date(event.startsAt) : new Date()
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
+    const sessionTitle = raw.sessionTitle || `Keynote: ${speaker.name}`
+    const sessionDesc = raw.sessionDescription || `Session by ${speaker.name}`
 
-    const sessionData = await (prisma as any).eventSession.create({
-      data: {
-        eventId: BigInt(eventIdString),
-        tenantId: event.tenantId,
-        title: raw.sessionTitle || `Keynote: ${speaker.name}`,
-        description: raw.sessionDescription || `Session by ${speaker.name}`,
-        startTime: startTime,
-        endTime: endTime
-      }
-    })
+    const sessionResult = await prisma.$queryRaw`
+      INSERT INTO sessions (
+        event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
+      ) VALUES (
+        ${eventId}, ${tenantId}, ${sessionTitle}, ${sessionDesc}, 
+        ${startTime}, ${endTime}, NOW(), NOW()
+      )
+      RETURNING id
+    ` as any[]
 
-    // 3. Link Speaker to Session
-    await (prisma as any).sessionSpeaker.create({
-      data: {
-        sessionId: sessionData.id,
-        speakerId: speaker.id
-      }
-    })
+    const sessionId = sessionResult[0]?.id
 
-    return NextResponse.json(JSON.parse(JSON.stringify(speaker, bigIntReplacer)))
+    // 4. Link (session_speakers)
+    if (sessionId && speaker.id) {
+      await prisma.$executeRawUnsafe(`
+            INSERT INTO session_speakers (session_id, speaker_id) VALUES ($1, $2)
+        `, sessionId, speaker.id)
+    }
+
+    return NextResponse.json(speaker)
 
   } catch (error: any) {
     console.error('Create speaker failed:', error)
