@@ -106,9 +106,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (ticketId) {
       // Ticket ID is String. Table is "Ticket".
+      // Production schema: id, eventId, name, description, priceInr, currency, capacity, sold, status
       const tickets = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT id, name, capacity, sold, status, "priceInr" as "priceInMinor",
-                   "min_quantity" as "minPurchase", "max_quantity" as "maxPurchase"
+            SELECT id, name, capacity, sold, status, "priceInr" as "priceInMinor"
             FROM "Ticket"
             WHERE id = $1
             LIMIT 1

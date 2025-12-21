@@ -6,7 +6,8 @@ import { randomUUID } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
-// GET - List all floor plans for an event
+// Production schema: eventId is BIGINT (camelCase, unquoted)
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const session = await getServerSession(authOptions as any)
@@ -14,43 +15,42 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
-        const eventId = params.id
+        const eventId = BigInt(params.id)
         console.log('📐 Fetching floor plans for event:', eventId)
 
-        // floor_plans.eventId is BIGINT and unquoted camelCase (from diagnostic)
         const floorPlansRaw = await prisma.$queryRaw`
             SELECT 
                 id,
-                eventId::text as "eventId",
+                "eventId"::text as "eventId",
                 name,
                 description,
-                canvasWidth,
-                canvasHeight,
-                backgroundColor,
-                gridSize,
-                vipPrice,
-                premiumPrice,
-                generalPrice,
-                totalCapacity,
-                vipCapacity,
-                premiumCapacity,
-                generalCapacity,
-                menCapacity,
-                womenCapacity,
-                layoutData,
+                "canvasWidth",
+                "canvasHeight",
+                "backgroundColor",
+                "gridSize",
+                "vipPrice",
+                "premiumPrice",
+                "generalPrice",
+                "totalCapacity",
+                "vipCapacity",
+                "premiumCapacity",
+                "generalCapacity",
+                "menCapacity",
+                "womenCapacity",
+                "layoutData",
                 status,
                 version,
                 created_at as "createdAt",
                 updated_at as "updatedAt",
                 tenant_id as "tenantId"
             FROM floor_plans
-            WHERE eventId = ${BigInt(eventId)}
+            WHERE "eventId" = ${eventId}
             ORDER BY created_at DESC
         ` as any[]
 
         const floorPlans = floorPlansRaw.map(fp => ({
             ...fp,
-            objects: [] // Empty objects for list view
+            objects: fp.layoutData?.objects || []
         }))
 
         console.log(`✅ Found ${floorPlans.length} floor plans`)
@@ -68,7 +68,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 }
 
-// POST - Create a new floor plan
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const session = await getServerSession(authOptions as any) as any
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
-        const eventId = params.id
+        const eventId = BigInt(params.id)
         const body = await req.json()
 
         console.log('📐 Creating floor plan for event:', eventId)
@@ -85,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const events = await prisma.$queryRaw`
             SELECT id, tenant_id as "tenantId" 
             FROM events 
-            WHERE id = ${BigInt(eventId)} 
+            WHERE id = ${eventId} 
             LIMIT 1
         ` as any[]
 
@@ -97,16 +96,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const tenantId = event.tenantId
         const newId = randomUUID()
 
-        // Insert Floor Plan - eventId is unquoted camelCase BIGINT
+        // Insert Floor Plan
         await prisma.$executeRawUnsafe(`
             INSERT INTO floor_plans (
-                id, eventId, tenant_id,
+                id, "eventId", tenant_id,
                 name, description, 
-                canvasWidth, canvasHeight, backgroundColor, gridSize,
-                vipPrice, premiumPrice, generalPrice,
-                totalCapacity, vipCapacity, premiumCapacity, generalCapacity,
-                menCapacity, womenCapacity,
-                layoutData, status, version,
+                "canvasWidth", "canvasHeight", "backgroundColor", "gridSize",
+                "vipPrice", "premiumPrice", "generalPrice",
+                "totalCapacity", "vipCapacity", "premiumCapacity", "generalCapacity",
+                "menCapacity", "womenCapacity",
+                "layoutData", status, version,
                 created_at, updated_at
             ) VALUES (
                 $1, $2, $3,
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             )
         `,
             newId,
-            BigInt(eventId),
+            eventId,
             tenantId,
             body.name || 'New Floor Plan',
             body.description || null,
@@ -145,7 +144,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         return NextResponse.json({
             message: 'Floor plan created successfully',
-            floorPlan: { id: newId, eventId, tenantId, ...body }
+            floorPlan: { id: newId, eventId: eventId.toString(), tenantId, ...body }
         }, { status: 201 })
 
     } catch (error: any) {
