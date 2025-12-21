@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         u.email, 
         u.image
       FROM "EventRoleAssignment" a
-      LEFT JOIN users u ON a."userId" = u.id
+      LEFT JOIN users u ON a."userId"::text = u.id::text
       WHERE a."eventId" = ${eventId}
       ORDER BY a."createdAt" DESC
     ` as any[]

@@ -64,7 +64,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let body
     try {
       body = await req.json()
-    } catch {
+    } catch (e) {
+      console.error('❌ Invalid JSON in promo code POST:', e)
       return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
     }
 
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // 1. Sanitize Code
     code = String(code || '').trim().toUpperCase()
     if (!code) {
+      console.error('❌ Missing code in promo code POST')
       return NextResponse.json({ message: 'Code is required' }, { status: 400 })
     }
 

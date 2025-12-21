@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
     `,
       newId,
-      BigInt(eventId),
+      eventId,
       tenantId,
       String(body.name || body.company || '').trim(),
       body.contactName || null,
