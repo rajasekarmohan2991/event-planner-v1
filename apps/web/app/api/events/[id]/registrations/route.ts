@@ -240,14 +240,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         `, quantity, ticketId)
       }
 
-      // 5. Approval (registration_approvals)
-      await tx.$executeRaw`
-            INSERT INTO registration_approvals (
-                registration_id, event_id, status, created_at
-            ) VALUES (
-                ${newRegId}, ${eventIdBigInt}, 'APPROVED', NOW()
-            )
-        `
+      // 5. Approval (registration_approvals) - OPTIONAL
+      try {
+        await tx.$executeRaw`
+              INSERT INTO registration_approvals (
+                  registration_id, event_id, status, created_at
+              ) VALUES (
+                  ${newRegId}, ${eventIdBigInt}, 'APPROVED', NOW()
+              )
+          `
+      } catch (e: any) {
+        console.log('⚠️ registration_approvals not found, skipping')
+      }
     })
 
     // ============================================

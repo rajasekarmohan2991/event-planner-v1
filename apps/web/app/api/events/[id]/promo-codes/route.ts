@@ -134,14 +134,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       message: 'Promo code created successfully'
     }, { status: 201 })
 
-  } catch (e: any) {
-    const msg: string = e?.message || ''
-    if (msg.includes('duplicate key') || msg.toLowerCase().includes('unique')) {
-      return NextResponse.json({ message: 'Promo code already exists' }, { status: 409 })
-    }
-    console.error('Error creating promo code:', e)
+  } catch (error: any) {
+    console.error('❌ Promo code creation failed:', {
+      message: error.message,
+      detail: error.detail,
+      eventId: params.id
+    })
     return NextResponse.json({
-      message: msg || 'Failed to create promo code',
+      message: 'Failed to create promo code',
+      error: error.message,
+      details: error.code
     }, { status: 500 })
   }
 }

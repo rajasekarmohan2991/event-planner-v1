@@ -23,16 +23,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const assignments = await prisma.$queryRaw`
       SELECT 
         a.id, 
-        a.userId, 
+        a."userId", 
         a.role, 
-        a.createdAt,
+        a."createdAt",
         u.name, 
         u.email, 
         u.image
       FROM "EventRoleAssignment" a
-      LEFT JOIN users u ON a.userId = u.id
-      WHERE a.eventId = ${eventId}
-      ORDER BY a.createdAt DESC
+      LEFT JOIN users u ON a."userId" = u.id
+      WHERE a."eventId" = ${eventId}
+      ORDER BY a."createdAt" DESC
     ` as any[]
 
     console.log(`✅ Found ${assignments.length} assignments`)
