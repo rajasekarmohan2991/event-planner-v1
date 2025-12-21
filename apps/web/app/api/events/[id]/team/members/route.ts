@@ -18,23 +18,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const eventId = params.id
     console.log('📡 Fetching team members for event (RAW SQL):', eventId)
 
-    // IDs in EventRoleAssignment are String for eventId, BigInt for userId
-    // Table name: "EventRoleAssignment" (default casing)
-    // Columns: "id", "eventId", "userId", "role", "createdAt", "tenantId"
-
+    // EventRoleAssignment columns (from probe): id, eventId, userId, role, siteId, createdAt, tenantId
+    // These are camelCase WITHOUT quotes in the actual database
     const assignments = await prisma.$queryRaw`
       SELECT 
         a.id, 
-        a."userId", 
+        a.userId, 
         a.role, 
-        a."createdAt",
+        a.createdAt,
         u.name, 
         u.email, 
         u.image
       FROM "EventRoleAssignment" a
-      LEFT JOIN users u ON a."userId" = u.id
-      WHERE a."eventId" = ${eventId}
-      ORDER BY a."createdAt" DESC
+      LEFT JOIN users u ON a.userId = u.id
+      WHERE a.eventId = ${eventId}
+      ORDER BY a.createdAt DESC
     ` as any[]
 
     console.log(`✅ Found ${assignments.length} assignments`)
@@ -61,8 +59,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('❌ Error fetching team members (Raw SQL):', error)
-    // Fallback: If table name is different (e.g. snake_case or mapped), log it.
-    // Try to catch common "relation does not exist" error
     return NextResponse.json({
       message: 'Failed to load team members',
       error: error.message,

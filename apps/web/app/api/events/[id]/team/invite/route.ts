@@ -43,10 +43,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const results = []
 
     for (const email of emails) {
-      // Find or Create User
-      // Note: User table is standard, Prisma Client manages it well usually. 
-      // But for consistency let's rely on Prisma Client for User (less tenant sensitive usually).
-      // Wait, User table has currentTenantId.
       let user = await prisma.user.findUnique({ where: { email } })
       let isNewUser = false
 
@@ -69,18 +65,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       // 2. Insert/Update Assignment (Raw SQL)
-      // Table: "EventRoleAssignment"
-      // Columns: "eventId", "userId", role, "tenantId"
-      // eventId is String in this table?
-      // Based on previous code: eventId: eventIdString.
-      // We pass it as String.
-
+      // EventRoleAssignment columns: eventId, userId, role, tenantId (all unquoted camelCase)
       try {
         await prisma.$executeRawUnsafe(`
-            INSERT INTO "EventRoleAssignment" ("eventId", "userId", role, "tenantId", "createdAt", "updatedAt")
+            INSERT INTO "EventRoleAssignment" (eventId, userId, role, tenantId, createdAt, updatedAt)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
-            ON CONFLICT ("eventId", "userId") 
-            DO UPDATE SET role = $3, "tenantId" = $4, "updatedAt" = NOW()
+            ON CONFLICT (eventId, userId) 
+            DO UPDATE SET role = $3, tenantId = $4, updatedAt = NOW()
         `, eventIdString, user.id, role || 'STAFF', tenantId)
 
         // Send Email
@@ -93,7 +84,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           }).catch(e => console.error('Email failed', e))
           results.push({ email, status: 'invited', note: 'Account created' })
         } else {
-          // ... normal invite email
           await sendEmail({
             to: email,
             subject: 'You have been added to an event team',
