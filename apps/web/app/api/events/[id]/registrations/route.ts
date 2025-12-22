@@ -184,14 +184,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // Ensure ticket_id is set
       await tx.$executeRaw`
             INSERT INTO registrations (
-                id, event_id, tenant_id, data_json, type, email, created_at, status, ticket_id
+                id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
                 ${newRegId},
                 ${eventIdBigInt},
                 ${tenantId},
                 ${JSON.stringify(registrationData)}::jsonb,
-                ${parsed?.type || 'VIRTUAL'},
+                ${parsed?.type || 'GENERAL'},
                 ${formData.email},
+                NOW(),
                 NOW(),
                 'APPROVED',
                 ${ticketId || null}
