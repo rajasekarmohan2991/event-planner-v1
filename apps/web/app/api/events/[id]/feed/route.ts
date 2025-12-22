@@ -5,9 +5,34 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+// Ensure event_feed_posts table exists
+async function ensureEventFeedTable() {
+    try {
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS event_feed_posts (
+        id BIGSERIAL PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        tenant_id VARCHAR(255),
+        user_id VARCHAR(255),
+        author_name VARCHAR(255),
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_feed_posts_event_id ON event_feed_posts(event_id)`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_feed_posts_created_at ON event_feed_posts(created_at DESC)`)
+    } catch (e) {
+        console.error('Error ensuring event_feed_posts table:', e)
+    }
+}
+
+
 // GET - Fetch feed posts for an event
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     try {
+        await ensureEventFeedTable()
+
         const session = await getServerSession(authOptions) as any
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -46,6 +71,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 // POST - Create a new feed post
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     try {
+        await ensureEventFeedTable()
+
         const session = await getServerSession(authOptions) as any
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
