@@ -177,8 +177,8 @@ export default function CompanyDashboardPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
+              <TableHeader className="bg-slate-50">
+                <TableRow className="hover:bg-slate-50">
                   <TableHead>Event Name</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
