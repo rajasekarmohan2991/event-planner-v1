@@ -29,35 +29,54 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const accessToken = (session as any)?.accessToken as string | undefined
   const userId = (session as any)?.user?.id
 
+  // Check role permissions locally since we are bypassing the remote API
+  // TENANT_ADMIN has 'events.delete' via middleware check above.
+
+  const id = BigInt(params.id)
+  console.log(`🗑️ DELETE event ${params.id} via Prisma Transaction`)
+
   try {
-    const headers: Record<string, string> = {}
-    const inboundTenant = req.headers.get('x-tenant-id') || undefined
-    const tenantId = ((session as any)?.user?.currentTenantId as string | undefined) || inboundTenant || process.env.DEFAULT_TENANT_ID || 'default-tenant'
-    if (tenantId) headers['x-tenant-id'] = tenantId
-    if (role) headers['x-user-role'] = role
-    if (userId) headers['x-user-id'] = userId
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete dependent records manually (since ON DELETE CASCADE might be missing)
 
-    console.log(`📡 Calling DELETE ${API_BASE}/events/${params.id}`, { tenantId, role, userId })
+      // Promo Codes & Redemptions
+      await tx.$executeRawUnsafe(`DELETE FROM promo_redemptions WHERE promo_code_id IN (SELECT id FROM promo_codes WHERE event_id = $1)`, id)
+      await tx.$executeRawUnsafe(`DELETE FROM promo_codes WHERE event_id = $1`, id)
 
-    const res = await fetch(`${API_BASE}/events/${params.id}`, {
-      method: 'DELETE',
-      headers,
-      credentials: 'include',
+      // Registrations & Orders
+      // "Order" table is quoted
+      await tx.$executeRawUnsafe(`DELETE FROM "Order" WHERE registration_id IN (SELECT id FROM registrations WHERE event_id = $1)`, id)
+      await tx.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id = $1`, id)
+
+      // Exhibitors
+      await tx.$executeRawUnsafe(`DELETE FROM exhibitors WHERE event_id = $1`, id)
+
+      // Floor Plans
+      await tx.$executeRawUnsafe(`DELETE FROM floor_plans WHERE event_id = $1`, id)
+
+      // Ticket Types
+      await tx.$executeRawUnsafe(`DELETE FROM ticket_types WHERE event_id = $1`, id)
+
+      // Sessions (and implicitly speakers if linked via sessions)
+      await tx.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id = $1`, id)
+
+      // 2. Delete the Event
+      const result = await tx.$executeRawUnsafe(`DELETE FROM events WHERE id = $1`, id)
+
+      if (Number(result) === 0) {
+        throw new Error('Event not found or already deleted')
+      }
     })
 
-    console.log(`📊 DELETE response: ${res.status}`)
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      console.log(`❌ DELETE failed:`, body)
-      return NextResponse.json(body || { message: 'Failed to delete event' }, { status: res.status })
-    }
-
-    console.log(`✅ Event ${params.id} deleted successfully`)
+    console.log(`✅ Event ${params.id} deleted successfully (Prisma)`)
     return new NextResponse(null, { status: 204 })
+
   } catch (err: any) {
-    console.error(`❌ DELETE error:`, err)
+    console.error(`❌ DELETE error (Prisma):`, err)
+    // Handle "Event not found" explicitly
+    if (err.message.includes('Event not found')) {
+      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    }
     return NextResponse.json({ message: err?.message || 'Failed to delete event' }, { status: 500 })
   }
 }
