@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { ChairIcon, TableSeatIcon } from '@/components/seats/SeatIcons'
 
 interface FloorPlanObject {
     id: string
@@ -199,8 +200,68 @@ export default function FloorPlanDesignerPage() {
             objects: [...prev.objects, obj]
         }))
 
+        // Generate seats for this object
+        generateSeatsForObject(obj)
+
         setShowAddDialog(false)
         setSelectedObject(obj)
+    }
+
+    // Generate individual seats for an object
+    const generateSeatsForObject = (obj: FloorPlanObject) => {
+        const generatedSeats: any[] = []
+        const seatSize = 20
+        const seatSpacing = 5
+
+        if (obj.type === 'GRID') {
+            // Generate grid seats
+            const rows = obj.rows || 10
+            const cols = obj.cols || 10
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const seatLabel = `${obj.label?.charAt(0) || 'A'}${row + 1}-${col + 1}`
+                    generatedSeats.push({
+                        id: `${obj.id}-${row}-${col}`,
+                        label: seatLabel,
+                        x: obj.x + (col * (seatSize + seatSpacing)),
+                        y: obj.y + (row * (seatSize + seatSpacing)),
+                        rotation: 0,
+                        status: 'AVAILABLE',
+                        type: 'CHAIR'
+                    })
+                }
+            }
+        } else if (obj.type === 'ROUND_TABLE') {
+            // Generate 8 seats around table
+            const tableRadius = obj.width / 2
+            const seatRadius = 15
+            const numSeats = 8
+
+            for (let i = 0; i < numSeats; i++) {
+                const angle = (i * 360) / numSeats
+                const radian = (angle * Math.PI) / 180
+                const seatX = obj.x + tableRadius + (tableRadius + seatRadius) * Math.cos(radian)
+                const seatY = obj.y + tableRadius + (tableRadius + seatRadius) * Math.sin(radian)
+
+                generatedSeats.push({
+                    id: `${obj.id}-${i}`,
+                    label: `${i + 1}`,
+                    x: seatX,
+                    y: seatY,
+                    rotation: angle,
+                    status: 'AVAILABLE',
+                    type: 'TABLE_SEAT'
+                })
+            }
+        }
+
+        // Store seats for this object
+        setSeats(prev => {
+            const newSeats = new Map(prev)
+            newSeats.set(obj.id, generatedSeats)
+            return newSeats
+        })
     }
 
     // Handle canvas click
@@ -505,62 +566,83 @@ export default function FloorPlanDesignerPage() {
                                                     <rect width="100%" height="100%" fill="url(#grid)" />
                                                 )}
 
-                                                {/* Objects */}
-                                                {floorPlan.objects.map((obj) => (
-                                                    <g
-                                                        key={obj.id}
-                                                        transform={`translate(${obj.x}, ${obj.y}) rotate(${obj.rotation}, ${obj.width / 2}, ${obj.height / 2})`}
-                                                        onClick={(e) => handleObjectClick(obj, e)}
-                                                        onMouseDown={(e) => handleObjectMouseDown(obj, e)}
-                                                        style={{ cursor: 'move' }}
-                                                    >
-                                                        {/* Object shape */}
-                                                        {obj.type === 'ROUND_TABLE' ? (
-                                                            <circle
-                                                                cx={obj.width / 2}
-                                                                cy={obj.height / 2}
-                                                                r={obj.width / 2}
-                                                                fill={obj.fillColor}
-                                                                stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
-                                                                strokeWidth={selectedObject?.id === obj.id ? 3 : 2}
-                                                                opacity={0.8}
-                                                            />
-                                                        ) : (
-                                                            <rect
-                                                                width={obj.width}
-                                                                height={obj.height}
-                                                                fill={obj.fillColor}
-                                                                stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
-                                                                strokeWidth={selectedObject?.id === obj.id ? 3 : 2}
-                                                                rx={4}
-                                                                opacity={0.8}
-                                                            />
-                                                        )}
+                                                {/* Objects with Individual Seats */}
+                                                {floorPlan.objects.map((obj) => {
+                                                    const objectSeats = seats.get(obj.id) || []
 
-                                                        {/* Label */}
-                                                        <text
-                                                            x={obj.width / 2}
-                                                            y={obj.height / 2}
-                                                            textAnchor="middle"
-                                                            dominantBaseline="middle"
-                                                            fill="#fff"
-                                                            fontSize="12"
-                                                            fontWeight="bold"
-                                                        >
-                                                            {obj.label}
-                                                        </text>
-                                                        <text
-                                                            x={obj.width / 2}
-                                                            y={obj.height / 2 + 15}
-                                                            textAnchor="middle"
-                                                            dominantBaseline="middle"
-                                                            fill="#fff"
-                                                            fontSize="10"
-                                                        >
-                                                            {obj.totalSeats} seats
-                                                        </text>
-                                                    </g>
-                                                ))}
+                                                    return (
+                                                        <g key={obj.id}>
+                                                            {/* Background shape for object (lighter, for context) */}
+                                                            <g
+                                                                transform={`translate(${obj.x}, ${obj.y})`}
+                                                                onClick={(e) => handleObjectClick(obj, e)}
+                                                                onMouseDown={(e) => handleObjectMouseDown(obj, e)}
+                                                                style={{ cursor: 'move' }}
+                                                            >
+                                                                {obj.type === 'ROUND_TABLE' ? (
+                                                                    <circle
+                                                                        cx={obj.width / 2}
+                                                                        cy={obj.height / 2}
+                                                                        r={obj.width / 2}
+                                                                        fill={obj.fillColor}
+                                                                        stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
+                                                                        strokeWidth={selectedObject?.id === obj.id ? 3 : 1}
+                                                                        opacity={0.3}
+                                                                    />
+                                                                ) : (
+                                                                    <rect
+                                                                        width={obj.width}
+                                                                        height={obj.height}
+                                                                        fill={obj.fillColor}
+                                                                        stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
+                                                                        strokeWidth={selectedObject?.id === obj.id ? 3 : 1}
+                                                                        rx={4}
+                                                                        opacity={0.2}
+                                                                    />
+                                                                )}
+
+                                                                {/* Section Label */}
+                                                                <text
+                                                                    x={obj.width / 2}
+                                                                    y={obj.type === 'ROUND_TABLE' ? obj.height / 2 : 10}
+                                                                    textAnchor="middle"
+                                                                    dominantBaseline="middle"
+                                                                    fill="#666"
+                                                                    fontSize="10"
+                                                                    fontWeight="bold"
+                                                                    pointerEvents="none"
+                                                                >
+                                                                    {obj.label}
+                                                                </text>
+                                                            </g>
+
+                                                            {/* Individual Seats */}
+                                                            {objectSeats.map((seat: any) => (
+                                                                seat.type === 'TABLE_SEAT' ? (
+                                                                    <TableSeatIcon
+                                                                        key={seat.id}
+                                                                        x={seat.x}
+                                                                        y={seat.y}
+                                                                        rotation={seat.rotation}
+                                                                        status={seat.status}
+                                                                        label={seat.label}
+                                                                        size={15}
+                                                                    />
+                                                                ) : (
+                                                                    <ChairIcon
+                                                                        key={seat.id}
+                                                                        x={seat.x}
+                                                                        y={seat.y}
+                                                                        rotation={seat.rotation}
+                                                                        status={seat.status}
+                                                                        label={seat.label}
+                                                                        size={20}
+                                                                    />
+                                                                )
+                                                            ))}
+                                                        </g>
+                                                    )
+                                                })}
                                             </svg>
                                         </TransformComponent>
                                     </>
