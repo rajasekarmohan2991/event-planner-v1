@@ -20,15 +20,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   }
 
-  // Check authorization - SUPER_ADMIN and ADMIN can delete events
+  // Role check is handled by checkPermissionInRoute ('events.delete')
+  // TENANT_ADMIN has this permission via middleware
   const tenantRole = (session as any)?.user?.tenantRole as string | undefined
   const role = tenantRole || ((session as any)?.user?.role as string | undefined)
   console.log(`🗑️ DELETE event ${params.id} - User role: ${role}`)
-
-  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
-    console.log(`❌ DELETE denied - role ${role} is not SUPER_ADMIN or ADMIN`)
-    return NextResponse.json({ message: 'Only SUPER_ADMIN or ADMIN can delete events' }, { status: 403 })
-  }
 
   const accessToken = (session as any)?.accessToken as string | undefined
   const userId = (session as any)?.user?.id
