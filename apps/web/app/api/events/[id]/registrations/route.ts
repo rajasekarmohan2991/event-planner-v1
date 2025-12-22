@@ -219,16 +219,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             )
         `
 
-      // 3. Promo Redemption
-      if (promoCodeId && userId) {
-        await tx.$executeRaw`
-                INSERT INTO promo_redemptions (
-                    promo_code_id, user_id, order_amount, discount_amount, redeemed_at
-                ) VALUES (
-                    ${BigInt(promoCodeId)}, ${userId}, ${totalPrice}, ${discountAmount}, NOW()
-                )
-             `
-      }
+      // 3. Promo Redemption - Moved outside transaction to prevent failure if table missing
 
       // 4. Update Ticket Sold Count ('"Ticket"')
       if (ticketId) {
@@ -253,6 +244,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         console.log('⚠️ registration_approvals not found, skipping')
       }
     })
+
+    // 6. Log Promo Redemption (Non-critical)
+    if (promoCodeId && userId) {
+      try {
+        await prisma.$executeRawUnsafe(`
+            INSERT INTO promo_redemptions (
+                promo_code_id, user_id, order_amount, discount_amount, redeemed_at
+            ) VALUES (
+                $1, $2, $3, $4, NOW()
+            )
+        `, BigInt(promoCodeId), String(userId), totalPrice, discountAmount)
+      } catch (e: any) {
+        console.warn('⚠️ Failed to log promo redemption (table might be missing):', e.message)
+      }
+    }
 
     // ============================================
     // PHASE 5: QR Code & Response
