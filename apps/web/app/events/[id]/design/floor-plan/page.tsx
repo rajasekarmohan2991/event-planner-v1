@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ChairIcon, TableSeatIcon } from '@/components/seats/SeatIcons'
+import AIFloorPlanGenerator from '@/components/floor-plan/AIFloorPlanGenerator'
+import { Sparkles } from 'lucide-react'
 
 interface FloorPlanObject {
     id: string
@@ -75,6 +77,7 @@ export default function FloorPlanDesignerPage() {
     const [isDragging, setIsDragging] = useState(false)
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
     const [showAddDialog, setShowAddDialog] = useState(false)
+    const [showAIDialog, setShowAIDialog] = useState(false)
     const [loading, setLoading] = useState(false)
     const [registrations, setRegistrations] = useState<any[]>([])
     const [seats, setSeats] = useState<Map<string, any[]>>(new Map()) // objectId -> seats[]
@@ -205,6 +208,28 @@ export default function FloorPlanDesignerPage() {
 
         setShowAddDialog(false)
         setSelectedObject(obj)
+    }
+
+    // Handle AI-generated floor plan
+    const handleAIGenerated = (aiFloorPlan: any) => {
+        console.log('AI Generated Floor Plan:', aiFloorPlan)
+
+        // Update floor plan with AI-generated objects
+        setFloorPlan(prev => ({
+            ...prev,
+            name: aiFloorPlan.name || prev.name,
+            objects: aiFloorPlan.objects || []
+        }))
+
+        // Generate seats for all objects
+        aiFloorPlan.objects?.forEach((obj: FloorPlanObject) => {
+            generateSeatsForObject(obj)
+        })
+
+        setShowAIDialog(false)
+
+        // Show success message
+        alert(`✨ AI generated ${aiFloorPlan.objects?.length || 0} objects! Review and save when ready.`)
     }
 
     // Generate individual seats for an object
@@ -385,10 +410,20 @@ export default function FloorPlanDesignerPage() {
                     <h1 className="text-2xl font-bold">Floor Plan Designer</h1>
                     <p className="text-sm text-muted-foreground">Event ID: {eventId}</p>
                 </div>
-                <Button onClick={saveFloorPlan} disabled={loading}>
-                    <Save className="h-4 w-4 mr-2" />
-                    {loading ? 'Saving...' : 'Save Layout'}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => setShowAIDialog(true)}
+                        variant="outline"
+                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI Generate
+                    </Button>
+                    <Button onClick={saveFloorPlan} disabled={loading}>
+                        <Save className="h-4 w-4 mr-2" />
+                        {loading ? 'Saving...' : 'Save Layout'}
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -888,6 +923,22 @@ export default function FloorPlanDesignerPage() {
                         <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
                         <Button onClick={addObject}>Add to Canvas</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Floor Plan Generator Dialog */}
+            <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-600" />
+                            AI Floor Plan Generator
+                        </DialogTitle>
+                    </DialogHeader>
+                    <AIFloorPlanGenerator
+                        eventId={eventId}
+                        onFloorPlanGenerated={handleAIGenerated}
+                    />
                 </DialogContent>
             </Dialog>
         </div>

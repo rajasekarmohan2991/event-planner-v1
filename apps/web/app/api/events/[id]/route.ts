@@ -39,6 +39,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await prisma.$transaction(async (tx) => {
       // 1. Delete dependent records manually (since ON DELETE CASCADE might be missing)
 
+      // Seats and Seat Reservations (NEW)
+      await tx.$executeRawUnsafe(`DELETE FROM seat_reservations WHERE seat_id IN (SELECT id FROM seats WHERE event_id = $1)`, id)
+      await tx.$executeRawUnsafe(`DELETE FROM seats WHERE event_id = $1`, id)
+
+      // Event Feed Posts (NEW)
+      await tx.$executeRawUnsafe(`DELETE FROM event_feed_posts WHERE event_id = $1`, id)
+
       // Promo Codes & Redemptions
       await tx.$executeRawUnsafe(`DELETE FROM promo_redemptions WHERE promo_code_id IN (SELECT id FROM promo_codes WHERE event_id = $1)`, id)
       await tx.$executeRawUnsafe(`DELETE FROM promo_codes WHERE event_id = $1`, id)
