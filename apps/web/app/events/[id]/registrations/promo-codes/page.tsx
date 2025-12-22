@@ -77,7 +77,10 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
         body: JSON.stringify(payload)
       })
 
-      if (!res.ok) throw new Error('Failed to save promo code')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to save promo code')
+      }
 
       const saved = await res.json()
       // No need to adjust saved response if we reload or if backend returns raw db values
@@ -128,8 +131,10 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
     try {
       const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
       // orderAmount in paise for validation
-      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/validate?code=${encodeURIComponent(validatingCode)}&orderAmount=100000`, {
-        method: 'POST'
+      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: validatingCode, orderAmount: 100000 })
       })
 
       if (res.ok) {

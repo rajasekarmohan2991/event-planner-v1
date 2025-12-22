@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Session is optional for applying promo codes (public registration flow)
-    const session = await getServerSession(authOptions as any).catch(() => null)
-
-    const body = await req.json()
+    // Parse body safely
+    const body = await req.json().catch(() => ({}))
     const { code, orderAmount } = body
 
     console.log('🎟️ Apply promo code request:', { code, orderAmount, eventId: params.id })
@@ -21,23 +17,38 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Valid order amount is required' }, { status: 400 })
     }
 
-    const eventId = params.id
-    const userId = (session as any)?.user?.id
+    let eventId: bigint
+    try {
+      eventId = BigInt(params.id)
+    } catch {
+      return NextResponse.json({ error: 'Invalid event ID' }, { status: 400 })
+    }
 
-    // Find promo code in database (specific event OR global)
-    const promoCode = await prisma.promoCode.findFirst({
-      where: {
-        code: code.toUpperCase().trim(),
-        isActive: true,
-        OR: [
-          { eventId: BigInt(eventId) },
-          { eventId: 0 } // Global codes
-        ]
-      },
-    })
-    
-    console.log('🔍 Promo code lookup:', { 
-      searchCode: code.toUpperCase().trim(), 
+    const normalizedCode = String(code).trim().toUpperCase()
+
+    // Find promo code using Raw SQL
+    const promoCodes = await prisma.$queryRaw`
+      SELECT 
+        code, 
+        discount_type as "type", 
+        discount_amount as "amount", 
+        max_uses as "maxRedemptions", 
+        used_count as "usedCount", 
+        min_order_amount as "minOrderAmount", 
+        start_date as "startsAt", 
+        end_date as "endsAt",
+        is_active as "isActive"
+      FROM promo_codes
+      WHERE code = ${normalizedCode}
+      AND is_active = true
+      AND (event_id = ${eventId} OR event_id = 0)
+      LIMIT 1
+    ` as any[]
+
+    const promoCode = promoCodes[0]
+
+    console.log('🔍 Promo code lookup:', {
+      searchCode: normalizedCode,
       found: !!promoCode,
       isActive: promoCode?.isActive,
       startsAt: promoCode?.startsAt,
@@ -45,69 +56,65 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })
 
     if (!promoCode) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Invalid promo code',
-        valid: false 
+        valid: false
       }, { status: 400 })
     }
 
-    // Validation 1: Check if promo code has started
+    // Validation 1: Check start date
     const now = new Date()
-    if (promoCode.startsAt && promoCode.startsAt > now) {
-      const startDate = promoCode.startsAt.toLocaleDateString()
-      return NextResponse.json({ 
+    if (promoCode.startsAt && new Date(promoCode.startsAt) > now) {
+      const startDate = new Date(promoCode.startsAt).toLocaleDateString()
+      return NextResponse.json({
         error: `Promo code will be active from ${startDate}`,
-        valid: false 
+        valid: false
       }, { status: 400 })
     }
 
-    // Validation 2: Check if promo code has expired
-    // Set time to end of day for endsAt to allow usage throughout the end date
+    // Validation 2: Check expiry date
     if (promoCode.endsAt) {
       const endOfDay = new Date(promoCode.endsAt)
       endOfDay.setHours(23, 59, 59, 999)
-      
+
       if (endOfDay < now) {
-        const endDate = promoCode.endsAt.toLocaleDateString()
+        const endDate = new Date(promoCode.endsAt).toLocaleDateString()
         console.log('❌ Promo code expired:', { code, endsAt: promoCode.endsAt, now, endOfDay })
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: `Promo code expired on ${endDate}`,
-          valid: false 
+          valid: false
         }, { status: 400 })
       }
     }
 
-    // Validation 3: Check maximum redemptions (total usage limit)
-    if (promoCode.maxRedemptions && promoCode.maxRedemptions > 0) {
+    // Validation 3: Check usage limit
+    if (promoCode.maxRedemptions && promoCode.maxRedemptions != -1) {
       if (promoCode.usedCount >= promoCode.maxRedemptions) {
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: 'Promo code usage limit has been reached',
-          valid: false 
+          valid: false
         }, { status: 400 })
       }
     }
 
-    // Validation 4: Check per-user limit (skipped for now - no redemptions table)
-    // You can implement user-specific tracking later if needed
-
-    // Validation 5: Check minimum order amount
+    // Validation 4: Check minimum order amount
     if (promoCode.minOrderAmount && orderAmount < promoCode.minOrderAmount) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: `Minimum order amount of ₹${promoCode.minOrderAmount} is required`,
-        valid: false 
+        valid: false
       }, { status: 400 })
     }
 
     // Calculate discount
     const originalAmount = Number(orderAmount) || 0
     let discountAmount = 0
+    const amountVal = Number(promoCode.amount)
 
     if (promoCode.type === 'PERCENT') {
-      // Percentage discount
-      discountAmount = Math.floor((originalAmount * Number(promoCode.amount)) / 100)
-    } else if (promoCode.type === 'FIXED') {
-      // Fixed amount discount
-      discountAmount = Number(promoCode.amount)
+      discountAmount = Math.floor((originalAmount * amountVal) / 100)
+    } else {
+      // FIXED
+      discountAmount = amountVal
     }
 
     // Ensure discount doesn't exceed order amount
@@ -122,13 +129,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       calculatedDiscount: discountAmount,
       originalAmount,
       finalAmount,
-      description: `${promoCode.type === 'PERCENT' ? promoCode.amount + '%' : '₹' + promoCode.amount} discount applied`,
+      description: `${promoCode.type === 'PERCENT' ? amountVal + '%' : '₹' + amountVal} discount applied`,
     })
+
   } catch (error: any) {
     console.error('Promo code application error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: error.message || 'Failed to apply promo code',
-      valid: false 
+      valid: false
     }, { status: 500 })
   }
 }
