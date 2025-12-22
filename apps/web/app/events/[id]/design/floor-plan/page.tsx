@@ -75,6 +75,7 @@ export default function FloorPlanDesignerPage() {
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
     const [showAddDialog, setShowAddDialog] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [registrations, setRegistrations] = useState<any[]>([])
 
     // New object form
     const [newObject, setNewObject] = useState({
@@ -87,12 +88,25 @@ export default function FloorPlanDesignerPage() {
         label: ''
     })
 
-    // Load floor plan
+    // Load floor plan and registrations
     useEffect(() => {
         if (eventId) {
             loadFloorPlan()
+            loadRegistrations()
         }
     }, [eventId])
+
+    const loadRegistrations = async () => {
+        try {
+            const response = await fetch(`/api/events/${eventId}/registrations`)
+            if (response.ok) {
+                const data = await response.json()
+                setRegistrations(data.objects || data.registrations || [])
+            }
+        } catch (error) {
+            console.error('Failed to load registrations:', error)
+        }
+    }
 
     const loadFloorPlan = async () => {
         try {
@@ -267,6 +281,21 @@ export default function FloorPlanDesignerPage() {
         const premium = floorPlan.objects.filter(o => o.pricingTier === 'PREMIUM').reduce((sum, obj) => sum + obj.totalSeats, 0)
         const general = floorPlan.objects.filter(o => o.pricingTier === 'GENERAL').reduce((sum, obj) => sum + obj.totalSeats, 0)
 
+        // Count filled seats from registrations
+        const totalFilled = registrations.length
+        const vipFilled = registrations.filter(r => {
+            const type = r.type || r.dataJson?.ticketType || ''
+            return type.toUpperCase().includes('VIP')
+        }).length
+        const premiumFilled = registrations.filter(r => {
+            const type = r.type || r.dataJson?.ticketType || ''
+            return type.toUpperCase().includes('PREMIUM')
+        }).length
+        const generalFilled = registrations.filter(r => {
+            const type = r.type || r.dataJson?.ticketType || ''
+            return type.toUpperCase().includes('GENERAL') || (!type.toUpperCase().includes('VIP') && !type.toUpperCase().includes('PREMIUM'))
+        }).length
+
         const revenue = {
             vip: vip * floorPlan.vipPrice,
             premium: premium * floorPlan.premiumPrice,
@@ -274,7 +303,10 @@ export default function FloorPlanDesignerPage() {
             total: (vip * floorPlan.vipPrice) + (premium * floorPlan.premiumPrice) + (general * floorPlan.generalPrice)
         }
 
-        return { total, vip, premium, general, revenue }
+        return {
+            total, vip, premium, general, revenue,
+            totalFilled, vipFilled, premiumFilled, generalFilled
+        }
     }
 
     const stats = calculateAnalytics()
@@ -304,8 +336,8 @@ export default function FloorPlanDesignerPage() {
                         <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.total}</div>
-                        <p className="text-xs text-muted-foreground">{floorPlan.objects.length} objects</p>
+                        <div className="text-2xl font-bold">{stats.totalFilled}/{stats.total}</div>
+                        <p className="text-xs text-muted-foreground">{stats.totalFilled} filled</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -313,8 +345,8 @@ export default function FloorPlanDesignerPage() {
                         <CardTitle className="text-sm font-medium">VIP Seats</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-yellow-600">{stats.vip}</div>
-                        <p className="text-xs text-muted-foreground">₹{stats.revenue.vip.toLocaleString()}</p>
+                        <div className="text-2xl font-bold text-yellow-600">{stats.vipFilled}/{stats.vip}</div>
+                        <p className="text-xs text-muted-foreground">{stats.vipFilled} filled</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -322,8 +354,8 @@ export default function FloorPlanDesignerPage() {
                         <CardTitle className="text-sm font-medium">Premium Seats</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{stats.premium}</div>
-                        <p className="text-xs text-muted-foreground">₹{stats.revenue.premium.toLocaleString()}</p>
+                        <div className="text-2xl font-bold text-blue-600">{stats.premiumFilled}/{stats.premium}</div>
+                        <p className="text-xs text-muted-foreground">{stats.premiumFilled} filled</p>
                     </CardContent>
                 </Card>
                 <Card>
