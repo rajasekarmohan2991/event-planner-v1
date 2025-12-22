@@ -16,7 +16,7 @@ export default function UserDashboard() {
   const [selectedCity, setSelectedCity] = useState<string | null>(null)
   const [myEvents, setMyEvents] = useState<any[]>([])
   const [loadingEvents, setLoadingEvents] = useState(true)
-  
+
   // Check if user can create events (EVENT_MANAGER, ADMIN, SUPER_ADMIN)
   const canCreateEvents = session?.user?.role && ['EVENT_MANAGER', 'ADMIN', 'SUPER_ADMIN'].includes(session.user.role)
 
@@ -122,7 +122,7 @@ export default function UserDashboard() {
                 View all
               </Link>
             </div>
-            
+
             {loadingEvents ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map(i => (
@@ -140,9 +140,26 @@ export default function UserDashboard() {
                     key={event.id}
                     event={event}
                     onEdit={(id) => router.push(`/events/${id}/info`)}
-                    onDelete={(event) => {
-                      // Handle delete action
-                      console.log('Delete event:', event)
+                    onDelete={async (event) => {
+                      if (!confirm(`Are you sure you want to delete "${event.name}"? This action cannot be undone.`)) return
+
+                      try {
+                        const res = await fetch(`/api/events/${event.id}`, {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include'
+                        })
+
+                        if (res.ok) {
+                          // Remove from UI immediately
+                          setMyEvents(prev => prev.filter(e => e.id !== event.id))
+                        } else {
+                          const err = await res.json().catch(() => ({}))
+                          alert(err.message || 'Failed to delete event')
+                        }
+                      } catch (e) {
+                        alert('Failed to delete event')
+                      }
                     }}
                   />
                 ))}
@@ -159,8 +176,8 @@ export default function UserDashboard() {
           </div>
         )}
 
-        <CitySelectionModal 
-          open={showCityModal} 
+        <CitySelectionModal
+          open={showCityModal}
           onClose={() => setShowCityModal(false)}
           onCitySelected={handleCitySelected}
         />

@@ -174,7 +174,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
             <Edit className="w-4 h-4" />
           </button>
         )}
-        {onDelete && event.status !== 'LIVE' && event.status !== 'UPCOMING' && (
+        {onDelete && (
           <button
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation()
@@ -208,7 +208,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
                 <div className={`w-1 h-8 transition-all duration-700 ${['LIVE', 'COMPLETED', 'UPCOMING', 'PUBLISHED'].includes(event.status || '') ? 'bg-indigo-300' : 'bg-gray-200'
                   }`} />
                 <div className={`w-4 h-4 rounded-full transition-all duration-900 ${event.status === 'LIVE' ? 'bg-green-500 animate-pulse shadow-lg shadow-green-200' :
-                    event.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-gray-300'
+                  event.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-gray-300'
                   }`} />
                 <div className={`w-1 h-8 transition-all duration-1100 ${event.status === 'COMPLETED' ? 'bg-blue-300' : 'bg-gray-200'
                   }`} />
@@ -307,8 +307,8 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
               onClick={handleInterested}
               disabled={isLoading || interested}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 border ${interested
-                  ? 'bg-pink-50 text-pink-600 border-pink-200'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
+                ? 'bg-pink-50 text-pink-600 border-pink-200'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
                 }`}
             >
               <Heart className={`w-4 h-4 ${interested ? 'fill-current' : ''}`} />
