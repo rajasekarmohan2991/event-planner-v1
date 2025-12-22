@@ -44,10 +44,23 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
   useEffect(() => {
     if (status !== 'loading') {
       load()
-      fetch(`/api/events/${params.id}/sessions?page=0&size=100`, { credentials: 'include' })
-        .then(r => r.json())
-        .then(d => setSessions(d.sessions || []))
-        .catch(() => { })
+      // Fetch sessions for dropdown
+      fetch(`/api/events/${params.id}/sessions`, { credentials: 'include' })
+        .then(r => {
+          console.log('Sessions fetch response status:', r.status)
+          if (!r.ok) throw new Error(`Failed to fetch sessions: ${r.status}`)
+          return r.json()
+        })
+        .then(d => {
+          console.log('Sessions data:', d)
+          const sessionsList = d.sessions || d.content || (Array.isArray(d) ? d : [])
+          console.log('Parsed sessions list:', sessionsList)
+          setSessions(sessionsList)
+        })
+        .catch(e => {
+          console.error('Sessions fetch error:', e)
+          setSessions([])
+        })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, params.id])
@@ -118,8 +131,14 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
             <label className="block text-xs text-slate-500 mb-1">Assign to Session (Optional)</label>
             <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm bg-white">
               <option value="">-- Create new session automatically --</option>
-              {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              {sessions.length === 0 && (
+                <option disabled>No sessions available (create one first)</option>
+              )}
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.title || `Session ${s.id}`}</option>)}
             </select>
+            {sessions.length === 0 && (
+              <p className="mt-1 text-xs text-amber-600">💡 Tip: Create sessions first, then assign speakers to them</p>
+            )}
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Bio</label>
