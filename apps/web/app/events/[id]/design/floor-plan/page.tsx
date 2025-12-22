@@ -76,6 +76,7 @@ export default function FloorPlanDesignerPage() {
     const [showAddDialog, setShowAddDialog] = useState(false)
     const [loading, setLoading] = useState(false)
     const [registrations, setRegistrations] = useState<any[]>([])
+    const [seats, setSeats] = useState<Map<string, any[]>>(new Map()) // objectId -> seats[]
 
     // New object form
     const [newObject, setNewObject] = useState({
