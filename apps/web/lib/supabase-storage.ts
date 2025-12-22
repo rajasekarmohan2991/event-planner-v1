@@ -35,7 +35,7 @@ export async function uploadToSupabase(
         console.log('📤 Uploading to Supabase:', fileName)
 
         // Upload file
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabase!.storage
             .from(BUCKET_NAME)
             .upload(fileName, file, {
                 cacheControl: '3600',
@@ -83,6 +83,8 @@ export async function uploadMultipleToSupabase(
  */
 export async function deleteFromSupabase(path: string): Promise<boolean> {
     try {
+        if (!supabase) return false
+
         const { error } = await supabase.storage
             .from(BUCKET_NAME)
             .remove([path])
@@ -105,6 +107,8 @@ export async function deleteFromSupabase(path: string): Promise<boolean> {
  */
 export async function getSignedUrl(path: string, expiresIn: number = 3600): Promise<string | null> {
     try {
+        if (!supabase) return null
+
         const { data, error } = await supabase.storage
             .from(BUCKET_NAME)
             .createSignedUrl(path, expiresIn)

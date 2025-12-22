@@ -824,7 +824,7 @@ export default function FloorPlanDesignerPage() {
 
             {/* Add Object Dialog */}
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogContent>
+                <DialogContent aria-describedby={undefined}>
                     <DialogHeader>
                         <DialogTitle>Add Object</DialogTitle>
                     </DialogHeader>
@@ -927,7 +927,7 @@ export default function FloorPlanDesignerPage() {
 
             {/* AI Floor Plan Generator Dialog */}
             <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-purple-600" />

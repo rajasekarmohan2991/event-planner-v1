@@ -26,18 +26,30 @@ export async function POST(
         // Parse the prompt using AI-like logic
         const floorPlan = await generateFloorPlanFromPrompt(prompt, params.id)
 
-        return NextResponse.json({
+        // Sanitize response to avoid BigInt serialization issues
+        const responseData = sanitizeForJSON({
             success: true,
             floorPlan,
             suggestions: floorPlan.suggestions || []
         })
 
+        return NextResponse.json(responseData)
+
     } catch (error: any) {
         console.error('AI generation error:', error)
+        // Ensure error message is a simple string to avoid BigInt issues in error reporting
+        const errorMessage = typeof error.message === 'string' ? error.message : 'Failed to generate floor plan'
         return NextResponse.json({
-            error: error.message || 'Failed to generate floor plan'
+            error: errorMessage
         }, { status: 500 })
     }
+}
+
+// Helper to sanitize objects for JSON serialization (handles BigInt)
+function sanitizeForJSON(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+    ));
 }
 
 // AI-powered floor plan generation logic
