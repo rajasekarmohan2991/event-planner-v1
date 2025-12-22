@@ -23,7 +23,7 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b shadow-sm">
+    <div className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b shadow-sm ml-52">
       <nav className="w-full overflow-x-auto no-scrollbar py-4 px-4 md:px-6">
         <div className="flex items-center min-w-max">
           {tabs.map((tab, index) => {
