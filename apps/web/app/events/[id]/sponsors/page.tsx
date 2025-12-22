@@ -5,7 +5,7 @@ import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 
-type SponsorItem = { id: number; name: string; tier: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'PARTNER'; logoUrl?: string; website?: string }
+type SponsorItem = { id: number; name: string; tier: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'PARTNER'; logoUrl?: string; website?: string; createdAt?: string }
 
 export default function EventSponsorsPage({ params }: { params: { id: string } }) {
   const { status } = useSession()
@@ -55,7 +55,10 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
       const res = await fetch(`/api/events/${params.id}/sponsors?page=0&size=50`, { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to load sponsors')
       const data = await res.json()
-      const content = Array.isArray(data?.content) ? data.content : []
+      const raw = data?.data || data?.content || (Array.isArray(data) ? data : [])
+      const content = Array.isArray(raw) ? raw : []
+      // Force DESC sort by createdAt
+      content.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       setItems(content)
     } catch (e: any) {
       setError(e?.message || 'Failed to load sponsors')

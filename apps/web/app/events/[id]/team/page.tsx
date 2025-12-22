@@ -29,8 +29,8 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
   const [selectedCompanyEmails, setSelectedCompanyEmails] = useState<Record<string, boolean>>({})
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
-  const [sortBy, setSortBy] = useState<'name' | 'email' | 'role' | 'status' | 'invitedAt' | 'joinedAt'>('name')
-  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('ASC')
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'role' | 'status' | 'invitedAt' | 'joinedAt'>('joinedAt')
+  const [sortDir, setSortDir] = useState<'ASC' | 'DESC'>('DESC')
   const [totalPages, setTotalPages] = useState(1)
   const [editOpen, setEditOpen] = useState<{ id: string, role: string, status: 'Invited' | 'Joined' } | null>(null)
 
