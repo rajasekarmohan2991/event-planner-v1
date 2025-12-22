@@ -16,6 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     const eventId = params.id
+    const eventIdBigInt = BigInt(eventId)
     console.log('📡 Fetching team members for event (RAW SQL):', eventId)
 
     // EventRoleAssignment columns (from probe): id, eventId, userId, role, siteId, createdAt, tenantId
@@ -31,11 +32,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         u.image
       FROM "EventRoleAssignment" a
       LEFT JOIN users u ON a."userId"::text = u.id::text
-      WHERE a."eventId" = ${eventId}
+      WHERE a."eventId"::bigint = ${eventIdBigInt}
       ORDER BY a."createdAt" DESC
     ` as any[]
 
-    console.log(`✅ Found ${assignments.length} assignments`)
+    console.log(`✅ Found ${assignments.length} assignments for event ${eventId}`)
 
     const items = assignments.map((a: any) => ({
       id: a.id,
