@@ -155,3 +155,80 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }, { status: 500 })
     }
 }
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const session = await getServerSession(authOptions as any) as any
+        if (!session) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+        }
+
+        const eventId = BigInt(params.id)
+        const body = await req.json()
+
+        console.log('📐 Updating floor plan for event:', eventId, 'Floor plan ID:', body.id)
+
+        if (!body.id) {
+            return NextResponse.json({ message: 'Floor plan ID is required for update' }, { status: 400 })
+        }
+
+        // Update Floor Plan
+        await prisma.$executeRawUnsafe(`
+            UPDATE floor_plans SET
+                name = $1,
+                description = $2,
+                "canvasWidth" = $3,
+                "canvasHeight" = $4,
+                "backgroundColor" = $5,
+                "gridSize" = $6,
+                "vipPrice" = $7,
+                "premiumPrice" = $8,
+                "generalPrice" = $9,
+                "totalCapacity" = $10,
+                "vipCapacity" = $11,
+                "premiumCapacity" = $12,
+                "generalCapacity" = $13,
+                "menCapacity" = $14,
+                "womenCapacity" = $15,
+                "layoutData" = $16,
+                status = $17,
+                version = version + 1,
+                updated_at = NOW()
+            WHERE id = $18 AND "eventId" = $19
+        `,
+            body.name || 'Floor Plan',
+            body.description || null,
+            body.canvasWidth || 1200,
+            body.canvasHeight || 800,
+            body.backgroundColor || '#ffffff',
+            body.gridSize || 20,
+            body.vipPrice || 0,
+            body.premiumPrice || 0,
+            body.generalPrice || 0,
+            body.totalCapacity || 0,
+            body.vipCapacity || 0,
+            body.premiumCapacity || 0,
+            body.generalCapacity || 0,
+            body.menCapacity || 0,
+            body.womenCapacity || 0,
+            body.layoutData ? JSON.stringify(body.layoutData) : null,
+            body.status || 'DRAFT',
+            body.id,
+            eventId
+        )
+
+        console.log('✅ Floor plan updated:', body.id)
+
+        return NextResponse.json({
+            message: 'Floor plan updated successfully',
+            floorPlan: { id: body.id, eventId: eventId.toString(), ...body }
+        })
+
+    } catch (error: any) {
+        console.error('❌ Error updating floor plan:', error)
+        return NextResponse.json({
+            message: 'Failed to update floor plan',
+            error: error.message
+        }, { status: 500 })
+    }
+}
