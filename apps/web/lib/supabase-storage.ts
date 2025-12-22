@@ -5,10 +5,13 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Only create client if credentials are provided
+export const supabase = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null
 
 const BUCKET_NAME = 'uploads' // Your Supabase bucket name
 
@@ -20,6 +23,11 @@ export async function uploadToSupabase(
     folder: string = 'events'
 ): Promise<{ url: string; path: string } | null> {
     try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not configured')
+            return null
+        }
+
         // Generate unique filename
         const fileExt = file.name.split('.').pop()
         const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
