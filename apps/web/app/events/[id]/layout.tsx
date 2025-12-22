@@ -21,20 +21,19 @@ export default async function EventWorkspaceLayout({
   let eventTitle = ''
 
   try {
-    // Optimization: Fetch only necessary fields directly from DB
-    // This removes the HTTP fetch trip and runs on server
-    const event = await prisma.event.findUnique({
-      where: { id: BigInt(eventId) },
-      select: { name: true }
-    })
+    // Optimization: Direct DB Access (Raw SQL)
+    // Ensures compatibility with BigInt IDs
+    const eventIdBigInt = BigInt(eventId)
+    const events = await prisma.$queryRaw`
+      SELECT name FROM events WHERE id = ${eventIdBigInt} LIMIT 1
+    ` as any[]
 
-    if (event) {
+    if (events && events.length > 0) {
       eventExists = true
-      eventTitle = event.name || ''
+      eventTitle = events[0].name || ''
     }
   } catch (e) {
-    console.error('Layout Fetch Error:', e)
-    // If ID is invalid (e.g. malformed BigInt), treat as not found
+    console.error('Layout Fetch Error (Raw):', e)
     eventExists = false
   }
 
