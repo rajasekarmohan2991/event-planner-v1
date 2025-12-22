@@ -151,8 +151,9 @@ export default function UserDashboard() {
                         })
 
                         if (res.ok) {
-                          // Remove from UI immediately
-                          setMyEvents(prev => prev.filter(e => e.id !== event.id))
+                          // Remove from UI immediately with safe ID comparison
+                          setMyEvents(prev => prev.filter(e => String(e.id) !== String(event.id)))
+                          router.refresh() // Sync server components
                         } else {
                           const err = await res.json().catch(() => ({}))
                           alert(err.message || 'Failed to delete event')
