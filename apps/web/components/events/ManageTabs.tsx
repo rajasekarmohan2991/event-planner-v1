@@ -24,7 +24,7 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="sticky top-16 z-20 bg-white border-b -mx-6 px-6">
+    <div className="sticky top-16 z-20 bg-white border-b -mx-6 px-6 -mt-6 mb-6">
       {/* Compact Header with Event ID */}
       <div className="flex items-center justify-between py-2 border-b">
         <div className="flex items-center gap-3">

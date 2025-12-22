@@ -74,7 +74,6 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
         <AvatarIcon seed={`event:${params.id}:speakers`} size={22} query="speakers,conference,portrait" />
         <h1 className="text-xl font-semibold">Speakers</h1>
       </div>
-      <p className="text-sm text-muted-foreground">Event ID: {params.id}</p>
 
       {/* Add Speaker form */}
       <div className="rounded-md border p-4 space-y-3 bg-white">

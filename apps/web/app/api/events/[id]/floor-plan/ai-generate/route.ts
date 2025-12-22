@@ -186,7 +186,7 @@ async function generateFloorPlanFromPrompt(prompt: string, eventId: string) {
 
     return {
         id: `fp-${Date.now()}`,
-        eventId: BigInt(eventId),
+        eventId: eventId, // Keep as string, not BigInt
         name: analysis.eventType || 'AI Generated Floor Plan',
         description: `Generated from: "${prompt.substring(0, 100)}..."`,
         width: 1200,

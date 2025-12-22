@@ -10,7 +10,6 @@ export default function EventZonesPage({ params }: { params: { id: string } }) {
     <div className="space-y-4">
       <ManageTabs eventId={params.id} />
       <h1 className="text-xl font-semibold">Zones</h1>
-      <p className="text-sm text-muted-foreground">Event ID: {params.id}</p>
       <div className="rounded-md border p-4 text-sm text-muted-foreground">Placeholder for venue zones and maps.</div>
     </div>
   )

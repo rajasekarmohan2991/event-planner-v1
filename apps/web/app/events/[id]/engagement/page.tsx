@@ -112,7 +112,6 @@ export default function EventEngagementPage({ params }: { params: { id: string }
       <ManageTabs eventId={params.id} />
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold">Engagement</h1>
-        <span className="text-xs text-muted-foreground">Event ID: {params.id}</span>
       </div>
 
       {/* KPIs */}

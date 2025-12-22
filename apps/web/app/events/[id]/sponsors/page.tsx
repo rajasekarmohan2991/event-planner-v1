@@ -80,7 +80,6 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
         <AvatarIcon seed={`event:${params.id}:sponsors`} size={22} />
         <h1 className="text-xl font-semibold">Sponsors</h1>
       </div>
-      <p className="text-sm text-muted-foreground">Event ID: {params.id}</p>
 
       {/* Add Sponsor form */}
       <div className="rounded-md border p-4 space-y-3 bg-white">

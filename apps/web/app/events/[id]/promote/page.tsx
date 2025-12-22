@@ -17,17 +17,17 @@ export default function EventPromotePage({ params }: { params: { id: string } })
   }, [params.id])
 
   const copy = useCallback(async () => {
-    try { await navigator.clipboard.writeText(publicUrl); setMsg('Link copied'); setTimeout(()=>setMsg(null), 2000) } catch { setErr('Copy failed') }
+    try { await navigator.clipboard.writeText(publicUrl); setMsg('Link copied'); setTimeout(() => setMsg(null), 2000) } catch { setErr('Copy failed') }
   }, [publicUrl])
 
   const publish = useCallback(async () => {
     try {
       setBusy(true); setErr(null); setMsg(null)
       const res = await fetch(`/api/events/${params.id}/publish`, { method: 'PATCH' })
-      if (!res.ok) throw new Error(await res.text().catch(()=> 'Publish failed'))
+      if (!res.ok) throw new Error(await res.text().catch(() => 'Publish failed'))
       setMsg('Event published')
-      setTimeout(()=>setMsg(null), 2500)
-    } catch (e:any) { setErr(e?.message || 'Publish failed') } finally { setBusy(false) }
+      setTimeout(() => setMsg(null), 2500)
+    } catch (e: any) { setErr(e?.message || 'Publish failed') } finally { setBusy(false) }
   }, [params.id])
 
   if (status === 'loading') return <div className="p-6">Loading...</div>
@@ -35,7 +35,6 @@ export default function EventPromotePage({ params }: { params: { id: string } })
     <div className="space-y-4">
       <ManageTabs eventId={params.id} />
       <h1 className="text-xl font-semibold">Promote</h1>
-      <p className="text-sm text-muted-foreground">Event ID: {params.id}</p>
 
       <div className="rounded-md border p-4 bg-white space-y-3">
         <div className="text-sm font-medium">Public Event Link</div>
@@ -46,9 +45,9 @@ export default function EventPromotePage({ params }: { params: { id: string } })
         </div>
         <div className="text-xs text-muted-foreground">Share your event link with attendees.</div>
         <div className="flex flex-wrap gap-2 pt-2">
-          <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Join my event!')}&url=${encodeURIComponent(publicUrl)}`,'_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on X</button>
-          <button onClick={()=>window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`,'_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on LinkedIn</button>
-          <button onClick={()=>window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(publicUrl)}`,'_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on WhatsApp</button>
+          <button onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Join my event!')}&url=${encodeURIComponent(publicUrl)}`, '_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on X</button>
+          <button onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`, '_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on LinkedIn</button>
+          <button onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(publicUrl)}`, '_blank')} className="rounded-md bg-slate-100 px-3 py-2 text-sm">Share on WhatsApp</button>
         </div>
       </div>
 

@@ -408,7 +408,6 @@ export default function FloorPlanDesignerPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold">Floor Plan Designer</h1>
-                    <p className="text-sm text-muted-foreground">Event ID: {eventId}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button

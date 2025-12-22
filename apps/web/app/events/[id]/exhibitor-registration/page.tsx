@@ -24,8 +24,8 @@ export default function ExhibitorRegistrationPage() {
   return (
     <div className="space-y-6">
       <ManageTabs eventId={eventId} />
-      
-      <div className="p-6 space-y-6">
+
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Exhibitor Registrations</h1>
@@ -83,20 +83,18 @@ export default function ExhibitorRegistrationPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{ex.booth_size || 'N/A'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        ex.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                        ex.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${ex.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                          ex.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }`}>
                         {ex.status || 'PENDING'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        ex.payment_status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                        ex.payment_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${ex.payment_status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                          ex.payment_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {ex.payment_status || 'PENDING'}
                       </span>
                     </td>

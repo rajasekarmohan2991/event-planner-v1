@@ -13,7 +13,7 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
   const { status, data } = useSession()
   const accessToken = (data as any)?.accessToken as string | undefined
   const router = useRouter()
-  
+
   // Debug: Log session data
   useEffect(() => {
     if (status === 'authenticated') {
@@ -66,8 +66,8 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
           const e: any = ev as any
           setEvent(e)
           setName(e.name || '')
-          setStartsAt(e.startsAt ? new Date(e.startsAt).toISOString().slice(0,16) : '')
-          setEndsAt(e.endsAt ? new Date(e.endsAt).toISOString().slice(0,16) : '')
+          setStartsAt(e.startsAt ? new Date(e.startsAt).toISOString().slice(0, 16) : '')
+          setEndsAt(e.endsAt ? new Date(e.endsAt).toISOString().slice(0, 16) : '')
           setCity(e.city || '')
           setVenue(e.venue || '')
           setAddress(e.address || '')
@@ -100,7 +100,7 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
   // Auto-fetch coordinates when address changes
   useEffect(() => {
     if (!address.trim()) return
-    
+
     const fetchCoordinates = async () => {
       try {
         const response = await fetch(`/api/geo/coordinates?address=${encodeURIComponent(address)}`)
@@ -202,7 +202,6 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
             />
             <h1 className="text-xl font-semibold">{event.name}</h1>
           </div>
-          <p className="text-sm text-muted-foreground">ID: {event.id}</p>
         </div>
         <div className="text-xs inline-flex items-center gap-2 px-3 py-1 rounded-full border">
           <span className={`inline-block h-2 w-2 rounded-full ${event.status === 'LIVE' ? 'bg-emerald-500' : event.status === 'CANCELLED' ? 'bg-rose-500' : event.status === 'TRASHED' ? 'bg-zinc-400' : 'bg-indigo-500'}`} />
@@ -316,7 +315,7 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
                 value={venue}
                 onChange={e => { setVenue(e.target.value); setVenueQuery(e.target.value) }}
                 onFocus={() => { if (venueOpts.length > 0) setShowVenueList(true) }}
-                onBlur={() => setTimeout(()=> setShowVenueList(false), 150)}
+                onBlur={() => setTimeout(() => setShowVenueList(false), 150)}
                 placeholder={city ? `Type a venue in ${city}` : 'Enter venue'}
               />
               {showVenueList && (
@@ -419,35 +418,35 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
       {/* Legal & Manager Information Section */}
       <section className="rounded-md border p-4 space-y-4">
         <h2 className="text-sm font-semibold">Legal & Event Manager Information</h2>
-        
+
         {/* Event Manager Fields */}
         <div className="space-y-3">
           <h3 className="text-xs font-medium text-slate-700">Event Manager Contact</h3>
           <div className="grid md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-slate-500 mb-1">Manager Name</label>
-              <input 
-                className="w-full rounded-md border px-3 py-2 text-sm" 
-                value={eventManagerName} 
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={eventManagerName}
                 onChange={e => setEventManagerName(e.target.value)}
                 placeholder="John Doe"
               />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">Contact Number</label>
-              <input 
-                className="w-full rounded-md border px-3 py-2 text-sm" 
-                value={eventManagerContact} 
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={eventManagerContact}
                 onChange={e => setEventManagerContact(e.target.value)}
                 placeholder="+1 234 567 8900"
               />
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">Email Address</label>
-              <input 
+              <input
                 type="email"
-                className="w-full rounded-md border px-3 py-2 text-sm" 
-                value={eventManagerEmail} 
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={eventManagerEmail}
                 onChange={e => setEventManagerEmail(e.target.value)}
                 placeholder="manager@example.com"
               />
@@ -458,9 +457,9 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
         {/* Terms and Conditions */}
         <div>
           <label className="block text-xs text-slate-500 mb-1">Terms & Conditions</label>
-          <textarea 
-            className="w-full rounded-md border px-3 py-2 text-sm min-h-32" 
-            value={termsAndConditions} 
+          <textarea
+            className="w-full rounded-md border px-3 py-2 text-sm min-h-32"
+            value={termsAndConditions}
             onChange={e => setTermsAndConditions(e.target.value)}
             placeholder="Enter event terms and conditions..."
           />
@@ -469,9 +468,9 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
         {/* Disclaimer */}
         <div>
           <label className="block text-xs text-slate-500 mb-1">Disclaimer</label>
-          <textarea 
-            className="w-full rounded-md border px-3 py-2 text-sm min-h-24" 
-            value={disclaimer} 
+          <textarea
+            className="w-full rounded-md border px-3 py-2 text-sm min-h-24"
+            value={disclaimer}
             onChange={e => setDisclaimer(e.target.value)}
             placeholder="Enter event disclaimers or liability statements..."
           />

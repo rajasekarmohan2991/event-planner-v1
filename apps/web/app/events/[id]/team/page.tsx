@@ -188,7 +188,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
       <ManageTabs eventId={params.id} />
       <header>
         <h1 className="text-xl font-semibold">Team</h1>
-        <p className="text-sm text-muted-foreground">Manage members and roles for event ID: {params.id}</p>
+        <p className="text-sm text-muted-foreground">Manage members and roles for your event</p>
       </header>
 
       {error && (

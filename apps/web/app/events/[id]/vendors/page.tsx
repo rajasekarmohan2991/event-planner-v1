@@ -275,7 +275,6 @@ export default function EventVendorsPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold">Budgets</h1>
-                    <p className="text-sm text-muted-foreground">Event ID: {eventId}</p>
                 </div>
                 <Button onClick={() => setIsAddingVendor(true)}>
                     <Plus className="h-4 w-4 mr-2" />
