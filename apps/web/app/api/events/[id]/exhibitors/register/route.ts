@@ -7,7 +7,32 @@ import crypto from 'crypto'
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const eventId = params.id
-    const tenantId = getTenantId()
+
+    // 1. Validate & Parse Event ID
+    let eventIdBigInt
+    try {
+      eventIdBigInt = BigInt(eventId)
+    } catch (e) {
+      return NextResponse.json({ message: 'Invalid Event ID' }, { status: 400 })
+    }
+
+    // 2. Fetch Event & Tenant Details
+    // Using BigInt for events.id query avoids type mismatch errors
+    const events = await prisma.$queryRaw`
+      SELECT name, tenant_id as "tenantId" 
+      FROM events 
+      WHERE id = ${eventIdBigInt} 
+      LIMIT 1
+    ` as any[]
+
+    if (!events.length) {
+      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    }
+
+    const event = events[0]
+    const tenantId = event.tenantId // Use the event's tenant, more reliable than context for public APIs
+    const eventName = event.name
+
     const body = await req.json()
 
     // Calculate booth cost
@@ -62,11 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       `Power: ${body.power_supply}, Lighting: ${body.lighting}, Internet: ${body.internet_connection}, Storage: ${body.storage_space}. Brand: ${body.brand_name}`
     )
 
-    // Fetch event details
-    const events = await prisma.$queryRaw`
-      SELECT name FROM events WHERE id = ${eventId} LIMIT 1
-    ` as any[]
-    const eventName = events[0]?.name || `Event #${params.id}`
+
 
     // Send confirmation email
     const confirmationUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${params.id}/exhibitor-registration/confirm?token=${confirmationToken}`
