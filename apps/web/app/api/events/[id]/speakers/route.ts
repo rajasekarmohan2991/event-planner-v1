@@ -91,32 +91,42 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const speaker = speakerResult[0]
 
-    // Create a default session for this speaker
-    const sessionTitle = raw.sessionTitle || `Session by ${speaker.name}`
-    const sessionDescription = raw.sessionDescription || `${speaker.title || 'Speaker'} session at ${event.eventName}`
+    let sessionId = raw.sessionId
+    let sessionTitle = raw.sessionTitle
 
-    // Set session time (use event start time or default to now + 1 day)
-    const startTime = event.startsAt ? new Date(event.startsAt) : new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000) // 1 hour session
+    if (!sessionId) {
+      // Create a default session for this speaker
+      sessionTitle = sessionTitle || `Session by ${speaker.name}`
+      const sessionDescription = raw.sessionDescription || `${speaker.title || 'Speaker'} session at ${event.eventName}`
 
-    const sessionResult = await prisma.$queryRaw`
-      INSERT INTO sessions (
-        event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
-      ) VALUES (
-        ${eventId}, ${tenantId}, ${sessionTitle}, ${sessionDescription},
-        ${startTime}, ${endTime}, NOW(), NOW()
-      )
-      RETURNING id
-    ` as any[]
+      // Set session time (use event start time or default to now + 1 day)
+      const startTime = event.startsAt ? new Date(event.startsAt) : new Date(Date.now() + 24 * 60 * 60 * 1000)
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000) // 1 hour session
 
-    const sessionId = sessionResult[0]?.id
+      const sessionResult = await prisma.$queryRaw`
+        INSERT INTO sessions (
+          event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
+        ) VALUES (
+          ${eventId}, ${tenantId}, ${sessionTitle}, ${sessionDescription},
+          ${startTime}, ${endTime}, NOW(), NOW()
+        )
+        RETURNING id
+      ` as any[]
+
+      sessionId = sessionResult[0]?.id
+    }
 
     // Link speaker to session
     if (sessionId && speaker.id) {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO session_speakers (session_id, speaker_id) 
-        VALUES ($1, $2)
-      `, sessionId, BigInt(speaker.id))
+      try {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO session_speakers (session_id, speaker_id) 
+          VALUES ($1, $2)
+          ON CONFLICT DO NOTHING
+        `, String(sessionId), String(speaker.id))
+      } catch (linkError) {
+        console.error('⚠️ Failed to link speaker to session:', linkError)
+      }
     }
 
     return NextResponse.json({

@@ -19,6 +19,8 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
   const [photoUrl, setPhotoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [selectedSessionId, setSelectedSessionId] = useState('')
   const canSubmit = useMemo(() => name.trim().length > 0, [name])
 
   const load = async () => {
@@ -40,7 +42,13 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
   }
 
   useEffect(() => {
-    if (status !== 'loading') load()
+    if (status !== 'loading') {
+      load()
+      fetch(`/api/events/${params.id}/sessions?page=0&size=100`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => setSessions(d.sessions || []))
+        .catch(() => { })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, params.id])
 
@@ -107,6 +115,13 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
             ) : null}
           </div>
           <div className="md:col-span-2">
+            <label className="block text-xs text-slate-500 mb-1">Assign to Session (Optional)</label>
+            <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm bg-white">
+              <option value="">-- Create new session automatically --</option>
+              {sessions.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Bio</label>
             <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Short bio" />
           </div>
@@ -122,11 +137,11 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name, title: title || undefined, bio: bio || undefined, photoUrl: photoUrl || undefined })
+                  body: JSON.stringify({ name, title: title || undefined, bio: bio || undefined, photoUrl: photoUrl || undefined, sessionId: selectedSessionId || undefined })
                 })
                 const data = await res.json().catch(() => null)
                 if (!res.ok) throw new Error(data?.message || 'Create failed')
-                setName(''); setTitle(''); setBio(''); setPhotoUrl('')
+                setName(''); setTitle(''); setBio(''); setPhotoUrl(''); setSelectedSessionId('')
                 await load()
               } catch (e: any) {
                 setError(e?.message || 'Create failed')
