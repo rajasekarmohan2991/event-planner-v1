@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Ticket, Activity, RefreshCw, Plus, BarChart3, MessageSquare, Settings, Building2, Zap, Server, Mail, Tag, Edit, Eye } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Calendar, Users, Ticket, Activity, RefreshCw, Plus, BarChart3, MessageSquare, Settings, Building2, Zap, Server, Mail, Tag, Edit, Eye, Trophy } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { RecentActivity } from '../_components/recent-activity';
+
 import { StatsCard } from '../_components/stats-card';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
@@ -227,78 +228,133 @@ export function AdminDashboardClient() {
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-lg">
+        <Card className="lg:col-span-2 bg-gradient-to-br from-white to-slate-50 border shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              📊 Sales Analytics
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-indigo-600" />
+              Platform Insights
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-6 mb-6">
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50 hover:shadow-md transition-all duration-300">
-                <div className="text-3xl font-bold text-green-600">
+              <div className="bg-white rounded-xl p-4 border border-violet-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-100 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
+                <div className="text-3xl font-bold text-violet-700">
                   ₹{analytics?.overview?.totalRevenue?.toLocaleString('en-IN') || '0'}
                 </div>
-                <div className="text-sm text-gray-600 font-medium">💰 Total Revenue</div>
-                <div className="text-xs text-green-500 mt-1">
-                  ↗️ +{analytics?.trends?.revenueGrowth || 0}% from last month
+                <div className="text-sm text-gray-600 font-medium flex items-center gap-1">
+                  💰 Total Revenue
+                </div>
+                <div className="text-xs text-violet-500 mt-1 font-medium">
+                  +{analytics?.trends?.revenueGrowth || 0}% growth
                 </div>
               </div>
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50 hover:shadow-md transition-all duration-300">
-                <div className="text-3xl font-bold text-blue-600">
+              <div className="bg-white rounded-xl p-4 border border-fuchsia-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-fuchsia-100 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
+                <div className="text-3xl font-bold text-fuchsia-600">
                   {analytics?.overview?.totalRegistrations || '0'}
                 </div>
-                <div className="text-sm text-gray-600 font-medium">👥 Total Registrations</div>
-                <div className="text-xs text-blue-500 mt-1">
-                  ↗️ +{analytics?.trends?.registrationsGrowth || 0}% from last month
+                <div className="text-sm text-gray-600 font-medium flex items-center gap-1">
+                  👥 Total Registrations
+                </div>
+                <div className="text-xs text-fuchsia-500 mt-1 font-medium">
+                  +{analytics?.trends?.registrationsGrowth || 0}% growth
                 </div>
               </div>
             </div>
 
-            {/* Registration Trend Chart */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">📈 Registration Trends</h4>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={(analytics?.registrationsByMonth?.length > 0)
-                  ? analytics.registrationsByMonth
-                  : Array.from({ length: 6 }, (_, i) => {
-                    const d = new Date();
-                    d.setMonth(d.getMonth() - (5 - i));
-                    return {
-                      month: d.toLocaleString('default', { month: 'short', year: 'numeric' }),
-                      count: 0
-                    };
-                  })
-                }>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 11 }}
-                    stroke="#6b7280"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    stroke="#6b7280"
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#4f46e5"
-                    strokeWidth={3}
-                    dot={{ fill: '#4f46e5', r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Registrations"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Chart 1: Activity Area Chart */}
+              <div className="bg-white/50 rounded-xl p-4 border border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-violet-500" />
+                  Activity Growth
+                </h4>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={(analytics?.registrationsByMonth?.length > 0)
+                      ? analytics.registrationsByMonth
+                      : []
+                    }>
+                      <defs>
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis hide />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorCount)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Chart 2: Top Events Bar Chart */}
+              <div className="bg-white/50 rounded-xl p-4 border border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  Top Events
+                </h4>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={analytics?.topEvents?.slice(0, 5) || []}
+                      layout="vertical"
+                      margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        width={80}
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        tickFormatter={(val) => val.length > 10 ? `${val.substring(0, 10)}...` : val}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'transparent' }}
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Bar dataKey="registrations" radius={[0, 4, 4, 0]} barSize={20}>
+                        {analytics?.topEvents?.slice(0, 5).map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={['#f472b6', '#a78bfa', '#60a5fa', '#34d399', '#fbbf24'][index % 5]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -398,92 +454,94 @@ export function AdminDashboardClient() {
       </div>
 
       {/* Your Events Section */}
-      {analytics?.topEvents?.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900">Your Events</h2>
-            <Button variant="outline" size="sm" onClick={() => router.push('/events')}>
-              View All
-            </Button>
+      {
+        analytics?.topEvents?.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Your Events</h2>
+              <Button variant="outline" size="sm" onClick={() => router.push('/events')}>
+                View All
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {analytics.topEvents.map((event: any) => (
+                <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow border-l-4 border-l-indigo-500">
+                  <CardHeader className="pb-3 bg-gray-50/50">
+                    <div className="flex justify-between items-start gap-2">
+                      <CardTitle className="text-lg font-semibold line-clamp-1" title={event.name}>
+                        {event.name}
+                      </CardTitle>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
+                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                          'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                        {event.status || 'DRAFT'}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="truncate" title={event.adminEmail || 'No email'}>
+                        {event.adminEmail || 'No admin email'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Tag className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">
+                        {event.price === 0 ? 'Free' : `₹${event.price}`}
+                      </span>
+                      <span className="text-gray-400 text-xs">per ticket</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-col text-xs">
+                        <span>Start: {new Date(event.startDate).toLocaleDateString()}</span>
+                        {event.endDate && <span>End: {new Date(event.endDate).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="text-xs">
+                        Tickets remaining: <span className="font-semibold text-gray-900">{Math.max(0, (event.seats || 0) - (event.registrations || 0))}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 mt-2 border-t">
+                      <div className="text-xs text-gray-500">
+                        <span className="font-bold text-indigo-600">{event.registrations}</span> registrations
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => router.push(`/events/${event.id}/info`)}
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => router.push(`/events/${event.id}/manage`)}
+                          title="Edit Event"
+                        >
+                          <Edit className="w-4 h-4 text-amber-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {analytics.topEvents.map((event: any) => (
-              <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow border-l-4 border-l-indigo-500">
-                <CardHeader className="pb-3 bg-gray-50/50">
-                  <div className="flex justify-between items-start gap-2">
-                    <CardTitle className="text-lg font-semibold line-clamp-1" title={event.name}>
-                      {event.name}
-                    </CardTitle>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                      event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                        'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
-                      {event.status || 'DRAFT'}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="truncate" title={event.adminEmail || 'No email'}>
-                      {event.adminEmail || 'No admin email'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Tag className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium text-gray-900">
-                      {event.price === 0 ? 'Free' : `₹${event.price}`}
-                    </span>
-                    <span className="text-gray-400 text-xs">per ticket</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <div className="flex flex-col text-xs">
-                      <span>Start: {new Date(event.startDate).toLocaleDateString()}</span>
-                      {event.endDate && <span>End: {new Date(event.endDate).toLocaleDateString()}</span>}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <div className="text-xs">
-                      Tickets remaining: <span className="font-semibold text-gray-900">{Math.max(0, (event.seats || 0) - (event.registrations || 0))}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 mt-2 border-t">
-                    <div className="text-xs text-gray-500">
-                      <span className="font-bold text-indigo-600">{event.registrations}</span> registrations
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => router.push(`/events/${event.id}/info`)}
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4 text-blue-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => router.push(`/events/${event.id}/manage`)}
-                        title="Edit Event"
-                      >
-                        <Edit className="w-4 h-4 text-amber-600" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
