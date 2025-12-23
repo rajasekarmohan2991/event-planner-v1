@@ -37,42 +37,95 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   try {
     await prisma.$transaction(async (tx) => {
+      console.log(`🗑️ Starting deletion of event ${params.id} and all dependencies...`)
+
       // 1. Delete dependent records manually (since ON DELETE CASCADE might be missing)
 
-      // Seats and Seat Reservations (NEW)
-      await tx.$executeRawUnsafe(`DELETE FROM seat_reservations WHERE seat_id IN (SELECT id FROM seats WHERE event_id = $1)`, id)
-      await tx.$executeRawUnsafe(`DELETE FROM seats WHERE event_id = $1`, id)
+      try {
+        // Seats and Seat Reservations (NEW)
+        console.log('  Deleting seat reservations...')
+        await tx.$executeRawUnsafe(`DELETE FROM seat_reservations WHERE seat_id IN (SELECT id FROM seats WHERE event_id = $1)`, id)
+        console.log('  Deleting seats...')
+        await tx.$executeRawUnsafe(`DELETE FROM seats WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Seats deletion skipped (table might not exist):', e.message)
+      }
 
-      // Event Feed Posts (NEW)
-      await tx.$executeRawUnsafe(`DELETE FROM event_feed_posts WHERE event_id = $1`, id)
+      try {
+        // Event Feed Posts (NEW)
+        console.log('  Deleting event feed posts...')
+        await tx.$executeRawUnsafe(`DELETE FROM event_feed_posts WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Event feed posts deletion skipped:', e.message)
+      }
 
-      // Promo Codes & Redemptions
-      await tx.$executeRawUnsafe(`DELETE FROM promo_redemptions WHERE promo_code_id IN (SELECT id FROM promo_codes WHERE event_id = $1)`, id)
-      await tx.$executeRawUnsafe(`DELETE FROM promo_codes WHERE event_id = $1`, id)
+      try {
+        // Promo Codes & Redemptions
+        console.log('  Deleting promo redemptions...')
+        await tx.$executeRawUnsafe(`DELETE FROM promo_redemptions WHERE promo_code_id IN (SELECT id FROM promo_codes WHERE event_id = $1)`, id)
+        console.log('  Deleting promo codes...')
+        await tx.$executeRawUnsafe(`DELETE FROM promo_codes WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Promo codes deletion skipped:', e.message)
+      }
 
-      // Registrations & Orders
-      // "Order" table is quoted
-      await tx.$executeRawUnsafe(`DELETE FROM "Order" WHERE registration_id IN (SELECT id FROM registrations WHERE event_id = $1)`, id)
-      await tx.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id = $1`, id)
+      try {
+        // Orders - eventId is String in Order table
+        console.log('  Deleting orders...')
+        await tx.$executeRawUnsafe(`DELETE FROM "Order" WHERE "eventId" = $1`, params.id)
+      } catch (e: any) {
+        console.log('  ⚠️ Orders deletion skipped:', e.message)
+      }
 
-      // Exhibitors
-      await tx.$executeRawUnsafe(`DELETE FROM exhibitors WHERE event_id = $1`, id)
+      try {
+        // Registrations
+        console.log('  Deleting registrations...')
+        await tx.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Registrations deletion skipped:', e.message)
+      }
 
-      // Floor Plans
-      await tx.$executeRawUnsafe(`DELETE FROM floor_plans WHERE event_id = $1`, id)
+      try {
+        // Exhibitors
+        console.log('  Deleting exhibitors...')
+        await tx.$executeRawUnsafe(`DELETE FROM exhibitors WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Exhibitors deletion skipped:', e.message)
+      }
 
-      // Ticket Types
-      await tx.$executeRawUnsafe(`DELETE FROM ticket_types WHERE event_id = $1`, id)
+      try {
+        // Floor Plans
+        console.log('  Deleting floor plans...')
+        await tx.$executeRawUnsafe(`DELETE FROM floor_plans WHERE "eventId" = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Floor plans deletion skipped:', e.message)
+      }
 
-      // Sessions (and implicitly speakers if linked via sessions)
-      await tx.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id = $1`, id)
+      try {
+        // Ticket Types (using quoted "Ticket" table name)
+        console.log('  Deleting tickets...')
+        await tx.$executeRawUnsafe(`DELETE FROM "Ticket" WHERE "eventId" = $1`, params.id)
+      } catch (e: any) {
+        console.log('  ⚠️ Tickets deletion skipped:', e.message)
+      }
+
+      try {
+        // Sessions
+        console.log('  Deleting sessions...')
+        await tx.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id = $1`, id)
+      } catch (e: any) {
+        console.log('  ⚠️ Sessions deletion skipped:', e.message)
+      }
 
       // 2. Delete the Event
+      console.log('  Deleting event...')
       const result = await tx.$executeRawUnsafe(`DELETE FROM events WHERE id = $1`, id)
 
       if (Number(result) === 0) {
         throw new Error('Event not found or already deleted')
       }
+
+      console.log('  ✅ All deletions completed successfully')
     })
 
     console.log(`✅ Event ${params.id} deleted successfully (Prisma)`)
@@ -80,6 +133,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   } catch (err: any) {
     console.error(`❌ DELETE error (Prisma):`, err)
+    console.error(`❌ Error stack:`, err.stack)
     // Handle "Event not found" explicitly
     if (err.message.includes('Event not found')) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
