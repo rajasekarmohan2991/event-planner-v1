@@ -74,12 +74,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (!['OWNER', 'ORGANIZER', 'STAFF', 'VIEWER'].includes(dbRole)) dbRole = 'STAFF'
 
       try {
-        await prisma.$executeRawUnsafe(`
-            INSERT INTO "EventRoleAssignment" ("id", "eventId", "userId", "role", "tenantId", "createdAt")
-            VALUES ($1, $2, $3, $4, $5, NOW())
-            ON CONFLICT ("eventId", "userId") 
-            DO UPDATE SET "role" = $4, "tenantId" = $5
-        `, crypto.randomUUID(), eventIdString, user.id, dbRole, tenantId)
+        await prisma.eventRoleAssignment.upsert({
+          where: {
+            eventId_userId: {
+              eventId: eventIdString,
+              userId: user.id
+            }
+          },
+          update: {
+            role: dbRole as any,
+            tenantId
+          },
+          create: {
+            eventId: eventIdString,
+            userId: user.id,
+            role: dbRole as any,
+            tenantId
+          }
+        })
 
         // Send Email
         if (isNewUser) {
