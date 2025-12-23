@@ -343,10 +343,11 @@ export default function FloorPlanDesignerPage() {
                 }
             }
         } else if (obj.type === 'ROUND_TABLE') {
-            // Generate 8 seats around table
+            // Generate seats around table based on totalSeats
+            const numSeats = obj.totalSeats || 8
+            // Adjust table radius slightly if needed (though visual is fixed by width)
             const tableRadius = obj.width / 2
             const seatRadius = 15
-            const numSeats = 8
 
             for (let i = 0; i < numSeats; i++) {
                 const angle = (i * 360) / numSeats

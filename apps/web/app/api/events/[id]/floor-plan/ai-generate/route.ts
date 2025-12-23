@@ -128,8 +128,15 @@ function generateModernLayout(analysis: any, eventId: string) {
 
     // 3. ROUND TABLES (VIP / Premium)
     if (analysis.roundTables > 0) {
-        const tableSize = 100
-        const spacing = 220 // Increased from 140 to 220 to prevent chair overlap
+        // Calculate dynamic table size to fit all seats comfortably
+        // Circumference = seats * space_per_seat (approx 35px)
+        const minCircumference = (analysis.seatsPerTable || 8) * 35
+        const calcDiameter = Math.ceil(minCircumference / Math.PI)
+        const tableSize = Math.max(100, calcDiameter)
+
+        // Spacing = TableSize + ChairSpace (approx 40 each side = 80) + Walkway (40)
+        const spacing = tableSize + 140
+
         const danceBuf = 60 // Buffer from dance floor
 
         if (analysis.hasDanceFloor) {
