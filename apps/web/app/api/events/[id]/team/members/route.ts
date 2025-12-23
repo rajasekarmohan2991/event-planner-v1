@@ -16,10 +16,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     const eventId = params.id  // Keep as STRING - EventRoleAssignment.eventId is String type
-    console.log('📡 Fetching team members for event:', eventId, '(type: string)')
+    console.log('🔍 [TEAM MEMBERS] Event ID:', eventId, 'Type:', typeof eventId)
 
-    // EventRoleAssignment.eventId is String type, so query with string directly
-    const assignments = await prisma.$queryRaw`
+    // Strategy 1: Direct query
+    console.log('🔍 [TEAM MEMBERS] Trying direct query...')
+    let assignments = await prisma.$queryRaw`
       SELECT 
         a.id, 
         a."eventId", 
@@ -36,9 +37,44 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ORDER BY a."createdAt" DESC
     ` as any[]
 
-    console.log(`✅ Found ${assignments.length} team members for event ${eventId}`)
+    console.log(`✅ [TEAM MEMBERS] Strategy 1 found: ${assignments.length} members`)
+
+    // If no results, try to see ALL assignments to debug
+    if (assignments.length === 0) {
+      console.log('⚠️ [TEAM MEMBERS] No results! Checking all assignments...')
+      const allAssignments = await prisma.$queryRaw`
+        SELECT "eventId", COUNT(*) as count
+        FROM "EventRoleAssignment"
+        GROUP BY "eventId"
+        LIMIT 10
+      ` as any[]
+      console.log('📊 [TEAM MEMBERS] All eventIds in database:', JSON.stringify(allAssignments))
+
+      // Try with type casting
+      console.log('🔍 [TEAM MEMBERS] Trying with CAST...')
+      assignments = await prisma.$queryRaw`
+        SELECT 
+          a.id, 
+          a."eventId", 
+          a."userId", 
+          a.role, 
+          a."createdAt",
+          u.name, 
+          u.email, 
+          u.image,
+          u.password_hash as "hasPassword"
+        FROM "EventRoleAssignment" a
+        LEFT JOIN users u ON a."userId"::text = u.id::text
+        WHERE CAST(a."eventId" AS TEXT) = ${eventId}
+        ORDER BY a."createdAt" DESC
+      ` as any[]
+      console.log(`✅ [TEAM MEMBERS] Strategy 2 (CAST) found: ${assignments.length} members`)
+    }
+
     if (assignments.length > 0) {
-      console.log('📋 Sample assignment:', JSON.stringify(assignments[0], (key, value) => typeof value === 'bigint' ? value.toString() : value))
+      console.log('📋 [TEAM MEMBERS] Sample:', JSON.stringify(assignments[0], (key, value) => typeof value === 'bigint' ? value.toString() : value))
+    } else {
+      console.log('❌ [TEAM MEMBERS] Still no results after all strategies!')
     }
 
     const items = assignments.map((a: any) => ({
