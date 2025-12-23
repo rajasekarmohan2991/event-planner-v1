@@ -1,10 +1,10 @@
 import prisma from '@/lib/prisma'
 
 export async function ensureSchema() {
-    console.log('🔧 Running self-healing schema update...')
-    try {
-        // 1. Sponsors Table Columns
-        await prisma.$executeRawUnsafe(`
+  console.log('🔧 Running self-healing schema update...')
+  try {
+    // 1. Sponsors Table Columns
+    await prisma.$executeRawUnsafe(`
       ALTER TABLE sponsors 
       ADD COLUMN IF NOT EXISTS contact_data JSONB DEFAULT '{}',
       ADD COLUMN IF NOT EXISTS payment_data JSONB DEFAULT '{}',
@@ -17,15 +17,16 @@ export async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS post_event_data JSONB DEFAULT '{}';
     `)
 
-        // 2. Events Table Columns
-        await prisma.$executeRawUnsafe(`
+    // 2. Events Table Columns
+    await prisma.$executeRawUnsafe(`
       ALTER TABLE events
       ADD COLUMN IF NOT EXISTS promote_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS engagement_data JSONB DEFAULT '{}';
+      ADD COLUMN IF NOT EXISTS engagement_data JSONB DEFAULT '{}',
+      ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
     `)
 
-        // 3. Event Vendors Table
-        await prisma.$executeRawUnsafe(`
+    // 3. Event Vendors Table
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS event_vendors (
         id TEXT PRIMARY KEY,
         event_id TEXT NOT NULL,
@@ -48,10 +49,10 @@ export async function ensureSchema() {
       );
     `)
 
-        console.log('✅ Self-healing schema update complete.')
-        return true
-    } catch (error) {
-        console.error('❌ Self-healing schema failed:', error)
-        return false
-    }
+    console.log('✅ Self-healing schema update complete.')
+    return true
+  } catch (error) {
+    console.error('❌ Self-healing schema failed:', error)
+    return false
+  }
 }
