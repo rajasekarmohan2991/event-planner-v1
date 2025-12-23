@@ -241,8 +241,8 @@ export default function RegisterWithSeatsPage() {
     setValidatingPromo(true)
     setPromoError("")
     try {
-      // Calculate base total for promo code application (in paise/minor units)
-      const baseTotal = Math.round(selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(numberOfAttendees) || 1) * 100)
+      // Calculate base total for promo code application (in rupees, not paise)
+      const baseTotal = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(numberOfAttendees) || 1)
 
       const res = await fetch(`/api/events/${eventId}/promo-codes/apply`, {
         method: 'POST',
