@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -12,12 +13,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     const eventId = params.id
-    console.log('🔍 [TEAM MEMBERS] Fetching for event:', eventId)
+    const timestamp = new Date().toISOString()
+    console.log(`🔍 [TEAM MEMBERS ${timestamp}] Fetching for event:`, eventId)
 
-    // Simple, direct query - no complex joins or casting
+    // FORCE NO CACHE
+    const headers = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+
     let assignments: any[] = []
 
     try {
+      // Query with explicit no-cache
       assignments = await prisma.$queryRawUnsafe(`
         SELECT 
           a.id, 
@@ -35,21 +44,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         ORDER BY a."createdAt" DESC
       `, eventId)
 
-      console.log(`✅ [TEAM MEMBERS] Found ${assignments.length} members`)
-    } catch (queryError: any) {
-      console.error('❌ [TEAM MEMBERS] Query failed:', queryError.message)
+      console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} members`)
 
-      // If table doesn't exist, return empty
+      if (assignments.length > 0) {
+        console.log(`📋 [TEAM MEMBERS ${timestamp}] First member:`, {
+          id: assignments[0].id,
+          eventId: assignments[0].eventId,
+          userId: assignments[0].userId,
+          email: assignments[0].email,
+          role: assignments[0].role
+        })
+      } else {
+        console.log(`⚠️ [TEAM MEMBERS ${timestamp}] NO MEMBERS FOUND for eventId: ${eventId}`)
+
+        // Debug: Check if ANY assignments exist
+        const allAssignments = await prisma.$queryRawUnsafe(`
+          SELECT "eventId", COUNT(*) as count
+          FROM "EventRoleAssignment"
+          GROUP BY "eventId"
+          LIMIT 5
+        `)
+        console.log(`📊 [TEAM MEMBERS ${timestamp}] All eventIds in DB:`, allAssignments)
+      }
+
+    } catch (queryError: any) {
+      console.error(`❌ [TEAM MEMBERS ${timestamp}] Query failed:`, queryError.message)
+
       if (queryError.code === '42P01') {
-        console.log('⚠️ [TEAM MEMBERS] EventRoleAssignment table does not exist')
+        console.log(`⚠️ [TEAM MEMBERS ${timestamp}] EventRoleAssignment table does not exist`)
         return NextResponse.json({
           items: [],
           total: 0,
           totalPages: 0,
           page: 1,
           limit: 100,
-          message: 'Team members table not found. Please run database migrations.'
-        })
+          message: 'Team members table not found. Please run database migrations.',
+          timestamp
+        }, { headers })
       }
 
       throw queryError
@@ -68,16 +99,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       progress: a.hasPassword ? 100 : 25
     }))
 
+    console.log(`✅ [TEAM MEMBERS ${timestamp}] Returning ${items.length} items`)
+
     return NextResponse.json({
       items,
       total: items.length,
       totalPages: 1,
       page: 1,
-      limit: 100
-    })
+      limit: 100,
+      timestamp,
+      debug: {
+        eventId,
+        queryExecutedAt: timestamp,
+        rawCount: assignments.length,
+        mappedCount: items.length
+      }
+    }, { headers })
 
   } catch (error: any) {
-    console.error('❌ [TEAM MEMBERS] Error:', {
+    const timestamp = new Date().toISOString()
+    console.error(`❌ [TEAM MEMBERS ${timestamp}] Error:`, {
       message: error.message,
       code: error.code,
       detail: error.detail,
@@ -88,7 +129,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       message: 'Failed to load team members',
       error: error.message,
       code: error.code,
-      hint: 'Check server logs for details'
-    }, { status: 500 })
+      hint: 'Check server logs for details',
+      timestamp
+    }, {
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   }
 }
