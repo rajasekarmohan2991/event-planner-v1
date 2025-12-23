@@ -240,21 +240,21 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
-          <button
-            className="rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-            onClick={async () => {
-              if (confirm('Permanently delete this event? This cannot be undone.')) {
-                try {
-                  await deleteEvent(params.id, accessToken)
-                  router.push('/dashboard')
-                } catch (e: any) {
-                  setError(e.message || 'Delete failed')
-                }
-              }
-            }}
-          >
-            Delete
-          </button>
+//           <button
+//             className="rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+//             onClick={async () => {
+//               if (confirm('Permanently delete this event? This cannot be undone.')) {
+//                 try {
+//                   await deleteEvent(params.id, accessToken)
+//                   router.push('/dashboard')
+//                 } catch (e: any) {
+//                   setError(e.message || 'Delete failed')
+//                 }
+//               }
+//             }}
+//           >
+//             Delete
+//           </button>
         </div>
       </header>
 

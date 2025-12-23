@@ -72,10 +72,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
     console.log('🗑️ Deleting speaker:', speakerId)
 
-    // First, remove speaker from sessions
+    // First, remove speaker from sessions (speaker_id is bigint)
     await prisma.$executeRawUnsafe(`
       DELETE FROM session_speakers WHERE speaker_id = $1
-    `, String(speakerId))
+    `, speakerId)
 
     // Then delete the speaker
     await prisma.$executeRaw`
