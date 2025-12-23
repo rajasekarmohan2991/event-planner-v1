@@ -120,7 +120,21 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         console.log('    ⚠️ Tickets deletion skipped:', e.message, e.code)
       }
 
-      console.log('  Step 8: Deleting sessions...')
+      console.log('  Step 8: Deleting session speakers...')
+      try {
+        const result = await prisma.$executeRaw`
+          DELETE FROM session_speakers 
+          WHERE session_id IN (
+            SELECT id FROM sessions WHERE event_id = ${eventIdBigInt}
+          )
+        `
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} session speakers`)
+      } catch (e: any) {
+        console.log('    ⚠️ Session speakers deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 9: Deleting sessions...')
       try {
         const result = await prisma.$executeRaw`DELETE FROM sessions WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
@@ -129,7 +143,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         console.log('    ⚠️ Sessions deletion skipped:', e.message, e.code)
       }
 
-      console.log('  Step 9: Deleting sponsors...')
+      console.log('  Step 10: Deleting sponsors...')
       try {
         const result = await prisma.$executeRaw`DELETE FROM sponsors WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
@@ -138,7 +152,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         console.log('    ⚠️ Sponsors deletion skipped:', e.message, e.code)
       }
 
-      console.log('  Step 10: Deleting vendors...')
+      console.log('  Step 11: Deleting vendors...')
       try {
         const result = await prisma.$executeRaw`DELETE FROM vendors WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
@@ -147,7 +161,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         console.log('    ⚠️ Vendors deletion skipped:', e.message, e.code)
       }
 
-      console.log('  Step 11: Deleting event team members...')
+      console.log('  Step 12: Deleting event team members...')
       try {
         const result = await prisma.$executeRaw`DELETE FROM event_team_members WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
@@ -156,7 +170,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         console.log('    ⚠️ Event team members deletion skipped:', e.message, e.code)
       }
 
-      console.log('  Step 12: Deleting the event itself...')
+      console.log('  Step 13: Deleting the event itself...')
       const result = await prisma.$executeRaw`DELETE FROM events WHERE id = ${eventIdBigInt}`
       deletedRows = Number(result)
 
