@@ -1,50 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
-const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'
-const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
-
+// PUT /api/events/[id]/speakers/[speakerId] - Update speaker
 export async function PUT(req: NextRequest, { params }: { params: { id: string, speakerId: string } }) {
-  const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  if (!accessToken) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
-  const body = await req.text()
   try {
-    const res = await fetch(`${API_BASE}/events/${params.id}/speakers/${params.speakerId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body,
-      credentials: 'include',
-    })
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    if (!res.ok) return NextResponse.json(payload || { message: 'Update speaker failed' }, { status: res.status })
-    return NextResponse.json(payload)
-  } catch (e: any) {
-    return NextResponse.json({ message: e?.message || 'Update speaker failed' }, { status: 500 })
+    const session = await getServerSession(authOptions as any)
+    if (!session) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const speakerId = BigInt(params.speakerId)
+
+    console.log('📝 Updating speaker:', speakerId, 'Data:', body)
+
+    // Update speaker
+    const updated = await prisma.$queryRaw`
+      UPDATE speakers
+      SET 
+        name = ${body.name},
+        title = ${body.title || null},
+        bio = ${body.bio || null},
+        photo_url = ${body.photoUrl || null},
+        email = ${body.email || null},
+        linkedin = ${body.linkedin || null},
+        twitter = ${body.twitter || null},
+        website = ${body.website || null},
+        updated_at = NOW()
+      WHERE id = ${speakerId}
+      RETURNING 
+        id::text as id,
+        name,
+        title,
+        bio,
+        photo_url as "photoUrl",
+        email,
+        linkedin,
+        twitter,
+        website,
+        event_id::text as "eventId"
+    ` as any[]
+
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ message: 'Speaker not found' }, { status: 404 })
+    }
+
+    console.log('✅ Speaker updated successfully:', updated[0])
+
+    return NextResponse.json(updated[0])
+
+  } catch (error: any) {
+    console.error('❌ Update speaker error:', error)
+    return NextResponse.json({
+      message: 'Failed to update speaker',
+      error: error.message
+    }, { status: 500 })
   }
 }
 
+// DELETE /api/events/[id]/speakers/[speakerId] - Delete speaker
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string, speakerId: string } }) {
-  const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  if (!accessToken) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   try {
-    const res = await fetch(`${API_BASE}/events/${params.id}/speakers/${params.speakerId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      credentials: 'include',
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      const isJson = (res.headers.get('content-type') || '').includes('application/json')
-      const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-      return NextResponse.json(payload || { message: 'Delete speaker failed' }, { status: res.status })
+    const session = await getServerSession(authOptions as any)
+    if (!session) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
     }
+
+    const speakerId = BigInt(params.speakerId)
+
+    console.log('🗑️ Deleting speaker:', speakerId)
+
+    // First, remove speaker from sessions
+    await prisma.$executeRawUnsafe(`
+      DELETE FROM session_speakers WHERE speaker_id = $1
+    `, String(speakerId))
+
+    // Then delete the speaker
+    await prisma.$executeRaw`
+      DELETE FROM speakers WHERE id = ${speakerId}
+    `
+
+    console.log('✅ Speaker deleted successfully')
+
     return new NextResponse(null, { status: 204 })
-  } catch (e: any) {
-    return NextResponse.json({ message: e?.message || 'Delete speaker failed' }, { status: 500 })
+
+  } catch (error: any) {
+    console.error('❌ Delete speaker error:', error)
+    return NextResponse.json({
+      message: 'Failed to delete speaker',
+      error: error.message
+    }, { status: 500 })
   }
 }
