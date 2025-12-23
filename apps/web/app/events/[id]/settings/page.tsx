@@ -105,6 +105,8 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
       if (active === 'payments') { url = `/api/events/${params.id}/settings/payments`; body = payments }
       if (active === 'notifications') { url = `/api/events/${params.id}/settings/notifications`; body = notifications }
       if (active === 'integrations') { url = `/api/events/${params.id}/settings/integrations`; body = integrations }
+      if (active === 'promote') { url = `/api/events/${params.id}/settings/promote`; body = promote }
+      if (active === 'engagement') { url = `/api/events/${params.id}/settings/engagement`; body = engagement }
       const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) throw new Error('Save failed')
       toast({ title: 'Settings saved' })
@@ -162,84 +164,6 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
         <div className="text-xs text-slate-500">Format: /e/[slug] where slug = slugified name + id. Example: my-event-{params.id}</div>
       </div>
 
-      {/* Branding */}
-      <div className="rounded border bg-white">
-        <div className="p-4 border-b">
-          <div className="text-base font-semibold">Branding</div>
-        </div>
-        <div className="divide-y">
-          {/* Logo */}
-          <div className="p-4 flex items-start gap-4">
-            <div className="flex-1">
-              <div className="font-medium">Logo</div>
-              <div className="text-sm text-slate-600">This logo will be used in your rebranded event page</div>
-              <div className="mt-3 flex items-center gap-3">
-                <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
-                  Upload
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setLogoUrl(url)
-                  }} />
-                </label>
-                <div className="text-xs text-slate-500">File size: Up to 1MB · Optimal dimensions: 120x40px · Types: JPG, JPEG, PNG, GIF, WEBP</div>
-              </div>
-            </div>
-            <div className="w-40 h-14 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full" /> : <div className="text-xs text-slate-400">No logo</div>}
-            </div>
-          </div>
-
-          {/* Event Thumbnail */}
-          <div className="p-4 flex items-start gap-4">
-            <div className="flex-1">
-              <div className="font-medium">Event Thumbnail <span className="text-slate-400 text-xs align-middle">i</span></div>
-              <div className="text-sm text-slate-600">This image will be used as the thumbnail for your event website in the portal event-listing page</div>
-              <div className="mt-3 flex items-center gap-3">
-                <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
-                  {thumbUrl ? 'Change' : 'Upload'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setThumbUrl(url)
-                  }} />
-                </label>
-                <div className="text-xs text-slate-500">File size: Up to 5MB · Optimal dimensions: 600x280px · Types: JPG, JPEG, PNG, GIF, WEBP</div>
-              </div>
-            </div>
-            <div className="w-60 h-28 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {thumbUrl ? <img src={thumbUrl} alt="Event Thumbnail" className="max-h-full" /> : <div className="text-xs text-slate-400">No image</div>}
-            </div>
-          </div>
-
-          {/* Favicon */}
-          <div className="p-4 flex items-start gap-4">
-            <div className="flex-1">
-              <div className="font-medium">Favicon</div>
-              <div className="text-sm text-slate-600">Add a favicon to represent the event website.</div>
-              <div className="mt-3 flex items-center gap-3">
-                <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
-                  Upload
-                  <input type="file" accept="image/*,.ico" className="hidden" onChange={(e) => {
-                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setFaviconUrl(url)
-                  }} />
-                </label>
-                <div className="text-xs text-slate-500">File size: Up to 256KB · Optimal dimensions: 16x16px · Types: PNG, JPG, JPEG, ICO</div>
-              </div>
-            </div>
-            <div className="w-16 h-16 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {faviconUrl ? <img src={faviconUrl} alt="Favicon" className="h-8 w-8" /> : <div className="text-xs text-slate-400">No icon</div>}
-            </div>
-          </div>
-
-          {/* Terms and Policies */}
-          <div className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-medium">Terms and Policies</div>
-                <div className="text-sm text-slate-600">Link the Terms and Policies for events created in this Space</div>
-              </div>
-              <button className="text-indigo-600 hover:underline">Add</button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="rounded border">
@@ -329,6 +253,54 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
               <div>
                 <label className="text-sm">Map Key</label>
                 <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.mapKey || ''} onChange={e => setIntegrations({ ...integrations, mapKey: e.target.value })} placeholder="MapTiler/Google key" />
+              </div>
+            </div>
+          )}
+
+          {active === 'promote' && (
+            <div className="space-y-4">
+              <div className="text-sm font-medium text-slate-700">Promotion Settings</div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <input id="emailCampaigns" type="checkbox" checked={!!promote.emailCampaigns} onChange={e => setPromote({ ...promote, emailCampaigns: e.target.checked })} />
+                  <label htmlFor="emailCampaigns" className="text-sm">Enable email campaigns</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input id="socialMedia" type="checkbox" checked={!!promote.socialMedia} onChange={e => setPromote({ ...promote, socialMedia: e.target.checked })} />
+                  <label htmlFor="socialMedia" className="text-sm">Enable social media promotion</label>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm">Campaign Name</label>
+                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={promote.campaignName || ''} onChange={e => setPromote({ ...promote, campaignName: e.target.value })} placeholder="Event Promotion Campaign" />
+              </div>
+              <div>
+                <label className="text-sm">Target Audience</label>
+                <textarea className="mt-1 w-full rounded border px-3 py-2 text-sm" rows={3} value={promote.targetAudience || ''} onChange={e => setPromote({ ...promote, targetAudience: e.target.value })} placeholder="Describe your target audience..." />
+              </div>
+            </div>
+          )}
+
+          {active === 'engagement' && (
+            <div className="space-y-4">
+              <div className="text-sm font-medium text-slate-700">Engagement Features</div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <input id="polls" type="checkbox" checked={!!engagement.polls} onChange={e => setEngagement({ ...engagement, polls: e.target.checked })} />
+                  <label htmlFor="polls" className="text-sm">Enable live polls</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input id="qna" type="checkbox" checked={!!engagement.qna} onChange={e => setEngagement({ ...engagement, qna: e.target.checked })} />
+                  <label htmlFor="qna" className="text-sm">Enable Q&A sessions</label>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input id="networking" type="checkbox" checked={!!engagement.networking} onChange={e => setEngagement({ ...engagement, networking: e.target.checked })} />
+                <label htmlFor="networking" className="text-sm">Enable networking features</label>
+              </div>
+              <div>
+                <label className="text-sm">Engagement Message</label>
+                <textarea className="mt-1 w-full rounded border px-3 py-2 text-sm" rows={3} value={engagement.message || ''} onChange={e => setEngagement({ ...engagement, message: e.target.value })} placeholder="Welcome message for attendees..." />
               </div>
             </div>
           )}
