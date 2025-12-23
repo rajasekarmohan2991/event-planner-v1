@@ -20,27 +20,61 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     console.log('📡 Fetching team members for event (RAW SQL):', eventId)
     console.log('🔍 Event ID type:', typeof eventId, 'Value:', eventId)
 
-    // EventRoleAssignment columns (from probe): id, eventId, userId, role, siteId, createdAt, tenantId
-    // These are camelCase WITHOUT quotes in the actual database
-    const assignments = await prisma.$queryRaw`
-      SELECT 
-        a.id, 
-        a."eventId", 
-        a."userId", 
-        a.role, 
-        a."createdAt",
-        u.name, 
-        u.email, 
-        u.image,
-        u.password_hash as "hasPassword"
-      FROM "EventRoleAssignment" a
-      LEFT JOIN users u ON a."userId"::text = u.id::text
-      WHERE a."eventId" = ${eventId}
-      ORDER BY a."createdAt" DESC
-    ` as any[]
+    // Try multiple query strategies to find assignments
+    let assignments: any[] = []
 
-    console.log(`✅ Found ${assignments.length} assignments for event ${eventId}`)
-    console.log('📋 Raw assignments:', JSON.stringify(assignments, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2))
+    // Strategy 1: Direct string comparison
+    try {
+      assignments = await prisma.$queryRaw`
+        SELECT 
+          a.id, 
+          a."eventId", 
+          a."userId", 
+          a.role, 
+          a."createdAt",
+          u.name, 
+          u.email, 
+          u.image,
+          u.password_hash as "hasPassword"
+        FROM "EventRoleAssignment" a
+        LEFT JOIN users u ON a."userId"::text = u.id::text
+        WHERE a."eventId" = ${eventId}
+        ORDER BY a."createdAt" DESC
+      ` as any[]
+
+      console.log(`✅ Strategy 1 (string): Found ${assignments.length} assignments`)
+    } catch (e1) {
+      console.log('❌ Strategy 1 failed:', e1)
+    }
+
+    // Strategy 2: If no results, try with CAST
+    if (assignments.length === 0) {
+      try {
+        assignments = await prisma.$queryRaw`
+          SELECT 
+            a.id, 
+            a."eventId", 
+            a."userId", 
+            a.role, 
+            a."createdAt",
+            u.name, 
+            u.email, 
+            u.image,
+            u.password_hash as "hasPassword"
+          FROM "EventRoleAssignment" a
+          LEFT JOIN users u ON a."userId"::text = u.id::text
+          WHERE CAST(a."eventId" AS TEXT) = ${eventId}
+          ORDER BY a."createdAt" DESC
+        ` as any[]
+
+        console.log(`✅ Strategy 2 (CAST): Found ${assignments.length} assignments`)
+      } catch (e2) {
+        console.log('❌ Strategy 2 failed:', e2)
+      }
+    }
+
+    console.log(`✅ Final result: Found ${assignments.length} assignments for event ${eventId}`)
+    console.log('📋 Raw assignments:', JSON.stringify(assignments.slice(0, 2), (key, value) => typeof value === 'bigint' ? value.toString() : value, 2))
 
     const items = assignments.map((a: any) => ({
       id: String(a.id),
