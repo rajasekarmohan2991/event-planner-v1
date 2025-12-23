@@ -32,113 +32,139 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   // Check role permissions locally since we are bypassing the remote API
   // TENANT_ADMIN has 'events.delete' via middleware check above.
 
-  const id = BigInt(params.id)
-  console.log(`🗑️ DELETE event ${params.id} via Prisma Transaction`)
+  const eventIdBigInt = BigInt(params.id)
+  const eventIdString = params.id
+
+  console.log(`🗑️ Starting deletion of event ${params.id}...`)
 
   try {
+    // Use Prisma Client for type-safe deletions where possible
     await prisma.$transaction(async (tx) => {
-      console.log(`🗑️ Starting deletion of event ${params.id} and all dependencies...`)
-
-      // 1. Delete dependent records manually (since ON DELETE CASCADE might be missing)
-
+      console.log('  Step 1: Deleting seat-related data...')
       try {
-        // Seats and Seat Reservations (NEW)
-        console.log('  Deleting seat reservations...')
-        await tx.$executeRawUnsafe(`DELETE FROM seat_reservations WHERE seat_id IN (SELECT id FROM seats WHERE event_id = $1)`, id)
-        console.log('  Deleting seats...')
-        await tx.$executeRawUnsafe(`DELETE FROM seats WHERE event_id = $1`, id)
+        // SeatInventory uses BigInt eventId
+        await tx.seatInventory.deleteMany({ where: { eventId: eventIdBigInt } })
+        console.log('    ✓ Seat inventory deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Seats deletion skipped (table might not exist):', e.message)
+        console.log('    ⚠️ Seat inventory deletion skipped:', e.message)
       }
 
+      console.log('  Step 2: Deleting promo codes...')
       try {
-        // Event Feed Posts (NEW)
-        console.log('  Deleting event feed posts...')
-        await tx.$executeRawUnsafe(`DELETE FROM event_feed_posts WHERE event_id = $1`, id)
+        // PromoCode uses BigInt eventId
+        await tx.promoCode.deleteMany({ where: { eventId: eventIdBigInt } })
+        console.log('    ✓ Promo codes deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Event feed posts deletion skipped:', e.message)
+        console.log('    ⚠️ Promo codes deletion skipped:', e.message)
       }
 
+      console.log('  Step 3: Deleting orders...')
       try {
-        // Promo Codes & Redemptions
-        console.log('  Deleting promo redemptions...')
-        await tx.$executeRawUnsafe(`DELETE FROM promo_redemptions WHERE promo_code_id IN (SELECT id FROM promo_codes WHERE event_id = $1)`, id)
-        console.log('  Deleting promo codes...')
-        await tx.$executeRawUnsafe(`DELETE FROM promo_codes WHERE event_id = $1`, id)
+        // Order uses String eventId
+        await tx.order.deleteMany({ where: { eventId: eventIdString } })
+        console.log('    ✓ Orders deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Promo codes deletion skipped:', e.message)
+        console.log('    ⚠️ Orders deletion skipped:', e.message)
       }
 
+      console.log('  Step 4: Deleting registrations...')
       try {
-        // Orders - eventId is String in Order table
-        console.log('  Deleting orders...')
-        await tx.$executeRawUnsafe(`DELETE FROM "Order" WHERE "eventId" = $1`, params.id)
+        // Registration uses BigInt event_id (mapped)
+        await tx.registration.deleteMany({ where: { eventId: eventIdBigInt } })
+        console.log('    ✓ Registrations deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Orders deletion skipped:', e.message)
+        console.log('    ⚠️ Registrations deletion skipped:', e.message)
       }
 
+      console.log('  Step 5: Deleting exhibitors...')
       try {
-        // Registrations
-        console.log('  Deleting registrations...')
-        await tx.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id = $1`, id)
+        // Exhibitor - use raw SQL due to type mismatch
+        await tx.$executeRawUnsafe(`DELETE FROM exhibitors WHERE event_id = $1`, eventIdBigInt)
+        console.log('    ✓ Exhibitors deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Registrations deletion skipped:', e.message)
+        console.log('    ⚠️ Exhibitors deletion skipped:', e.message)
       }
 
+      console.log('  Step 6: Deleting floor plans...')
       try {
-        // Exhibitors
-        console.log('  Deleting exhibitors...')
-        await tx.$executeRawUnsafe(`DELETE FROM exhibitors WHERE event_id = $1`, id)
+        // FloorPlan uses BigInt eventId
+        await tx.floorPlan.deleteMany({ where: { eventId: eventIdBigInt } })
+        console.log('    ✓ Floor plans deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Exhibitors deletion skipped:', e.message)
+        console.log('    ⚠️ Floor plans deletion skipped:', e.message)
       }
 
+      console.log('  Step 7: Deleting tickets...')
       try {
-        // Floor Plans
-        console.log('  Deleting floor plans...')
-        await tx.$executeRawUnsafe(`DELETE FROM floor_plans WHERE "eventId" = $1`, id)
+        // Ticket uses String eventId
+        await tx.ticket.deleteMany({ where: { eventId: eventIdString } })
+        console.log('    ✓ Tickets deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Floor plans deletion skipped:', e.message)
+        console.log('    ⚠️ Tickets deletion skipped:', e.message)
       }
 
+      console.log('  Step 8: Deleting sessions...')
       try {
-        // Ticket Types (using quoted "Ticket" table name)
-        console.log('  Deleting tickets...')
-        await tx.$executeRawUnsafe(`DELETE FROM "Ticket" WHERE "eventId" = $1`, params.id)
+        // Session - use raw SQL
+        await tx.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id = $1`, eventIdBigInt)
+        console.log('    ✓ Sessions deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Tickets deletion skipped:', e.message)
+        console.log('    ⚠️ Sessions deletion skipped:', e.message)
       }
 
+      console.log('  Step 9: Deleting sponsors...')
       try {
-        // Sessions
-        console.log('  Deleting sessions...')
-        await tx.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id = $1`, id)
+        // Sponsors - use raw SQL
+        await tx.$executeRawUnsafe(`DELETE FROM sponsors WHERE event_id = $1`, eventIdBigInt)
+        console.log('    ✓ Sponsors deleted')
       } catch (e: any) {
-        console.log('  ⚠️ Sessions deletion skipped:', e.message)
+        console.log('    ⚠️ Sponsors deletion skipped:', e.message)
       }
 
-      // 2. Delete the Event
-      console.log('  Deleting event...')
-      const result = await tx.$executeRawUnsafe(`DELETE FROM events WHERE id = $1`, id)
+      console.log('  Step 10: Deleting vendors...')
+      try {
+        // Vendors - use raw SQL
+        await tx.$executeRawUnsafe(`DELETE FROM vendors WHERE event_id = $1`, eventIdBigInt)
+        console.log('    ✓ Vendors deleted')
+      } catch (e: any) {
+        console.log('    ⚠️ Vendors deletion skipped:', e.message)
+      }
 
-      if (Number(result) === 0) {
+      console.log('  Step 11: Deleting event team members...')
+      try {
+        // Event team - use raw SQL
+        await tx.$executeRawUnsafe(`DELETE FROM event_team_members WHERE event_id = $1`, eventIdBigInt)
+        console.log('    ✓ Event team members deleted')
+      } catch (e: any) {
+        console.log('    ⚠️ Event team members deletion skipped:', e.message)
+      }
+
+      console.log('  Step 12: Deleting the event itself...')
+      const result = await tx.event.deleteMany({ where: { id: eventIdBigInt } })
+
+      if (result.count === 0) {
         throw new Error('Event not found or already deleted')
       }
 
-      console.log('  ✅ All deletions completed successfully')
+      console.log('  ✅ Event and all dependencies deleted successfully')
     })
 
-    console.log(`✅ Event ${params.id} deleted successfully (Prisma)`)
+    console.log(`✅ Event ${params.id} deleted successfully`)
     return new NextResponse(null, { status: 204 })
 
   } catch (err: any) {
-    console.error(`❌ DELETE error (Prisma):`, err)
+    console.error(`❌ DELETE error:`, err)
     console.error(`❌ Error stack:`, err.stack)
+
     // Handle "Event not found" explicitly
     if (err.message.includes('Event not found')) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
-    return NextResponse.json({ message: err?.message || 'Failed to delete event' }, { status: 500 })
+
+    return NextResponse.json({
+      message: err?.message || 'Failed to delete event',
+      details: process.env.NODE_ENV === 'development' ? err?.stack : undefined
+    }, { status: 500 })
   }
 }
 
