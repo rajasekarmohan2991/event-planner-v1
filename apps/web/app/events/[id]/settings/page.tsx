@@ -64,18 +64,22 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
     let aborted = false
       ; (async () => {
         try {
-          const [gRes, rRes, pRes, nRes, iRes] = await Promise.all([
+          const [gRes, rRes, pRes, nRes, iRes, prRes, enRes] = await Promise.all([
             fetch(`/api/events/${params.id}/settings/general`, { cache: 'no-store' }),
             fetch(`/api/events/${params.id}/settings/registration`, { cache: 'no-store' }),
             fetch(`/api/events/${params.id}/settings/payments`, { cache: 'no-store' }),
             fetch(`/api/events/${params.id}/settings/notifications`, { cache: 'no-store' }),
             fetch(`/api/events/${params.id}/settings/integrations`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/promote`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/engagement`, { cache: 'no-store' }),
           ])
           if (!aborted && gRes.ok) setGeneral(await gRes.json().catch(() => ({})))
           if (!aborted && rRes.ok) setRegistration(await rRes.json().catch(() => ({})))
           if (!aborted && pRes.ok) setPayments(await pRes.json().catch(() => ({})))
           if (!aborted && nRes.ok) setNotifications(await nRes.json().catch(() => ({})))
           if (!aborted && iRes.ok) setIntegrations(await iRes.json().catch(() => ({})))
+          if (!aborted && prRes.ok) setPromote(await prRes.json().catch(() => ({})))
+          if (!aborted && enRes.ok) setEngagement(await enRes.json().catch(() => ({})))
         } catch { }
       })()
     return () => { aborted = true }
