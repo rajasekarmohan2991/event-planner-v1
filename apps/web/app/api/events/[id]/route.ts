@@ -55,102 +55,116 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Use raw SQL for maximum compatibility
     await prisma.$transaction(async (tx) => {
       // Delete in order of dependencies (children first, then parent)
+      let deletedRows = 0
 
       console.log('  Step 1: Deleting seat inventory...')
       try {
-        await tx.$executeRaw`DELETE FROM seat_inventory WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Seat inventory deleted')
+        const result = await tx.$executeRaw`DELETE FROM seat_inventory WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} seat inventory records`)
       } catch (e: any) {
-        console.log('    ⚠️ Seat inventory deletion skipped:', e.message)
+        console.log('    ⚠️ Seat inventory deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 2: Deleting promo codes...')
       try {
-        await tx.$executeRaw`DELETE FROM promo_codes WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Promo codes deleted')
+        const result = await tx.$executeRaw`DELETE FROM promo_codes WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} promo codes`)
       } catch (e: any) {
-        console.log('    ⚠️ Promo codes deletion skipped:', e.message)
+        console.log('    ⚠️ Promo codes deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 3: Deleting orders...')
       try {
-        await tx.$executeRaw`DELETE FROM "Order" WHERE "eventId" = ${eventIdString}`
-        console.log('    ✓ Orders deleted')
+        const result = await tx.$executeRaw`DELETE FROM "Order" WHERE "eventId" = ${eventIdString}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} orders`)
       } catch (e: any) {
-        console.log('    ⚠️ Orders deletion skipped:', e.message)
+        console.log('    ⚠️ Orders deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 4: Deleting registrations...')
       try {
-        await tx.$executeRaw`DELETE FROM registrations WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Registrations deleted')
+        const result = await tx.$executeRaw`DELETE FROM registrations WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} registrations`)
       } catch (e: any) {
-        console.log('    ⚠️ Registrations deletion skipped:', e.message)
+        console.log('    ⚠️ Registrations deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 5: Deleting exhibitors...')
       try {
-        await tx.$executeRaw`DELETE FROM exhibitors WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Exhibitors deleted')
+        const result = await tx.$executeRaw`DELETE FROM exhibitors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} exhibitors`)
       } catch (e: any) {
-        console.log('    ⚠️ Exhibitors deletion skipped:', e.message)
+        console.log('    ⚠️ Exhibitors deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 6: Deleting floor plans...')
       try {
-        await tx.$executeRaw`DELETE FROM floor_plans WHERE "eventId" = ${eventIdBigInt}`
-        console.log('    ✓ Floor plans deleted')
+        const result = await tx.$executeRaw`DELETE FROM floor_plans WHERE "eventId" = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} floor plans`)
       } catch (e: any) {
-        console.log('    ⚠️ Floor plans deletion skipped:', e.message)
+        console.log('    ⚠️ Floor plans deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 7: Deleting tickets...')
       try {
-        await tx.$executeRaw`DELETE FROM "Ticket" WHERE "eventId" = ${eventIdString}`
-        console.log('    ✓ Tickets deleted')
+        const result = await tx.$executeRaw`DELETE FROM "Ticket" WHERE "eventId" = ${eventIdString}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} tickets`)
       } catch (e: any) {
-        console.log('    ⚠️ Tickets deletion skipped:', e.message)
+        console.log('    ⚠️ Tickets deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 8: Deleting sessions...')
       try {
-        await tx.$executeRaw`DELETE FROM sessions WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Sessions deleted')
+        const result = await tx.$executeRaw`DELETE FROM sessions WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} sessions`)
       } catch (e: any) {
-        console.log('    ⚠️ Sessions deletion skipped:', e.message)
+        console.log('    ⚠️ Sessions deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 9: Deleting sponsors...')
       try {
-        await tx.$executeRaw`DELETE FROM sponsors WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Sponsors deleted')
+        const result = await tx.$executeRaw`DELETE FROM sponsors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} sponsors`)
       } catch (e: any) {
-        console.log('    ⚠️ Sponsors deletion skipped:', e.message)
+        console.log('    ⚠️ Sponsors deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 10: Deleting vendors...')
       try {
-        await tx.$executeRaw`DELETE FROM vendors WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Vendors deleted')
+        const result = await tx.$executeRaw`DELETE FROM vendors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} vendors`)
       } catch (e: any) {
-        console.log('    ⚠️ Vendors deletion skipped:', e.message)
+        console.log('    ⚠️ Vendors deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 11: Deleting event team members...')
       try {
-        await tx.$executeRaw`DELETE FROM event_team_members WHERE event_id = ${eventIdBigInt}`
-        console.log('    ✓ Event team members deleted')
+        const result = await tx.$executeRaw`DELETE FROM event_team_members WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} event team members`)
       } catch (e: any) {
-        console.log('    ⚠️ Event team members deletion skipped:', e.message)
+        console.log('    ⚠️ Event team members deletion skipped:', e.message, e.code)
       }
 
       console.log('  Step 12: Deleting the event itself...')
       const result = await tx.$executeRaw`DELETE FROM events WHERE id = ${eventIdBigInt}`
+      deletedRows = Number(result)
 
-      if (Number(result) === 0) {
+      if (deletedRows === 0) {
         throw new Error('Event not found or already deleted')
       }
 
+      console.log(`    ✓ Deleted event ${params.id}`)
       console.log('  ✅ Event and all dependencies deleted successfully')
     })
 
@@ -160,20 +174,32 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   } catch (err: any) {
     console.error(`❌ DELETE error:`, err)
     console.error(`❌ Error message:`, err.message)
+    console.error(`❌ Error code:`, err.code)
     console.error(`❌ Error stack:`, err.stack)
 
-    // Handle "Event not found" explicitly
+    // Handle specific error types
     if (err.message && err.message.includes('Event not found')) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    }
+
+    // Handle foreign key constraint errors
+    if (err.code === 'P2003' || err.code === '23503') {
+      return NextResponse.json({
+        message: 'Cannot delete event due to existing dependencies',
+        error: 'This event has related data that must be deleted first',
+        hint: 'Please contact support if this issue persists'
+      }, { status: 409 })
     }
 
     // Return detailed error in development, generic in production
     return NextResponse.json({
       message: err?.message || 'Failed to delete event',
+      errorCode: err?.code,
       error: process.env.NODE_ENV === 'development' ? {
         message: err?.message,
         code: err?.code,
-        meta: err?.meta
+        meta: err?.meta,
+        stack: err?.stack?.split('\n').slice(0, 5).join('\n')
       } : undefined
     }, { status: 500 })
   }
