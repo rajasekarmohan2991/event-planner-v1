@@ -211,7 +211,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 ${tenantId},  -- String
                 ${userId},
                 ${formData.email},
-                ${finalAmount > 0 ? 'PAID' : 'CREATED'},
+                'CONFIRMED'::"OrderStatus",
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
                 ${JSON.stringify({ registrationId: newRegId, discountAmount, promoCode })}::jsonb,
