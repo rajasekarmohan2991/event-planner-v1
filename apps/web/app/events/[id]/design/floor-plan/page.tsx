@@ -93,13 +93,39 @@ export default function FloorPlanDesignerPage() {
         label: ''
     })
 
-    // Load floor plan and registrations
+    // Load floor plan, registrations, and event details
     useEffect(() => {
         if (eventId) {
             loadFloorPlan()
             loadRegistrations()
+            loadEventAndTickets()
         }
     }, [eventId])
+
+    const loadEventAndTickets = async () => {
+        try {
+            // Fetch Tickets to prepopulate prices
+            const ticketsRes = await fetch(`/api/events/${eventId}/tickets`)
+            if (ticketsRes.ok) {
+                const data = await ticketsRes.json()
+                const tickets = data.tickets || []
+
+                // Find matching tickets
+                const vipTicket = tickets.find((t: any) => t.name.toLowerCase().includes('vip') || t.priceInr > 2000)
+                const premiumTicket = tickets.find((t: any) => t.name.toLowerCase().includes('premium') || (t.priceInr > 1000 && t.priceInr <= 2000))
+                const generalTicket = tickets.find((t: any) => t.name.toLowerCase().includes('general') || t.priceInr <= 1000)
+
+                setFloorPlan(prev => ({
+                    ...prev,
+                    vipPrice: vipTicket ? Number(vipTicket.priceInr) : prev.vipPrice,
+                    premiumPrice: premiumTicket ? Number(premiumTicket.priceInr) : prev.premiumPrice,
+                    generalPrice: generalTicket ? Number(generalTicket.priceInr) : prev.generalPrice
+                }))
+            }
+        } catch (error) {
+            console.error('Failed to load event tickets:', error)
+        }
+    }
 
     const loadRegistrations = async () => {
         try {
@@ -117,14 +143,20 @@ export default function FloorPlanDesignerPage() {
         try {
             setLoading(true)
             const response = await fetch(`/api/events/${eventId}/floor-plan`)
-            const data = await response.json()
+            if (response.ok) {
+                const data = await response.json() // Might default to empty if 404/500 treated as empty in some proxies, but we fixed API.
 
-            if (data.floorPlans && data.floorPlans.length > 0) {
-                const plan = data.floorPlans[0]
-                setFloorPlan({
-                    ...plan,
-                    objects: plan.objects || []
-                })
+                if (data.floorPlans && data.floorPlans.length > 0) {
+                    const plan = data.floorPlans[0]
+                    setFloorPlan({
+                        ...plan,
+                        // Ensure prices are numbers
+                        vipPrice: Number(plan.vipPrice) || 0,
+                        premiumPrice: Number(plan.premiumPrice) || 0,
+                        generalPrice: Number(plan.generalPrice) || 0,
+                        objects: plan.objects || []
+                    })
+                }
             }
         } catch (error) {
             console.error('Failed to load floor plan:', error)
@@ -363,10 +395,10 @@ export default function FloorPlanDesignerPage() {
 
     // Calculate analytics
     const calculateAnalytics = () => {
-        const total = floorPlan.objects.reduce((sum, obj) => sum + obj.totalSeats, 0)
-        const vip = floorPlan.objects.filter(o => o.pricingTier === 'VIP').reduce((sum, obj) => sum + obj.totalSeats, 0)
-        const premium = floorPlan.objects.filter(o => o.pricingTier === 'PREMIUM').reduce((sum, obj) => sum + obj.totalSeats, 0)
-        const general = floorPlan.objects.filter(o => o.pricingTier === 'GENERAL').reduce((sum, obj) => sum + obj.totalSeats, 0)
+        const total = floorPlan.objects.reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0)
+        const vip = floorPlan.objects.filter(o => o.pricingTier === 'VIP').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0)
+        const premium = floorPlan.objects.filter(o => o.pricingTier === 'PREMIUM').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0)
+        const general = floorPlan.objects.filter(o => o.pricingTier === 'GENERAL').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0)
 
         // Count filled seats from registrations
         const totalFilled = registrations.length
@@ -384,10 +416,10 @@ export default function FloorPlanDesignerPage() {
         }).length
 
         const revenue = {
-            vip: vip * floorPlan.vipPrice,
-            premium: premium * floorPlan.premiumPrice,
-            general: general * floorPlan.generalPrice,
-            total: (vip * floorPlan.vipPrice) + (premium * floorPlan.premiumPrice) + (general * floorPlan.generalPrice)
+            vip: vip * (Number(floorPlan.vipPrice) || 0),
+            premium: premium * (Number(floorPlan.premiumPrice) || 0),
+            general: general * (Number(floorPlan.generalPrice) || 0),
+            total: (vip * (Number(floorPlan.vipPrice) || 0)) + (premium * (Number(floorPlan.premiumPrice) || 0)) + (general * (Number(floorPlan.generalPrice) || 0))
         }
 
         return {
