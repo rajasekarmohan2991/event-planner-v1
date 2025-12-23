@@ -192,7 +192,7 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <ManageTabs eventId={params?.id || ''} />
-      <header className="sticky top-32 z-60 bg-white/95 backdrop-blur-sm shadow-sm rounded-lg px-4 py-3 flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-2">
+      <header className="sticky top-16 z-60 bg-white/95 backdrop-blur-sm shadow-sm rounded-lg px-4 py-3 flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-2">
         <div className="flex flex-wrap items-center gap-4">
           <div className="text-xs inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50">
             <span className={`inline-block h-2 w-2 rounded-full ${event.status === 'LIVE' ? 'bg-emerald-500' : event.status === 'CANCELLED' ? 'bg-rose-500' : event.status === 'TRASHED' ? 'bg-zinc-400' : 'bg-indigo-500'}`} />
@@ -269,76 +269,6 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
           ⚠️ Your session is missing authentication credentials. Some features may not work. Please <button onClick={() => router.push('/auth/login')} className="underline font-medium">log out and log back in</button>.
         </div>
       )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
-          onClick={async () => {
-            try {
-              setSaving(true)
-              const payload: CreateEventRequest = {
-                name,
-                venue: venue || undefined,
-                address: address || undefined,
-                city,
-                startsAt: startsAt ? new Date(startsAt).toISOString() : new Date().toISOString(),
-                endsAt: endsAt ? new Date(endsAt).toISOString() : new Date().toISOString(),
-                priceInr: Number(priceInr || 0),
-                description: description || undefined,
-                bannerUrl: bannerUrl || undefined,
-                category: category || undefined,
-                eventMode: (eventMode || 'IN_PERSON') as any,
-                budgetInr: budgetInr ? Number(budgetInr) : undefined,
-                expectedAttendees: expectedAttendees ? Number(expectedAttendees) : undefined,
-                latitude: latitude || undefined,
-                longitude: longitude || undefined,
-                termsAndConditions: termsAndConditions || undefined,
-                disclaimer: disclaimer || undefined,
-                eventManagerName: eventManagerName || undefined,
-                eventManagerContact: eventManagerContact || undefined,
-                eventManagerEmail: eventManagerEmail || undefined,
-              } as any
-              const updated = await updateEvent(String(event.id), payload, accessToken)
-              setEvent(updated)
-              setBanner('Event saved')
-              setTimeout(() => setBanner(null), 3000)
-            } catch (e: any) {
-              setError(e?.message || 'Failed to save')
-              setTimeout(() => setError(null), 4000)
-            } finally {
-              setSaving(false)
-            }
-          }}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save changes'}
-        </button>
-        {/* Delete button - Only show for SUPER_ADMIN and ADMIN */}
-        {((data as any)?.user?.role === 'SUPER_ADMIN') || ((data as any)?.user?.role === 'ADMIN') ? (
-          <button
-            className="rounded-md border border-rose-300 text-rose-700 px-3 py-1.5 text-sm hover:bg-rose-50"
-            onClick={async () => {
-              // Check if user is authenticated
-              if (status !== 'authenticated') {
-                setError('You must be logged in to delete an event')
-                setTimeout(() => setError(null), 4000)
-                return
-              }
-              if (!confirm('Delete this event permanently?')) return
-              try {
-                await deleteEvent(String(event.id), accessToken)
-                router.push('/events')
-              } catch (e: any) {
-                console.error('Delete event error:', e)
-                setError(e?.message || 'Failed to delete event')
-                setTimeout(() => setError(null), 4000)
-              }
-            }}
-          >
-            Delete
-          </button>
-        ) : null}
-      </div>
 
       <section className="grid md:grid-cols-3 gap-4">
         <div className="rounded-md border p-4 space-y-2">
