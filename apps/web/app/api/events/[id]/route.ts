@@ -113,7 +113,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
       console.log('  Step 7: Deleting tickets...')
       try {
-        const result = await prisma.$executeRaw`DELETE FROM "Ticket" WHERE "eventId" = ${eventIdString}`
+        const result = await prisma.$executeRaw`DELETE FROM tickets WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
         console.log(`    ✓ Deleted ${deletedRows} tickets`)
       } catch (e: any) {
