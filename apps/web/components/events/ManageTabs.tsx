@@ -24,7 +24,7 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="sticky top-16 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b px-6 -mx-6 mb-8 transition-all">
+    <div className="sticky top-16 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b px-6 -mx-6 mb-8 transition-all shadow-sm">
       {/* Modern Tab Navigation */}
       <nav className="overflow-x-auto no-scrollbar">
         <div className="flex items-center min-w-max h-14 gap-1">

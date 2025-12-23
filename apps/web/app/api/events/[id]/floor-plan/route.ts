@@ -9,14 +9,27 @@ export const dynamic = 'force-dynamic'
 // Production schema: eventId is BIGINT (camelCase, unquoted)
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    console.log('🔍 [FloorPlan GET] Request received for event:', params.id)
+
     try {
         const session = await getServerSession(authOptions as any)
+        console.log('🔍 [FloorPlan GET] Session:', session ? 'Authenticated' : 'Not authenticated')
+
         if (!session) {
+            console.log('❌ [FloorPlan GET] Unauthorized - no session')
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
-        const eventId = BigInt(params.id)
-        console.log('📐 Fetching floor plans for event:', eventId)
+        let eventId: bigint
+        try {
+            eventId = BigInt(params.id)
+            console.log('🔍 [FloorPlan GET] Event ID converted:', eventId.toString())
+        } catch (e) {
+            console.error('❌ [FloorPlan GET] Invalid event ID:', params.id, e)
+            return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
+        }
+
+        console.log('📐 [FloorPlan GET] Fetching floor plans for event:', eventId.toString())
 
         const floorPlansRaw = await prisma.$queryRaw`
             SELECT 
@@ -48,19 +61,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             ORDER BY created_at DESC
         ` as any[]
 
+        console.log(`🔍 [FloorPlan GET] Raw query returned ${floorPlansRaw.length} results`)
+
         const floorPlans = floorPlansRaw.map(fp => ({
             ...fp,
             objects: fp.layoutData?.objects || []
         }))
 
-        console.log(`✅ Found ${floorPlans.length} floor plans`)
+        console.log(`✅ [FloorPlan GET] Found ${floorPlans.length} floor plans`)
 
         return NextResponse.json({
             floorPlans,
             total: floorPlans.length
         })
     } catch (error: any) {
-        console.error('❌ Error fetching floor plans:', error)
+        console.error('❌ [FloorPlan GET] Error fetching floor plans:', error)
+        console.error('❌ [FloorPlan GET] Error stack:', error.stack)
         return NextResponse.json({
             message: 'Failed to load floor plans',
             error: error.message
