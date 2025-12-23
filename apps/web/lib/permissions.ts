@@ -3,18 +3,18 @@
  * Defines permissions for all 9 tenant roles
  */
 
-export type Permission = 
+export type Permission =
   // Dashboard
   | 'dashboard.view'
   | 'dashboard.view_all_tenants'
-  
+
   // Events
   | 'events.view'
   | 'events.create'
   | 'events.edit'
   | 'events.delete'
   | 'events.publish'
-  
+
   // Registrations
   | 'registrations.view'
   | 'registrations.create'
@@ -22,56 +22,56 @@ export type Permission =
   | 'registrations.delete'
   | 'registrations.approve'
   | 'registrations.export'
-  
+
   // Exhibitors
   | 'exhibitors.view'
   | 'exhibitors.create'
   | 'exhibitors.edit'
   | 'exhibitors.delete'
   | 'exhibitors.assign_booths'
-  
+
   // Design
   | 'design.view'
   | 'design.edit_theme'
   | 'design.edit_floor_plan'
   | 'design.edit_banner'
-  
+
   // Communicate
   | 'communicate.view'
   | 'communicate.send_email'
   | 'communicate.send_sms'
   | 'communicate.send_whatsapp'
-  
+
   // Reports
   | 'reports.view'
   | 'reports.view_financial'
   | 'reports.export'
-  
+
   // Event Day
   | 'eventday.view'
   | 'eventday.checkin'
   | 'eventday.manage_queue'
-  
+
   // Venues
   | 'venues.view'
   | 'venues.create'
   | 'venues.edit'
   | 'venues.delete'
-  
+
   // Settings
   | 'settings.view'
   | 'settings.edit_tenant'
   | 'settings.manage_users'
   | 'settings.manage_billing'
   | 'settings.manage_integrations'
-  
+
   // Financial
   | 'financial.view_payments'
   | 'financial.process_refunds'
   | 'financial.view_invoices'
   | 'financial.export_financial'
 
-export type TenantRole = 
+export type TenantRole =
   | 'TENANT_ADMIN'
   | 'EVENT_MANAGER'
   | 'VENUE_MANAGER'
@@ -82,8 +82,9 @@ export type TenantRole =
   | 'ATTENDEE'
   | 'VIEWER'
 
-export type SystemRole = 
+export type SystemRole =
   | 'SUPER_ADMIN'
+  | 'ADMIN'
   | 'USER'
 
 /**
@@ -105,7 +106,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'settings.view', 'settings.edit_tenant', 'settings.manage_users', 'settings.manage_billing', 'settings.manage_integrations',
     'financial.view_payments', 'financial.process_refunds', 'financial.view_invoices', 'financial.export_financial',
   ],
-  
+
   // 2. EVENT_MANAGER - Creates and manages events
   EVENT_MANAGER: [
     'dashboard.view',
@@ -119,7 +120,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'venues.view',
     'settings.view',
   ],
-  
+
   // 3. VENUE_MANAGER - Manages venue operations
   VENUE_MANAGER: [
     'dashboard.view',
@@ -130,7 +131,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'reports.view',
     'settings.view',
   ],
-  
+
   // 4. FINANCE_ADMIN - Handles payments and financial reports
   FINANCE_ADMIN: [
     'dashboard.view',
@@ -140,7 +141,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'financial.view_payments', 'financial.process_refunds', 'financial.view_invoices', 'financial.export_financial',
     'settings.view', 'settings.manage_billing',
   ],
-  
+
   // 5. MARKETING_ADMIN - Controls branding and communications
   MARKETING_ADMIN: [
     'dashboard.view',
@@ -151,7 +152,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'reports.view', 'reports.export',
     'settings.view',
   ],
-  
+
   // 6. SUPPORT_STAFF - On-ground event support
   SUPPORT_STAFF: [
     'dashboard.view',
@@ -160,7 +161,7 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'eventday.view', 'eventday.checkin',
     'exhibitors.view',
   ],
-  
+
   // 7. EXHIBITOR_MANAGER - Manages exhibitor relationships
   EXHIBITOR_MANAGER: [
     'dashboard.view',
@@ -170,13 +171,13 @@ export const ROLE_PERMISSIONS: Record<TenantRole, Permission[]> = {
     'communicate.view', 'communicate.send_email',
     'reports.view',
   ],
-  
+
   // 8. ATTENDEE - Public event registration (read-only)
   ATTENDEE: [
     'events.view',
     'registrations.view', 'registrations.create',
   ],
-  
+
   // 9. VIEWER - Read-only access to reports
   VIEWER: [
     'dashboard.view',
@@ -201,14 +202,14 @@ export const SUPER_ADMIN_PERMISSIONS: Permission[] = [
  * Check if a role has a specific permission
  */
 export function hasPermission(role: TenantRole | SystemRole, permission: Permission): boolean {
-  if (role === 'SUPER_ADMIN') {
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     return SUPER_ADMIN_PERMISSIONS.includes(permission)
   }
-  
+
   if (role === 'USER') {
     return false // Regular users have no tenant permissions
   }
-  
+
   return ROLE_PERMISSIONS[role as TenantRole]?.includes(permission) || false
 }
 
@@ -233,11 +234,11 @@ export function getRolePermissions(role: TenantRole | SystemRole): Permission[] 
   if (role === 'SUPER_ADMIN') {
     return SUPER_ADMIN_PERMISSIONS
   }
-  
+
   if (role === 'USER') {
     return []
   }
-  
+
   return ROLE_PERMISSIONS[role as TenantRole] || []
 }
 
@@ -246,6 +247,7 @@ export function getRolePermissions(role: TenantRole | SystemRole): Permission[] 
  */
 export const ROLE_DESCRIPTIONS: Record<TenantRole | SystemRole, string> = {
   SUPER_ADMIN: 'Platform administrator with access to all tenants and system settings',
+  ADMIN: 'Administrator with full access to all features and settings',
   USER: 'Regular platform user without tenant access',
   TENANT_ADMIN: 'Full control of the organization including billing, users, and all features',
   EVENT_MANAGER: 'Creates and manages events, registrations, and event-day operations',
@@ -279,13 +281,13 @@ export const MODULE_ACCESS: Record<string, TenantRole[]> = {
  * Check if a role can access a module
  */
 export function canAccessModule(role: TenantRole | SystemRole, module: string): boolean {
-  if (role === 'SUPER_ADMIN') {
-    return true // Super admin can access everything
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+    return true // Super admin and admin can access everything
   }
-  
+
   if (role === 'USER') {
     return false // Regular users can't access tenant modules
   }
-  
+
   return MODULE_ACCESS[module]?.includes(role as TenantRole) || false
 }
