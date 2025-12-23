@@ -53,121 +53,119 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     console.log(`🗑️ Starting deletion of event ${params.id}...`)
 
     try {
-      // Use raw SQL for maximum compatibility
-      await prisma.$transaction(async (tx) => {
-        // Delete in order of dependencies (children first, then parent)
-        let deletedRows = 0
+      // Execute deletes independently (not in a transaction) to avoid PostgreSQL transaction abort errors
+      // When one query fails in a transaction, PostgreSQL aborts the entire transaction (25P02 error)
+      let deletedRows = 0
 
-        console.log('  Step 1: Deleting seat inventory...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM seat_inventory WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} seat inventory records`)
-        } catch (e: any) {
-          console.log('    ⚠️ Seat inventory deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 2: Deleting promo codes...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM promo_codes WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} promo codes`)
-        } catch (e: any) {
-          console.log('    ⚠️ Promo codes deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 3: Deleting orders...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM "Order" WHERE "eventId" = ${eventIdString}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} orders`)
-        } catch (e: any) {
-          console.log('    ⚠️ Orders deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 4: Deleting registrations...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM registrations WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} registrations`)
-        } catch (e: any) {
-          console.log('    ⚠️ Registrations deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 5: Deleting exhibitors...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM exhibitors WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} exhibitors`)
-        } catch (e: any) {
-          console.log('    ⚠️ Exhibitors deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 6: Deleting floor plans...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM floor_plans WHERE "eventId" = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} floor plans`)
-        } catch (e: any) {
-          console.log('    ⚠️ Floor plans deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 7: Deleting tickets...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM "Ticket" WHERE "eventId" = ${eventIdString}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} tickets`)
-        } catch (e: any) {
-          console.log('    ⚠️ Tickets deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 8: Deleting sessions...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM sessions WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} sessions`)
-        } catch (e: any) {
-          console.log('    ⚠️ Sessions deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 9: Deleting sponsors...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM sponsors WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} sponsors`)
-        } catch (e: any) {
-          console.log('    ⚠️ Sponsors deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 10: Deleting vendors...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM vendors WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} vendors`)
-        } catch (e: any) {
-          console.log('    ⚠️ Vendors deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 11: Deleting event team members...')
-        try {
-          const result = await tx.$executeRaw`DELETE FROM event_team_members WHERE event_id = ${eventIdBigInt}`
-          deletedRows = Number(result)
-          console.log(`    ✓ Deleted ${deletedRows} event team members`)
-        } catch (e: any) {
-          console.log('    ⚠️ Event team members deletion skipped:', e.message, e.code)
-        }
-
-        console.log('  Step 12: Deleting the event itself...')
-        const result = await tx.$executeRaw`DELETE FROM events WHERE id = ${eventIdBigInt}`
+      console.log('  Step 1: Deleting seat inventory...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM seat_inventory WHERE event_id = ${eventIdBigInt}`
         deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} seat inventory records`)
+      } catch (e: any) {
+        console.log('    ⚠️ Seat inventory deletion skipped:', e.message, e.code)
+      }
 
-        if (deletedRows === 0) {
-          throw new Error('Event not found or already deleted')
-        }
+      console.log('  Step 2: Deleting promo codes...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM promo_codes WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} promo codes`)
+      } catch (e: any) {
+        console.log('    ⚠️ Promo codes deletion skipped:', e.message, e.code)
+      }
 
-        console.log(`    ✓ Deleted event ${params.id}`)
-        console.log('  ✅ Event and all dependencies deleted successfully')
-      })
+      console.log('  Step 3: Deleting orders...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM "Order" WHERE "eventId" = ${eventIdString}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} orders`)
+      } catch (e: any) {
+        console.log('    ⚠️ Orders deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 4: Deleting registrations...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM registrations WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} registrations`)
+      } catch (e: any) {
+        console.log('    ⚠️ Registrations deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 5: Deleting exhibitors...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM exhibitors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} exhibitors`)
+      } catch (e: any) {
+        console.log('    ⚠️ Exhibitors deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 6: Deleting floor plans...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM floor_plans WHERE "eventId" = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} floor plans`)
+      } catch (e: any) {
+        console.log('    ⚠️ Floor plans deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 7: Deleting tickets...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM "Ticket" WHERE "eventId" = ${eventIdString}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} tickets`)
+      } catch (e: any) {
+        console.log('    ⚠️ Tickets deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 8: Deleting sessions...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM sessions WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} sessions`)
+      } catch (e: any) {
+        console.log('    ⚠️ Sessions deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 9: Deleting sponsors...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM sponsors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} sponsors`)
+      } catch (e: any) {
+        console.log('    ⚠️ Sponsors deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 10: Deleting vendors...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM vendors WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} vendors`)
+      } catch (e: any) {
+        console.log('    ⚠️ Vendors deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 11: Deleting event team members...')
+      try {
+        const result = await prisma.$executeRaw`DELETE FROM event_team_members WHERE event_id = ${eventIdBigInt}`
+        deletedRows = Number(result)
+        console.log(`    ✓ Deleted ${deletedRows} event team members`)
+      } catch (e: any) {
+        console.log('    ⚠️ Event team members deletion skipped:', e.message, e.code)
+      }
+
+      console.log('  Step 12: Deleting the event itself...')
+      const result = await prisma.$executeRaw`DELETE FROM events WHERE id = ${eventIdBigInt}`
+      deletedRows = Number(result)
+
+      if (deletedRows === 0) {
+        throw new Error('Event not found or already deleted')
+      }
+
+      console.log(`    ✓ Deleted event ${params.id}`)
+      console.log('  ✅ Event and all dependencies deleted successfully')
 
       console.log(`✅ Event ${params.id} deleted successfully`)
       return new NextResponse(null, { status: 204 })
