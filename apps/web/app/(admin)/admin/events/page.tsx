@@ -63,18 +63,41 @@ export default function EventsPage() {
     }, [])
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this event?')) return
+        if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return
 
         try {
+            console.log(`🗑️ Deleting event ${id}...`)
             const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
+
+            console.log(`📡 Delete response status: ${res.status}`)
+
             if (res.ok) {
-                alert('Event deleted successfully')
+                alert('✅ Event deleted successfully!')
                 loadEvents()
             } else {
-                alert('Failed to delete event')
+                // Try to get error message from response
+                let errorMessage = 'Failed to delete event'
+                try {
+                    const errorData = await res.json()
+                    console.error('❌ Delete error:', errorData)
+                    errorMessage = errorData.message || errorData.error || errorMessage
+
+                    // Show detailed error if available
+                    if (errorData.hint) {
+                        errorMessage += `\n\n${errorData.hint}`
+                    }
+                } catch (e) {
+                    // If response is not JSON, try to get text
+                    const errorText = await res.text()
+                    console.error('❌ Delete error (text):', errorText)
+                    if (errorText) errorMessage = errorText
+                }
+
+                alert(`❌ ${errorMessage}`)
             }
-        } catch (error) {
-            alert('Error deleting event')
+        } catch (error: any) {
+            console.error('❌ Error deleting event:', error)
+            alert(`❌ Error deleting event: ${error.message || 'Unknown error'}`)
         }
     }
 
