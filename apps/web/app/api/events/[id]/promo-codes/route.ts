@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const eventId = params.id
   const session = await getServerSession(authOptions as any)
@@ -62,16 +64,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     let body
+    let bodyText = ''
     try {
-      body = await req.json()
+      bodyText = await req.text()
+      try {
+        body = JSON.parse(bodyText)
+      } catch (e) {
+        // Only log if body is not empty/whitespace, otherwise it might be just an empty body which is also handled
+        if (bodyText.trim()) {
+          console.error('❌ Invalid JSON in promo code POST:', e, 'Body:', bodyText)
+        }
+        // If bodyText is empty and we expect JSON, JSON.parse fails.
+        // But if we want to valid "missing body" as "missing code", we can proceed with empty object?
+        // No, req.json() on empty body throws.
+        // Let's assume empty body => empty object.
+        if (!bodyText.trim()) {
+          body = {}
+        } else {
+          return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
+        }
+      }
     } catch (e) {
-      console.error('❌ Invalid JSON in promo code POST:', e)
-      return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
+      console.error('❌ Failed to read request body:', e)
+      return NextResponse.json({ message: 'Failed to read body' }, { status: 400 })
     }
 
     let { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive, description } = body
 
-    console.log('📝 Promo code data received:', { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive })
+    console.log('📝 Promo code POST received:', {
+      eventId,
+      codeRaw: code,
+      bodyKeys: Object.keys(body || {}),
+      bodySnippet: bodyText.slice(0, 100)
+    })
 
     // 1. Sanitize Code
     code = String(code || '').trim().toUpperCase()

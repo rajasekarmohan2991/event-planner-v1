@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 // Production schema: eventId is BIGINT (camelCase, unquoted)
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    // Force rebuild checksum
     console.log('🔍 [FloorPlan GET] Request received for event:', params.id)
 
     try {

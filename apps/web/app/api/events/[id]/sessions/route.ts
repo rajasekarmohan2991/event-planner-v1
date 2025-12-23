@@ -6,12 +6,15 @@ import prisma from '@/lib/prisma';
 const bigIntReplacer = (key: string, value: any) =>
   typeof value === 'bigint' ? value.toString() : value
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getAuthSession();
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const eventId = BigInt(params.id);
+    console.log(`[API] Fetching sessions for EventID: ${params.id}`);
 
     const sessions = await prisma.$queryRaw`
       SELECT 
@@ -26,6 +29,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       WHERE event_id = ${eventId}
       ORDER BY start_time ASC
     ` as any[]
+
+    console.log(`[API] Found ${sessions?.length || 0} sessions`);
 
     const sessionsWithSpeakers = await Promise.all(sessions.map(async (sess) => {
       const speakers = await prisma.$queryRaw`

@@ -77,7 +77,7 @@ export default function FloorPlanDesignerPage() {
     const [snapToGrid, setSnapToGrid] = useState(true)
     const [zoom, setZoom] = useState(1)
     const [isDragging, setIsDragging] = useState(false)
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+    const [dragStart, setDragStart] = useState({ mouseX: 0, mouseY: 0, objX: 0, objY: 0 })
     const [showAddDialog, setShowAddDialog] = useState(false)
     const [showAIDialog, setShowAIDialog] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -392,13 +392,24 @@ export default function FloorPlanDesignerPage() {
         e.stopPropagation()
         setIsDragging(true)
         setSelectedObject(obj)
-        setDragStart({ x: e.clientX - obj.x, y: e.clientY - obj.y })
+        // Store initial positions
+        setDragStart({
+            mouseX: e.clientX,
+            mouseY: e.clientY,
+            objX: obj.x,
+            objY: obj.y
+        })
     }
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (isDragging && selectedObject) {
-            let newX = e.clientX - dragStart.x
-            let newY = e.clientY - dragStart.y
+            // Calculate delta in screen pixels
+            const deltaX = e.clientX - dragStart.mouseX
+            const deltaY = e.clientY - dragStart.mouseY
+
+            // Convert pixels to SVG units (divide by zoom)
+            let newX = dragStart.objX + (deltaX / zoom)
+            let newY = dragStart.objY + (deltaY / zoom)
 
             // Snap to grid
             if (snapToGrid) {
@@ -662,6 +673,7 @@ export default function FloorPlanDesignerPage() {
                                 minScale={0.1}
                                 maxScale={5}
                                 onZoom={(ref) => setZoom(ref.state.scale)}
+                                disabled={isDragging}
                             >
                                 {({ zoomIn, zoomOut, resetTransform }) => (
                                     <>

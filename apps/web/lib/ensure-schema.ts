@@ -78,6 +78,19 @@ export async function ensureSchema() {
       );
     `)
 
+    // 5. Exchange Rates Table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS exchange_rates (
+        id TEXT PRIMARY KEY,
+        from_currency TEXT NOT NULL,
+        to_currency TEXT NOT NULL,
+        rate DOUBLE PRECISION NOT NULL,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(from_currency, to_currency)
+      );
+    `)
+
     console.log('✅ Self-healing schema update complete.')
     return true
   } catch (error) {

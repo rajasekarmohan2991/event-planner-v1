@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+
+export const dynamic = 'force-dynamic'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
         })
 
         // Get tenant memberships
-        let tenantMemberships = []
+        let tenantMemberships: any[] = []
         if (dbUser) {
             tenantMemberships = await prisma.tenantMember.findMany({
                 where: { userId: dbUser.id },

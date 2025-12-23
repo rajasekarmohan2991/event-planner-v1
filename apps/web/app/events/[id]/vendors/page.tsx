@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import ManageTabs from '@/components/events/ManageTabs'
-import { uploadToSupabase } from '@/lib/supabase-storage'
+
 
 const CATEGORIES = ['CATERING', 'VENUE', 'PHOTOGRAPHY', 'ENTERTAINMENT', 'DECORATION', 'OTHER'] as const
 
@@ -161,15 +161,29 @@ export default function EventVendorsPage() {
             let contractUrl = '';
             let invoiceUrl = '';
 
-            // Upload files if present
+            // Upload files via API (Bypasses RLS)
             if (contractFile) {
-                const upload = await uploadToSupabase(contractFile, 'contracts');
-                if (upload) contractUrl = upload.url;
+                const formData = new FormData()
+                formData.append('file', contractFile)
+                const res = await fetch('/api/uploads', { method: 'POST', body: formData })
+                if (res.ok) {
+                    const data = await res.json()
+                    contractUrl = data.url
+                } else {
+                    console.error('Contract upload failed')
+                }
             }
 
             if (invoiceFile) {
-                const upload = await uploadToSupabase(invoiceFile, 'invoices');
-                if (upload) invoiceUrl = upload.url;
+                const formData = new FormData()
+                formData.append('file', invoiceFile)
+                const res = await fetch('/api/uploads', { method: 'POST', body: formData })
+                if (res.ok) {
+                    const data = await res.json()
+                    invoiceUrl = data.url
+                } else {
+                    console.error('Invoice upload failed')
+                }
             }
 
             const response = await fetch(`/api/events/${eventId}/vendors`, {

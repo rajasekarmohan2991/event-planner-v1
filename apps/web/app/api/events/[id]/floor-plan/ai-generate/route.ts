@@ -127,23 +127,30 @@ function generateModernLayout(analysis: any, eventId: string) {
     }
 
     // 3. ROUND TABLES (VIP / Premium)
-    // If Dance Floor exists, place around it. Else place in front of stage.
     if (analysis.roundTables > 0) {
         const tableSize = 100
-        const spacing = 140
+        const spacing = 220 // Increased from 140 to 220 to prevent chair overlap
+        const danceBuf = 60 // Buffer from dance floor
 
         if (analysis.hasDanceFloor) {
             // Flanking Tables (Left and Right of Dance Floor)
             const tablesPerSide = Math.ceil(analysis.roundTables / 2)
+            const colsPerSide = 2 // Hardcode max 2 columns for better layout
 
             // Left Side
             for (let i = 0; i < tablesPerSide; i++) {
-                const row = Math.floor(i / 2)
-                const col = i % 2
+                const row = Math.floor(i / colsPerSide)
+                const col = i % colsPerSide // 0 (Inner), 1 (Outer)
+
+                // Position calculation
+                // Start from Dance Floor edge moving Left
+                // DF Edge approx: CENTER_X - 125
+                const startX = CENTER_X - 125 - danceBuf - tableSize
+
                 objects.push({
                     id: `table-vip-l-${i}`,
                     type: 'ROUND_TABLE',
-                    x: CENTER_X - 250 - (col * spacing) - spacing, // Start from dance floor and go left
+                    x: startX - (col * spacing),
                     y: currentY + (row * spacing) + 20,
                     width: tableSize,
                     height: tableSize,
@@ -155,14 +162,20 @@ function generateModernLayout(analysis: any, eventId: string) {
                     strokeColor: '#d97706'
                 })
             }
+
             // Right Side
             for (let i = 0; i < tablesPerSide; i++) {
-                const row = Math.floor(i / 2)
-                const col = i % 2
+                const row = Math.floor(i / colsPerSide)
+                const col = i % colsPerSide
+
+                // Start from Dance Floor edge moving Right
+                // DF Edge approx: CENTER_X + 125
+                const startX = CENTER_X + 125 + danceBuf
+
                 objects.push({
                     id: `table-vip-r-${i}`,
                     type: 'ROUND_TABLE',
-                    x: CENTER_X + 250 + (col * spacing), // Start from dance floor and go right
+                    x: startX + (col * spacing),
                     y: currentY + (row * spacing) + 20,
                     width: tableSize,
                     height: tableSize,
@@ -176,7 +189,9 @@ function generateModernLayout(analysis: any, eventId: string) {
             }
 
             // Advance Y past dance floor/tables
-            currentY += Math.max(200, Math.ceil(tablesPerSide / 2) * spacing) + 50
+            // Calculate max rows used
+            const rowsUsed = Math.ceil(tablesPerSide / colsPerSide)
+            currentY += Math.max(200, rowsUsed * spacing) + 50
 
         } else {
             // No dance floor, just staggered rows

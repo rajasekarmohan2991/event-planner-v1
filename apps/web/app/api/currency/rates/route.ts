@@ -3,16 +3,29 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { updateExchangeRates } from '@/lib/exchange-rates'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
     try {
         // Return all rates based on USD
-        const rates = await prisma.exchangeRate.findMany({
+        let rates = await prisma.exchangeRate.findMany({
             where: { fromCurrency: 'USD' },
             select: { toCurrency: true, rate: true }
         });
+
+        // If no rates exist, fetch them automatically (lazy initialization)
+        if (rates.length === 0) {
+            console.log('💱 No exchange rates found, fetching from external API...')
+            const success = await updateExchangeRates()
+            if (success) {
+                rates = await prisma.exchangeRate.findMany({
+                    where: { fromCurrency: 'USD' },
+                    select: { toCurrency: true, rate: true }
+                })
+            }
+        }
 
         // Convert to map format expected by frontend
         const ratesMap: Record<string, number> = {};
@@ -26,8 +39,17 @@ export async function GET(req: NextRequest) {
             rates: ratesMap,
             lastUpdated: rates.length > 0 ? new Date() : null
         });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch rates' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Error fetching exchange rates:', error)
+
+        // Auto-heal if table is missing
+        if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
+            console.log('🩹 Self-repairing schema for Exchange Rates...')
+            await ensureSchema()
+            return NextResponse.json({ error: 'Schema updated. Please retry request.' }, { status: 503 })
+        }
+
+        return NextResponse.json({ error: 'Failed to fetch rates', details: error.message }, { status: 500 });
     }
 }
 
