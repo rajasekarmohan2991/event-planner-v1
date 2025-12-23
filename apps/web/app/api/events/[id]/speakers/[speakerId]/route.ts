@@ -43,6 +43,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
         event_id::text as "eventId"
     ` as any[]
 
+    // Update session link if provided
+    if (body.sessionId) {
+      // First remove existing links (assuming single session assignment for this UI)
+      await prisma.$executeRawUnsafe(`DELETE FROM session_speakers WHERE speaker_id = $1`, String(speakerId))
+
+      // Add new link
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO session_speakers (session_id, speaker_id) 
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+      `, String(body.sessionId), String(speakerId))
+    }
+
     if (!updated || updated.length === 0) {
       return NextResponse.json({ message: 'Speaker not found' }, { status: 404 })
     }

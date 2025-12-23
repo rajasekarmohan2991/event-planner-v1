@@ -36,7 +36,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             'startTime', s.start_time,
             'endTime', s.end_time,
             'room', s.room,
-            'track', s.track
+            'track', s.track,
+            'totalAttendees', COALESCE(s.capacity, 0)
           ))
           FROM session_speakers ss
           JOIN sessions s ON s.id = ss.session_id

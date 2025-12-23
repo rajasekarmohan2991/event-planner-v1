@@ -4,10 +4,10 @@ import { useSession } from "next-auth/react"
 import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
-import { Calendar, Clock, MapPin } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { format } from 'date-fns'
 
-type session = { id: string; title: string; startTime: string; endTime: string; room?: string; track?: string }
+type session = { id: string; title: string; startTime: string; endTime: string; room?: string; track?: string; totalAttendees?: number }
 type SpeakerItem = { id: number; name: string; title?: string; bio?: string; photoUrl?: string; createdAt?: string; sessions?: session[] }
 
 export default function EventSpeakersPage({ params }: { params: { id: string } }) {
@@ -259,6 +259,10 @@ function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem
                             <span>{session.room}</span>
                           </div>
                         )}
+                        <div className="flex items-center gap-1" title="Capacity/Attendees">
+                          <Users className="h-3 w-3" />
+                          <span>{session.totalAttendees || 0}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
