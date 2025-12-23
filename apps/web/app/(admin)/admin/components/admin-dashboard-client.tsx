@@ -27,7 +27,8 @@ export function AdminDashboardClient() {
     totalUsers: 0,
     recentRegistrations: 0,
     totalTickets: 0,
-    totalCompanies: 0
+    totalCompanies: 0,
+    rsvpStats: { total: 0, going: 0, interested: 0, notGoing: 0 }
   });
 
   const [recentActivities, setRecentActivities] = useState<ActivityType[]>([]);
@@ -200,11 +201,11 @@ export function AdminDashboardClient() {
           href="/admin/events"
         />
         <StatsCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={Users}
-          description="Registered users"
-          href="/admin/users"
+          title="RSVP Responses"
+          value={stats.rsvpStats?.total || 0}
+          icon={MessageSquare}
+          description={`Going: ${stats.rsvpStats?.going || 0} • Interest: ${stats.rsvpStats?.interested || 0}`}
+          href="/admin/events"
         />
         {companySettings ? (
           <StatsCard
@@ -415,8 +416,8 @@ export function AdminDashboardClient() {
                       {event.name}
                     </CardTitle>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                          'bg-blue-50 text-blue-700 border-blue-200'
+                      event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                        'bg-blue-50 text-blue-700 border-blue-200'
                       }`}>
                       {event.status || 'DRAFT'}
                     </span>

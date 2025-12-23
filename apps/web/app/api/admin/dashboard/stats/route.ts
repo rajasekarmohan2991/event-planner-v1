@@ -100,11 +100,29 @@ export async function GET(req: NextRequest) {
       totalCompanies = 0 // Regular admins don't manage companies
     }
 
+    // Fetch RSVP stats (Global or Tenant scoped)
+    const rsvpWhere = userRole === 'SUPER_ADMIN' ? {} : { tenantId: tenantId || 'default-tenant' }
+    const rsvpGroups = await prisma.rSVP.groupBy({
+      by: ['status'],
+      _count: {
+        status: true
+      },
+      where: rsvpWhere
+    })
+
+    const rsvpStats = {
+      total: rsvpGroups.reduce((acc: number, curr: any) => acc + curr._count.status, 0),
+      going: rsvpGroups.find((g: any) => g.status === 'GOING')?._count.status || 0,
+      interested: rsvpGroups.find((g: any) => g.status === 'INTERESTED')?._count.status || 0,
+      notGoing: rsvpGroups.find((g: any) => g.status === 'NOT_GOING')?._count.status || 0,
+    }
+
     console.log('Stats computed:', {
       totalEvents,
       upcomingEvents,
       totalUsers,
-      totalCompanies
+      totalCompanies,
+      rsvpStats
     })
 
     return NextResponse.json({
@@ -113,7 +131,8 @@ export async function GET(req: NextRequest) {
       totalUsers,
       recentRegistrations,
       totalTickets: 0, // Will implement when tickets table is properly set up
-      totalCompanies // Added for super admin dashboard
+      totalCompanies, // Added for super admin dashboard
+      rsvpStats
     })
 
   } catch (error: any) {

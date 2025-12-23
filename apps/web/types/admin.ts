@@ -4,6 +4,7 @@ export interface DashboardStats {
   totalUsers: number
   recentRegistrations: number
   totalTickets: number
+  rsvpStats?: { total: number; going: number; interested: number; notGoing: number }
 }
 
 export interface UserListResponse {
