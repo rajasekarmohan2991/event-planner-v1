@@ -18,12 +18,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const eventId = params.id
     const eventIdBigInt = BigInt(eventId)
     console.log('📡 Fetching team members for event (RAW SQL):', eventId)
+    console.log('🔍 Event ID type:', typeof eventId, 'Value:', eventId)
 
     // EventRoleAssignment columns (from probe): id, eventId, userId, role, siteId, createdAt, tenantId
     // These are camelCase WITHOUT quotes in the actual database
     const assignments = await prisma.$queryRaw`
       SELECT 
         a.id, 
+        a."eventId", 
         a."userId", 
         a.role, 
         a."createdAt",
@@ -33,11 +35,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         u.password_hash as "hasPassword"
       FROM "EventRoleAssignment" a
       LEFT JOIN users u ON a."userId"::text = u.id::text
-      WHERE a."eventId"::text = ${eventId}
+      WHERE a."eventId" = ${eventId}
       ORDER BY a."createdAt" DESC
     ` as any[]
 
     console.log(`✅ Found ${assignments.length} assignments for event ${eventId}`)
+    console.log('📋 Raw assignments:', JSON.stringify(assignments, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2))
 
     const items = assignments.map((a: any) => ({
       id: String(a.id),
