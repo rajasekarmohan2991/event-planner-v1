@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import QRCode from 'qrcode'
 
 export async function POST(
   req: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
     }
 
     const { paymentMethod, amount, status } = await req.json()
-    const eventId = parseInt(params.id)
+    const eventId = BigInt(params.id)
     const registrationId = params.registrationId
 
     // Update registration with payment information
@@ -46,7 +47,7 @@ export async function POST(
 
     // Record payment row for history
     try {
-      const amountInMinor = Math.round(Number(amount || 0) * 100) // Convert to minor units (paise)
+      const amountInMinor = Math.round(Number(amount || 0) * 100)
       const paymentStatus = Number(amount || 0) > 0 ? 'COMPLETED' : 'FREE'
 
       const paymentId = crypto.randomUUID()
@@ -85,7 +86,7 @@ export async function POST(
     // Generate QR code for paid registration
     const qrData = {
       registrationId: registration.id,
-      eventId: eventId,
+      eventId: params.id,
       email: registration.dataJson?.email,
       name: registration.dataJson?.name,
       type: registration.type,
@@ -93,8 +94,15 @@ export async function POST(
       timestamp: new Date().toISOString()
     }
 
-    const qrCode = Buffer.from(JSON.stringify(qrData)).toString('base64')
-    const checkInUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${eventId}/checkin?token=${qrCode}`
+    // Generate actual QR code image as data URL
+    let qrCodeDataURL = ''
+    try {
+      qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData))
+    } catch (qrError) {
+      console.error('QR code generation failed:', qrError)
+    }
+
+    const checkInUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/events/${params.id}/checkin?token=${Buffer.from(JSON.stringify(qrData)).toString('base64')}`
 
     // Send confirmation email with QR code
     try {
@@ -136,9 +144,9 @@ export async function POST(
                 <h3>📱 Your QR Code for Check-in</h3>
                 <p>Show this QR code at the event entrance:</p>
                 <div style="font-family: monospace; background: #f3f4f6; padding: 10px; margin: 10px 0; word-break: break-all; font-size: 10px;">
-                  ${qrCode}
+                  ${qrCodeDataURL}
                 </div>
-                <p><small>QR Code: ${qrCode.substring(0, 20)}...</small></p>
+                <p><small>QR Code: ${qrCodeDataURL.substring(0, 50)}...</small></p>
                 <a href="${checkInUrl}" class="button">Open Check-in Link</a>
               </div>
               
@@ -168,7 +176,7 @@ export async function POST(
           to: registration.dataJson?.email,
           subject: `Payment Confirmed - ${eventData?.name || 'Event Registration'}`,
           html: emailHtml,
-          text: `Payment confirmed for ${eventData?.name || 'Event'}. Registration ID: #${registration.id}. QR Code: ${qrCode}. Check-in URL: ${checkInUrl}`
+          text: `Payment confirmed for ${eventData?.name || 'Event'}. Registration ID: #${registration.id}. Check-in URL: ${checkInUrl}`
         })
       }).catch(err => console.error('Email send error:', err))
     } catch (emailError) {
@@ -184,7 +192,7 @@ export async function POST(
         status,
         transactionId: `txn_${Date.now()}_${Math.random().toString(36).slice(2)}`
       },
-      qrCode,
+      qrCode: qrCodeDataURL,
       checkInUrl
     })
 
