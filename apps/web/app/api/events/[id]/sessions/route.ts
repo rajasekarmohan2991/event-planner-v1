@@ -61,11 +61,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const eventId = BigInt(params.id); // Assuming ID is valid. If NaN, throws error (500).
+    const eventId = BigInt(params.id);
 
-    // 1. Fetch Event for Tenant
+    // 1. Fetch Event with dates
     const events = await prisma.$queryRaw`
-        SELECT tenant_id as "tenantId"
+        SELECT tenant_id as "tenantId", starts_at as "startsAt", ends_at as "endsAt", name
         FROM events 
         WHERE id = ${eventId} LIMIT 1
     ` as any[]
@@ -73,17 +73,47 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!events.length) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     const event = events[0];
 
-    // 2. Dates
+    // 2. Parse session dates
     let sessionStart = new Date(body.startTime);
     let sessionEnd = new Date(body.endTime);
 
-    // Safety check for Invalid Date
     if (isNaN(sessionStart.getTime())) sessionStart = new Date();
     if (isNaN(sessionEnd.getTime())) sessionEnd = new Date(sessionStart.getTime() + 3600000);
 
-    // Relaxed Validation: Only block if End is STRICTLY BEFORE Start
+    // Validation 1: End before start
     if (sessionEnd < sessionStart) {
       return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
+    }
+
+    // Validation 2: Within event dates
+    if (event.startsAt && event.endsAt) {
+      const eventStart = new Date(event.startsAt);
+      const eventEnd = new Date(event.endsAt);
+
+      if (sessionStart < eventStart || sessionEnd > eventEnd) {
+        return NextResponse.json({
+          error: `Session must be between ${eventStart.toLocaleString()} and ${eventEnd.toLocaleString()}`
+        }, { status: 400 });
+      }
+    }
+
+    // Validation 3: No time conflicts
+    const overlapping = await prisma.$queryRaw`
+      SELECT id, title, start_time, end_time
+      FROM sessions
+      WHERE event_id = ${eventId}
+        AND (
+          (${sessionStart} >= start_time AND ${sessionStart} < end_time)
+          OR (${sessionEnd} > start_time AND ${sessionEnd} <= end_time)
+          OR (${sessionStart} <= start_time AND ${sessionEnd} >= end_time)
+        )
+      LIMIT 1
+    ` as any[]
+
+    if (overlapping.length > 0) {
+      return NextResponse.json({
+        error: `Time conflicts with "${overlapping[0].title}"`
+      }, { status: 400 });
     }
 
     // 3. Insert Session

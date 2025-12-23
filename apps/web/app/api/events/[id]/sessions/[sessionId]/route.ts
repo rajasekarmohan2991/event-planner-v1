@@ -115,8 +115,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
         if (finalStart < eventStart || finalEnd > eventEnd) {
           return NextResponse.json({
             error: 'Session outside event hours',
-            message: `Session time (${finalStart.toLocaleString()} - ${finalEnd.toLocaleString()}) must be strictly within event duration (${eventStart.toLocaleString()} - ${eventEnd.toLocaleString()})`,
-            details: { eventStart, eventEnd }
+            message: `Session must be between ${eventStart.toLocaleString()} and ${eventEnd.toLocaleString()}`
+          }, { status: 400 });
+        }
+
+        // Check for time conflicts with other sessions (exclude current session)
+        const overlapping = await prisma.$queryRaw`
+          SELECT id, title
+          FROM sessions
+          WHERE event_id = ${eventId}
+            AND id != ${sessionId}
+            AND (
+              (${finalStart} >= start_time AND ${finalStart} < end_time)
+              OR (${finalEnd} > start_time AND ${finalEnd} <= end_time)
+              OR (${finalStart} <= start_time AND ${finalEnd} >= end_time)
+            )
+          LIMIT 1
+        ` as any[]
+
+        if (overlapping.length > 0) {
+          return NextResponse.json({
+            error: 'Time conflict',
+            message: `Session time conflicts with "${overlapping[0].title}"`
           }, { status: 400 });
         }
       }
