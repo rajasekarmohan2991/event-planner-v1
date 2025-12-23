@@ -409,46 +409,68 @@ export function AdminDashboardClient() {
         </Card>
       </div>
 
-      {/* Featured App Highlights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium opacity-90 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-300" />
-              Top Performing Event
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Recent Activity Feed */}
+        <Card className="lg:col-span-2 border shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="w-5 h-5 text-indigo-500" />
+              Recent System Activity
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.topEvents?.[0]?.name || 'No events yet'}</div>
-            <p className="text-indigo-100 text-sm mt-1">
-              {analytics?.topEvents?.[0]?.registrations || 0} registrations
-            </p>
+            <RecentActivity activities={recentActivities} isLoading={isLoading} />
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium opacity-90 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-white" />
-              User Engagement
+        {/* Quick Actions Panel */}
+        <Card className="lg:col-span-1 border shadow-sm h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Zap className="w-5 h-5 text-amber-500" />
+              Quick Actions
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics?.overview?.averageAttendance || 0}%</div>
-            <p className="text-emerald-100 text-sm mt-1">Average attendance rate</p>
-          </CardContent>
-        </Card>
+          <CardContent className="space-y-3">
+            <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors" variant="outline" onClick={() => router.push('/events/create')}>
+              <div className="bg-green-100 p-2 rounded-full mr-3">
+                <Plus className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Create New Event</span>
+                <span className="text-xs text-muted-foreground">Launch a new event page</span>
+              </div>
+            </Button>
 
-        <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium opacity-90 flex items-center gap-2">
-              <Server className="w-5 h-5 text-white" />
-              System Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Operational</div>
-            <p className="text-blue-100 text-sm mt-1">All systems normal</p>
+            <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors" variant="outline" onClick={() => router.push('/admin/users')}>
+              <div className="bg-blue-100 p-2 rounded-full mr-3">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Manage Users</span>
+                <span className="text-xs text-muted-foreground">View and edit user roles</span>
+              </div>
+            </Button>
+
+            <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors" variant="outline" onClick={() => router.push('/admin/analytics')}>
+              <div className="bg-purple-100 p-2 rounded-full mr-3">
+                <BarChart3 className="h-4 w-4 text-purple-600" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">View Analytics</span>
+                <span className="text-xs text-muted-foreground">Deep dive into data</span>
+              </div>
+            </Button>
+
+            <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-gray-50 hover:text-gray-900 transition-colors" variant="outline" onClick={() => router.push('/admin/settings')}>
+              <div className="bg-gray-100 p-2 rounded-full mr-3">
+                <Settings className="h-4 w-4 text-gray-600" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">System Settings</span>
+                <span className="text-xs text-muted-foreground">Configure platform</span>
+              </div>
+            </Button>
           </CardContent>
         </Card>
       </div>
