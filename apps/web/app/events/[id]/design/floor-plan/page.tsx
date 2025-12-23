@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import {
     ZoomIn, ZoomOut, Maximize2, RotateCw, Save,
-    Plus, Trash2, Move
+    Plus, Trash2, Move, Edit
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +37,8 @@ interface FloorPlanObject {
     label?: string
     isSelected?: boolean
     isTemporary?: boolean
+    gaps?: string[] // "row-col" of deleted seats
+    rowStart?: string // 'A', '1'
 }
 
 interface FloorPlan {
@@ -81,6 +83,7 @@ export default function FloorPlanDesignerPage() {
     const [loading, setLoading] = useState(false)
     const [registrations, setRegistrations] = useState<any[]>([])
     const [seats, setSeats] = useState<Map<string, any[]>>(new Map()) // objectId -> seats[]
+    const [isEditingSeats, setIsEditingSeats] = useState(false)
 
     // New object form
     const [newObject, setNewObject] = useState({
@@ -198,6 +201,30 @@ export default function FloorPlanDesignerPage() {
 
     // Add object to canvas
     const addObject = () => {
+        // Handle STAGE type
+        if (newObject.type === 'STAGE') {
+            const obj: FloorPlanObject = {
+                id: `stage-${Date.now()}`,
+                type: 'STAGE',
+                x: 100,
+                y: 50,
+                width: 400,
+                height: 100,
+                rotation: 0,
+                totalSeats: 0,
+                fillColor: '#f1f5f9',
+                strokeColor: '#94a3b8',
+                label: newObject.label || 'STAGE',
+                isTemporary: true
+            }
+            setFloorPlan(prev => ({
+                ...prev,
+                objects: [...prev.objects, obj]
+            }))
+            setShowAddDialog(false)
+            return
+        }
+
         const totalSeats = newObject.type === 'GRID'
             ? (newObject.rows || 0) * (newObject.cols || 0)
             : newObject.type === 'ROUND_TABLE' ? 8 : 0
@@ -226,8 +253,9 @@ export default function FloorPlanDesignerPage() {
             gender: newObject.gender,
             fillColor: color.fill,
             strokeColor: color.stroke,
-            label: newObject.label || `${newObject.type} ${floorPlan.objects.length + 1}`,
-            isTemporary: true
+            label: newObject.label || `${newObject.pricingTier} BLOCK`,
+            isTemporary: true,
+            gaps: []
         }
 
         setFloorPlan(prev => ({
@@ -266,26 +294,51 @@ export default function FloorPlanDesignerPage() {
 
     // Generate individual seats for an object
     const generateSeatsForObject = (obj: FloorPlanObject) => {
+        // Skip for STAGE
+        if (obj.type === 'STAGE') {
+            setSeats(prev => {
+                const newSeats = new Map(prev)
+                newSeats.set(obj.id, [])
+                return newSeats
+            })
+            return
+        }
+
         const generatedSeats: any[] = []
         const seatSize = 20
         const seatSpacing = 5
+        const gaps = new Set(obj.gaps || [])
 
         if (obj.type === 'GRID') {
             // Generate grid seats
             const rows = obj.rows || 10
             const cols = obj.cols || 10
+            const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
             for (let row = 0; row < rows; row++) {
+                // Determine Row Label
+                // 0->A, 1->B ... 26->AA? For simplicity just A..Z then A1..Z1
+                let rowLabel = labelsStr[row % 26]
+                if (row >= 26) rowLabel += Math.floor(row / 26)
+
                 for (let col = 0; col < cols; col++) {
-                    const seatLabel = `${obj.label?.charAt(0) || 'A'}${row + 1}-${col + 1}`
+                    // Check Gap
+                    if (gaps.has(`${row}-${col}`)) continue
+
+                    const seatNumber = col + 1
+                    const seatLabel = `${rowLabel}${seatNumber}`
+
                     generatedSeats.push({
                         id: `${obj.id}-${row}-${col}`,
                         label: seatLabel,
-                        x: obj.x + (col * (seatSize + seatSpacing)),
+                        displayNumber: `${seatNumber}`,
+                        x: obj.x + (col * (seatSize + seatSpacing)) + 30, // Offset for Row Label
                         y: obj.y + (row * (seatSize + seatSpacing)),
                         rotation: 0,
                         status: 'AVAILABLE',
-                        type: 'CHAIR'
+                        type: 'CHAIR',
+                        rowIndex: row,
+                        colIndex: col
                     })
                 }
             }
@@ -391,6 +444,32 @@ export default function FloorPlanDesignerPage() {
             }))
             setSelectedObject(null)
         }
+    }
+
+    // Handle seat toggle (Gap editing)
+    const handleSeatToggle = (obj: FloorPlanObject, row: number, col: number, e: React.MouseEvent) => {
+        if (!isEditingSeats) return;
+        e.stopPropagation();
+
+        const gapKey = `${row}-${col}`
+        const currentGaps = new Set(obj.gaps || [])
+
+        if (currentGaps.has(gapKey)) {
+            currentGaps.delete(gapKey)
+        } else {
+            currentGaps.add(gapKey)
+        }
+
+        const updatedGaps = Array.from(currentGaps)
+        const updatedObj = { ...obj, gaps: updatedGaps }
+
+        setFloorPlan(prev => ({
+            ...prev,
+            objects: prev.objects.map(o => o.id === obj.id ? updatedObj : o)
+        }))
+
+        setSelectedObject(updatedObj)
+        generateSeatsForObject(updatedObj)
     }
 
     // Calculate analytics
@@ -635,10 +714,42 @@ export default function FloorPlanDesignerPage() {
                                                 {/* Objects with Individual Seats */}
                                                 {floorPlan.objects.map((obj) => {
                                                     const objectSeats = seats.get(obj.id) || []
+                                                    const isSelected = selectedObject?.id === obj.id
+
+                                                    if (obj.type === 'STAGE') {
+                                                        return (
+                                                            <g key={obj.id}
+                                                                transform={`translate(${obj.x}, ${obj.y})`}
+                                                                onClick={(e) => handleObjectClick(obj, e)}
+                                                                onMouseDown={(e) => handleObjectMouseDown(obj, e)}
+                                                                style={{ cursor: 'move' }}
+                                                            >
+                                                                <path
+                                                                    d={`M0,0 L${obj.width},0 L${obj.width * 0.9},${obj.height} L${obj.width * 0.1},${obj.height} Z`}
+                                                                    fill={obj.fillColor}
+                                                                    stroke={isSelected ? '#000' : obj.strokeColor}
+                                                                    strokeWidth={isSelected ? 2 : 1}
+                                                                    opacity={0.5}
+                                                                />
+                                                                <text
+                                                                    x={obj.width / 2}
+                                                                    y={obj.height / 2}
+                                                                    textAnchor="middle"
+                                                                    dominantBaseline="middle"
+                                                                    fill="#475569"
+                                                                    fontWeight="bold"
+                                                                    fontSize="14"
+                                                                    pointerEvents="none"
+                                                                >
+                                                                    {obj.label}
+                                                                </text>
+                                                            </g>
+                                                        )
+                                                    }
 
                                                     return (
                                                         <g key={obj.id}>
-                                                            {/* Background shape for object (lighter, for context) */}
+                                                            {/* Background shape for object */}
                                                             <g
                                                                 transform={`translate(${obj.x}, ${obj.y})`}
                                                                 onClick={(e) => handleObjectClick(obj, e)}
@@ -651,8 +762,8 @@ export default function FloorPlanDesignerPage() {
                                                                         cy={obj.height / 2}
                                                                         r={obj.width / 2}
                                                                         fill={obj.fillColor}
-                                                                        stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
-                                                                        strokeWidth={selectedObject?.id === obj.id ? 3 : 1}
+                                                                        stroke={isSelected ? '#000' : obj.strokeColor}
+                                                                        strokeWidth={isSelected ? 2 : 1}
                                                                         opacity={0.3}
                                                                     />
                                                                 ) : (
@@ -660,14 +771,34 @@ export default function FloorPlanDesignerPage() {
                                                                         width={obj.width}
                                                                         height={obj.height}
                                                                         fill={obj.fillColor}
-                                                                        stroke={selectedObject?.id === obj.id ? '#000' : obj.strokeColor}
-                                                                        strokeWidth={selectedObject?.id === obj.id ? 3 : 1}
+                                                                        stroke={isSelected ? '#000' : obj.strokeColor}
+                                                                        strokeWidth={isSelected ? 2 : 1}
                                                                         rx={4}
                                                                         opacity={0.2}
                                                                     />
                                                                 )}
 
-                                                                {/* Section Label */}
+                                                                {/* Row Labels for Grid */}
+                                                                {obj.type === 'GRID' && Array.from({ length: obj.rows || 0 }).map((_, i) => {
+                                                                    const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                                                                    let rowLabel = labelsStr[i % 26]
+                                                                    if (i >= 26) rowLabel += Math.floor(i / 26)
+                                                                    return (
+                                                                        <text
+                                                                            key={`row-${i}`}
+                                                                            x="15"
+                                                                            y={i * 25 + 15} // Approx row height matching seat spacing
+                                                                            fontSize="12"
+                                                                            fontWeight="bold"
+                                                                            fill="#64748b"
+                                                                            textAnchor="middle"
+                                                                            dominantBaseline="middle"
+                                                                        >
+                                                                            {rowLabel}
+                                                                        </text>
+                                                                    )
+                                                                })}
+
                                                                 <text
                                                                     x={obj.width / 2}
                                                                     y={obj.type === 'ROUND_TABLE' ? obj.height / 2 : 10}
@@ -682,29 +813,55 @@ export default function FloorPlanDesignerPage() {
                                                                 </text>
                                                             </g>
 
-                                                            {/* Individual Seats */}
-                                                            {objectSeats.map((seat: any) => (
-                                                                seat.type === 'TABLE_SEAT' ? (
-                                                                    <TableSeatIcon
-                                                                        key={seat.id}
-                                                                        x={seat.x}
-                                                                        y={seat.y}
-                                                                        rotation={seat.rotation}
-                                                                        status={seat.status}
-                                                                        label={seat.label}
-                                                                        size={15}
-                                                                    />
-                                                                ) : (
-                                                                    <ChairIcon
-                                                                        key={seat.id}
-                                                                        x={seat.x}
-                                                                        y={seat.y}
-                                                                        rotation={seat.rotation}
-                                                                        status={seat.status}
-                                                                        label={seat.label}
-                                                                        size={20}
+                                                            {/* Ghost Seats (Gaps) - Only in Edit Mode */}
+                                                            {isEditingSeats && isSelected && obj.gaps?.map(gap => {
+                                                                const [r, c] = gap.split('-').map(Number)
+                                                                const seatSize = 20
+                                                                const seatSpacing = 5
+                                                                const sx = obj.x + (c * (seatSize + seatSpacing)) + 30
+                                                                const sy = obj.y + (r * (seatSize + seatSpacing))
+                                                                return (
+                                                                    <rect key={gap}
+                                                                        x={sx} y={sy} width={seatSize} height={seatSize}
+                                                                        fill="white" stroke="#cbd5e1" strokeDasharray="2 2"
+                                                                        onClick={(e) => handleSeatToggle(obj, r, c, e)}
+                                                                        style={{ cursor: 'pointer' }}
                                                                     />
                                                                 )
+                                                            })}
+
+                                                            {/* Individual Seats */}
+                                                            {objectSeats.map((seat: any) => (
+                                                                <g key={seat.id}
+                                                                    onClick={(e) => isEditingSeats && isSelected ? handleSeatToggle(obj, seat.rowIndex, seat.colIndex, e) : null}
+                                                                    style={{ cursor: isEditingSeats && isSelected ? 'pointer' : 'default' }}
+                                                                >
+                                                                    {seat.type === 'TABLE_SEAT' ? (
+                                                                        <TableSeatIcon
+                                                                            x={seat.x} y={seat.y}
+                                                                            rotation={seat.rotation}
+                                                                            status={seat.status}
+                                                                            label={seat.label} size={15}
+                                                                        />
+                                                                    ) : (
+                                                                        <>
+                                                                            <ChairIcon
+                                                                                x={seat.x} y={seat.y}
+                                                                                rotation={seat.rotation}
+                                                                                status={seat.status}
+                                                                                label={seat.label} size={20}
+                                                                            />
+                                                                            {/* Render Seat Number for Clarity */}
+                                                                            <text
+                                                                                x={seat.x + 10} y={seat.y + 10}
+                                                                                textAnchor="middle" dominantBaseline="middle"
+                                                                                fontSize="8" fill="white" pointerEvents="none"
+                                                                            >
+                                                                                {seat.displayNumber}
+                                                                            </text>
+                                                                        </>
+                                                                    )}
+                                                                </g>
                                                             ))}
                                                         </g>
                                                     )
@@ -743,6 +900,19 @@ export default function FloorPlanDesignerPage() {
                                         className="h-8 text-sm"
                                     />
                                 </div>
+                                {selectedObject.type === 'GRID' && (
+                                    <div className="pb-2">
+                                        <Button
+                                            variant={isEditingSeats ? "default" : "secondary"}
+                                            size="sm"
+                                            className="w-full"
+                                            onClick={() => setIsEditingSeats(!isEditingSeats)}
+                                        >
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            {isEditingSeats ? "Done Editing Layout" : "Edit Seat Layout"}
+                                        </Button>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
                                         <Label className="text-xs">X</Label>
