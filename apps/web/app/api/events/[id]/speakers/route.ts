@@ -28,7 +28,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         event_id::text as "eventId",
         tenant_id as "tenantId",
         created_at as "createdAt",
-        updated_at as "updatedAt"
+        updated_at as "updatedAt",
+        (
+          SELECT json_agg(json_build_object(
+            'id', s.id::text,
+            'title', s.title,
+            'startTime', s.start_time,
+            'endTime', s.end_time,
+            'room', s.room,
+            'track', s.track
+          ))
+          FROM session_speakers ss
+          JOIN sessions s ON s.id = ss.session_id
+          WHERE ss.speaker_id = speakers.id
+        ) as sessions
       FROM speakers
       WHERE event_id = ${eventId}
       ORDER BY created_at DESC

@@ -4,8 +4,11 @@ import { useSession } from "next-auth/react"
 import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
+import { Calendar, Clock, MapPin } from 'lucide-react'
+import { format } from 'date-fns'
 
-type SpeakerItem = { id: number; name: string; title?: string; bio?: string; photoUrl?: string; createdAt?: string }
+type session = { id: string; title: string; startTime: string; endTime: string; room?: string; track?: string }
+type SpeakerItem = { id: number; name: string; title?: string; bio?: string; photoUrl?: string; createdAt?: string; sessions?: session[] }
 
 export default function EventSpeakersPage({ params }: { params: { id: string } }) {
   const { status } = useSession()
@@ -221,18 +224,58 @@ function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem
   return (
     <li className="p-3">
       {!editing ? (
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {item.photoUrl ? <img src={item.photoUrl} alt={item.name} className="h-8 w-8 rounded-full object-cover" /> : <AvatarIcon seed={`speaker:${item.name}`} size={32} query="speaker,portrait,person" />}
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{item.name}</div>
-              {item.title ? <div className="text-xs text-slate-500 truncate">{item.title}</div> : null}
+            {item.photoUrl ? (
+              <img src={item.photoUrl} alt={item.name} className="h-10 w-10 rounded-full object-cover border border-slate-200" />
+            ) : (
+              <AvatarIcon seed={`speaker:${item.name}`} size={40} query="speaker,portrait,person" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-slate-900">{item.name}</div>
+              {item.title && <div className="text-xs text-slate-500 mb-1">{item.title}</div>}
+
+              {/* Session / Calendar Details */}
+              {item.sessions && item.sessions.length > 0 ? (
+                <div className="mt-2 space-y-1.5">
+                  {item.sessions.map((session) => (
+                    <div key={session.id} className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs bg-slate-50 border border-slate-100 rounded-md p-2">
+                      <div className="font-semibold text-indigo-600 truncate max-w-[200px]" title={session.title}>
+                        {session.title}
+                      </div>
+                      <div className="flex items-center gap-3 text-slate-500">
+                        <div className="flex items-center gap-1" title="Date">
+                          <Calendar className="h-3 w-3" />
+                          <span>{format(new Date(session.startTime), 'MMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-1" title="Time">
+                          <Clock className="h-3 w-3" />
+                          <span>{format(new Date(session.startTime), 'h:mm a')} – {format(new Date(session.endTime), 'h:mm a')}</span>
+                        </div>
+                        {session.room && (
+                          <div className="flex items-center gap-1" title="Venue">
+                            <MapPin className="h-3 w-3" />
+                            <span>{session.room}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-1 text-xs text-slate-400 italic">No assigned sessions</div>
+              )}
             </div>
           </div>
+
           <div className="flex items-center gap-2">
-            <button onClick={() => setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
-            <button onClick={del} className="rounded-md border border-rose-300 text-rose-700 px-2 py-1 text-xs hover:bg-rose-50">Delete</button>
+            <button onClick={() => setEditing(true)} className="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-600">
+              Edit
+            </button>
+            <button onClick={del} className="rounded-md border border-rose-200 text-rose-600 px-2.5 py-1.5 text-xs font-medium hover:bg-rose-50">
+              Delete
+            </button>
           </div>
         </div>
       ) : (
