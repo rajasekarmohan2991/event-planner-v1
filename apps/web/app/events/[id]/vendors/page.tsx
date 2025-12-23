@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, FileText, FileCheck } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import ManageTabs from '@/components/events/ManageTabs'
+import { uploadToSupabase } from '@/lib/supabase-storage'
 
 const CATEGORIES = ['CATERING', 'VENUE', 'PHOTOGRAPHY', 'ENTERTAINMENT', 'DECORATION', 'OTHER'] as const
 
@@ -25,6 +26,8 @@ interface Vendor {
     contactName?: string
     contactEmail?: string
     contactPhone?: string
+    contractUrl?: string
+    invoiceUrl?: string
 }
 
 interface Budget {
@@ -58,6 +61,9 @@ export default function EventVendorsPage() {
         notes: '',
         requirements: ''
     })
+
+    const [contractFile, setContractFile] = useState<File | null>(null)
+    const [invoiceFile, setInvoiceFile] = useState<File | null>(null)
 
     // Fetch budgets and vendors
     useEffect(() => {
@@ -152,6 +158,20 @@ export default function EventVendorsPage() {
         try {
             setLoading(true)
 
+            let contractUrl = '';
+            let invoiceUrl = '';
+
+            // Upload files if present
+            if (contractFile) {
+                const upload = await uploadToSupabase(contractFile, 'contracts');
+                if (upload) contractUrl = upload.url;
+            }
+
+            if (invoiceFile) {
+                const upload = await uploadToSupabase(invoiceFile, 'invoices');
+                if (upload) invoiceUrl = upload.url;
+            }
+
             const response = await fetch(`/api/events/${eventId}/vendors`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -166,6 +186,8 @@ export default function EventVendorsPage() {
                     paymentStatus: vendorForm.paymentStatus,
                     paymentDueDate: vendorForm.paymentDueDate || null,
                     status: vendorForm.status,
+                    contractUrl,
+                    invoiceUrl,
                     notes: `${vendorForm.notes || ''}${vendorForm.requirements ? '\n\nRequirements:\n' + vendorForm.requirements : ''}`
                 })
             })
@@ -188,6 +210,8 @@ export default function EventVendorsPage() {
                     notes: '',
                     requirements: ''
                 })
+                setContractFile(null)
+                setInvoiceFile(null)
                 setSelectedCategory('')
                 setIsAddingVendor(false)
 
@@ -246,6 +270,16 @@ export default function EventVendorsPage() {
                                     </div>
 
                                     <div className="flex items-center gap-2 ml-2">
+                                        {vendor.contractUrl && (
+                                            <a href={vendor.contractUrl} target="_blank" rel="noopener noreferrer" title="View Contract" className="text-blue-600 hover:text-blue-800">
+                                                <FileText className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                        {vendor.invoiceUrl && (
+                                            <a href={vendor.invoiceUrl} target="_blank" rel="noopener noreferrer" title="View Invoice" className="text-green-600 hover:text-green-800">
+                                                <FileCheck className="h-4 w-4" />
+                                            </a>
+                                        )}
                                         <Badge
                                             variant={
                                                 vendor.status === 'BOOKED' ? 'secondary' :
@@ -431,6 +465,28 @@ export default function EventVendorsPage() {
                                 value={vendorForm.paymentDueDate}
                                 onChange={(e) => setVendorForm(prev => ({ ...prev, paymentDueDate: e.target.value }))}
                             />
+                        </div>
+
+                        {/* File Uploads */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="contractFile">Contract File</Label>
+                                <Input
+                                    id="contractFile"
+                                    type="file"
+                                    onChange={(e) => setContractFile(e.target.files?.[0] || null)}
+                                />
+                                {contractFile && <p className="text-xs text-green-600">Selected: {contractFile.name}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="invoiceFile">Invoice File</Label>
+                                <Input
+                                    id="invoiceFile"
+                                    type="file"
+                                    onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+                                />
+                                {invoiceFile && <p className="text-xs text-green-600">Selected: {invoiceFile.name}</p>}
+                            </div>
                         </div>
 
                         {/* Vendor Status */}
