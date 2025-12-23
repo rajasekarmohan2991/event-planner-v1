@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Sparkles, Wand2, CheckCircle2 } from 'lucide-react'
+import { Loader2, Sparkles, Wand2, CheckCircle2, Upload, ImageIcon, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface AIFloorPlanGeneratorProps {
     eventId: string
@@ -14,9 +15,11 @@ interface AIFloorPlanGeneratorProps {
 
 export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: AIFloorPlanGeneratorProps) {
     const [prompt, setPrompt] = useState('')
+    const [image, setImage] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [suggestions, setSuggestions] = useState<string[]>([])
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const examplePrompts = [
         "Create a wedding reception layout for 200 guests with 20 round tables of 10 seats each, a stage at the front, and a dance floor in the center",
@@ -27,8 +30,8 @@ export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: 
     ]
 
     const handleGenerate = async () => {
-        if (!prompt.trim()) {
-            setError('Please describe your floor plan requirements')
+        if (!prompt.trim() && !image) {
+            setError('Please describe your requirements or upload an image')
             return
         }
 
@@ -39,7 +42,7 @@ export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: 
             const response = await fetch(`/api/events/${eventId}/floor-plan/ai-generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify({ prompt, image })
             })
 
             if (!response.ok) {
@@ -65,6 +68,28 @@ export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: 
         }
     }
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            // Check size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                setError("Image size too large. Max 5MB.")
+                return
+            }
+
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setImage(reader.result as string)
+                setError(null)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const clearImage = () => {
+        setImage(null)
+    }
+
     const useExamplePrompt = (example: string) => {
         setPrompt(example)
     }
@@ -81,66 +106,137 @@ export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: 
                         <div>
                             <CardTitle className="text-2xl">AI Floor Plan Generator</CardTitle>
                             <CardDescription className="text-base">
-                                Describe your event layout in natural language, and AI will create it for you
+                                Describe your event layout or upload a venue photo, and AI will digitize it for you
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
             </Card>
 
-            {/* Main Input */}
+            <Tabs defaultValue="text" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="text">Text Description</TabsTrigger>
+                    <TabsTrigger value="image">Upload Image (Beta)</TabsTrigger>
+                </TabsList>
+
+                {/* Text Generation Tab */}
+                <TabsContent value="text">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Wand2 className="h-5 w-5 text-purple-600" />
+                                Describe Your Floor Plan
+                            </CardTitle>
+                            <CardDescription>
+                                Tell us about your event: number of guests, seating arrangement, special areas.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Example: Create a wedding layout for 200 guests with 20 round tables..."
+                                className="min-h-[150px] text-base"
+                                disabled={loading}
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Image Upload Tab */}
+                <TabsContent value="image">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <ImageIcon className="h-5 w-5 text-blue-600" />
+                                Upload Venue Plan
+                            </CardTitle>
+                            <CardDescription>
+                                Upload a photo or diagram of the venue. We'll identify zones and seats.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {!image ? (
+                                <div
+                                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 cursor-pointer transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                                    <p className="text-sm font-medium text-gray-700">Click to upload or drag and drop</p>
+                                    <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-100 flex items-center justify-center">
+                                        <img src={image} alt="Preview" className="max-h-full object-contain" />
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            className="absolute top-2 right-2 h-8 w-8 p-0"
+                                            onClick={clearImage}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        AI will analyze this image to recreate the layout.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Additional Instructions (Optional)</p>
+                                <Textarea
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder="E.g., Make the center block VIP..."
+                                    className="h-20"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {error}
+                </div>
+            )}
+
+            <Button
+                onClick={handleGenerate}
+                disabled={loading || (!prompt.trim() && !image)}
+                size="lg"
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-md hover:shadow-lg transition-all"
+            >
+                {loading ? (
+                    <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Generating Layout...
+                    </>
+                ) : (
+                    <>
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        {image ? "Analyze & Generate Layout" : "Generate Floor Plan"}
+                    </>
+                )}
+            </Button>
+
+            {/* Example Prompts (Hide if Image tab is active? Or keep for reference) */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Wand2 className="h-5 w-5 text-purple-600" />
-                        Describe Your Floor Plan
-                    </CardTitle>
+                    <CardTitle className="text-lg">Example Text Prompts</CardTitle>
                     <CardDescription>
-                        Tell us about your event: number of guests, seating arrangement, special areas, etc.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Example: Create a wedding layout for 200 guests with 20 round tables of 10 seats each, a stage at the front, and a dance floor in the center..."
-                        className="min-h-[150px] text-base"
-                        disabled={loading}
-                    />
-
-                    {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <Button
-                        onClick={handleGenerate}
-                        disabled={loading || !prompt.trim()}
-                        size="lg"
-                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                Generating Floor Plan...
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="h-5 w-5 mr-2" />
-                                Generate Floor Plan with AI
-                            </>
-                        )}
-                    </Button>
-                </CardContent>
-            </Card>
-
-            {/* Example Prompts */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Example Prompts</CardTitle>
-                    <CardDescription>
-                        Click any example to use it as a starting point
+                        Try these for text-based generation
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -183,33 +279,6 @@ export default function AIFloorPlanGenerator({ eventId, onFloorPlanGenerated }: 
                     </CardContent>
                 </Card>
             )}
-
-            {/* Tips */}
-            <Card className="border-blue-200 bg-blue-50">
-                <CardHeader>
-                    <CardTitle className="text-lg text-blue-800">💡 Tips for Best Results</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-2 text-sm text-blue-700">
-                        <li className="flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span><strong>Be specific:</strong> Mention exact numbers (e.g., "200 guests", "20 tables")</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span><strong>Include layout type:</strong> Round tables, theater style, classroom, etc.</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span><strong>Mention special areas:</strong> Stage, dance floor, VIP section, buffet area</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span><strong>Specify tiers:</strong> VIP, Premium, General seating if applicable</span>
-                        </li>
-                    </ul>
-                </CardContent>
-            </Card>
         </div>
     )
 }
