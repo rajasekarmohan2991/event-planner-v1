@@ -192,7 +192,7 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <ManageTabs eventId={params?.id || ''} />
-      <header className="sticky top-16 z-60 bg-white/95 backdrop-blur-sm shadow-sm rounded-lg px-4 py-3 flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-2">
+      <header className="sticky top-14 z-60 bg-white/95 backdrop-blur-sm shadow-sm rounded-lg px-4 py-3 flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-2">
         <div className="flex flex-wrap items-center gap-4">
           <div className="text-xs inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50">
             <span className={`inline-block h-2 w-2 rounded-full ${event.status === 'LIVE' ? 'bg-emerald-500' : event.status === 'CANCELLED' ? 'bg-rose-500' : event.status === 'TRASHED' ? 'bg-zinc-400' : 'bg-indigo-500'}`} />
