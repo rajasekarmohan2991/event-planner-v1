@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { validateSponsorForm } from '@/types/sponsor'
 
 // PRODUCTION SCHEMA: sponsors has event_id (bigint)
 // Columns: id, created_at, logo_url, name, tier, updated_at, website, event_id
+// New Columns (JSONB): contact_data, payment_data, branding_online, branding_offline, event_presence, giveaway_data, legal_data, timeline_data, post_event_data
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -23,6 +25,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         tier,
         logo_url as "logoUrl",
         website,
+        contact_data as "contactData",
+        payment_data as "paymentData",
+        branding_online as "brandingOnline",
+        branding_offline as "brandingOffline",
+        event_presence as "eventPresence",
+        giveaway_data as "giveawayData",
+        legal_data as "legalData",
+        timeline_data as "timelineData",
+        post_event_data as "postEventData",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM sponsors
@@ -56,16 +67,35 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const raw = await req.json()
     const eventId = BigInt(params.id)
 
+    // Validate
+    const errors = validateSponsorForm(raw)
+    if (errors.length > 0) {
+      return NextResponse.json({ message: 'Validation failed', errors }, { status: 400 })
+    }
+
     const result = await prisma.$queryRaw`
       INSERT INTO sponsors (
-        event_id, name, tier, logo_url, website, created_at, updated_at
+        event_id, name, tier, logo_url, website,
+        contact_data, payment_data, branding_online, branding_offline,
+        event_presence, giveaway_data, legal_data, timeline_data, post_event_data,
+        created_at, updated_at
       ) VALUES (
-        ${eventId}, ${raw.name}, ${raw.tier || 'BRONZE'}, ${raw.logoUrl || null}, ${raw.website || null}, NOW(), NOW()
+        ${eventId}, ${raw.name}, ${raw.tier || 'BRONZE'}, ${raw.logoUrl || null}, ${raw.website || null},
+        ${JSON.stringify(raw.contactData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.paymentData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.brandingOnline || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.brandingOffline || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.eventPresence || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.giveawayData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.legalData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.timelineData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.postEventData || {}) || '{}'}::jsonb,
+        NOW(), NOW()
       )
-      RETURNING id::text as id, name, tier, logo_url as "logoUrl", website
+      RETURNING id::text as id
     ` as any[]
 
-    return NextResponse.json(result[0])
+    return NextResponse.json({ success: true, id: result[0].id })
 
   } catch (error: any) {
     console.error('Create sponsor failed:', error)
