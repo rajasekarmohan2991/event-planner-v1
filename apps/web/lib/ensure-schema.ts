@@ -49,6 +49,35 @@ export async function ensureSchema() {
       );
     `)
 
+    // 4. Floor Plans Table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS floor_plans (
+        id TEXT PRIMARY KEY,
+        "eventId" BIGINT NOT NULL, 
+        tenant_id TEXT,
+        name TEXT NOT NULL,
+        description TEXT,
+        "canvasWidth" INTEGER DEFAULT 1200,
+        "canvasHeight" INTEGER DEFAULT 800,
+        "backgroundColor" TEXT DEFAULT '#ffffff',
+        "gridSize" INTEGER DEFAULT 20,
+        "vipPrice" DECIMAL(10,2) DEFAULT 0,
+        "premiumPrice" DECIMAL(10,2) DEFAULT 0,
+        "generalPrice" DECIMAL(10,2) DEFAULT 0,
+        "totalCapacity" INTEGER DEFAULT 0,
+        "vipCapacity" INTEGER DEFAULT 0,
+        "premiumCapacity" INTEGER DEFAULT 0,
+        "generalCapacity" INTEGER DEFAULT 0,
+        "menCapacity" INTEGER DEFAULT 0,
+        "womenCapacity" INTEGER DEFAULT 0,
+        "layoutData" JSONB DEFAULT '{}',
+        status TEXT DEFAULT 'DRAFT',
+        version INTEGER DEFAULT 1,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+
     console.log('✅ Self-healing schema update complete.')
     return true
   } catch (error) {

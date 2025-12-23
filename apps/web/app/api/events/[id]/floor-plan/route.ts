@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,6 +77,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         })
     } catch (error: any) {
         console.error('❌ [FloorPlan GET] Error fetching floor plans:', error)
+
+        // Auto-heal
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+            await ensureSchema()
+            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+        }
+
         console.error('❌ [FloorPlan GET] Error stack:', error.stack)
         return NextResponse.json({
             message: 'Failed to load floor plans',
@@ -147,6 +155,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     } catch (error: any) {
         console.error('❌ Error creating floor plan:', error)
+
+        // Auto-heal
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+            await ensureSchema()
+            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+        }
+
         return NextResponse.json({
             message: 'Failed to create floor plan',
             error: error.message
