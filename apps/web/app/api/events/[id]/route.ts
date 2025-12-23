@@ -9,28 +9,42 @@ const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLI
 const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  // Check permission for deleting events
-  const permissionError = await checkPermissionInRoute('events.delete')
-  if (permissionError) return permissionError
+  console.log(`🗑️ DELETE request for event ${params.id}`)
 
   const session = await getServerSession(authOptions as any)
 
-  // Check authentication
+  // Check authentication first
   if (!session || !(session as any).user) {
+    console.log('❌ DELETE failed: Not authenticated')
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   }
 
-  // Role check is handled by checkPermissionInRoute ('events.delete')
-  // TENANT_ADMIN has this permission via middleware
-  const tenantRole = (session as any)?.user?.tenantRole as string | undefined
-  const role = tenantRole || ((session as any)?.user?.role as string | undefined)
-  console.log(`🗑️ DELETE event ${params.id} - User role: ${role}`)
+  const user = (session as any).user
+  const tenantRole = user?.tenantRole as string | undefined
+  const systemRole = user?.role as string | undefined
+  const effectiveRole = tenantRole || systemRole
 
-  const accessToken = (session as any)?.accessToken as string | undefined
-  const userId = (session as any)?.user?.id
+  console.log(`🔍 DELETE - User info:`, {
+    email: user?.email,
+    systemRole,
+    tenantRole,
+    effectiveRole
+  })
 
-  // Check role permissions locally since we are bypassing the remote API
-  // TENANT_ADMIN has 'events.delete' via middleware check above.
+  // TENANT_ADMIN and SUPER_ADMIN should always be able to delete events
+  const isAdmin = effectiveRole === 'TENANT_ADMIN' || effectiveRole === 'SUPER_ADMIN' || systemRole === 'SUPER_ADMIN'
+
+  if (!isAdmin) {
+    // Check permission for other roles
+    console.log('🔍 Checking permissions for non-admin role...')
+    const permissionError = await checkPermissionInRoute('events.delete', 'Delete Event')
+    if (permissionError) {
+      console.log('❌ DELETE failed: Permission denied')
+      return permissionError
+    }
+  } else {
+    console.log('✅ Admin access granted, skipping permission check')
+  }
 
   const eventIdBigInt = BigInt(params.id)
   const eventIdString = params.id
