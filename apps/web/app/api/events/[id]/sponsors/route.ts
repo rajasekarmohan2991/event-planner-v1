@@ -3,10 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { validateSponsorForm } from '@/types/sponsor'
-
-// PRODUCTION SCHEMA: sponsors has event_id (bigint)
-// Columns: id, created_at, logo_url, name, tier, updated_at, website, event_id
-// New Columns (JSONB): contact_data, payment_data, branding_online, branding_offline, event_presence, giveaway_data, legal_data, timeline_data, post_event_data
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -55,6 +52,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
   } catch (e: any) {
     console.error('❌ Sponsors error:', e.message)
+    // Attempt self-repair if column missing
+    if (e.message.includes('column') || e.message.includes('relation')) {
+      await ensureSchema()
+      return NextResponse.json({ message: 'Database schema updated. Please retry.' }, { status: 503 })
+    }
     return NextResponse.json({ message: 'Failed to load sponsors', error: e.message }, { status: 500 })
   }
 }

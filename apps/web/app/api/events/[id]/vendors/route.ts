@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
+import { ensureSchema } from '@/lib/ensure-schema'
 
-// Production schema: event_vendors has event_id (TEXT)
+// ...
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions as any)
@@ -53,6 +54,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
   } catch (error: any) {
     console.error('Error fetching vendors:', error)
+    // Attempt self-repair
+    if (error.message.includes('relation') || error.message.includes('does not exist')) {
+      await ensureSchema()
+      return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+    }
     return NextResponse.json({ message: 'Failed to fetch vendors', error: error.message }, { status: 500 })
   }
 }
