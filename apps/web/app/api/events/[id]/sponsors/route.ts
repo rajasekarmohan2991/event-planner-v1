@@ -101,6 +101,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('Create sponsor failed:', error)
+    if (error.message.includes('column') || error.message.includes('relation')) {
+      await ensureSchema()
+      return NextResponse.json({ message: 'System updated. Please try saving again.' }, { status: 503 })
+    }
     return NextResponse.json({ message: error.message }, { status: 500 })
   }
 }

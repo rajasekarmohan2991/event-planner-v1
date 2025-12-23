@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { ensureSchema } from '@/lib/ensure-schema'
 
-// ...
+// Production schema: event_vendors has event_id (TEXT)
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions as any)
@@ -67,38 +67,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
+  const body = await req.json()
+  const eventId = params.id
+
+  // 1. Get tenant
+  let tenantId = ''
   try {
-    const body = await req.json()
-    const eventId = params.id
+    const events = await prisma.$queryRaw`SELECT tenant_id as "tenantId" FROM events WHERE id = ${BigInt(eventId)} LIMIT 1` as any[]
+    if (!events.length) return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    tenantId = events[0].tenantId
+  } catch (e: any) {
+    // If tenant fetch fails due to schema? Unlikely for 'events' table but possible.
+    return NextResponse.json({ message: 'Event fetch failed' }, { status: 500 })
+  }
 
-    // Get tenant from event
-    const events = await prisma.$queryRaw`
-      SELECT tenant_id as "tenantId" FROM events WHERE id = ${BigInt(eventId)} LIMIT 1
-    ` as any[]
+  const newId = randomUUID()
+  const {
+    name, category, contactName, contactEmail, contactPhone,
+    contractAmount, paidAmount, paymentStatus, paymentDueDate,
+    status, notes, contractUrl, invoiceUrl
+  } = body
 
-    if (!events.length) {
-      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
-    }
-
-    const tenantId = events[0].tenantId
-    const newId = randomUUID()
-
-    const {
-      name,
-      category,
-      contactName,
-      contactEmail,
-      contactPhone,
-      contractAmount,
-      paidAmount,
-      paymentStatus,
-      paymentDueDate,
-      status,
-      notes,
-      contractUrl,
-      invoiceUrl
-    } = body
-
+  // Helper to run insert
+  const runInsert = async () => {
     await prisma.$executeRawUnsafe(`
       INSERT INTO event_vendors (
         id, event_id, tenant_id, name, category,
@@ -114,31 +105,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         NOW(), NOW()
       )
     `,
-      newId,
-      eventId,
-      tenantId,
-      name,
-      category,
-      contactName || null,
-      contactEmail || null,
-      contactPhone || null,
-      contractAmount || 0,
-      paidAmount || 0,
-      paymentStatus || 'PENDING',
-      paymentDueDate || null,
-      status || 'ACTIVE',
-      notes || null,
-      contractUrl || null,
-      invoiceUrl || null
+      newId, eventId, tenantId, name, category,
+      contactName || null, contactEmail || null, contactPhone || null,
+      contractAmount || 0, paidAmount || 0, paymentStatus || 'PENDING', paymentDueDate || null,
+      status || 'ACTIVE', notes || null, contractUrl || null, invoiceUrl || null
     )
+  }
 
-    return NextResponse.json({
-      message: 'Vendor created successfully',
-      vendor: { id: newId, eventId, ...body }
-    }, { status: 201 })
-
+  try {
+    await runInsert()
+    return NextResponse.json({ message: 'Vendor created successfully', vendor: { id: newId, eventId, ...body } }, { status: 201 })
   } catch (error: any) {
     console.error('Error creating vendor:', error)
+
+    // Auto-repair and RETRY
+    if (error.message.includes('relation') || error.message.includes('does not exist')) {
+      console.log('🩹 Self-repairing schema for Vendor POST...')
+      await ensureSchema()
+      try {
+        await runInsert()
+        return NextResponse.json({ message: 'Vendor created successfully (after repair)', vendor: { id: newId, eventId, ...body } }, { status: 201 })
+      } catch (retryError: any) {
+        console.error('Retry failed:', retryError)
+        return NextResponse.json({ message: 'Failed to create vendor after repair', error: retryError.message }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ message: 'Failed to create vendor', error: error.message }, { status: 500 })
   }
 }
