@@ -6,53 +6,19 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// Helper to serialize BigInt
-const bigIntReplacer = (key: string, value: any) =>
-  typeof value === 'bigint' ? value.toString() : value
-
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions as any) as any
     // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
-    const eventId = params.id  // Keep as STRING - EventRoleAssignment.eventId is String type
-    console.log('🔍 [TEAM MEMBERS] Event ID:', eventId, 'Type:', typeof eventId)
+    const eventId = params.id
+    console.log('🔍 [TEAM MEMBERS] Fetching for event:', eventId)
 
-    // Strategy 1: Direct query
-    console.log('🔍 [TEAM MEMBERS] Trying direct query...')
-    let assignments = await prisma.$queryRaw`
-      SELECT 
-        a.id, 
-        a."eventId", 
-        a."userId", 
-        a.role, 
-        a."createdAt",
-        u.name, 
-        u.email, 
-        u.image,
-        u.password_hash as "hasPassword"
-      FROM "EventRoleAssignment" a
-      LEFT JOIN users u ON a."userId"::text = u.id::text
-      WHERE a."eventId" = ${eventId}
-      ORDER BY a."createdAt" DESC
-    ` as any[]
+    // Simple, direct query - no complex joins or casting
+    let assignments: any[] = []
 
-    console.log(`✅ [TEAM MEMBERS] Strategy 1 found: ${assignments.length} members`)
-
-    // If no results, try to see ALL assignments to debug
-    if (assignments.length === 0) {
-      console.log('⚠️ [TEAM MEMBERS] No results! Checking all assignments...')
-      const allAssignments = await prisma.$queryRaw`
-        SELECT "eventId", COUNT(*) as count
-        FROM "EventRoleAssignment"
-        GROUP BY "eventId"
-        LIMIT 10
-      ` as any[]
-      console.log('📊 [TEAM MEMBERS] All eventIds in database:', JSON.stringify(allAssignments))
-
-      // Try with type casting
-      console.log('🔍 [TEAM MEMBERS] Trying with CAST...')
-      assignments = await prisma.$queryRaw`
+    try {
+      assignments = await prisma.$queryRawUnsafe(`
         SELECT 
           a.id, 
           a."eventId", 
@@ -64,17 +30,29 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           u.image,
           u.password_hash as "hasPassword"
         FROM "EventRoleAssignment" a
-        LEFT JOIN users u ON a."userId"::text = u.id::text
-        WHERE CAST(a."eventId" AS TEXT) = ${eventId}
+        LEFT JOIN users u ON a."userId" = u.id
+        WHERE a."eventId" = $1
         ORDER BY a."createdAt" DESC
-      ` as any[]
-      console.log(`✅ [TEAM MEMBERS] Strategy 2 (CAST) found: ${assignments.length} members`)
-    }
+      `, eventId)
 
-    if (assignments.length > 0) {
-      console.log('📋 [TEAM MEMBERS] Sample:', JSON.stringify(assignments[0], (key, value) => typeof value === 'bigint' ? value.toString() : value))
-    } else {
-      console.log('❌ [TEAM MEMBERS] Still no results after all strategies!')
+      console.log(`✅ [TEAM MEMBERS] Found ${assignments.length} members`)
+    } catch (queryError: any) {
+      console.error('❌ [TEAM MEMBERS] Query failed:', queryError.message)
+
+      // If table doesn't exist, return empty
+      if (queryError.code === '42P01') {
+        console.log('⚠️ [TEAM MEMBERS] EventRoleAssignment table does not exist')
+        return NextResponse.json({
+          items: [],
+          total: 0,
+          totalPages: 0,
+          page: 1,
+          limit: 100,
+          message: 'Team members table not found. Please run database migrations.'
+        })
+      }
+
+      throw queryError
     }
 
     const items = assignments.map((a: any) => ({
@@ -99,16 +77,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
 
   } catch (error: any) {
-    console.error('❌ Error fetching team members:', {
+    console.error('❌ [TEAM MEMBERS] Error:', {
       message: error.message,
       code: error.code,
       detail: error.detail,
-      eventId: params.id
+      stack: error.stack?.split('\n').slice(0, 3)
     })
+
     return NextResponse.json({
       message: 'Failed to load team members',
       error: error.message,
-      details: error.code
+      code: error.code,
+      hint: 'Check server logs for details'
     }, { status: 500 })
   }
 }
