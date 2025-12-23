@@ -50,7 +50,13 @@ export default function EventVendorsPage() {
         contactName: '',
         contactEmail: '',
         contactPhone: '',
-        contractAmount: 0
+        contractAmount: 0,
+        paidAmount: 0,
+        paymentStatus: 'PENDING',
+        paymentDueDate: '',
+        status: 'ACTIVE',
+        notes: '',
+        requirements: ''
     })
 
     // Fetch budgets and vendors
@@ -130,7 +136,13 @@ export default function EventVendorsPage() {
                 contactName: '',
                 contactEmail: '',
                 contactPhone: '',
-                contractAmount: 0
+                contractAmount: 0,
+                paidAmount: 0,
+                paymentStatus: 'PENDING',
+                paymentDueDate: '',
+                status: 'ACTIVE',
+                notes: '',
+                requirements: ''
             })
         }
     }
@@ -150,7 +162,11 @@ export default function EventVendorsPage() {
                     contactEmail: vendorForm.contactEmail,
                     contactPhone: vendorForm.contactPhone,
                     contractAmount: vendorForm.contractAmount,
-                    status: 'ACTIVE' // Change from BOOKED to ACTIVE on save
+                    paidAmount: vendorForm.paidAmount,
+                    paymentStatus: vendorForm.paymentStatus,
+                    paymentDueDate: vendorForm.paymentDueDate || null,
+                    status: vendorForm.status,
+                    notes: `${vendorForm.notes || ''}${vendorForm.requirements ? '\n\nRequirements:\n' + vendorForm.requirements : ''}`
                 })
             })
 
@@ -164,7 +180,13 @@ export default function EventVendorsPage() {
                     contactName: '',
                     contactEmail: '',
                     contactPhone: '',
-                    contractAmount: 0
+                    contractAmount: 0,
+                    paidAmount: 0,
+                    paymentStatus: 'PENDING',
+                    paymentDueDate: '',
+                    status: 'ACTIVE',
+                    notes: '',
+                    requirements: ''
                 })
                 setSelectedCategory('')
                 setIsAddingVendor(false)
@@ -369,6 +391,84 @@ export default function EventVendorsPage() {
                                 value={vendorForm.contractAmount}
                                 onChange={(e) => setVendorForm(prev => ({ ...prev, contractAmount: Number(e.target.value) }))}
                                 placeholder="0"
+                            />
+                        </div>
+
+                        {/* Payment Details */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="paidAmount">Paid Amount</Label>
+                                <Input
+                                    id="paidAmount"
+                                    type="number"
+                                    value={vendorForm.paidAmount}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, paidAmount: Number(e.target.value) }))}
+                                    placeholder="0"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="paymentStatus">Payment Status</Label>
+                                <Select value={vendorForm.paymentStatus} onValueChange={(value) => setVendorForm(prev => ({ ...prev, paymentStatus: value }))}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PENDING">Pending</SelectItem>
+                                        <SelectItem value="PARTIAL">Partial</SelectItem>
+                                        <SelectItem value="PAID">Paid</SelectItem>
+                                        <SelectItem value="OVERDUE">Overdue</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="paymentDueDate">Payment Due Date</Label>
+                            <Input
+                                id="paymentDueDate"
+                                type="date"
+                                value={vendorForm.paymentDueDate}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, paymentDueDate: e.target.value }))}
+                            />
+                        </div>
+
+                        {/* Vendor Status */}
+                        <div className="space-y-2">
+                            <Label htmlFor="status">Vendor Status</Label>
+                            <Select value={vendorForm.status} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVE">Active</SelectItem>
+                                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Requirements/What customer asked */}
+                        <div className="space-y-2">
+                            <Label htmlFor="requirements">Requirements / What Customer Asked</Label>
+                            <textarea
+                                id="requirements"
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={vendorForm.requirements}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, requirements: e.target.value }))}
+                                placeholder="Describe what the customer has asked the vendor to do..."
+                            />
+                        </div>
+
+                        {/* Additional Notes */}
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Additional Notes</Label>
+                            <textarea
+                                id="notes"
+                                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={vendorForm.notes}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="Any additional notes or comments..."
                             />
                         </div>
                     </div>
