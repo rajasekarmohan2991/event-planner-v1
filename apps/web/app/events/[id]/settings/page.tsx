@@ -17,7 +17,7 @@ function slugify(input: string) {
 export default function EventSettingsPage({ params }: { params: { id: string } }) {
   const { status } = useSession()
   const router = useRouter()
-  const [active, setActive] = useState<'general'|'registration'|'payments'|'notifications'|'integrations'>('general')
+  const [active, setActive] = useState<'general' | 'registration' | 'payments' | 'notifications' | 'integrations' | 'promote' | 'engagement'>('general')
   const [eventName, setEventName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
@@ -29,58 +29,55 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
   const [payments, setPayments] = useState<any>({ currency: 'INR', enableOnline: true })
   const [notifications, setNotifications] = useState<any>({ rsvpReminders: true, checkinNotice: true, senderName: '' })
   const [integrations, setIntegrations] = useState<any>({ webhookUrl: '', mapKey: '' })
-
-  // Branding (UI-only)
-  const [logoUrl, setLogoUrl] = useState<string>('')
-  const [thumbUrl, setThumbUrl] = useState<string>('')
-  const [faviconUrl, setFaviconUrl] = useState<string>('')
+  const [promote, setPromote] = useState<any>({ emailCampaigns: false, socialMedia: false })
+  const [engagement, setEngagement] = useState<any>({ polls: false, qna: false })
 
   useEffect(() => {
     let aborted = false
-    ;(async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        console.log('🔍 Settings: Fetching event', params.id)
-        const res = await fetch(`/api/events/${params.id}`, { credentials: 'include', cache: 'no-store' })
-        console.log('📡 Settings: Response status', res.status)
-        if (!res.ok) {
-          const errorText = await res.text()
-          console.error('❌ Settings: Failed to load event:', errorText)
-          throw new Error(`Failed to load event (${res.status})`)
+      ; (async () => {
+        setLoading(true)
+        setError(null)
+        try {
+          console.log('🔍 Settings: Fetching event', params.id)
+          const res = await fetch(`/api/events/${params.id}`, { credentials: 'include', cache: 'no-store' })
+          console.log('📡 Settings: Response status', res.status)
+          if (!res.ok) {
+            const errorText = await res.text()
+            console.error('❌ Settings: Failed to load event:', errorText)
+            throw new Error(`Failed to load event (${res.status})`)
+          }
+          const data = await res.json().catch(() => ({}))
+          console.log('📊 Settings: Event data', data)
+          if (!aborted) setEventName(data?.name || data?.title || '')
+        } catch (e: any) {
+          console.error('❌ Settings: Error', e)
+          if (!aborted) setError(e?.message || 'Unable to load event')
+        } finally {
+          if (!aborted) setLoading(false)
         }
-        const data = await res.json().catch(() => ({}))
-        console.log('📊 Settings: Event data', data)
-        if (!aborted) setEventName(data?.name || data?.title || '')
-      } catch (e: any) {
-        console.error('❌ Settings: Error', e)
-        if (!aborted) setError(e?.message || 'Unable to load event')
-      } finally {
-        if (!aborted) setLoading(false)
-      }
-    })()
+      })()
     return () => { aborted = true }
   }, [params.id])
 
   // Load settings blobs
   useEffect(() => {
     let aborted = false
-    ;(async () => {
-      try {
-        const [gRes, rRes, pRes, nRes, iRes] = await Promise.all([
-          fetch(`/api/events/${params.id}/settings/general`, { cache: 'no-store' }),
-          fetch(`/api/events/${params.id}/settings/registration`, { cache: 'no-store' }),
-          fetch(`/api/events/${params.id}/settings/payments`, { cache: 'no-store' }),
-          fetch(`/api/events/${params.id}/settings/notifications`, { cache: 'no-store' }),
-          fetch(`/api/events/${params.id}/settings/integrations`, { cache: 'no-store' }),
-        ])
-        if (!aborted && gRes.ok) setGeneral(await gRes.json().catch(()=>({})))
-        if (!aborted && rRes.ok) setRegistration(await rRes.json().catch(()=>({})))
-        if (!aborted && pRes.ok) setPayments(await pRes.json().catch(()=>({})))
-        if (!aborted && nRes.ok) setNotifications(await nRes.json().catch(()=>({})))
-        if (!aborted && iRes.ok) setIntegrations(await iRes.json().catch(()=>({})))
-      } catch {}
-    })()
+      ; (async () => {
+        try {
+          const [gRes, rRes, pRes, nRes, iRes] = await Promise.all([
+            fetch(`/api/events/${params.id}/settings/general`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/registration`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/payments`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/notifications`, { cache: 'no-store' }),
+            fetch(`/api/events/${params.id}/settings/integrations`, { cache: 'no-store' }),
+          ])
+          if (!aborted && gRes.ok) setGeneral(await gRes.json().catch(() => ({})))
+          if (!aborted && rRes.ok) setRegistration(await rRes.json().catch(() => ({})))
+          if (!aborted && pRes.ok) setPayments(await pRes.json().catch(() => ({})))
+          if (!aborted && nRes.ok) setNotifications(await nRes.json().catch(() => ({})))
+          if (!aborted && iRes.ok) setIntegrations(await iRes.json().catch(() => ({})))
+        } catch { }
+      })()
     return () => { aborted = true }
   }, [params.id])
 
@@ -118,7 +115,7 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
 
   const handleDeleteEvent = async () => {
     if (!confirm('Are you absolutely sure you want to delete this event? This action cannot be undone.')) return
-    
+
     try {
       const res = await fetch(`/api/events/${params.id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -149,7 +146,7 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
           />
           <button
             className="rounded-md bg-indigo-600 text-white text-sm px-3 py-2 hover:bg-indigo-700"
-            onClick={async () => { try { await navigator.clipboard.writeText(publicUrl) } catch {} }}
+            onClick={async () => { try { await navigator.clipboard.writeText(publicUrl) } catch { } }}
           >
             Copy
           </button>
@@ -179,15 +176,15 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
               <div className="mt-3 flex items-center gap-3">
                 <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
                   Upload
-                  <input type="file" accept="image/*" className="hidden" onChange={(e)=>{
-                    const f = e.target.files?.[0]; if(!f) return; const url = URL.createObjectURL(f); setLogoUrl(url)
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setLogoUrl(url)
                   }} />
                 </label>
                 <div className="text-xs text-slate-500">File size: Up to 1MB · Optimal dimensions: 120x40px · Types: JPG, JPEG, PNG, GIF, WEBP</div>
               </div>
             </div>
             <div className="w-40 h-14 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full"/> : <div className="text-xs text-slate-400">No logo</div>}
+              {logoUrl ? <img src={logoUrl} alt="Logo" className="max-h-full" /> : <div className="text-xs text-slate-400">No logo</div>}
             </div>
           </div>
 
@@ -199,15 +196,15 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
               <div className="mt-3 flex items-center gap-3">
                 <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
                   {thumbUrl ? 'Change' : 'Upload'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e)=>{
-                    const f = e.target.files?.[0]; if(!f) return; const url = URL.createObjectURL(f); setThumbUrl(url)
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setThumbUrl(url)
                   }} />
                 </label>
                 <div className="text-xs text-slate-500">File size: Up to 5MB · Optimal dimensions: 600x280px · Types: JPG, JPEG, PNG, GIF, WEBP</div>
               </div>
             </div>
             <div className="w-60 h-28 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {thumbUrl ? <img src={thumbUrl} alt="Event Thumbnail" className="max-h-full"/> : <div className="text-xs text-slate-400">No image</div>}
+              {thumbUrl ? <img src={thumbUrl} alt="Event Thumbnail" className="max-h-full" /> : <div className="text-xs text-slate-400">No image</div>}
             </div>
           </div>
 
@@ -219,15 +216,15 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
               <div className="mt-3 flex items-center gap-3">
                 <label className="cursor-pointer rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50">
                   Upload
-                  <input type="file" accept="image/*,.ico" className="hidden" onChange={(e)=>{
-                    const f = e.target.files?.[0]; if(!f) return; const url = URL.createObjectURL(f); setFaviconUrl(url)
+                  <input type="file" accept="image/*,.ico" className="hidden" onChange={(e) => {
+                    const f = e.target.files?.[0]; if (!f) return; const url = URL.createObjectURL(f); setFaviconUrl(url)
                   }} />
                 </label>
                 <div className="text-xs text-slate-500">File size: Up to 256KB · Optimal dimensions: 16x16px · Types: PNG, JPG, JPEG, ICO</div>
               </div>
             </div>
             <div className="w-16 h-16 border rounded-md bg-white flex items-center justify-center overflow-hidden">
-              {faviconUrl ? <img src={faviconUrl} alt="Favicon" className="h-8 w-8"/> : <div className="text-xs text-slate-400">No icon</div>}
+              {faviconUrl ? <img src={faviconUrl} alt="Favicon" className="h-8 w-8" /> : <div className="text-xs text-slate-400">No icon</div>}
             </div>
           </div>
 
@@ -247,11 +244,11 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
       {/* Tabs */}
       <div className="rounded border">
         <div className="flex flex-wrap gap-1 border-b p-2 text-sm">
-          {['general','registration','payments','notifications','integrations'].map((t) => (
+          {['general', 'registration', 'payments', 'notifications', 'integrations', 'promote', 'engagement'].map((t) => (
             <button key={t}
-              onClick={()=>setActive(t as any)}
-              className={`px-3 py-1.5 rounded-md ${active===t ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}`}
-            >{t[0].toUpperCase()+t.slice(1)}</button>
+              onClick={() => setActive(t as any)}
+              className={`px-3 py-1.5 rounded-md ${active === t ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}`}
+            >{t[0].toUpperCase() + t.slice(1)}</button>
           ))}
           <div className="ml-auto">
             <button onClick={saveActiveTab} disabled={saving} className={`px-3 py-1.5 rounded-md text-sm ${saving ? 'bg-indigo-100 text-indigo-700 animate-pulse' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>{saving ? 'Saving…' : 'Save'}</button>
@@ -260,15 +257,15 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
 
         {/* Panels */}
         <div className="p-4 space-y-4">
-          {active==='general' && (
+          {active === 'general' && (
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm">Timezone</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={general.timezone || ''} onChange={e=>setGeneral({ ...general, timezone: e.target.value })} placeholder="Asia/Kolkata" />
+                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={general.timezone || ''} onChange={e => setGeneral({ ...general, timezone: e.target.value })} placeholder="Asia/Kolkata" />
               </div>
               <div>
                 <label className="text-sm">Visibility</label>
-                <select className="mt-1 w-full rounded border px-3 py-2 text-sm" value={general.visibility || 'public'} onChange={e=>setGeneral({ ...general, visibility: e.target.value })}>
+                <select className="mt-1 w-full rounded border px-3 py-2 text-sm" value={general.visibility || 'public'} onChange={e => setGeneral({ ...general, visibility: e.target.value })}>
                   <option value="public">Public</option>
                   <option value="unlisted">Unlisted</option>
                   <option value="private">Private</option>
@@ -277,61 +274,61 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
             </div>
           )}
 
-          {active==='registration' && (
+          {active === 'registration' && (
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm">Capacity</label>
-                <input type="number" className="mt-1 w-full rounded border px-3 py-2 text-sm" value={registration.capacity || ''} onChange={e=>setRegistration({ ...registration, capacity: e.target.value })} placeholder="500" />
+                <input type="number" className="mt-1 w-full rounded border px-3 py-2 text-sm" value={registration.capacity || ''} onChange={e => setRegistration({ ...registration, capacity: e.target.value })} placeholder="500" />
               </div>
               <div className="flex items-center gap-2 mt-6">
-                <input id="approval" type="checkbox" checked={!!registration.approvalRequired} onChange={e=>setRegistration({ ...registration, approvalRequired: e.target.checked })} />
+                <input id="approval" type="checkbox" checked={!!registration.approvalRequired} onChange={e => setRegistration({ ...registration, approvalRequired: e.target.checked })} />
                 <label htmlFor="approval" className="text-sm">Approval required</label>
               </div>
             </div>
           )}
 
-          {active==='payments' && (
+          {active === 'payments' && (
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm">Currency</label>
-                <select className="mt-1 w-full rounded border px-3 py-2 text-sm" value={payments.currency || 'INR'} onChange={e=>setPayments({ ...payments, currency: e.target.value })}>
+                <select className="mt-1 w-full rounded border px-3 py-2 text-sm" value={payments.currency || 'INR'} onChange={e => setPayments({ ...payments, currency: e.target.value })}>
                   <option value="INR">INR</option>
                   <option value="USD">USD</option>
                 </select>
               </div>
               <div className="flex items-center gap-2 mt-6">
-                <input id="payonline" type="checkbox" checked={!!payments.enableOnline} onChange={e=>setPayments({ ...payments, enableOnline: e.target.checked })} />
+                <input id="payonline" type="checkbox" checked={!!payments.enableOnline} onChange={e => setPayments({ ...payments, enableOnline: e.target.checked })} />
                 <label htmlFor="payonline" className="text-sm">Enable online payments</label>
               </div>
             </div>
           )}
 
-          {active==='notifications' && (
+          {active === 'notifications' && (
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-center gap-2">
-                <input id="rsvpRem" type="checkbox" checked={!!notifications.rsvpReminders} onChange={e=>setNotifications({ ...notifications, rsvpReminders: e.target.checked })} />
+                <input id="rsvpRem" type="checkbox" checked={!!notifications.rsvpReminders} onChange={e => setNotifications({ ...notifications, rsvpReminders: e.target.checked })} />
                 <label htmlFor="rsvpRem" className="text-sm">RSVP reminders</label>
               </div>
               <div className="flex items-center gap-2">
-                <input id="checkinNotice" type="checkbox" checked={!!notifications.checkinNotice} onChange={e=>setNotifications({ ...notifications, checkinNotice: e.target.checked })} />
+                <input id="checkinNotice" type="checkbox" checked={!!notifications.checkinNotice} onChange={e => setNotifications({ ...notifications, checkinNotice: e.target.checked })} />
                 <label htmlFor="checkinNotice" className="text-sm">Check-in confirmations</label>
               </div>
               <div>
                 <label className="text-sm">Sender name</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={notifications.senderName || ''} onChange={e=>setNotifications({ ...notifications, senderName: e.target.value })} placeholder="Event Team" />
+                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={notifications.senderName || ''} onChange={e => setNotifications({ ...notifications, senderName: e.target.value })} placeholder="Event Team" />
               </div>
             </div>
           )}
 
-          {active==='integrations' && (
+          {active === 'integrations' && (
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm">Webhook URL</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.webhookUrl || ''} onChange={e=>setIntegrations({ ...integrations, webhookUrl: e.target.value })} placeholder="https://example.com/webhook" />
+                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.webhookUrl || ''} onChange={e => setIntegrations({ ...integrations, webhookUrl: e.target.value })} placeholder="https://example.com/webhook" />
               </div>
               <div>
                 <label className="text-sm">Map Key</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.mapKey || ''} onChange={e=>setIntegrations({ ...integrations, mapKey: e.target.value })} placeholder="MapTiler/Google key" />
+                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.mapKey || ''} onChange={e => setIntegrations({ ...integrations, mapKey: e.target.value })} placeholder="MapTiler/Google key" />
               </div>
             </div>
           )}
