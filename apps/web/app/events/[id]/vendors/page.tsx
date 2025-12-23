@@ -315,12 +315,12 @@ export default function EventVendorsPage() {
 
             {/* Add Vendor Dialog */}
             <Dialog open={isAddingVendor} onOpenChange={setIsAddingVendor}>
-                <DialogContent className="sm:max-w-[500px]" aria-describedby={undefined}>
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col" aria-describedby={undefined}>
                     <DialogHeader>
                         <DialogTitle>Add Vendor</DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4 overflow-y-auto flex-1">
                         {/* Category Selection */}
                         <div className="space-y-2">
                             <Label htmlFor="category">Category *</Label>
