@@ -124,12 +124,24 @@ export async function middleware(req: NextRequest) {
     if (token) {
       // Redirect directly to role-based dashboard to avoid extra redirect
       const role = token.role as string
-      let dashboardPath = '/dashboard/user' // default
+      let dashboardPath = '/dashboard/user'
 
-      if (role === 'SUPER_ADMIN') dashboardPath = '/super-admin/companies'
-      else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
-      else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
-      else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
+      switch (role) {
+        case 'SUPER_ADMIN': dashboardPath = '/super-admin/companies'; break;
+        case 'TENANT_ADMIN': dashboardPath = '/admin'; break;
+        case 'ADMIN': dashboardPath = '/admin'; break;
+        case 'EVENT_MANAGER': dashboardPath = '/dashboard/event-manager'; break;
+        case 'ORGANIZER': dashboardPath = '/dashboard/organizer'; break;
+        case 'VENUE_MANAGER': dashboardPath = '/dashboard/venue-manager'; break;
+        case 'FINANCE_ADMIN': dashboardPath = '/dashboard/finance'; break;
+        case 'MARKETING_ADMIN': dashboardPath = '/dashboard/marketing'; break;
+        case 'SUPPORT_STAFF': dashboardPath = '/dashboard/support'; break;
+        case 'ATTENDEE': dashboardPath = '/dashboard/user'; break;
+        case 'VIEWER': dashboardPath = '/dashboard/viewer'; break;
+        case 'EXHIBITOR_MANAGER': dashboardPath = '/company/vendors'; break;
+        case 'STAFF': dashboardPath = '/dashboard/staff'; break;
+        default: dashboardPath = '/dashboard/user'; break;
+      }
 
       return NextResponse.redirect(new URL(dashboardPath, req.url))
     }
@@ -142,10 +154,22 @@ export async function middleware(req: NextRequest) {
       const role = token.role as string
       let dashboardPath = '/dashboard/user'
 
-      if (role === 'SUPER_ADMIN') dashboardPath = '/super-admin/companies'
-      else if (role === 'TENANT_ADMIN') dashboardPath = '/company'
-      else if (role === 'EVENT_MANAGER') dashboardPath = '/events'
-      else if (role === 'ORGANIZER') dashboardPath = '/dashboard/organizer'
+      switch (role) {
+        case 'SUPER_ADMIN': dashboardPath = '/super-admin/companies'; break;
+        case 'TENANT_ADMIN': dashboardPath = '/admin'; break;
+        case 'ADMIN': dashboardPath = '/admin'; break;
+        case 'EVENT_MANAGER': dashboardPath = '/dashboard/event-manager'; break;
+        case 'ORGANIZER': dashboardPath = '/dashboard/organizer'; break;
+        case 'VENUE_MANAGER': dashboardPath = '/dashboard/venue-manager'; break;
+        case 'FINANCE_ADMIN': dashboardPath = '/dashboard/finance'; break;
+        case 'MARKETING_ADMIN': dashboardPath = '/dashboard/marketing'; break;
+        case 'SUPPORT_STAFF': dashboardPath = '/dashboard/support'; break;
+        case 'ATTENDEE': dashboardPath = '/dashboard/user'; break;
+        case 'VIEWER': dashboardPath = '/dashboard/viewer'; break;
+        case 'EXHIBITOR_MANAGER': dashboardPath = '/company/vendors'; break;
+        case 'STAFF': dashboardPath = '/dashboard/staff'; break;
+        default: dashboardPath = '/dashboard/user'; break;
+      }
 
       return NextResponse.redirect(new URL(dashboardPath, req.url))
     }
