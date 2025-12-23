@@ -241,10 +241,13 @@ export default function RegisterWithSeatsPage() {
     setValidatingPromo(true)
     setPromoError("")
     try {
+      // Calculate base total for promo code application (in paise/minor units)
+      const baseTotal = Math.round(selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(numberOfAttendees) || 1) * 100)
+
       const res = await fetch(`/api/events/${eventId}/promo-codes/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, orderAmount: totalPrice })
+        body: JSON.stringify({ code: promoCode, orderAmount: baseTotal })
       })
       if (res.ok) {
         const data = await res.json()
@@ -307,25 +310,38 @@ export default function RegisterWithSeatsPage() {
     setLoading(true)
     try {
       // Create registration with payment info
+      // Backend expects: { data: { email, firstName, lastName, ... }, type, ticketId?, totalPrice }
       const regRes = await fetch(`/api/events/${eventId}/registrations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          numberOfAttendees,
-          seats: selectedSeats.map(s => ({
-            id: s.id,
-            section: s.section,
-            row: s.rowNumber,
-            seat: s.seatNumber,
-            price: s.basePrice
-          })),
-          priceInr: totalPrice,
-          promoCode: promoDiscount?.code,
-          inviteCode: inviteInfo?.inviteCode,
-          paymentMethod,
-          paymentStatus: paymentMethod === 'dummy' ? 'PAID' : 'PENDING',
-          type: 'SEATED'
+          data: {
+            email: formData.email,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            company: formData.company,
+            jobTitle: formData.jobTitle,
+            gender: formData.gender,
+            emergencyContact: formData.emergencyContact,
+            parking: formData.parking,
+            dietaryRestrictions: formData.dietaryRestrictions,
+            activities: formData.activities,
+            numberOfAttendees,
+            seats: selectedSeats.map(s => ({
+              id: s.id,
+              section: s.section,
+              row: s.rowNumber,
+              seat: s.seatNumber,
+              price: s.basePrice
+            })),
+            inviteCode: inviteInfo?.inviteCode,
+            paymentMethod,
+            paymentStatus: paymentMethod === 'dummy' ? 'PAID' : 'PENDING',
+          },
+          type: 'SEATED',
+          totalPrice: Math.round(totalPrice), // In rupees, not paise
+          promoCode: promoDiscount?.code || null,
         })
       })
 
@@ -349,9 +365,28 @@ export default function RegisterWithSeatsPage() {
           })
         })
 
-        // Generate QR code as a check-in URL (to be scanned by staff device)
-        const qrUrl = `${window.location.origin}/events/${eventId}/checkin/${registration.id}`
-        setQrCode(qrUrl)
+        // Record payment in history and send confirmation email
+        await fetch(`/api/events/${eventId}/registrations/${registration.id}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentMethod: 'DUMMY',
+            amount: totalPrice,
+            status: 'COMPLETED'
+          })
+        }).catch(err => console.error('Payment record failed:', err))
+
+        // Generate QR code data in JSON format for the scanner
+        // We also include the check-in URL for generic scanners
+        const qrData = JSON.stringify({
+          registrationId: registration.id,
+          eventId: eventId,
+          email: formData.email,
+          name: `${formData.firstName} ${formData.lastName}`,
+          type: 'SEATED',
+          url: `${window.location.origin}/events/${eventId}/checkin/${registration.id}`
+        })
+        setQrCode(qrData)
 
         setStep(4) // Success
       } else {

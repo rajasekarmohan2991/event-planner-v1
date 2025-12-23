@@ -329,8 +329,8 @@ export default function EventWorkspaceClient({
                 </div>
             </aside>
 
-            {/* Main content */}
-            <section className="flex-1 p-6 overflow-x-hidden">
+            {/* Main content - Added top padding to prevent sticky overlap */}
+            <section className="flex-1 px-6 pb-6 pt-4 overflow-x-hidden">
                 <div className="max-w-7xl mx-auto">
                     {children}
                 </div>

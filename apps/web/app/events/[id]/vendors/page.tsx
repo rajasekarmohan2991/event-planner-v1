@@ -272,11 +272,13 @@ export default function EventVendorsPage() {
         <div className="space-y-6">
             <ManageTabs eventId={eventId} />
 
-            <div className="flex justify-between items-center">
+            {/* Header Section with explicit spacing and z-index */}
+            <div className="relative z-10 flex flex-wrap justify-between items-center gap-4 mt-6 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold">Budgets</h1>
+                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Budgets & Vendors</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Manage event vendors and track expenses</p>
                 </div>
-                <Button onClick={() => setIsAddingVendor(true)}>
+                <Button onClick={() => setIsAddingVendor(true)} className="shadow-md hover:shadow-lg transition-all">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Vendor
                 </Button>

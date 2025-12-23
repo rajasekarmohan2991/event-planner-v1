@@ -97,72 +97,118 @@ export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DF
 
       console.log('[FloorPlanner] Configuration:', config)
 
+      const canvasWidth = 1200
+      const centerX = canvasWidth / 2
+      const startY = 250 // Leave room for stage
+      let currentY = startY
+
       const sections = []
 
+      // Helper to generate centered rows
+      const generateSection = (
+        name: string,
+        type: string,
+        count: number,
+        price: number,
+        color: string
+      ) => {
+        if (!count || count <= 0) return null
+
+        const rowsCount = Math.ceil(count / config.seatsPerRow)
+        const rows = []
+
+        for (let i = 0; i < rowsCount; i++) {
+          const rowNumber = i + 1
+          const remainingSeats = count - (i * config.seatsPerRow)
+          const seatsInRow = Math.min(config.seatsPerRow, remainingSeats)
+
+          // Calculate centering
+          // Assuming 40px width per seat + 10px margin = 50px total
+          const rowWidth = seatsInRow * 50
+          const xOffset = centerX - (rowWidth / 2)
+
+          rows.push({
+            number: `${type.charAt(0)}${rowNumber}`,
+            label: `${name} Row ${rowNumber}`,
+            count: seatsInRow,
+            xOffset: xOffset,
+            yOffset: currentY,
+          })
+
+          currentY += 50 // Move down for next row
+        }
+
+        currentY += 80 // Add gap after section
+
+        return {
+          name,
+          type,
+          basePrice: price,
+          rows: rows,
+          seatsPerRow: config.seatsPerRow,
+          totalSeats: count,
+          color,
+          layout: config.layout
+        }
+      }
+
       if (data.vipSeats > 0) {
-        sections.push({
-          name: 'VIP',
-          type: 'VIP',
-          basePrice: data.vipPrice,
-          rows: Math.ceil(data.vipSeats / config.seatsPerRow),
-          seatsPerRow: config.seatsPerRow,
-          totalSeats: data.vipSeats,
-          color: '#9333ea', // Purple
-          layout: config.layout
-        })
+        sections.push(generateSection('VIP', 'VIP', data.vipSeats, data.vipPrice, '#9333ea'))
       }
-
       if (data.premiumSeats > 0) {
-        sections.push({
-          name: 'PREMIUM',
-          type: 'PREMIUM',
-          basePrice: data.premiumPrice,
-          rows: Math.ceil(data.premiumSeats / config.seatsPerRow),
-          seatsPerRow: config.seatsPerRow,
-          totalSeats: data.premiumSeats,
-          color: '#3b82f6', // Blue
-          layout: config.layout
-        })
+        sections.push(generateSection('PREMIUM', 'PREMIUM', data.premiumSeats, data.premiumPrice, '#3b82f6'))
       }
-
       if (data.generalSeats > 0) {
-        sections.push({
-          name: 'GENERAL',
-          type: 'GENERAL',
-          basePrice: data.generalPrice,
-          rows: Math.ceil(data.generalSeats / config.seatsPerRow),
-          seatsPerRow: config.seatsPerRow,
-          totalSeats: data.generalSeats,
-          color: '#10b981', // Green
-          layout: config.layout
-        })
+        sections.push(generateSection('GENERAL', 'GENERAL', data.generalSeats, data.generalPrice, '#10b981'))
       }
 
-      console.log('[FloorPlanner] Sections created:', sections.length)
+      const validSections = sections.filter(Boolean) as any[]
+
+      // Add static shapes for Stage and Doors
+      // Note: The seat generator API might ignore these, but if the visualizer reads the raw JSON from DB, it will show them.
+      const shapes = [
+        {
+          id: 'stage-1',
+          type: 'rect',
+          label: 'STAGE',
+          x: centerX - 150, // Centered (300w)
+          y: 50,
+          width: 300,
+          height: 120,
+          fill: '#e2e8f0',
+          stroke: '#64748b'
+        },
+        {
+          id: 'entry-1',
+          type: 'rect',
+          label: 'ENTRY',
+          x: 50,
+          y: currentY + 50,
+          width: 100,
+          height: 60,
+          fill: '#dcfce7',
+          stroke: '#16a34a'
+        },
+        {
+          id: 'exit-1',
+          type: 'rect',
+          label: 'EXIT',
+          x: canvasWidth - 150,
+          y: currentY + 50,
+          width: 100,
+          height: 60,
+          fill: '#fee2e2',
+          stroke: '#dc2626'
+        }
+      ]
+
+      console.log('[FloorPlanner] Sections created:', validSections.length)
 
       const floorPlan = {
         name: '2D Floor Plan',
         totalSeats: (data.vipSeats + data.premiumSeats + data.generalSeats),
-        sections: sections.map((section, sectionIdx) => ({
-          name: section.name,
-          type: section.type,
-          basePrice: section.basePrice,
-          rows: Array.from({ length: section.rows }, (_, rowIdx) => {
-            const rowNumber = rowIdx + 1
-            const seatsInThisRow = Math.min(
-              section.seatsPerRow,
-              section.totalSeats - (rowIdx * section.seatsPerRow)
-            )
-
-            return {
-              number: `${section.type.charAt(0)}${rowNumber}`,
-              label: `Row ${rowNumber}`,
-              count: seatsInThisRow,
-              xOffset: 50,
-              yOffset: 50 + (sectionIdx * 300) + (rowIdx * 50)
-            }
-          })
-        }))
+        sections: validSections,
+        shapes: shapes // Include shapes in payload
       }
 
       console.log('[FloorPlanner] Floor plan payload:', JSON.stringify(floorPlan, null, 2))

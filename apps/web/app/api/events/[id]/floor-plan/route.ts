@@ -78,73 +78,55 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const eventId = BigInt(params.id)
         const body = await req.json()
 
-        console.log('📐 Creating floor plan for event:', eventId)
+        console.log('📐 Creating floor plan for event:', params.id)
 
-        // Fetch Event
-        const events = await prisma.$queryRaw`
-            SELECT id, tenant_id as "tenantId" 
-            FROM events 
-            WHERE id = ${eventId} 
-            LIMIT 1
-        ` as any[]
+        // 1. Get Event to find tenantId
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: { tenantId: true }
+        })
 
-        if (events.length === 0) {
+        if (!event) {
             return NextResponse.json({ message: 'Event not found' }, { status: 404 })
         }
 
-        const event = events[0]
-        const tenantId = event.tenantId
-        const newId = randomUUID()
+        // 2. Create Floor Plan using Prisma Client (Handles types/mapping automatically)
+        const newFloorPlan = await prisma.floorPlan.create({
+            data: {
+                eventId: eventId,
+                tenantId: event.tenantId,
+                name: body.name || 'New Floor Plan',
+                description: body.description || null,
+                canvasWidth: body.canvasWidth || 1200,
+                canvasHeight: body.canvasHeight || 800,
+                backgroundColor: body.backgroundColor || '#ffffff',
+                gridSize: body.gridSize || 20,
+                vipPrice: body.vipPrice || 0,
+                premiumPrice: body.premiumPrice || 0,
+                generalPrice: body.generalPrice || 0,
+                totalCapacity: body.totalCapacity || 0,
+                vipCapacity: body.vipCapacity || 0,
+                premiumCapacity: body.premiumCapacity || 0,
+                generalCapacity: body.generalCapacity || 0,
+                menCapacity: body.menCapacity || 0,
+                womenCapacity: body.womenCapacity || 0,
+                layoutData: body.layoutData || {}, // Prisma handles JSON conversion
+                status: body.status || 'DRAFT'
+            }
+        })
 
-        // Insert Floor Plan
-        await prisma.$executeRawUnsafe(`
-            INSERT INTO floor_plans (
-                id, "eventId", tenant_id,
-                name, description, 
-                "canvasWidth", "canvasHeight", "backgroundColor", "gridSize",
-                "vipPrice", "premiumPrice", "generalPrice",
-                "totalCapacity", "vipCapacity", "premiumCapacity", "generalCapacity",
-                "menCapacity", "womenCapacity",
-                "layoutData", status, version,
-                created_at, updated_at
-            ) VALUES (
-                $1, $2, $3,
-                $4, $5,
-                $6, $7, $8, $9,
-                $10, $11, $12,
-                $13, $14, $15, $16,
-                $17, $18,
-                $19, $20, 1,
-                NOW(), NOW()
-            )
-        `,
-            newId,
-            eventId,
-            tenantId,
-            body.name || 'New Floor Plan',
-            body.description || null,
-            body.canvasWidth || 1200,
-            body.canvasHeight || 800,
-            body.backgroundColor || '#ffffff',
-            body.gridSize || 20,
-            body.vipPrice || 0,
-            body.premiumPrice || 0,
-            body.generalPrice || 0,
-            body.totalCapacity || 0,
-            body.vipCapacity || 0,
-            body.premiumCapacity || 0,
-            body.generalCapacity || 0,
-            body.menCapacity || 0,
-            body.womenCapacity || 0,
-            body.layoutData ? JSON.stringify(body.layoutData) : null,
-            body.status || 'DRAFT'
-        )
+        // Convert BigInt to string for response
+        const responseData = {
+            ...newFloorPlan,
+            id: newFloorPlan.id,
+            eventId: params.id, // Return string
+        }
 
-        console.log('✅ Floor plan created:', newId)
+        console.log('✅ Floor plan created:', newFloorPlan.id)
 
         return NextResponse.json({
             message: 'Floor plan created successfully',
-            floorPlan: { id: newId, eventId: eventId.toString(), tenantId, ...body }
+            floorPlan: responseData
         }, { status: 201 })
 
     } catch (error: any) {
@@ -166,62 +148,49 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const eventId = BigInt(params.id)
         const body = await req.json()
 
-        console.log('📐 Updating floor plan for event:', eventId, 'Floor plan ID:', body.id)
+        console.log('📐 Updating floor plan for event:', params.id, 'Floor plan ID:', body.id)
 
         if (!body.id) {
             return NextResponse.json({ message: 'Floor plan ID is required for update' }, { status: 400 })
         }
 
         // Update Floor Plan
-        await prisma.$executeRawUnsafe(`
-            UPDATE floor_plans SET
-                name = $1,
-                description = $2,
-                "canvasWidth" = $3,
-                "canvasHeight" = $4,
-                "backgroundColor" = $5,
-                "gridSize" = $6,
-                "vipPrice" = $7,
-                "premiumPrice" = $8,
-                "generalPrice" = $9,
-                "totalCapacity" = $10,
-                "vipCapacity" = $11,
-                "premiumCapacity" = $12,
-                "generalCapacity" = $13,
-                "menCapacity" = $14,
-                "womenCapacity" = $15,
-                "layoutData" = $16,
-                status = $17,
-                version = version + 1,
-                updated_at = NOW()
-            WHERE id = $18 AND "eventId" = $19
-        `,
-            body.name || 'Floor Plan',
-            body.description || null,
-            body.canvasWidth || 1200,
-            body.canvasHeight || 800,
-            body.backgroundColor || '#ffffff',
-            body.gridSize || 20,
-            body.vipPrice || 0,
-            body.premiumPrice || 0,
-            body.generalPrice || 0,
-            body.totalCapacity || 0,
-            body.vipCapacity || 0,
-            body.premiumCapacity || 0,
-            body.generalCapacity || 0,
-            body.menCapacity || 0,
-            body.womenCapacity || 0,
-            body.layoutData ? JSON.stringify(body.layoutData) : null,
-            body.status || 'DRAFT',
-            body.id,
-            eventId
-        )
+        const updatedFloorPlan = await prisma.floorPlan.update({
+            where: {
+                id: body.id
+            },
+            data: {
+                name: body.name,
+                description: body.description,
+                canvasWidth: body.canvasWidth,
+                canvasHeight: body.canvasHeight,
+                backgroundColor: body.backgroundColor,
+                gridSize: body.gridSize,
+                vipPrice: body.vipPrice,
+                premiumPrice: body.premiumPrice,
+                generalPrice: body.generalPrice,
+                totalCapacity: body.totalCapacity,
+                vipCapacity: body.vipCapacity,
+                premiumCapacity: body.premiumCapacity,
+                generalCapacity: body.generalCapacity,
+                menCapacity: body.menCapacity,
+                womenCapacity: body.womenCapacity,
+                layoutData: body.layoutData,
+                status: body.status,
+                version: { increment: 1 }
+            }
+        })
+
+        const responseData = {
+            ...updatedFloorPlan,
+            eventId: params.id
+        }
 
         console.log('✅ Floor plan updated:', body.id)
 
         return NextResponse.json({
             message: 'Floor plan updated successfully',
-            floorPlan: { id: body.id, eventId: eventId.toString(), ...body }
+            floorPlan: responseData
         })
 
     } catch (error: any) {

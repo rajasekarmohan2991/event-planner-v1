@@ -386,29 +386,55 @@ export default function BrowseEventsPage() {
 
         {/* Category Cards Section - Simple Icon Style (Image 1) */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Browse by Category</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Browse by Category</h2>
+            {selectedCategory !== 'all' && (
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+              >
+                <span>✕</span> Clear Category
+              </button>
+            )}
+          </div>
           <div className="flex gap-8 overflow-x-auto pb-4 justify-center px-4">
             {categoryCards.map((card, index) => (
               <div
                 key={index}
-                onClick={() => setSelectedCategory(card.name)}
-                className={`flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 ${selectedCategory === card.name
-                    ? 'scale-110'
-                    : 'hover:scale-105 opacity-70 hover:opacity-100'
+                onClick={() => {
+                  // Toggle: if clicking the same category, clear it
+                  if (selectedCategory === card.name) {
+                    setSelectedCategory('all')
+                  } else {
+                    setSelectedCategory(card.name)
+                  }
+                }}
+                className={`flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 relative ${selectedCategory === card.name
+                  ? 'scale-110'
+                  : 'hover:scale-105 opacity-70 hover:opacity-100'
                   }`}
               >
                 {/* Icon Circle */}
                 <div className={`w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center text-3xl shadow-md ${selectedCategory === card.name
-                    ? 'border-indigo-500 shadow-lg'
-                    : 'border-gray-200'
+                  ? 'border-indigo-500 shadow-lg ring-2 ring-indigo-200'
+                  : 'border-gray-200'
                   }`}>
                   {card.image}
                 </div>
 
+                {/* Selected Checkmark */}
+                {selectedCategory === card.name && (
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center shadow-md">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+
                 {/* Category Name */}
                 <span className={`text-sm font-medium text-center max-w-[100px] leading-tight ${selectedCategory === card.name
-                    ? 'text-indigo-600 font-semibold'
-                    : 'text-gray-700'
+                  ? 'text-indigo-600 font-semibold'
+                  : 'text-gray-700'
                   }`}>
                   {card.name}
                 </span>

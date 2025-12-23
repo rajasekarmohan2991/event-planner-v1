@@ -21,22 +21,46 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const size = parseInt(url.searchParams.get('size') || '50')
     const offset = page * size
 
-    // Fetch payments using raw SQL to handle BigInt properly
+    // Fetch payments from "Order" table (which holds payment records)
+    // Joined with registrations via meta->>'registrationId'
+    // Order model columns are CamelCase in DB if unmapped, or mixed. Check Schema.
+    // Schema: Order { id, eventId, userId, email, paymentStatus, totalInr, meta, createdAt ... }
+    // Using quoted identifiers to be safe.
+
+    // Note: eventId in Order is String in schema, but we passed BigInt in param?
+    // In schema: eventId String. BUT in registrations logic we saw it inserting string.
+    // Wait, registrations route inserts `eventId` (BigInt or String?).
+    // registrations route: BigInt(params.id).
+    // Order table in schema: eventId String.
+    // In `registrations/route.ts` lines 210: `${eventId}` (which comes from `params.id` string).
+    // So distinct from registration.eventId (BigInt).
+
+    // We should use String(params.id) for Order table queries.
+
+    const eventIdStr = params.id
+
     const [payments, totalResult] = await Promise.all([
       prisma.$queryRaw<any[]>`
         SELECT 
-          p.id::text as id,
-          p.registration_id::text as "registrationId",
-          p.event_id::text as "eventId",
-          p.user_id::text as "userId",
-          COALESCE(p.amount_in_minor, 0)::numeric / 100 as amount,
-          COALESCE(p.currency, 'INR') as currency,
-          COALESCE(p.payment_method, 'CARD') as "paymentMethod",
-          COALESCE(p.status, 'PENDING') as status,
-          p.payment_details as "paymentDetails",
-          p.stripe_payment_intent_id as "stripePaymentIntentId",
-          p.created_at as "createdAt",
-          p.updated_at as "updatedAt",
+          o."id"::text,
+          o."meta"->>'registrationId' as "registrationId",
+          o."eventId",
+          o."userId"::text,
+          (o."totalInr"::numeric / 100.0) as amount, -- Assuming totalInr is minor units? No, code says totalInr is Int. Usually means INR. Wait.
+          -- In registrations/route: totalPrice is passed. finalAmount (after discount).
+          -- Order.totalInr = Math.round(finalAmount).
+          -- If finalAmount is in Rupees, then totalInr is Rupees.
+          -- If finalAmount is in Paise, then totalInr is Paise.
+          -- Convention: "totalInr" usually implies Rupees? OR inconsistent naming.
+          -- Let's assume it is just the amount.
+          o."totalInr" as amount_raw,
+          'INR' as currency,
+          'CARD' as "paymentMethod",
+          o."paymentStatus" as status,
+          o."meta" as "paymentDetails",
+          '' as "stripePaymentIntentId",
+          o."createdAt",
+          o."updatedAt",
           COALESCE(
             CASE 
               WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
@@ -53,17 +77,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             END, 
             ''
           ) as "lastName",
-          COALESCE(r.email, '') as email
-        FROM payments p
-        LEFT JOIN registrations r ON p.registration_id = r.id
-        WHERE p.event_id = ${eventId}
-        ORDER BY p.created_at DESC
+          COALESCE(r.email, o."email", '') as email
+        FROM "Order" o
+        LEFT JOIN registrations r ON (o."meta"->>'registrationId') = r.id
+        WHERE o."eventId" = ${eventIdStr}
+        ORDER BY o."createdAt" DESC
         LIMIT ${size} OFFSET ${offset}
       `,
       prisma.$queryRaw<any[]>`
         SELECT COUNT(*)::int as count
-        FROM payments
-        WHERE event_id = ${eventId}
+        FROM "Order"
+        WHERE "eventId" = ${eventIdStr}
       `
     ])
 

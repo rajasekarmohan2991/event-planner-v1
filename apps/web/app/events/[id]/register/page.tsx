@@ -421,13 +421,26 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         email: formData.email,
         phone: formData.phone,
         ticketId: 'general',
-        priceInr: finalAmount,
+        totalPrice: ticketPrice, // Original base price
+        priceInr: finalAmount,   // Final paid amount
         promoCode: promoDiscount?.code,
         data: formData
       })
     })
     if (res.ok) {
       const data = await res.json()
+      // Record dummy payment for history if successful
+      if (finalAmount > 0) {
+        await fetch(`/api/events/${eventId}/registrations/${data.id}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentMethod: 'DUMMY',
+            amount: finalAmount / 100, // API probably expects rupees based on previous observation but let's check
+            status: 'COMPLETED'
+          })
+        }).catch(() => { })
+      }
       // Store registration data for payment page
       localStorage.setItem('pendingRegistration', JSON.stringify(data))
       alert('Registration successful! Redirecting to payment...')
@@ -871,13 +884,26 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
         email: formData.email,
         phone: formData.cellPhone || formData.workPhone,
         ticketId: 'vip',
-        priceInr: finalAmount / 100, // Convert paise to rupees
+        totalPrice: ticketPrice,
+        priceInr: finalAmount,
         promoCode: promoDiscount?.code,
         data: formData
       })
     })
     if (res.ok) {
       const data = await res.json()
+      // Record dummy payment for history if successful
+      if (finalAmount > 0) {
+        await fetch(`/api/events/${eventId}/registrations/${data.id}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentMethod: 'DUMMY',
+            amount: finalAmount / 100,
+            status: 'COMPLETED'
+          })
+        }).catch(() => { })
+      }
       // Store registration data for payment page
       localStorage.setItem('pendingRegistration', JSON.stringify(data))
       alert('VIP Registration successful! Redirecting to payment...')

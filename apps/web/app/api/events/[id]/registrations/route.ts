@@ -200,11 +200,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         `
 
       // 2. Insert Order ('"Order"')
-      // Columns: "eventId", "tenantId", "paymentStatus"
+      // Columns: "eventId", "tenantId", "paymentStatus", "createdAt", "updatedAt" (Quoted CamelCase)
       await tx.$executeRaw`
             INSERT INTO "Order" (
-                id, "eventId", "tenantId", "userId", email, status, 
-                "paymentStatus", "totalInr", meta, created_at, updated_at
+                "id", "eventId", "tenantId", "userId", "email", "status", 
+                "paymentStatus", "totalInr", "meta", "createdAt", "updatedAt"
             ) VALUES (
                 ${newOrderId},
                 ${eventId},   -- String

@@ -9,8 +9,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     console.log('🎟️ Apply promo code request:', { code, orderAmount, eventId: params.id })
 
-    if (!code) {
-      return NextResponse.json({ error: 'Promo code is required' }, { status: 400 })
+    // Allow empty codes - just return no discount
+    if (!code || String(code).trim() === '') {
+      return NextResponse.json({
+        valid: true,
+        code: '',
+        discountType: 'NONE',
+        discountAmount: 0,
+        calculatedDiscount: 0,
+        originalAmount: orderAmount || 0,
+        finalAmount: orderAmount || 0,
+        description: 'No promo code applied',
+      })
     }
 
     if (typeof orderAmount !== 'number' || orderAmount <= 0) {

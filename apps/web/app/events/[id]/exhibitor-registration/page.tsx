@@ -26,19 +26,29 @@ export default function ExhibitorRegistrationPage() {
       <ManageTabs eventId={eventId} />
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header with improved visibility */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 mt-6 mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Exhibitor Registrations</h1>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Exhibitor Registrations</h1>
             <p className="text-sm text-gray-600 mt-1">
               Manage exhibitor registrations for this event
             </p>
           </div>
-          <a
-            href={`/events/${eventId}/exhibitor-registration/register`}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-          >
-            + Register as Exhibitor
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/events/${eventId}/exhibitor-registration/register`}
+              target="_blank"
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 flex items-center gap-2 text-sm font-medium transition-colors"
+            >
+              View Public Form
+            </a>
+            <a
+              href={`/events/${eventId}/exhibitor-registration/register`}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 shadow-sm hover:shadow-md transition-all text-sm font-medium"
+            >
+              + Add Exhibitor
+            </a>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg border overflow-hidden">
@@ -84,16 +94,16 @@ export default function ExhibitorRegistrationPage() {
                     <td className="px-4 py-3 text-sm">{ex.booth_size || 'N/A'}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs ${ex.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                          ex.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
+                        ex.status === 'PENDING_APPROVAL' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
                         }`}>
                         {ex.status || 'PENDING'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs ${ex.payment_status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                          ex.payment_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                        ex.payment_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                         {ex.payment_status || 'PENDING'}
                       </span>

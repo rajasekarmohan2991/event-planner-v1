@@ -192,22 +192,69 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
   return (
     <div className="space-y-6">
       <ManageTabs eventId={params?.id || ''} />
-      <header className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <AvatarIcon
-              seed={`${event?.name || event?.id || 'event'}:${event?.eventMode || ''}`}
-              size={24}
-              query={`event,${(event?.eventMode || '').toString().toLowerCase()}`}
-            />
-            <h1 className="text-xl font-semibold">{event.name}</h1>
+      <header className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="text-xs inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50">
+            <span className={`inline-block h-2 w-2 rounded-full ${event.status === 'LIVE' ? 'bg-emerald-500' : event.status === 'CANCELLED' ? 'bg-rose-500' : event.status === 'TRASHED' ? 'bg-zinc-400' : 'bg-indigo-500'}`} />
+            <span className="font-medium">{event.status || 'DRAFT'}</span>
           </div>
         </div>
-        <div className="text-xs inline-flex items-center gap-2 px-3 py-1 rounded-full border">
-          <span className={`inline-block h-2 w-2 rounded-full ${event.status === 'LIVE' ? 'bg-emerald-500' : event.status === 'CANCELLED' ? 'bg-rose-500' : event.status === 'TRASHED' ? 'bg-zinc-400' : 'bg-indigo-500'}`} />
-          <span className="font-medium">{event.status || 'DRAFT'}</span>
-          <span className="text-slate-400">|</span>
-          <span>{event.eventMode === 'IN_PERSON' ? 'In Person' : event.eventMode === 'VIRTUAL' ? 'Virtual' : event.eventMode === 'HYBRID' ? 'Hybrid' : event.eventMode}</span>
+        <div className="flex items-center gap-3">
+          <button
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 shadow-sm disabled:opacity-60"
+            onClick={async () => {
+              try {
+                setSaving(true)
+                const payload: CreateEventRequest = {
+                  name,
+                  venue: venue || undefined,
+                  address: address || undefined,
+                  city,
+                  startsAt: startsAt ? new Date(startsAt).toISOString() : new Date().toISOString(),
+                  endsAt: endsAt ? new Date(endsAt).toISOString() : new Date().toISOString(),
+                  priceInr: Number(priceInr || 0),
+                  description: description || undefined,
+                  bannerUrl: bannerUrl || undefined,
+                  category: category || undefined,
+                  eventMode: (eventMode || 'IN_PERSON') as any,
+                  budgetInr: budgetInr ? Number(budgetInr) : undefined,
+                  expectedAttendees: expectedAttendees ? Number(expectedAttendees) : undefined,
+                  latitude: latitude || undefined,
+                  longitude: longitude || undefined,
+                  termsAndConditions: termsAndConditions || undefined,
+                  disclaimer: disclaimer || undefined,
+                  eventManagerName: eventManagerName || undefined,
+                  eventManagerContact: eventManagerContact || undefined,
+                  eventManagerEmail: eventManagerEmail || undefined,
+                }
+                await updateEvent(params.id, payload, accessToken)
+                setBanner('Changes saved successfully')
+                setTimeout(() => setBanner(null), 3000)
+              } catch (e: any) {
+                setError(e.message || 'Save failed')
+              } finally {
+                setSaving(false)
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <button
+            className="rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+            onClick={async () => {
+              if (confirm('Permanently delete this event? This cannot be undone.')) {
+                try {
+                  await deleteEvent(params.id, accessToken)
+                  router.push('/dashboard')
+                } catch (e: any) {
+                  setError(e.message || 'Delete failed')
+                }
+              }
+            }}
+          >
+            Delete
+          </button>
         </div>
       </header>
 

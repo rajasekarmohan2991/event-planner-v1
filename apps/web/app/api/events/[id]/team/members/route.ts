@@ -29,25 +29,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         a."createdAt",
         u.name, 
         u.email, 
-        u.image
+        u.image,
+        u.password_hash as "hasPassword"
       FROM "EventRoleAssignment" a
       LEFT JOIN users u ON a."userId"::text = u.id::text
-      WHERE a."eventId"::bigint = ${eventIdBigInt}
+      WHERE a."eventId"::text = ${eventId}
       ORDER BY a."createdAt" DESC
     ` as any[]
 
     console.log(`✅ Found ${assignments.length} assignments for event ${eventId}`)
 
     const items = assignments.map((a: any) => ({
-      id: a.id,
+      id: String(a.id),
       userId: a.userId ? String(a.userId) : null,
-      name: a.name || 'Unknown User',
+      name: a.name || a.email?.split('@')[0] || 'Unknown User',
       email: a.email || 'unknown@example.com',
       role: a.role || 'STAFF',
-      status: 'JOINED',
+      status: a.hasPassword ? 'JOINED' : 'INVITED',
       imageUrl: a.image || null,
-      joinedAt: a.createdAt,
-      progress: 100
+      invitedAt: a.createdAt,
+      joinedAt: a.hasPassword ? a.createdAt : null,
+      progress: a.hasPassword ? 100 : 25
     }))
 
     return NextResponse.json({
@@ -55,7 +57,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       total: items.length,
       totalPages: 1,
       page: 1,
-      limit: items.length
+      limit: 100
     })
 
   } catch (error: any) {

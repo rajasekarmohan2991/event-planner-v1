@@ -24,68 +24,45 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="sticky top-16 z-20 bg-white border-b -mx-6 px-6 -mt-6 mb-6">
-      {/* Compact Header with Event ID */}
-      <div className="flex items-center justify-between py-2 border-b">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-gray-500">Event</span>
-          <Badge variant="outline" className="font-mono text-xs">
-            ID: {eventId}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span>Step {safeActiveIndex + 1} of {tabs.length}</span>
-        </div>
-      </div>
-
+    <div className="sticky top-16 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b px-6 -mx-6 mb-8 transition-all">
       {/* Modern Tab Navigation */}
       <nav className="overflow-x-auto no-scrollbar">
-        <div className="flex items-center min-w-max py-3 gap-1">
+        <div className="flex items-center min-w-max h-14 gap-1">
           {tabs.map((tab, index) => {
             const isActive = index === safeActiveIndex
             const isCompleted = index < safeActiveIndex
-            const isUpcoming = index > safeActiveIndex
 
             return (
               <Link
-                key={tab.href}
+                key={tab.label}
                 href={tab.href}
-                className={`
-                  group relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                  ${isActive
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : isCompleted
-                      ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }
-                `}
+                className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap rounded-md ${isActive
+                  ? 'text-indigo-600'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
               >
-                {/* Step Number or Check */}
-                <div
-                  className={`
-                    flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all
-                    ${isActive
-                      ? 'bg-white text-indigo-600'
-                      : isCompleted
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-200 text-gray-600 group-hover:bg-gray-300'
-                    }
-                  `}
-                >
+                {/* Step Circle */}
+                <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] border-2 transition-colors ${isActive
+                  ? 'border-indigo-600 bg-indigo-600 text-white'
+                  : isCompleted
+                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                    : 'border-slate-200 text-slate-400 group-hover:border-slate-300'
+                  }`}>
                   {isCompleted ? (
-                    <Check className="h-3.5 w-3.5" />
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
                   ) : (
-                    <span>{index + 1}</span>
+                    index + 1
                   )}
                 </div>
 
-                {/* Label - Show short on mobile, full on desktop */}
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className="sm:hidden">{tab.short}</span>
 
                 {/* Active Indicator */}
                 {isActive && (
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
                 )}
               </Link>
             )

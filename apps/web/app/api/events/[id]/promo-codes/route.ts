@@ -105,36 +105,36 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     discountType = String(discountType || 'PERCENT').toUpperCase();
 
-    // 4. Insert (Raw SQL)
-    const result = await prisma.$queryRaw`
-      INSERT INTO promo_codes (
-        event_id, code, discount_type, discount_amount, max_uses,
-        max_uses_per_user, min_order_amount, start_date, end_date,
-        is_active, description, created_at, updated_at
-      ) VALUES (
-        ${BigInt(eventId)}, 
-        ${code}, 
-        ${discountType}, 
-        ${Math.round(discountAmount)},
-        ${maxUses}, 
-        ${maxUsesPerUser}, 
-        ${minOrderAmount},
-        ${start}, 
-        ${end}, 
-        ${isActive !== false}, 
-        ${description || null},
-        NOW(), NOW()
-      )
-      RETURNING id, code
-    ` as any[]
+    // 4. Create using Prisma Client
+    try {
+      const newPromo = await prisma.promoCode.create({
+        data: {
+          eventId: BigInt(eventId),
+          code,
+          type: discountType,
+          amount: Math.round(discountAmount),
+          maxRedemptions: maxUses,
+          perUserLimit: maxUsesPerUser,
+          minOrderAmount: minOrderAmount,
+          startsAt: start,
+          endsAt: end,
+          isActive: isActive !== false,
+          description: description || null
+        }
+      })
 
-    const saved = result[0]
+      return NextResponse.json({
+        id: String(newPromo.id),
+        code: newPromo.code,
+        message: 'Promo code created successfully'
+      }, { status: 201 })
 
-    return NextResponse.json({
-      id: String(saved.id),
-      code: saved.code,
-      message: 'Promo code created successfully'
-    }, { status: 201 })
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        return NextResponse.json({ message: 'Promo code already exists' }, { status: 409 })
+      }
+      throw e
+    }
 
   } catch (error: any) {
     console.error('❌ Promo code creation failed:', {

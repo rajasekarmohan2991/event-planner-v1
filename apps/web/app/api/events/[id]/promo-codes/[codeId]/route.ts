@@ -16,37 +16,36 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const { code, discountType, discountAmount, maxUses, maxUsesPerUser, minOrderAmount, startDate, endDate, isActive } = body
 
     const updated = await prisma.promoCode.update({
-      where: { id: codeId },
+      where: { id: BigInt(codeId) },
       data: {
         code: code ? String(code).trim().toUpperCase() : undefined,
         type: discountType,
-        amount: discountAmount,
-        currency: discountType === 'FIXED' ? 'INR' : null,
-        maxRedemptions: maxUses === -1 ? null : maxUses,
+        amount: Math.round(discountAmount),
+        maxRedemptions: maxUses === -1 ? -1 : maxUses,
         perUserLimit: maxUsesPerUser,
         startsAt: startDate ? new Date(startDate) : null,
         endsAt: endDate ? new Date(endDate) : null,
-        minOrderAmount: minOrderAmount || null,
-        status: isActive ? 'ACTIVE' : 'INACTIVE',
+        minOrderAmount: Math.round(minOrderAmount || 0),
+        isActive: isActive !== false,
+        description: body.description || ''
       },
-      include: { redemptions: true },
     })
 
     return NextResponse.json({
-      id: updated.id,
-      eventId: parseInt(eventId),
+      id: String(updated.id),
+      eventId: Number(updated.eventId),
       code: updated.code,
       discountType: updated.type,
       discountAmount: updated.amount,
-      maxUses: updated.maxRedemptions ?? -1,
-      usedCount: updated.redemptions.length,
-      maxUsesPerUser: updated.perUserLimit ?? 1,
-      minOrderAmount: updated.minOrderAmount ?? 0,
-      startDate: updated.startsAt?.toISOString(),
-      endDate: updated.endsAt?.toISOString(),
-      isActive: updated.status === 'ACTIVE',
-      description: '',
-      createdAt: updated.createdAt.toISOString(),
+      maxUses: updated.maxRedemptions,
+      usedCount: updated.usedCount,
+      maxUsesPerUser: updated.perUserLimit,
+      minOrderAmount: updated.minOrderAmount,
+      startDate: updated.startsAt,
+      endDate: updated.endsAt,
+      isActive: updated.isActive,
+      description: updated.description,
+      createdAt: updated.createdAt,
     })
   } catch (e: any) {
     return NextResponse.json({ message: e?.message || 'Failed to update promo code' }, { status: 500 })
@@ -61,7 +60,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!allowed) return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
 
   try {
-    await prisma.promoCode.delete({ where: { id: codeId } })
+    await prisma.promoCode.delete({ where: { id: BigInt(codeId) } })
     return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json({ message: e?.message || 'Failed to delete promo code' }, { status: 500 })

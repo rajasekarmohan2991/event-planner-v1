@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,14 +66,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       // 2. Insert/Update Assignment (Raw SQL)
-      // EventRoleAssignment columns: eventId, userId, role, tenantId (all unquoted camelCase)
+
+      // Normalize role to enum
+      let dbRole = (role || 'STAFF').toUpperCase().replace(' ', '_')
+      if (dbRole === 'EVENT_STAFF') dbRole = 'STAFF'
+      if (dbRole === 'ADMIN') dbRole = 'ORGANIZER'
+      if (!['OWNER', 'ORGANIZER', 'STAFF', 'VIEWER'].includes(dbRole)) dbRole = 'STAFF'
+
       try {
         await prisma.$executeRawUnsafe(`
-            INSERT INTO "EventRoleAssignment" (eventId, userId, role, tenantId, createdAt, updatedAt)
-            VALUES ($1, $2, $3, $4, NOW(), NOW())
-            ON CONFLICT (eventId, userId) 
-            DO UPDATE SET role = $3, tenantId = $4, updatedAt = NOW()
-        `, eventIdString, user.id, role || 'STAFF', tenantId)
+            INSERT INTO "EventRoleAssignment" ("id", "eventId", "userId", "role", "tenantId", "createdAt")
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            ON CONFLICT ("eventId", "userId") 
+            DO UPDATE SET "role" = $4, "tenantId" = $5
+        `, crypto.randomUUID(), eventIdString, user.id, dbRole, tenantId)
 
         // Send Email
         if (isNewUser) {
@@ -101,8 +108,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ message: 'Invites processed', results })
 
-  } catch (e: any) {
-    console.error('Invite error:', e)
-    return NextResponse.json({ message: e?.message || 'Invite failed' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Invite error:', error)
+    return NextResponse.json({ message: error?.message || 'Invite failed' }, { status: 500 })
   }
 }
