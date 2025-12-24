@@ -8,7 +8,13 @@ import QRCode from 'qrcode'
 import crypto from 'crypto'
 
 // GET /api/events/[id]/registrations
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> | { id: string } }
+) {
+  // Await params if it's a Promise (Next.js 15+)
+  const params = 'then' in context.params ? await context.params : context.params
+
   try {
     const session = await getServerSession(authOptions as any)
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
@@ -52,7 +58,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST /api/events/[id]/registrations
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> | { id: string } }
+) {
+  // Await params if it's a Promise (Next.js 15+)
+  const params = 'then' in context.params ? await context.params : context.params
+
   try {
     const session = await getServerSession(authOptions as any)
     const bodyText = await req.text()
