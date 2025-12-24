@@ -7,7 +7,13 @@ import { ensureSchema } from '@/lib/ensure-schema'
 export const dynamic = 'force-dynamic'
 
 // Duplicate of floor-plan/route.ts with new endpoint name to bypass 404 issues
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    // Await params if it's a Promise (Next.js 15+)
+    const params = 'then' in context.params ? await context.params : context.params
+
     console.log('🔍 [FloorLayout GET] Request received for event:', params.id)
 
     try {
@@ -72,7 +78,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    const params = 'then' in context.params ? await context.params : context.params
+
     try {
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
@@ -132,7 +143,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    const params = 'then' in context.params ? await context.params : context.params
+
     try {
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
