@@ -140,7 +140,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
       return NextResponse.json({
         id: String(newPromo.id),
+        eventId: String(newPromo.eventId),
         code: newPromo.code,
+        discountType: newPromo.type,
+        discountAmount: newPromo.amount,
+        maxUses: newPromo.maxRedemptions,
+        usedCount: newPromo.usedCount,
+        maxUsesPerUser: newPromo.perUserLimit,
+        minOrderAmount: newPromo.minOrderAmount,
+        startDate: newPromo.startsAt,
+        endDate: newPromo.endsAt,
+        isActive: newPromo.isActive,
+        description: newPromo.description,
+        createdAt: newPromo.createdAt,
         message: 'Promo code created successfully'
       }, { status: 201 })
 
