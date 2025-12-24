@@ -62,6 +62,19 @@ const nextConfig = {
   generateBuildId: async () => {
     return `build-${Date.now()}-${Math.random().toString(36).substring(7)}`
   },
+  // Skip static generation for API routes and diagnostic pages
+  experimental: {
+    ...nextConfig.experimental,
+    isrMemoryCacheSize: 0,
+  },
+  // Don't try to statically generate these routes
+  async rewrites() {
+    return {
+      beforeFiles: [],
+      afterFiles: [],
+      fallback: []
+    }
+  },
 }
 
 export default nextConfig

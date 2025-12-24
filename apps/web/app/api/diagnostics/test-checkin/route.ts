@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { POST as checkInPost } from '../../events/[id]/checkin-simple/route';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
     try {
         // 1. Find an event to test with
