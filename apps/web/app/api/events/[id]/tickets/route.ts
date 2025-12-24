@@ -7,89 +7,83 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const eventId = BigInt(params.id)
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   try {
+    console.log(`🔍 [Tickets GET] Fetching for event: ${params.id}`)
     const tickets = await prisma.ticket.findMany({
-      where: { eventId: String(params.id) },
+      where: { eventId: eventId },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Map to format expected by frontend
+    console.log(`✅ [Tickets GET] Found ${tickets.length} tickets`)
+
     const payload = tickets.map(t => ({
-      id: t.id,
+      id: t.id.toString(),
+      eventId: t.eventId.toString(),
       groupId: t.groupId,
       name: t.name,
       description: t.description,
-      // Frontend expects price in minor units (paise/cents)
-      priceInMinor: t.priceInr * 100,
-      quantity: t.capacity,
-      sold: t.sold,
-      // Simple mapping for status
+      // Ensure prices are numbers/strings for frontend
+      priceInMinor: Number(t.priceInMinor),
+      quantity: Number(t.quantity),
+      sold: Number(t.sold || 0),
       status: t.status === 'ACTIVE' ? 'Open' : 'Closed',
       requiresApproval: t.requiresApproval,
       salesStartAt: t.salesStartAt,
       salesEndAt: t.salesEndAt,
-      minQuantity: t.minQuantity,
-      maxQuantity: t.maxQuantity,
-      allowedUserTypes: t.allowedUserTypes
+      tenantId: t.tenantId
     }))
 
     return NextResponse.json(payload)
   } catch (e: any) {
-    console.error('Tickets GET error:', e)
-    return NextResponse.json({ message: 'Failed to load tickets' }, { status: 500 })
+    console.error('❌ [Tickets GET] Error:', e)
+    return NextResponse.json({ message: e?.message || 'Load failed' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const eventId = BigInt(params.id)
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   try {
     const body = await req.json()
+    console.log(`📌 [Tickets POST] Creating ticket for event: ${params.id}`)
 
-    // Default values
-    const priceInr = body.price ? Math.round(Number(body.price)) : 0
-    const capacity = body.quantity ? Number(body.quantity) : 0
+    // Get tenantId
+    const event = await prisma.event.findFirst({
+      where: { id: eventId },
+      select: { tenantId: true }
+    })
 
     const ticket = await prisma.ticket.create({
       data: {
-        eventId: String(params.id),
+        eventId: eventId,
+        tenantId: event?.tenantId || null,
         name: body.name,
         description: body.description,
         groupId: body.groupId,
-        priceInr,
-        capacity,
-        // Status mapping
+        priceInMinor: body.price ? Math.round(Number(body.price) * 100) : (Number(body.priceInMinor) || 0),
+        quantity: body.quantity ? Number(body.quantity) : (Number(body.capacity) || 0),
         status: body.status === 'Closed' ? 'INACTIVE' : 'ACTIVE',
         requiresApproval: !!body.requiresApproval,
         salesStartAt: body.salesStartDate ? new Date(body.salesStartDate + (body.salesStartTime ? 'T' + body.salesStartTime : '')) : null,
         salesEndAt: body.salesEndDate ? new Date(body.salesEndDate + (body.salesEndTime ? 'T' + body.salesEndTime : '')) : null,
-        minQuantity: body.minBuyingLimit ? Number(body.minBuyingLimit) : 1,
-        maxQuantity: body.maxBuyingLimit ? Number(body.maxBuyingLimit) : 10,
       }
     })
 
-    // Return mapped object
-    const payload = {
-      id: ticket.id,
-      groupId: ticket.groupId,
-      name: ticket.name,
-      description: ticket.description,
-      priceInMinor: ticket.priceInr * 100,
-      quantity: ticket.capacity,
-      sold: ticket.sold,
-      status: ticket.status === 'ACTIVE' ? 'Open' : 'Closed',
-      requiresApproval: ticket.requiresApproval,
-      salesStartAt: ticket.salesStartAt,
-      salesEndAt: ticket.salesEndAt,
-    }
+    console.log(`✅ [Tickets POST] Success: ${ticket.id}`)
 
-    return NextResponse.json(payload)
+    return NextResponse.json({
+      ...ticket,
+      id: ticket.id.toString(),
+      eventId: ticket.eventId.toString()
+    })
   } catch (e: any) {
-    console.error('Create ticket error:', e)
+    console.error('❌ [Tickets POST] Error:', e)
     return NextResponse.json({ message: e?.message || 'Create failed' }, { status: 500 })
   }
 }

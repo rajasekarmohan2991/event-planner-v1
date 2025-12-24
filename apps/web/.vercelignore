@@ -1,0 +1,3 @@
+# Force regeneration of Prisma Client on every deploy
+node_modules/@prisma/client
+.next/cache

@@ -376,36 +376,25 @@ model TicketGroup {
 }
 
 model Ticket {
-  id         String       @id @default(cuid())
-  eventId    String
-  name       String
-  description String?
-  priceInr   Int          @default(0)
-  currency   String       @default("INR")
-  capacity   Int          @default(0)
-  sold       Int          @default(0)
-  status     TicketStatus @default(ACTIVE)
-  
-  // Grouping
-  groupId    String?      @map("group_id")
-  
-  // Quantity Limits (SELLING POINT!)
-  minQuantity Int?        @map("min_quantity") // Minimum tickets per order
-  maxQuantity Int?        @map("max_quantity") // Maximum tickets per order
-  
-  // Sales Period (SELLING POINT!)
-  salesStartAt DateTime?  @map("sales_start_at") // When ticket sales begin
-  salesEndAt   DateTime?  @map("sales_end_at")   // When ticket sales end
-  
-  // User Type Restrictions (SELLING POINT!)
-  allowedUserTypes String? @map("allowed_user_types") // Comma-separated: MEMBER,VIP,STUDENT
-  requiresApproval Boolean @default(false) @map("requires_approval")
-  
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  // Tenant scope
-  tenantId   String?
+  id               BigInt       @id @default(autoincrement())
+  eventId          BigInt       @map("event_id")
+  name             String
+  description      String?
+  priceInMinor     Int          @map("price_in_minor")
+  currency         String?      @default("INR")
+  quantity         Int          @default(0)
+  sold             Int          @default(0)
+  status           String       @default("ACTIVE")
+  isFree           Boolean      @default(false) @map("is_free")
+  groupId          String?      @map("group_id")
+  requiresApproval Boolean      @default(false) @map("requires_approval")
+  salesStartAt     DateTime?    @map("sales_start_at") 
+  salesEndAt       DateTime?    @map("sales_end_at")   
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  tenantId         String?      @map("tenant_id")
 
+  @@map("tickets")
   @@index([eventId, status])
   @@index([tenantId])
 }
@@ -1481,11 +1470,7 @@ enum FloorPlanObjectType {
   CUSTOM
 }
 
-enum FloorPlanStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
+
 
 enum Gender {
   MEN
@@ -1521,7 +1506,7 @@ model FloorPlan {
   // Layout data (JSON)
   layoutData      Json?             // Stores all objects on canvas
   
-  status          FloorPlanStatus   @default(DRAFT)
+  status          String            @default("DRAFT")
   version         Int               @default(1)
   
   createdAt       DateTime          @default(now()) @map("created_at")

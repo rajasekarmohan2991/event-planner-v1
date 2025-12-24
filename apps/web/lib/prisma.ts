@@ -38,6 +38,20 @@ const prisma = globalThis.prisma || new PrismaClient({
   datasources: databaseUrl ? { db: { url: databaseUrl } } : undefined,
 })
 
+// Add BigInt serialization support for JSON.stringify
+if (!(BigInt.prototype as any).toJSON) {
+  ; (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
+}
+
+/**
+ * Safely serialize data for JSON responses, handling BigInts and Prisma Decimals.
+ */
+export function safeJson(data: any) {
+  return JSON.parse(JSON.stringify(data))
+}
+
 // Apply tenant middleware for automatic tenant isolation
 prisma.$use(createTenantMiddleware())
 

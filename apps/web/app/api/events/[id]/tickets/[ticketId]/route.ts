@@ -1,8 +1,7 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import prisma, { safeJson } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,19 +11,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
 
   try {
     const body = await req.json()
+    const ticketId = BigInt(params.ticketId)
 
-    // Default values logic similar to POST
-    const priceInr = body.price !== undefined ? Math.round(Number(body.price)) : undefined
-    const capacity = body.quantity !== undefined ? Number(body.quantity) : undefined
+    // Mapping fields
+    const priceInMinor = body.price !== undefined ? Math.round(Number(body.price) * 100) : (body.priceInMinor !== undefined ? body.priceInMinor : undefined)
+    const quantity = body.quantity !== undefined ? Number(body.quantity) : (body.capacity !== undefined ? body.capacity : undefined)
 
     const ticket = await prisma.ticket.update({
-      where: { id: params.ticketId },
+      where: { id: ticketId },
       data: {
         name: body.name,
         description: body.description,
         groupId: body.groupId,
-        ...(priceInr !== undefined && { priceInr }),
-        ...(capacity !== undefined && { capacity }),
+        ...(priceInMinor !== undefined && { priceInMinor: Number(priceInMinor) }),
+        ...(quantity !== undefined && { quantity: Number(quantity) }),
         ...(body.status && { status: body.status === 'Closed' ? 'INACTIVE' : 'ACTIVE' }),
         ...(body.requiresApproval !== undefined && { requiresApproval: !!body.requiresApproval }),
         ...(body.salesStartDate && {
@@ -33,28 +33,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
         ...(body.salesEndDate && {
           salesEndAt: new Date(body.salesEndDate + (body.salesEndTime ? 'T' + body.salesEndTime : ''))
         }),
-        ...(body.minBuyingLimit && { minQuantity: Number(body.minBuyingLimit) }),
-        ...(body.maxBuyingLimit && { maxQuantity: Number(body.maxBuyingLimit) }),
       }
     })
 
-    const payload = {
-      id: ticket.id,
-      groupId: ticket.groupId,
-      name: ticket.name,
-      description: ticket.description,
-      priceInMinor: ticket.priceInr * 100,
-      quantity: ticket.capacity,
-      sold: ticket.sold,
-      status: ticket.status === 'ACTIVE' ? 'Open' : 'Closed',
-      requiresApproval: ticket.requiresApproval,
-      salesStartAt: ticket.salesStartAt,
-      salesEndAt: ticket.salesEndAt,
-    }
-
-    return NextResponse.json(payload)
+    return NextResponse.json({
+      ...ticket,
+      id: ticket.id.toString(),
+      eventId: ticket.eventId.toString(),
+      priceInMinor: Number(ticket.priceInMinor),
+      quantity: Number(ticket.quantity)
+    })
   } catch (e: any) {
-    console.error('Update ticket error:', e)
+    console.error('❌ [Ticket Update Error]:', e)
     return NextResponse.json({ message: e?.message || 'Update failed' }, { status: 500 })
   }
 }
@@ -64,8 +54,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   try {
+    const ticketId = BigInt(params.ticketId)
     await prisma.ticket.delete({
-      where: { id: params.ticketId }
+      where: { id: ticketId }
     })
 
     return NextResponse.json({ ok: true })

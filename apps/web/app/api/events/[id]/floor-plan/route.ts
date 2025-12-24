@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { randomUUID } from 'crypto'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
-// Production schema: eventId is BIGINT (camelCase, unquoted)
 
 export async function GET(
     req: NextRequest,
@@ -16,33 +13,47 @@ export async function GET(
     try {
         const params = await context.params
         const id = params.id
-        console.log('🔍 [FloorPlan GET] Fetching for event:', id)
+        console.log('🔍 [FloorPlan GET] Starting for event:', id)
 
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
+            console.warn('⚠️ [FloorPlan GET] Unauthorized access attempt')
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
         const eventId = BigInt(id)
 
-        // Use Prisma FindMany instead of Raw SQL (Safer)
-        const floorPlans = await prisma.floorPlan.findMany({
-            where: {
-                eventId: eventId
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
+        const plans = await prisma.floorPlan.findMany({
+            where: { eventId },
+            orderBy: { createdAt: 'desc' }
         })
 
-        console.log(`✅ [FloorPlan GET] Found ${floorPlans.length} plans`)
+        console.log(`✅ [FloorPlan GET] Found ${plans.length} plans in database`)
 
-        // Start mapping serialization
-        const serialized = floorPlans.map(fp => ({
-            ...fp,
-            // Ensure BigInts are strings
+        // Explicit serialization to avoid any hidden BigInt/Decimal issues
+        const serialized = plans.map(fp => ({
+            id: fp.id,
             eventId: fp.eventId.toString(),
-            // Ensure JSON is parsed if needed (Prisma does it auto, but ensuring objects array exists)
+            tenantId: fp.tenantId,
+            name: fp.name,
+            description: fp.description,
+            canvasWidth: fp.canvasWidth,
+            canvasHeight: fp.canvasHeight,
+            backgroundColor: fp.backgroundColor,
+            gridSize: fp.gridSize,
+            vipPrice: String(fp.vipPrice || 0),
+            premiumPrice: String(fp.premiumPrice || 0),
+            generalPrice: String(fp.generalPrice || 0),
+            totalCapacity: fp.totalCapacity,
+            vipCapacity: fp.vipCapacity,
+            premiumCapacity: fp.premiumCapacity,
+            generalCapacity: fp.generalCapacity,
+            menCapacity: fp.menCapacity,
+            womenCapacity: fp.womenCapacity,
+            status: fp.status,
+            version: fp.version,
+            createdAt: fp.createdAt,
+            updatedAt: fp.updatedAt,
             objects: (fp.layoutData as any)?.objects || []
         }))
 
@@ -52,10 +63,11 @@ export async function GET(
         })
 
     } catch (error: any) {
-        console.error('❌ [FloorPlan GET] Error:', error)
+        console.error('❌ [FloorPlan GET] Fatal Error:', error)
         return NextResponse.json({
             message: 'Failed to load floor plans',
-            error: error.message
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 })
     }
 }
@@ -64,96 +76,146 @@ export async function POST(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
+    console.log('🚀 [FloorPlan POST] Handler invoked')
+
     try {
         const params = await context.params
         const id = params.id
-
-        // DEBUG: Force 200 OK to verify routing
-        // Remove this later
-        console.log('📌 [FloorPlan POST] HIT DEBUG CHECK')
-        /* 
-        // Uncomment to verify routing if 404 persists
-        return NextResponse.json({ 
-            message: 'DEBUG: Route is reachable!',
-            eventId: id 
-        }, { status: 200 }) 
-        */
-
-        console.log('📌 [FloorPlan POST] Creating for event:', id)
+        console.log('📌 [FloorPlan POST] Event ID:', id)
 
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
+            console.warn('⚠️ [FloorPlan POST] No session')
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
+        console.log('✅ [FloorPlan POST] Session validated')
 
-        const eventId = BigInt(id)
-        const body = await req.json()
+        let body: any
+        try {
+            body = await req.json()
+            console.log('✅ [FloorPlan POST] Body parsed, keys:', Object.keys(body))
+        } catch (parseError: any) {
+            console.error('❌ [FloorPlan POST] JSON parse error:', parseError.message)
+            return NextResponse.json({
+                message: 'Invalid JSON',
+                error: parseError.message
+            }, { status: 400 })
+        }
 
-        // 1. Get Event (with fallback)
-        let event = await prisma.event.findUnique({
-            where: { id: eventId },
-            select: { tenantId: true }
-        })
+        let eventId: bigint
+        try {
+            eventId = BigInt(id)
+            console.log('✅ [FloorPlan POST] EventId as BigInt:', eventId.toString())
+        } catch (bigintError: any) {
+            console.error('❌ [FloorPlan POST] BigInt conversion error:', bigintError.message)
+            return NextResponse.json({
+                message: 'Invalid event ID',
+                error: bigintError.message
+            }, { status: 400 })
+        }
 
-        if (!event) {
-            console.log('⚠️ [FloorPlan POST] Event not found via findUnique, trying findFirst...')
-            event = await prisma.event.findFirst({
+        // Get tenant ID with robust error handling
+        let tenantId = null
+        try {
+            const event = await prisma.event.findFirst({
                 where: { id: eventId },
                 select: { tenantId: true }
             })
+            tenantId = event?.tenantId || null
+            console.log('✅ [FloorPlan POST] TenantId:', tenantId)
+        } catch (eventError: any) {
+            console.warn('⚠️ [FloorPlan POST] Event fetch error:', eventError.message)
+            // Continue with null tenantId
         }
 
-        if (!event) {
-            console.warn(`⚠️ [FloorPlan POST] Event ${id} REALLY not found. Proceeding with null tenantId to save data.`)
+        console.log('📝 [FloorPlan POST] Preparing data for creation...')
+
+        const createData = {
+            id: body.id && !body.id.startsWith('fp-') ? body.id : undefined,
+            eventId: eventId,
+            tenantId: tenantId,
+            name: body.name || 'New Floor Plan',
+            description: body.description || null,
+            canvasWidth: Number(body.canvasWidth || body.width) || 1200,
+            canvasHeight: Number(body.canvasHeight || body.height) || 800,
+            backgroundColor: body.backgroundColor || '#ffffff',
+            gridSize: Number(body.gridSize) || 20,
+            vipPrice: Number(body.vipPrice) || 0,
+            premiumPrice: Number(body.premiumPrice) || 0,
+            generalPrice: Number(body.generalPrice) || 0,
+            totalCapacity: Number(body.totalCapacity) || 0,
+            vipCapacity: Number(body.vipCapacity) || 0,
+            premiumCapacity: Number(body.premiumCapacity) || 0,
+            generalCapacity: Number(body.generalCapacity) || 0,
+            menCapacity: Number(body.menCapacity) || 0,
+            womenCapacity: Number(body.womenCapacity) || 0,
+            layoutData: body.layoutData || body.objects ? { objects: body.objects } : {},
+            status: 'DRAFT'
         }
 
-        const tenantId = event?.tenantId || null
-
-        console.log('✅ [FloorPlan POST] Proceeding to create plan...')
-
-        // 2. Create Floor Plan using Prisma Client
-        const newFloorPlan = await prisma.floorPlan.create({
-            data: {
-                eventId: eventId,
-                tenantId: tenantId, // Allow null
-                name: body.name || 'New Floor Plan',
-                description: body.description || null,
-                canvasWidth: body.canvasWidth || 1200,
-                canvasHeight: body.canvasHeight || 800,
-                backgroundColor: body.backgroundColor || '#ffffff',
-                gridSize: body.gridSize || 20,
-                vipPrice: body.vipPrice || 0,
-                premiumPrice: body.premiumPrice || 0,
-                generalPrice: body.generalPrice || 0,
-                totalCapacity: body.totalCapacity || 0,
-                vipCapacity: body.vipCapacity || 0,
-                premiumCapacity: body.premiumCapacity || 0,
-                generalCapacity: body.generalCapacity || 0,
-                menCapacity: body.menCapacity || 0,
-                womenCapacity: body.womenCapacity || 0,
-                layoutData: body.layoutData || {},
-                status: body.status || 'DRAFT'
-            }
+        console.log('📝 [FloorPlan POST] Data prepared:', {
+            hasId: !!createData.id,
+            eventId: createData.eventId.toString(),
+            name: createData.name,
+            status: createData.status
         })
 
-        console.log('✅ [FloorPlan POST] Success:', newFloorPlan.id)
-
-        const responseData = {
-            ...newFloorPlan,
-            id: newFloorPlan.id,
-            eventId: id,
+        let newFloorPlan: any
+        try {
+            console.log('💾 [FloorPlan POST] Calling prisma.floorPlan.create...')
+            newFloorPlan = await prisma.floorPlan.create({
+                data: createData
+            })
+            console.log('✅ [FloorPlan POST] Created successfully, ID:', newFloorPlan.id)
+        } catch (createError: any) {
+            console.error('❌ [FloorPlan POST] Prisma create error:', {
+                message: createError.message,
+                code: createError.code,
+                meta: createError.meta,
+                stack: createError.stack?.split('\n').slice(0, 5)
+            })
+            return NextResponse.json({
+                message: 'Database error',
+                error: createError.message,
+                code: createError.code,
+                details: createError.meta
+            }, { status: 500 })
         }
 
-        return NextResponse.json({
-            message: 'Floor plan created successfully',
-            floorPlan: responseData
-        }, { status: 201 })
+        // Serialize response
+        console.log('📤 [FloorPlan POST] Preparing response...')
+        try {
+            const serialized = {
+                ...newFloorPlan,
+                eventId: newFloorPlan.eventId.toString(),
+                vipPrice: String(newFloorPlan.vipPrice),
+                premiumPrice: String(newFloorPlan.premiumPrice),
+                generalPrice: String(newFloorPlan.generalPrice)
+            }
+
+            console.log('✅ [FloorPlan POST] Response serialized successfully')
+            return NextResponse.json({
+                message: 'Floor plan created successfully',
+                floorPlan: serialized
+            }, { status: 201 })
+        } catch (serializeError: any) {
+            console.error('❌ [FloorPlan POST] Serialization error:', serializeError.message)
+            return NextResponse.json({
+                message: 'Serialization error',
+                error: serializeError.message
+            }, { status: 500 })
+        }
 
     } catch (error: any) {
-        console.error('❌ [FloorPlan POST] Error:', error)
+        console.error('❌ [FloorPlan POST] FATAL ERROR:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack?.split('\n').slice(0, 10)
+        })
         return NextResponse.json({
-            message: 'Failed to create floor plan',
-            error: error.message
+            message: 'Fatal error in floor plan creation',
+            error: error.message,
+            type: error.name
         }, { status: 500 })
     }
 }
@@ -165,57 +227,66 @@ export async function PUT(
     try {
         const params = await context.params
         const id = params.id
-        console.log('📌 [FloorPlan PUT] Updating event:', id)
+        const body = await req.json()
+        const eventId = BigInt(id)
 
         const session = await getServerSession(authOptions as any) as any
-        if (!session) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-        }
+        if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
-        const body = await req.json()
-        console.log('📌 [FloorPlan PUT] Plan ID:', body.id)
+        if (!body.id) return NextResponse.json({ message: 'Floor plan ID is required' }, { status: 400 })
 
-        if (!body.id) {
-            return NextResponse.json({ message: 'Floor plan ID is required' }, { status: 400 })
-        }
+        console.log('📌 [FloorPlan PUT] Attempting upsert for:', body.id)
 
-        const updatedFloorPlan = await prisma.floorPlan.update({
+        // Use upsert to handle cases where the frontend thinks it's an update but record doesn't exist
+        const updated = await prisma.floorPlan.upsert({
             where: { id: body.id },
-            data: {
+            update: {
                 name: body.name,
                 description: body.description,
-                canvasWidth: body.canvasWidth,
-                canvasHeight: body.canvasHeight,
+                canvasWidth: Number(body.canvasWidth),
+                canvasHeight: Number(body.canvasHeight),
                 backgroundColor: body.backgroundColor,
-                gridSize: body.gridSize,
+                gridSize: Number(body.gridSize),
                 vipPrice: body.vipPrice,
                 premiumPrice: body.premiumPrice,
                 generalPrice: body.generalPrice,
-                totalCapacity: body.totalCapacity,
-                vipCapacity: body.vipCapacity,
-                premiumCapacity: body.premiumCapacity,
-                generalCapacity: body.generalCapacity,
-                menCapacity: body.menCapacity,
-                womenCapacity: body.womenCapacity,
+                totalCapacity: Number(body.totalCapacity),
+                vipCapacity: Number(body.vipCapacity),
+                premiumCapacity: Number(body.premiumCapacity),
+                generalCapacity: Number(body.generalCapacity),
+                menCapacity: Number(body.menCapacity),
+                womenCapacity: Number(body.womenCapacity),
                 layoutData: body.layoutData,
                 status: body.status,
                 version: { increment: 1 }
+            },
+            create: {
+                id: body.id.startsWith('fp-') ? undefined : body.id, // Handle mock IDs
+                eventId: eventId,
+                name: body.name || 'New Floor Plan',
+                layoutData: body.layoutData || {},
+                canvasWidth: Number(body.canvasWidth) || 1200,
+                canvasHeight: Number(body.canvasHeight) || 800,
+                backgroundColor: body.backgroundColor || '#ffffff',
+                gridSize: Number(body.gridSize) || 20,
+                status: body.status || 'DRAFT'
             }
         })
 
-        const responseData = {
-            ...updatedFloorPlan,
-            eventId: id
-        }
-
-        console.log('✅ [FloorPlan PUT] Success:', body.id)
+        console.log('✅ [FloorPlan PUT] Success')
 
         return NextResponse.json({
-            message: 'Floor plan updated successfully',
-            floorPlan: responseData
+            message: 'Floor plan saved successfully',
+            floorPlan: {
+                ...updated,
+                eventId: updated.eventId.toString(),
+                vipPrice: String(updated.vipPrice),
+                premiumPrice: String(updated.premiumPrice),
+                generalPrice: String(updated.generalPrice)
+            }
         })
     } catch (error: any) {
-        console.error('❌ [FloorPlan PUT] Error:', error)
+        console.error('❌ [FloorPlan PUT] Fatal Error:', error)
         return NextResponse.json({
             message: 'Failed to update floor plan',
             error: error.message
