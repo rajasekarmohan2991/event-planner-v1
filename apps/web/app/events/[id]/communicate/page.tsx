@@ -76,6 +76,13 @@ function CommunicateContent() {
     if (eventId) loadEvent()
   }, [eventId])
 
+  // Auto-load phone numbers when switching to SMS or WhatsApp tabs
+  useEffect(() => {
+    if ((activeTab === 'sms' || activeTab === 'whatsapp') && smsPhones.length === 0 && !loadingPhones) {
+      loadPhoneNumbers()
+    }
+  }, [activeTab, smsPhones.length, loadingPhones])
+
   const loadPhoneNumbers = async () => {
     setLoadingPhones(true)
     try {
@@ -247,8 +254,8 @@ function CommunicateContent() {
           <button
             onClick={() => setActiveTab('email')}
             className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'email'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <div className="flex items-center gap-2">
@@ -259,8 +266,8 @@ function CommunicateContent() {
           <button
             onClick={() => setActiveTab('sms')}
             className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'sms'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <div className="flex items-center gap-2">
@@ -271,8 +278,8 @@ function CommunicateContent() {
           <button
             onClick={() => setActiveTab('whatsapp')}
             className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'whatsapp'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <div className="flex items-center gap-2">
@@ -283,8 +290,8 @@ function CommunicateContent() {
           <button
             onClick={() => setActiveTab('share')}
             className={`pb-3 px-1 border-b-2 font-medium transition-colors ${activeTab === 'share'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <div className="flex items-center gap-2">
