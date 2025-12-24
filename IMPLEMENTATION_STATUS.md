@@ -56,7 +56,8 @@
 - ✅ **Event 20 Creation:** Restored missing Event 20 in database.
 - ✅ **QR Code Display:** Fixed frontend to display QR code data URL directly from backend (was showing blank).
 - ✅ **QR Code Download:** Simplified download function to use data URL instead of external API regeneration.
-- ✅ **Registration API:** Fixed OrderStatus enum casting and BigInt handling.
+- ✅ **Registration API (CRITICAL):** Fixed params handling for Next.js 15+ - registrations were failing silently in production.
+- ✅ **Registration Response:** Fixed OrderStatus enum casting and BigInt handling.
 - ✅ **Payment Processing:** Corrected eventId type conversion and QR code generation.
 - ✅ **Registrations List:** Fixed API response format to return 'registrations' array (was returning 'objects').
 - ✅ **Real-Time Currency:** Implemented automatic fetching from free APIs (exchangerate.host + fallback), auto-refresh for stale/missing rates.
