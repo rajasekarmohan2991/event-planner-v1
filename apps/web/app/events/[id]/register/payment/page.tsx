@@ -37,9 +37,9 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
 
   const handlePayment = async () => {
     setProcessing(true)
-    
+
     const amount = registrationData?.dataJson?.finalAmount || 0
-    
+
     // For free events (₹0), skip payment simulation
     if (amount === 0) {
       setTimeout(() => {
@@ -57,12 +57,12 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       setTimeout(async () => {
         try {
           const response = registrationData
-          
+
           if (response) {
             setQrCode(response.qrCode)
             setCheckInUrl(response.checkInUrl)
             setPaymentComplete(true)
-            
+
             // Clear pending registration
             localStorage.removeItem('pendingRegistration')
           }
@@ -78,7 +78,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
 
   const downloadQRCode = async () => {
     if (!qrCode) return
-    
+
     try {
       // Create QR code using canvas
       const canvas = document.createElement('canvas')
@@ -86,26 +86,26 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       const size = 300
       canvas.width = size
       canvas.height = size
-      
+
       // Create QR code image
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrCode)}`
       const img = new Image()
       img.crossOrigin = 'anonymous'
-      
+
       img.onload = () => {
         // Draw white background
         ctx!.fillStyle = 'white'
         ctx!.fillRect(0, 0, size, size)
-        
+
         // Draw QR code
         ctx!.drawImage(img, 0, 0, size, size)
-        
+
         // Add event info text
         ctx!.fillStyle = 'black'
         ctx!.font = '12px Arial'
         ctx!.textAlign = 'center'
-        ctx!.fillText('Event Ticket QR Code', size/2, size - 10)
-        
+        ctx!.fillText('Event Ticket QR Code', size / 2, size - 10)
+
         // Download the canvas as image
         canvas.toBlob((blob) => {
           if (blob) {
@@ -120,7 +120,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
           }
         }, 'image/png')
       }
-      
+
       img.onerror = () => {
         // Fallback: create a simple text-based download
         const text = `Event Ticket QR Code Data: ${qrCode}`
@@ -134,7 +134,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
       }
-      
+
       img.src = qrCodeUrl
     } catch (error) {
       console.error('Error downloading QR code:', error)
@@ -161,11 +161,17 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
             {/* QR Code Display */}
             <div className="flex justify-center mb-8">
               <div className="border-4 border-green-600 rounded-2xl p-6 bg-white shadow-lg">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCode)}`}
-                  alt="Event Ticket QR Code"
-                  className="w-64 h-64"
-                />
+                {qrCode ? (
+                  <img
+                    src={qrCode}
+                    alt="Event Ticket QR Code"
+                    className="w-64 h-64"
+                  />
+                ) : (
+                  <div className="w-64 h-64 bg-gray-100 flex items-center justify-center rounded-lg">
+                    <p className="text-gray-500 text-sm">QR Code not available</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -201,7 +207,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     <span className="font-medium">₹{((registrationData.dataJson?.finalAmount || 0) / 100).toFixed(2)}</span>
                   </div>
                 </div>
-                
+
                 {/* Debug Info (for demo purposes) */}
                 <details className="mt-4">
                   <summary className="text-xs text-gray-500 cursor-pointer">Debug Info (Demo)</summary>
@@ -221,7 +227,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                 <QrCode className="w-5 h-5" />
                 Download QR Code
               </button>
-              
+
               <button
                 onClick={() => router.push(`/events/${params.id}`)}
                 className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -285,7 +291,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
           {(registrationData?.dataJson?.finalAmount || 0) > 0 && (
             <div className="mb-6">
               <h3 className="text-sm font-semibold mb-3">Payment Method</h3>
-              
+
               {/* Demo Methods Section */}
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -294,11 +300,11 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="space-y-2">
                   <label className="flex items-center p-4 border-2 border-indigo-600 rounded-lg cursor-pointer bg-indigo-50">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      className="mr-3" 
-                      defaultChecked 
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="mr-3"
+                      defaultChecked
                       onChange={() => setShowDummyPayment(true)}
                     />
                     <div className="flex-1">
@@ -307,10 +313,10 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     </div>
                   </label>
                   <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      className="mr-3" 
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="mr-3"
                       onChange={() => setShowDummyPayment(false)}
                     />
                     <div className="flex-1">
@@ -329,10 +335,10 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="space-y-2 opacity-60">
                   <div className="flex items-center p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      className="mr-3" 
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="mr-3"
                       disabled
                     />
                     <div className="flex-1">
@@ -342,10 +348,10 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Coming Soon</span>
                   </div>
                   <div className="flex items-center p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      className="mr-3" 
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="mr-3"
                       disabled
                     />
                     <div className="flex-1">
@@ -355,10 +361,10 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Coming Soon</span>
                   </div>
                   <div className="flex items-center p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      className="mr-3" 
+                    <input
+                      type="radio"
+                      name="payment"
+                      className="mr-3"
                       disabled
                     />
                     <div className="flex-1">
@@ -377,26 +383,26 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                     <span className="text-sm font-medium text-yellow-800">Demo Card Payment Form</span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
                       <input
                         type="text"
                         value={dummyCardData.cardNumber}
-                        onChange={(e) => setDummyCardData({...dummyCardData, cardNumber: e.target.value})}
+                        onChange={(e) => setDummyCardData({ ...dummyCardData, cardNumber: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                         placeholder="1234 5678 9012 3456"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Expiry Date</label>
                         <input
                           type="text"
                           value={dummyCardData.expiryDate}
-                          onChange={(e) => setDummyCardData({...dummyCardData, expiryDate: e.target.value})}
+                          onChange={(e) => setDummyCardData({ ...dummyCardData, expiryDate: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                           placeholder="MM/YY"
                         />
@@ -406,25 +412,25 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                         <input
                           type="text"
                           value={dummyCardData.cvv}
-                          onChange={(e) => setDummyCardData({...dummyCardData, cvv: e.target.value})}
+                          onChange={(e) => setDummyCardData({ ...dummyCardData, cvv: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                           placeholder="123"
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Cardholder Name</label>
                       <input
                         type="text"
                         value={dummyCardData.cardholderName}
-                        onChange={(e) => setDummyCardData({...dummyCardData, cardholderName: e.target.value})}
+                        onChange={(e) => setDummyCardData({ ...dummyCardData, cardholderName: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                         placeholder="John Doe"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
                     <strong>Demo Mode:</strong> This is a test payment form. No real charges will be made.
                   </div>
@@ -435,28 +441,28 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                     <span className="text-sm font-medium text-yellow-800">Demo UPI Payment</span>
                   </div>
-                  
+
                   <div className="text-center space-y-4">
                     <div className="text-6xl">📱</div>
                     <div>
                       <p className="font-medium text-gray-900">Scan QR Code with UPI App</p>
                       <p className="text-sm text-gray-600">Or use UPI ID: demo@paytm</p>
                     </div>
-                    
+
                     <div className="bg-white p-4 rounded-lg border-2 border-dashed border-gray-300">
                       <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
                         <span className="text-4xl">🔲</span>
                       </div>
                       <p className="text-xs text-gray-500 mt-2">Demo UPI QR Code</p>
                     </div>
-                    
+
                     <div className="text-xs text-gray-600 space-y-1">
                       <p><strong>Amount:</strong> ₹{((registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}</p>
                       <p><strong>Merchant:</strong> Event Planner Demo</p>
                       <p><strong>Reference:</strong> REG-{registrationId}</p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
                     <strong>Demo Mode:</strong> This is a simulated UPI payment. No real transaction will occur.
                   </div>
@@ -478,8 +484,8 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                {(registrationData?.dataJson?.finalAmount || 0) === 0 
-                  ? 'Confirm Free Registration' 
+                {(registrationData?.dataJson?.finalAmount || 0) === 0
+                  ? 'Confirm Free Registration'
                   : `Pay ₹${((registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}`
                 }
               </>
