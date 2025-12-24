@@ -26,7 +26,7 @@ export default function CheckInPage() {
     if (!scanning) return
 
     const codeReader = new BrowserMultiFormatReader()
-    
+
     const timeout = setTimeout(() => {
       if (videoRef.current) {
         // Use default camera by passing undefined (not null)
@@ -51,7 +51,7 @@ export default function CheckInPage() {
 
   const handleCheckIn = async (id: string, fromScanner = false) => {
     const registration = registrations.find(r => r.id === id)
-    
+
     if (!registration) {
       if (fromScanner) toast.error("Invalid QR Code: Registration not found")
       return
@@ -70,7 +70,7 @@ export default function CheckInPage() {
       })
 
       if (res.ok) {
-        setRegistrations(prev => prev.map(r => r.id === id ? {...r, checkInStatus: 'CHECKED_IN'} : r))
+        setRegistrations(prev => prev.map(r => r.id === id ? { ...r, checkInStatus: 'CHECKED_IN' } : r))
         toast.success(`Checked in ${registration.attendeeName}`)
       } else {
         toast.error("Failed to check in")
@@ -86,7 +86,7 @@ export default function CheckInPage() {
       const maybeUrl = new URL(text)
       const tokenParam = maybeUrl.searchParams.get('token') || maybeUrl.searchParams.get('qr') || maybeUrl.searchParams.get('t')
       if (tokenParam) {
-        const res = await fetch(`/api/events/${eventId}/checkin-simple`, {
+        const res = await fetch(`/api/events/${eventId}/checkin-emergency`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: tokenParam })
@@ -100,20 +100,20 @@ export default function CheckInPage() {
             if (parsed?.registrationId) {
               setRegistrations(prev => prev.map(r => r.id === String(parsed.registrationId) ? { ...r, checkInStatus: 'CHECKED_IN' } : r))
             }
-          } catch {}
+          } catch { }
           // Ensure UI sync even if token couldn't be decoded locally
           try {
             const r = await fetch(`/api/events/${eventId}/registrations`)
             const d = await r.json()
             if (d?.registrations) setRegistrations(d.registrations)
-          } catch {}
+          } catch { }
           toast.success(data?.already ? 'Already checked in' : 'Checked in successfully')
         } else {
           toast.error(data?.message || 'Check-in failed')
         }
         return
       }
-    } catch {}
+    } catch { }
 
     // Try to parse as JSON
     try {
@@ -121,7 +121,7 @@ export default function CheckInPage() {
       if (parsed && parsed.registrationId) {
         // Use token-based simple check-in
         const token = btoa(JSON.stringify(parsed))
-        const res = await fetch(`/api/events/${eventId}/checkin-simple`, {
+        const res = await fetch(`/api/events/${eventId}/checkin-emergency`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
@@ -135,13 +135,13 @@ export default function CheckInPage() {
         }
         return
       }
-    } catch {}
+    } catch { }
     // Try to treat as base64 token
     try {
       const decoded = atob(text)
       const parsed = JSON.parse(decoded)
       if (parsed && parsed.registrationId) {
-        const res = await fetch(`/api/events/${eventId}/checkin-simple`, {
+        const res = await fetch(`/api/events/${eventId}/checkin-emergency`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: text })
         })
@@ -152,19 +152,19 @@ export default function CheckInPage() {
             const r = await fetch(`/api/events/${eventId}/registrations`)
             const d = await r.json()
             if (d?.registrations) setRegistrations(d.registrations)
-          } catch {}
+          } catch { }
           toast.success(data?.already ? 'Already checked in' : 'Checked in successfully')
         } else {
           toast.error(data?.message || 'Check-in failed')
         }
         return
       }
-    } catch {}
+    } catch { }
     // Fallback: assume text is registration ID
     await handleCheckIn(text, true)
   }
 
-  const filtered = registrations.filter(r => 
+  const filtered = registrations.filter(r =>
     r.attendeeName?.toLowerCase().includes(search.toLowerCase()) ||
     r.email?.toLowerCase().includes(search.toLowerCase())
   )
@@ -182,11 +182,10 @@ export default function CheckInPage() {
         <h1 className="text-3xl font-bold">Event Check-In</h1>
         <button
           onClick={() => setScanning(!scanning)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            scanning 
-              ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${scanning
+              ? 'bg-red-100 text-red-700 hover:bg-red-200'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
+            }`}
         >
           {scanning ? (
             <>
@@ -218,7 +217,7 @@ export default function CheckInPage() {
           </div>
         </div>
       )}
-      
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-lg border p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-2">
