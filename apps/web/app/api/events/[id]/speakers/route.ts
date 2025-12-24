@@ -134,11 +134,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Link speaker to session
     if (sessionId && speaker.id) {
       try {
+        const sessionIdBigInt = BigInt(sessionId)
+        const speakerIdBigInt = BigInt(speaker.id)
+
+        console.log('🔗 Linking new speaker to session:', { speakerId: speakerIdBigInt.toString(), sessionId: sessionIdBigInt.toString() })
+
         await prisma.$executeRawUnsafe(`
           INSERT INTO session_speakers (session_id, speaker_id) 
           VALUES ($1, $2)
           ON CONFLICT DO NOTHING
-        `, String(sessionId), String(speaker.id))
+        `, sessionIdBigInt, speakerIdBigInt)
+
+        console.log('✅ Speaker-session link created')
       } catch (linkError) {
         console.error('⚠️ Failed to link speaker to session:', linkError)
       }

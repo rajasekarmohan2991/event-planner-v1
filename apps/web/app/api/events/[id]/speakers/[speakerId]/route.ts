@@ -45,15 +45,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
 
     // Update session link if provided
     if (body.sessionId) {
+      const speakerIdBigInt = BigInt(speakerId)
+      const sessionIdBigInt = BigInt(body.sessionId)
+
+      console.log('🔗 Linking speaker to session:', { speakerId: speakerIdBigInt.toString(), sessionId: sessionIdBigInt.toString() })
+
       // First remove existing links (assuming single session assignment for this UI)
-      await prisma.$executeRawUnsafe(`DELETE FROM session_speakers WHERE speaker_id = $1`, String(speakerId))
+      await prisma.$executeRawUnsafe(`DELETE FROM session_speakers WHERE speaker_id = $1`, speakerIdBigInt)
 
       // Add new link
       await prisma.$executeRawUnsafe(`
         INSERT INTO session_speakers (session_id, speaker_id) 
         VALUES ($1, $2)
         ON CONFLICT DO NOTHING
-      `, String(body.sessionId), String(speakerId))
+      `, sessionIdBigInt, speakerIdBigInt)
+
+      console.log('✅ Speaker-session link created')
     }
 
     if (!updated || updated.length === 0) {
