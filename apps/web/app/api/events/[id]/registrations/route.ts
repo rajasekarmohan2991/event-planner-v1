@@ -115,21 +115,33 @@ export async function POST(
     }
 
     // ============================================
-    // PHASE 2: TICKET VALIDATION ('"Ticket"')
+    // PHASE 2: TICKET VALIDATION (tickets table)
     // ============================================
     const ticketId = formData.ticketId || formData.ticketClassId
     const quantity = formData.quantity || 1
     let ticket: any = null
 
     if (ticketId) {
-      // Ticket ID is String. Table is "Ticket".
-      // Production schema: id, eventId, name, description, priceInr, currency, capacity, sold, status
-      const tickets = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT id, name, capacity, sold, status, "priceInr" as "priceInMinor"
-            FROM "Ticket"
-            WHERE id = $1
-            LIMIT 1
-        `, ticketId)
+      console.log('🎫 Validating ticket:', ticketId)
+
+      // Query the actual 'tickets' table (snake_case)
+      // Use BigInt for ticket ID
+      let ticketIdBigInt: bigint
+      try {
+        ticketIdBigInt = BigInt(ticketId)
+      } catch (e) {
+        console.log('❌ Invalid ticket ID format:', ticketId)
+        return NextResponse.json({ message: 'Invalid ticket ID format' }, { status: 400 })
+      }
+
+      const tickets = await prisma.$queryRaw`
+        SELECT id, name, quantity as capacity, sold, status, price_in_minor as "priceInMinor"
+        FROM tickets
+        WHERE id = ${ticketIdBigInt}
+        LIMIT 1
+      ` as any[]
+
+      console.log('🎫 Ticket query result:', tickets)
 
       if (tickets.length === 0) {
         console.log('❌ Invalid ticket class:', ticketId)
@@ -142,12 +154,16 @@ export async function POST(
         return NextResponse.json({ message: 'Ticket not available' }, { status: 400 })
       }
 
-      const sold = ticket.sold || 0
-      const capacity = ticket.capacity || 0
+      const sold = Number(ticket.sold) || 0
+      const capacity = Number(ticket.capacity) || 0
+
+      console.log('🎫 Ticket availability:', { sold, capacity, quantity })
 
       if (capacity > 0 && (capacity - sold) < quantity) {
-        return NextResponse.json({ message: 'Tickets sold out or asking too many' }, { status: 400 })
+        return NextResponse.json({ message: 'Tickets sold out or not enough available' }, { status: 400 })
       }
+    } else {
+      console.log('ℹ️ No ticket ID provided, proceeding without ticket validation')
     }
 
     // ============================================
@@ -196,9 +212,16 @@ export async function POST(
       promoCode
     }
 
+    console.log('💾 Starting registration transaction:', {
+      regId: newRegId,
+      eventId,
+      email: formData.email,
+      ticketId: ticketId || 'none'
+    })
+
     await prisma.$transaction(async (tx) => {
       // 1. Insert Registration ('registrations')
-      // Ensure ticket_id is set
+      console.log('📝 Inserting registration into database...')
       await tx.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
@@ -239,14 +262,16 @@ export async function POST(
 
       // 3. Promo Redemption - Moved outside transaction to prevent failure if table missing
 
-      // 4. Update Ticket Sold Count ('"Ticket"')
+      // 4. Update Ticket Sold Count (tickets table)
       if (ticketId) {
-        // ticketId is String. ticket.sold is Int.
-        await tx.$executeRawUnsafe(`
-            UPDATE "Ticket" 
-            SET sold = sold + $1 
-            WHERE id = $2
-        `, quantity, ticketId)
+        console.log('🎫 Updating sold count for ticket:', ticketId)
+        const ticketIdBigInt = BigInt(ticketId)
+        await tx.$executeRaw`
+          UPDATE tickets 
+          SET sold = sold + ${quantity}
+          WHERE id = ${ticketIdBigInt}
+        `
+        console.log('✅ Ticket sold count updated')
       }
 
       // 5. Approval (registration_approvals) - OPTIONAL
@@ -277,6 +302,9 @@ export async function POST(
         console.warn('⚠️ Failed to log promo redemption (table might be missing):', e.message)
       }
     }
+
+    console.log('✅ Registration transaction completed successfully!')
+    console.log('✅ Registration ID:', newRegId)
 
     // ============================================
     // PHASE 5: QR Code & Response
