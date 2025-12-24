@@ -78,64 +78,15 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
 
   const downloadQRCode = async () => {
     if (!qrCode) return
-
+    
     try {
-      // Create QR code using canvas
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const size = 300
-      canvas.width = size
-      canvas.height = size
-
-      // Create QR code image
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrCode)}`
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-
-      img.onload = () => {
-        // Draw white background
-        ctx!.fillStyle = 'white'
-        ctx!.fillRect(0, 0, size, size)
-
-        // Draw QR code
-        ctx!.drawImage(img, 0, 0, size, size)
-
-        // Add event info text
-        ctx!.fillStyle = 'black'
-        ctx!.font = '12px Arial'
-        ctx!.textAlign = 'center'
-        ctx!.fillText('Event Ticket QR Code', size / 2, size - 10)
-
-        // Download the canvas as image
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.download = `event-ticket-${registrationId || 'qr'}.png`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(url)
-          }
-        }, 'image/png')
-      }
-
-      img.onerror = () => {
-        // Fallback: create a simple text-based download
-        const text = `Event Ticket QR Code Data: ${qrCode}`
-        const blob = new Blob([text], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `event-ticket-${registrationId || 'qr'}.txt`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      }
-
-      img.src = qrCodeUrl
+      // QR code is already a data URL from the backend
+      const link = document.createElement('a')
+      link.href = qrCode
+      link.download = `event-ticket-${registrationId || Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     } catch (error) {
       console.error('Error downloading QR code:', error)
       alert('Unable to download QR code. Please take a screenshot instead.')
