@@ -1,31 +1,62 @@
 import prisma from '@/lib/prisma'
 
-const OPEN_EXCHANGE_API_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
+// Free APIs for exchange rates (no API key required)
+const PRIMARY_API = 'https://api.exchangerate.host/latest?base=USD'
+const FALLBACK_API = 'https://api.exchangerate-api.com/v4/latest/USD'
 
 interface ExchangeRateResponse {
-    provider: string;
-    WARNING_UPGRADE_TO_V6: string;
-    terms: string;
-    base: string;
-    date: string;
-    time_last_updated: number;
-    rates: Record<string, number>;
+    base: string
+    date?: string
+    rates: Record<string, number>
+    success?: boolean
+    // For exchangerate-api.com
+    provider?: string
+    time_last_updated?: number
 }
 
 export async function updateExchangeRates() {
     try {
-        const response = await fetch(OPEN_EXCHANGE_API_URL);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
+        console.log('💱 Fetching exchange rates from API...')
+
+        // Try primary API first
+        let response = await fetch(PRIMARY_API, {
+            headers: {
+                'Accept': 'application/json',
+            },
+            cache: 'no-store'
+        })
+
+        let data: ExchangeRateResponse | null = null
+
+        if (response.ok) {
+            data = await response.json()
+            console.log('✅ Fetched rates from primary API (exchangerate.host)')
+        } else {
+            console.warn('⚠️ Primary API failed, trying fallback...')
+            // Try fallback API
+            response = await fetch(FALLBACK_API, {
+                headers: {
+                    'Accept': 'application/json',
+                },
+                cache: 'no-store'
+            })
+
+            if (response.ok) {
+                data = await response.json()
+                console.log('✅ Fetched rates from fallback API (exchangerate-api.com)')
+            } else {
+                throw new Error(`Both APIs failed: ${response.statusText}`)
+            }
         }
 
-        const data: ExchangeRateResponse = await response.json();
-        const baseCurrency = data.base;
-        const rates = data.rates;
+        if (!data || !data.rates) {
+            throw new Error('Invalid response from exchange rate API')
+        }
 
-        // We keep USD as base. 
-        // If we want cross rates, we can calculate them, but usually storing base USD is enough 
-        // and we convert A -> B by A -> USD -> B.
+        const baseCurrency = data.base || 'USD'
+        const rates = data.rates
+
+        console.log(`💱 Processing ${Object.keys(rates).length} exchange rates...`)
 
         // Store rates in DB
         const upsertOperations = Object.entries(rates).map(([currency, rate]) => {
@@ -45,16 +76,24 @@ export async function updateExchangeRates() {
                     toCurrency: currency,
                     rate: Number(rate),
                 },
-            });
-        });
+            })
+        })
 
-        await prisma.$transaction(upsertOperations);
-        console.log(`✅ Updated ${upsertOperations.length} exchange rates from ${baseCurrency}`);
+        await prisma.$transaction(upsertOperations)
+        console.log(`✅ Updated ${upsertOperations.length} exchange rates from ${baseCurrency}`)
 
-        return true;
+        // Log some sample rates for verification
+        console.log('💱 Sample rates:', {
+            EUR: rates.EUR,
+            GBP: rates.GBP,
+            INR: rates.INR,
+            JPY: rates.JPY
+        })
+
+        return true
     } catch (error) {
-        console.error('❌ Error updating exchange rates:', error);
-        return false;
+        console.error('❌ Error updating exchange rates:', error)
+        return false
     }
 }
 

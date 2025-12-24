@@ -12,18 +12,25 @@ export async function GET(req: NextRequest) {
         // Return all rates based on USD
         let rates = await prisma.exchangeRate.findMany({
             where: { fromCurrency: 'USD' },
-            select: { toCurrency: true, rate: true }
+            select: { toCurrency: true, rate: true, lastUpdated: true }
         });
 
-        // If no rates exist, fetch them automatically (lazy initialization)
-        if (rates.length === 0) {
-            console.log('💱 No exchange rates found, fetching from external API...')
+        // Check if rates are stale (older than 24 hours) or missing
+        const now = new Date()
+        const isStale = rates.length > 0 && rates[0].lastUpdated &&
+            (now.getTime() - new Date(rates[0].lastUpdated).getTime()) > 24 * 60 * 60 * 1000
+
+        // If no rates exist or they're stale, fetch them automatically
+        if (rates.length === 0 || isStale) {
+            console.log(rates.length === 0 ? '💱 No exchange rates found' : '💱 Exchange rates are stale', 'fetching fresh data...')
             const success = await updateExchangeRates()
             if (success) {
                 rates = await prisma.exchangeRate.findMany({
                     where: { fromCurrency: 'USD' },
-                    select: { toCurrency: true, rate: true }
+                    select: { toCurrency: true, rate: true, lastUpdated: true }
                 })
+            } else {
+                console.error('❌ Failed to fetch fresh exchange rates')
             }
         }
 
@@ -34,10 +41,27 @@ export async function GET(req: NextRequest) {
             ratesMap[r.toCurrency] = r.rate;
         });
 
+        // Verify we have some critical rates
+        const hasValidRates = ratesMap['EUR'] && ratesMap['INR'] && ratesMap['GBP']
+        if (!hasValidRates) {
+            console.warn('⚠️ Missing critical exchange rates, forcing refresh...')
+            const success = await updateExchangeRates()
+            if (success) {
+                const freshRates = await prisma.exchangeRate.findMany({
+                    where: { fromCurrency: 'USD' },
+                    select: { toCurrency: true, rate: true, lastUpdated: true }
+                })
+                ratesMap['USD'] = 1
+                freshRates.forEach(r => {
+                    ratesMap[r.toCurrency] = r.rate
+                })
+            }
+        }
+
         return NextResponse.json({
             base: 'USD',
             rates: ratesMap,
-            lastUpdated: rates.length > 0 ? new Date() : null
+            lastUpdated: rates.length > 0 && rates[0].lastUpdated ? rates[0].lastUpdated : new Date()
         });
     } catch (error: any) {
         console.error('Error fetching exchange rates:', error)
