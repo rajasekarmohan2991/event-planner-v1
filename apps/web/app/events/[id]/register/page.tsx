@@ -413,9 +413,9 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
     // Proceed with normal registration if no seats
     const finalAmount = promoDiscount ? promoDiscount.finalAmount : ticketPrice
 
-    console.log('[REGISTRATION] Submitting to emergency endpoint...')
+    console.log('[REGISTRATION] Submitting registration...')
 
-    const res = await fetch(`/api/events/${eventId}/register-emergency`, {
+    const res = await fetch(`/api/events/${eventId}/registrations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -423,6 +423,10 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         type: 'GENERAL',
         email: formData.email,
         phone: formData.phone,
+        ticketId: 'general',
+        totalPrice: ticketPrice,
+        priceInr: finalAmount,
+        promoCode: promoDiscount?.code,
         data: formData
       })
     })
@@ -432,13 +436,22 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
     if (res.ok) {
       const data = await res.json()
       console.log('[REGISTRATION] Success!', data)
-      alert('Registration successful! Thank you for registering.')
-      // Redirect to success page or event page
-      router.push(`/events/${eventId}`)
+
+      // Store registration data for payment page
+      localStorage.setItem('pendingRegistration', JSON.stringify(data))
+
+      // Redirect to payment page
+      if (finalAmount > 0) {
+        alert('Registration successful! Redirecting to payment...')
+        router.push(`/events/${eventId}/register/payment?registrationId=${data.id}`)
+      } else {
+        alert('Registration successful!')
+        router.push(`/events/${eventId}`)
+      }
     } else {
       const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
       console.error('[REGISTRATION] Error:', errorData)
-      alert(`Registration failed: ${errorData.error || 'Please try again'}`)
+      alert(`Registration failed: ${errorData.message || errorData.error || 'Please try again'}`)
     }
   }
 

@@ -333,6 +333,32 @@ export async function POST(
       }).catch(console.error)
     }
 
+    // Send SMS notification
+    if (formData.phone) {
+      const smsMessage = `Registration confirmed for ${event.name}! Check-in Code: ${qrData.checkInCode}. Show this at the venue.`
+      fetch('/api/notify/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: formData.phone,
+          message: smsMessage
+        })
+      }).catch(err => console.error('SMS send failed:', err))
+    }
+
+    // Send WhatsApp notification
+    if (formData.phone) {
+      const whatsappMessage = `🎉 Registration Confirmed!\n\nEvent: ${event.name}\nCheck-in Code: ${qrData.checkInCode}\n\nShow this message at the venue for quick check-in.`
+      fetch('/api/test-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: formData.phone,
+          message: whatsappMessage
+        })
+      }).catch(err => console.error('WhatsApp send failed:', err))
+    }
+
     return NextResponse.json({
       id: newRegId,
       eventId: Number(eventId),
