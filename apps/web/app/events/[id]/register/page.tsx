@@ -412,7 +412,10 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
 
     // Proceed with normal registration if no seats
     const finalAmount = promoDiscount ? promoDiscount.finalAmount : ticketPrice
-    const res = await fetch(`/api/events/${eventId}/registrations`, {
+
+    console.log('[REGISTRATION] Submitting to emergency endpoint...')
+
+    const res = await fetch(`/api/events/${eventId}/register-emergency`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -420,35 +423,22 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
         type: 'GENERAL',
         email: formData.email,
         phone: formData.phone,
-        ticketId: 'general',
-        totalPrice: ticketPrice, // Original base price
-        priceInr: finalAmount,   // Final paid amount
-        promoCode: promoDiscount?.code,
         data: formData
       })
     })
+
+    console.log('[REGISTRATION] Response status:', res.status)
+
     if (res.ok) {
       const data = await res.json()
-      // Record dummy payment for history if successful
-      if (finalAmount > 0) {
-        await fetch(`/api/events/${eventId}/registrations/${data.id}/payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentMethod: 'DUMMY',
-            amount: finalAmount / 100, // API probably expects rupees based on previous observation but let's check
-            status: 'COMPLETED'
-          })
-        }).catch(() => { })
-      }
-      // Store registration data for payment page
-      localStorage.setItem('pendingRegistration', JSON.stringify(data))
-      alert('Registration successful! Redirecting to payment...')
-      // Redirect to payment page with registration ID
-      router.push(`/events/${eventId}/register/payment?registrationId=${data.id}`)
+      console.log('[REGISTRATION] Success!', data)
+      alert('Registration successful! Thank you for registering.')
+      // Redirect to success page or event page
+      router.push(`/events/${eventId}`)
     } else {
-      const msg = await res.text().catch(() => 'Failed to submit')
-      alert(msg)
+      const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+      console.error('[REGISTRATION] Error:', errorData)
+      alert(`Registration failed: ${errorData.error || 'Please try again'}`)
     }
   }
 
