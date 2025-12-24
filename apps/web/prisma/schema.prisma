@@ -361,6 +361,19 @@ enum TicketStatus {
   HIDDEN
 }
 
+
+model TicketGroup {
+  id        String   @id @default(cuid())
+  eventId   String   @map("event_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenantId  String?
+
+  @@map("ticket_groups")
+  @@index([eventId])
+}
+
 model Ticket {
   id         String       @id @default(cuid())
   eventId    String
@@ -371,6 +384,9 @@ model Ticket {
   capacity   Int          @default(0)
   sold       Int          @default(0)
   status     TicketStatus @default(ACTIVE)
+  
+  // Grouping
+  groupId    String?      @map("group_id")
   
   // Quantity Limits (SELLING POINT!)
   minQuantity Int?        @map("min_quantity") // Minimum tickets per order
@@ -1301,8 +1317,8 @@ model Speaker {
   tenantId    String?   @map("tenant_id")
 
   // Relation to Event (Required by Java entity)
-  eventId     BigInt    @map("event_id")
-  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     BigInt?    @map("event_id")
+  event       Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   sessions    SessionSpeaker[]
 

@@ -1,118 +1,76 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
-const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'
-const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
+export const dynamic = 'force-dynamic'
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string, ticketId: string } }) {
   const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  
-  console.log('🎫 Update ticket - Session check:', {
-    hasSession: !!session,
-    hasAccessToken: !!accessToken,
-    userEmail: (session as any)?.user?.email,
-    eventId: params.id,
-    ticketId: params.ticketId
-  })
-  
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized - Please log in' }, { status: 401 })
-  }
-  
-  if (!accessToken) {
-    return NextResponse.json({ message: 'Unauthorized - No access token. Please log out and log in again.' }, { status: 401 })
-  }
-  
-  const body = await req.text()
+  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+
   try {
-    const url = `${API_BASE}/events/${params.id}/tickets/${params.ticketId}`
-    console.log('🔗 PUT request to Java API:', url)
-    
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body,
-      credentials: 'include',
-    })
-    
-    console.log('📥 Java API response status:', res.status)
-    
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    
-    if (!res.ok) {
-      console.error('❌ Java API error:', text)
-      
-      if (res.status === 403) {
-        return NextResponse.json({ 
-          message: 'Access denied. You do not have permission to edit this ticket. Please contact your administrator.' 
-        }, { status: 403 })
+    const body = await req.json()
+
+    // Default values logic similar to POST
+    const priceInr = body.price !== undefined ? Math.round(Number(body.price)) : undefined
+    const capacity = body.quantity !== undefined ? Number(body.quantity) : undefined
+
+    const ticket = await prisma.ticket.update({
+      where: { id: params.ticketId },
+      data: {
+        name: body.name,
+        description: body.description,
+        groupId: body.groupId,
+        ...(priceInr !== undefined && { priceInr }),
+        ...(capacity !== undefined && { capacity }),
+        ...(body.status && { status: body.status === 'Closed' ? 'INACTIVE' : 'ACTIVE' }),
+        ...(body.requiresApproval !== undefined && { requiresApproval: !!body.requiresApproval }),
+        ...(body.salesStartDate && {
+          salesStartAt: new Date(body.salesStartDate + (body.salesStartTime ? 'T' + body.salesStartTime : ''))
+        }),
+        ...(body.salesEndDate && {
+          salesEndAt: new Date(body.salesEndDate + (body.salesEndTime ? 'T' + body.salesEndTime : ''))
+        }),
+        ...(body.minBuyingLimit && { minQuantity: Number(body.minBuyingLimit) }),
+        ...(body.maxBuyingLimit && { maxQuantity: Number(body.maxBuyingLimit) }),
       }
-      
-      return NextResponse.json(payload || { message: 'Update failed' }, { status: res.status })
+    })
+
+    const payload = {
+      id: ticket.id,
+      groupId: ticket.groupId,
+      name: ticket.name,
+      description: ticket.description,
+      priceInMinor: ticket.priceInr * 100,
+      quantity: ticket.capacity,
+      sold: ticket.sold,
+      status: ticket.status === 'ACTIVE' ? 'Open' : 'Closed',
+      requiresApproval: ticket.requiresApproval,
+      salesStartAt: ticket.salesStartAt,
+      salesEndAt: ticket.salesEndAt,
     }
-    
+
     return NextResponse.json(payload)
   } catch (e: any) {
-    console.error('❌ Update ticket error:', e)
+    console.error('Update ticket error:', e)
     return NextResponse.json({ message: e?.message || 'Update failed' }, { status: 500 })
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string, ticketId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string, ticketId: string } }) {
   const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  
-  console.log('🗑️ Delete ticket - Session check:', {
-    hasSession: !!session,
-    hasAccessToken: !!accessToken,
-    userEmail: (session as any)?.user?.email,
-    eventId: params.id,
-    ticketId: params.ticketId
-  })
-  
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized - Please log in' }, { status: 401 })
-  }
-  
-  if (!accessToken) {
-    return NextResponse.json({ message: 'Unauthorized - No access token. Please log out and log in again.' }, { status: 401 })
-  }
-  
+  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+
   try {
-    const url = `${API_BASE}/events/${params.id}/tickets/${params.ticketId}`
-    console.log('🔗 DELETE request to Java API:', url)
-    
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      credentials: 'include',
+    await prisma.ticket.delete({
+      where: { id: params.ticketId }
     })
-    
-    console.log('📥 Java API response status:', res.status)
-    
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    
-    if (!res.ok) {
-      console.error('❌ Java API error:', text)
-      
-      if (res.status === 403) {
-        return NextResponse.json({ 
-          message: 'Access denied. You do not have permission to delete this ticket. Please contact your administrator.' 
-        }, { status: 403 })
-      }
-      
-      return NextResponse.json(payload || { message: 'Delete failed' }, { status: res.status })
-    }
-    
+
     return NextResponse.json({ ok: true })
   } catch (e: any) {
-    console.error('❌ Delete ticket error:', e)
+    console.error('Delete ticket error:', e)
     return NextResponse.json({ message: e?.message || 'Delete failed' }, { status: 500 })
   }
 }

@@ -63,15 +63,23 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
 
   const [eventDetails, setEventDetails] = useState<{ capacity: number, price: number } | null>(null)
 
-  // Load tickets and event details
+  // Load tickets, groups and event details
   useEffect(() => {
     let aborted = false
     const load = async () => {
       try {
-        const [resTickets, resEvent] = await Promise.all([
+        const [resTickets, resEvent, resGroups] = await Promise.all([
           fetch(`/api/events/${params.id}/tickets`, { cache: 'no-store' }),
-          fetch(`/api/events/${params.id}`, { cache: 'no-store' })
+          fetch(`/api/events/${params.id}`, { cache: 'no-store' }),
+          fetch(`/api/events/${params.id}/ticket-groups`, { cache: 'no-store' })
         ])
+
+        if (resGroups.ok) {
+          const data = await resGroups.json()
+          if (!aborted && Array.isArray(data) && data.length > 0) {
+            setGroups(data)
+          }
+        }
 
         if (resTickets.ok) {
           const data = await resTickets.json()
@@ -106,27 +114,53 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
     return () => { aborted = true }
   }, [params.id])
 
-  const deleteGroup = (groupId: string) => {
+  const deleteGroup = async (groupId: string) => {
     // Disallow deleting the last remaining group
     if (groups.length <= 1) {
       alert('At least one ticket group is required. Create another group before deleting this one.')
       return
     }
-    const group = groups.find(g => g.id === groupId)
+
+    // Check if tickets exist in this group
     const affected = tickets.filter(t => t.groupId === groupId).length
+    if (affected > 0) {
+      alert(`Cannot delete group that contains ${affected} tickets. Please move or delete the tickets first.`)
+      return
+    }
+
+    const group = groups.find(g => g.id === groupId)
     const ok = window.confirm(
-      `Delete group "${group?.name ?? ''}"${affected ? ` and ${affected} ticket(s)` : ''}? This action cannot be undone.`
+      `Delete group "${group?.name ?? ''}"? This action cannot be undone.`
     )
     if (!ok) return
 
-    // Remove group and any tickets in it
-    const remainingGroups = groups.filter(g => g.id !== groupId)
-    const remainingTickets = tickets.filter(t => t.groupId !== groupId)
-    setGroups(remainingGroups)
-    setTickets(remainingTickets)
-    // If current form selection points to deleted group, switch to first remaining
-    if (form.groupId === groupId) {
-      setForm(f => ({ ...f, groupId: remainingGroups[0]?.id ?? f.groupId }))
+    // If it's a temp/hardcoded group (starts with g-), just remove from state
+    if (groupId.startsWith('g-')) {
+      const remainingGroups = groups.filter(g => g.id !== groupId)
+      setGroups(remainingGroups)
+      if (form.groupId === groupId) {
+        setForm(f => ({ ...f, groupId: remainingGroups[0]?.id ?? 'g-1' }))
+      }
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/events/${params.id}/ticket-groups/${groupId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || 'Failed to delete group')
+      }
+
+      // Remove group locally
+      const remainingGroups = groups.filter(g => g.id !== groupId)
+      setGroups(remainingGroups)
+
+      // If current form selection points to deleted group, switch to first remaining
+      if (form.groupId === groupId) {
+        setForm(f => ({ ...f, groupId: remainingGroups[0]?.id ?? f.groupId }))
+      }
+    } catch (e: any) {
+      alert(e.message)
     }
   }
   const makeInitialForm = (): FormState => ({
@@ -701,14 +735,31 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
             <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
               <button onClick={() => setShowGroupModal(false)} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Close</button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const name = groupNameInput.trim()
                   if (!name) { setShowGroupModal(false); return }
-                  const id = crypto.randomUUID()
-                  setGroups(prev => [...prev, { id, name }])
-                  // If ticket modal is open, default selection to the newly added group
-                  setForm(f => ({ ...f, groupId: id }))
-                  setShowGroupModal(false)
+
+                  try {
+                    const res = await fetch(`/api/events/${params.id}/ticket-groups`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ name })
+                    })
+
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}))
+                      throw new Error(err.message || 'Failed to create group')
+                    }
+
+                    const newGroup = await res.json()
+                    setGroups(prev => [...prev, newGroup])
+                    // If ticket modal is open, default selection to the newly added group
+                    setForm(f => ({ ...f, groupId: newGroup.id }))
+                    setShowGroupModal(false)
+                    setGroupNameInput('')
+                  } catch (e: any) {
+                    alert(e.message)
+                  }
                 }}
                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
               >Save</button>
