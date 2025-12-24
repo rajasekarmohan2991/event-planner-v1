@@ -28,35 +28,29 @@ function DesignEditor({ eventId }: { eventId: string }) {
   async function loadFloorPlans() {
     setLoading(true); setMsg(null)
     try {
-      console.log('[FloorPlan List] Fetching from /api/events/' + eventId + '/design/floor-plan')
-      const r = await fetch(`/api/events/${eventId}/design/floor-plan`, { cache: 'no-store' })
+      console.log('[FloorPlan List] Fetching from /api/events/' + eventId + '/floor-plans-direct')
+      const r = await fetch(`/api/events/${eventId}/floor-plans-direct`, { cache: 'no-store' })
       console.log('[FloorPlan List] Response status:', r.status, r.ok)
 
       if (r.ok) {
-        const plans = await r.json()
-        console.log('[FloorPlan List] Received data:', plans)
-        console.log('[FloorPlan List] Is array?', Array.isArray(plans))
-        console.log('[FloorPlan List] Length:', plans?.length)
+        const data = await r.json()
+        console.log('[FloorPlan List] Received data:', data)
 
-        if (Array.isArray(plans) && plans.length > 0) {
-          setFloorPlans(plans)
+        if (data.floorPlans && Array.isArray(data.floorPlans)) {
+          setFloorPlans(data.floorPlans)
+          console.log('[FloorPlan List] Loaded', data.floorPlans.length, 'floor plans')
         } else {
-          // Fallback: Try the main floor-plan endpoint
-          console.log('[FloorPlan List] No plans from design endpoint, trying main endpoint...')
-          const r2 = await fetch(`/api/events/${eventId}/floor-plan`, { cache: 'no-store' })
-          if (r2.ok) {
-            const data = await r2.json()
-            console.log('[FloorPlan List] Main endpoint response:', data)
-            if (data.floorPlans && Array.isArray(data.floorPlans)) {
-              setFloorPlans(data.floorPlans)
-            }
-          }
+          console.log('[FloorPlan List] No floor plans in response')
+          setFloorPlans([])
         }
       } else {
-        console.error('[FloorPlan List] Failed to fetch:', await r.text())
+        const errorText = await r.text()
+        console.error('[FloorPlan List] Failed to fetch:', r.status, errorText)
+        setFloorPlans([])
       }
     } catch (e: any) {
       console.error('[FloorPlan List] Error:', e)
+      setFloorPlans([])
     } finally { setLoading(false) }
   }
 

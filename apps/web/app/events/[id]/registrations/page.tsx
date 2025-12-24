@@ -64,7 +64,7 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
       })
       if (status !== 'all') params_obj.set('status', status)
 
-      const res = await fetch(`/api/events/${eventId}/registrations?${params_obj}`, {
+      const res = await fetch(`/api/events/${eventId}/registrations-emergency`, {
         cache: 'no-store',
         next: { revalidate: 0 },
         credentials: 'include',
