@@ -37,8 +37,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }))
 
     return NextResponse.json({
-      objects: safeRegs,
-      count: safeRegs.length
+      registrations: safeRegs,
+      pagination: {
+        page: 0,
+        size: safeRegs.length,
+        total: safeRegs.length,
+        totalPages: 1
+      }
     })
   } catch (error: any) {
     console.error('Error fetching registrations:', error)
