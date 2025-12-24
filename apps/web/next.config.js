@@ -5,7 +5,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs']
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    isrMemoryCacheSize: 0, // Disable ISR to prevent build timeouts
   },
   eslint: {
     ignoreDuringBuilds: true,
