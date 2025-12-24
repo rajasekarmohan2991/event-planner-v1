@@ -145,7 +145,7 @@ export default function FloorPlanDesignerPage() {
     const loadFloorPlan = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`/api/events/${eventId}/floor-layout`)
+            const response = await fetch(`/api/events/${eventId}/floor-plan`)
             if (response.ok) {
                 const data = await response.json() // Might default to empty if 404/500 treated as empty in some proxies, but we fixed API.
 
@@ -173,7 +173,7 @@ export default function FloorPlanDesignerPage() {
         try {
             setLoading(true)
 
-            const response = await fetch(`/api/events/${eventId}/floor-layout`, {
+            const response = await fetch(`/api/events/${eventId}/floor-plan`, {
                 method: floorPlan.id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

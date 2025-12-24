@@ -9,7 +9,13 @@ export const dynamic = 'force-dynamic'
 
 // Production schema: eventId is BIGINT (camelCase, unquoted)
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    // Await params if it's a Promise (Next.js 15+)
+    const params = 'then' in context.params ? await context.params : context.params
+
     // Force rebuild checksum
     console.log('🔍 [FloorPlan GET] Request received for event:', params.id)
 
@@ -93,7 +99,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    const params = 'then' in context.params ? await context.params : context.params
+
     try {
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
@@ -170,7 +181,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    const params = 'then' in context.params ? await context.params : context.params
+
     try {
         const session = await getServerSession(authOptions as any) as any
         if (!session) {
