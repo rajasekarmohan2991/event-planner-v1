@@ -2,8 +2,8 @@
 
 ## Current Status: COMPLETED 🚀
 
-**Time:** 2025-12-23 22:40 IST
-**Session Activity:** Floor Plan & Utility Hotfixes
+**Time:** 2025-12-24 08:05 IST
+**Session Activity:** Registration & QR Code Fixes
 **Features Completed:** 20+
 
 ---
@@ -52,7 +52,14 @@
 - ✅ **Speaker Management:** Fixed edit/delete type mismatches
 - ✅ **Session Validation:** Added time conflict prevention
 
-### **8. Latest Hotfixes (Floor Plan & Utilities)** 🆕
+### **8. Latest Hotfixes (Registration & QR Codes)** 🆕
+- ✅ **Event 20 Creation:** Restored missing Event 20 in database.
+- ✅ **QR Code Display:** Fixed frontend to display QR code data URL directly from backend (was showing blank).
+- ✅ **QR Code Download:** Simplified download function to use data URL instead of external API regeneration.
+- ✅ **Registration API:** Fixed OrderStatus enum casting and BigInt handling.
+- ✅ **Payment Processing:** Corrected eventId type conversion and QR code generation.
+
+### **9. Previous Hotfixes (Floor Plan & Utilities)** ✅
 - ✅ **Floor Plan Designer:** Fixed 404 errors, Drag-and-drop zoom scaling, and AI seat overlapping.
 - ✅ **Currency Converter:** Implemented auto-fetch for exchange rates.
 - ✅ **Promo Codes:** Fixed creation and loading issues (force-dynamic).
