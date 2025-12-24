@@ -28,13 +28,35 @@ function DesignEditor({ eventId }: { eventId: string }) {
   async function loadFloorPlans() {
     setLoading(true); setMsg(null)
     try {
+      console.log('[FloorPlan List] Fetching from /api/events/' + eventId + '/design/floor-plan')
       const r = await fetch(`/api/events/${eventId}/design/floor-plan`, { cache: 'no-store' })
+      console.log('[FloorPlan List] Response status:', r.status, r.ok)
+
       if (r.ok) {
         const plans = await r.json()
-        setFloorPlans(Array.isArray(plans) ? plans : [])
+        console.log('[FloorPlan List] Received data:', plans)
+        console.log('[FloorPlan List] Is array?', Array.isArray(plans))
+        console.log('[FloorPlan List] Length:', plans?.length)
+
+        if (Array.isArray(plans) && plans.length > 0) {
+          setFloorPlans(plans)
+        } else {
+          // Fallback: Try the main floor-plan endpoint
+          console.log('[FloorPlan List] No plans from design endpoint, trying main endpoint...')
+          const r2 = await fetch(`/api/events/${eventId}/floor-plan`, { cache: 'no-store' })
+          if (r2.ok) {
+            const data = await r2.json()
+            console.log('[FloorPlan List] Main endpoint response:', data)
+            if (data.floorPlans && Array.isArray(data.floorPlans)) {
+              setFloorPlans(data.floorPlans)
+            }
+          }
+        }
+      } else {
+        console.error('[FloorPlan List] Failed to fetch:', await r.text())
       }
     } catch (e: any) {
-      console.error('Failed to load floor plans:', e)
+      console.error('[FloorPlan List] Error:', e)
     } finally { setLoading(false) }
   }
 
