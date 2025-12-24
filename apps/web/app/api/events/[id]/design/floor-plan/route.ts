@@ -12,7 +12,7 @@ async function generateSeatsFromFloorPlan(eventId: string, config: any) {
 
     const { guestCount, seatsPerTable, tableType, hallLength, hallWidth, seatZones } = config
     const seatsPerTableNum = Math.max(1, Number(seatsPerTable) || 1)
-    
+
     // Fetch ticket pricing settings from database
     const ticketSettings = await prisma.$queryRaw`
       SELECT vip_price, premium_price, general_price
@@ -30,7 +30,7 @@ async function generateSeatsFromFloorPlan(eventId: string, config: any) {
       premium: 300,
       general: 150
     }
-    
+
     // Determine desired seat counts: prefer config -> saved KV -> fallback to percentages of guestCount
     const configCounts = {
       vipSeats: Number(config.vipSeats || 0),
@@ -63,7 +63,7 @@ async function generateSeatsFromFloorPlan(eventId: string, config: any) {
       const tablesPerRow = Math.max(1, Math.floor(hallLength / 10)) // Assuming 10ft spacing
       const row = Math.floor((tableNum - 1) / tablesPerRow)
       const col = (tableNum - 1) % tablesPerRow
-      
+
       const tableX = (col + 1) * (hallLength / (tablesPerRow + 1))
       const tableY = (row + 1) * (hallWidth / (Math.ceil(totalTables / tablesPerRow) + 1))
 
@@ -95,7 +95,7 @@ async function generateSeatsFromFloorPlan(eventId: string, config: any) {
         }
 
         // Generate row label: A-Z, then AA, AB, etc. based on table row index
-        const rowLetter = row < 26 
+        const rowLetter = row < 26
           ? String.fromCharCode(65 + row)
           : String.fromCharCode(65 + Math.floor(row / 26) - 1) + String.fromCharCode(65 + (row % 26))
 
@@ -165,10 +165,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Note: This might fail if seat_inventory tables are missing, but we shouldn't block floor plan saving
     let seatsGenerated = false
     try {
-        await generateSeatsFromFloorPlan(eventId, config)
-        seatsGenerated = true
+      await generateSeatsFromFloorPlan(eventId, config)
+      seatsGenerated = true
     } catch (seatError) {
-        console.warn('Seat generation skipped due to missing tables or configuration:', seatError)
+      console.warn('Seat generation skipped due to missing tables or configuration:', seatError)
     }
 
     return NextResponse.json({ success: true, id: floorPlanId, seatsGenerated })
@@ -188,16 +188,42 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = params.id
+    const eventId = BigInt(params.id)
 
-    const floorPlans = await prisma.$queryRaw`
-      SELECT id, "eventId", name, config, "imageData", "createdAt", "updatedAt"
-      FROM "FloorPlan"
-      WHERE "eventId" = ${eventId}
-      ORDER BY "createdAt" DESC
-    `
+    // Use Prisma Client to query the correct floor_plans table
+    const floorPlans = await prisma.floorPlan.findMany({
+      where: { eventId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        eventId: true,
+        name: true,
+        description: true,
+        layoutData: true,
+        createdAt: true,
+        updatedAt: true,
+        vipCapacity: true,
+        premiumCapacity: true,
+        generalCapacity: true,
+        totalCapacity: true
+      }
+    })
 
-    return NextResponse.json(floorPlans)
+    // Serialize BigInt fields
+    const serialized = floorPlans.map(fp => ({
+      id: fp.id,
+      eventId: fp.eventId.toString(),
+      name: fp.name,
+      createdAt: fp.createdAt,
+      config: {
+        guestCount: fp.totalCapacity,
+        vipSeats: fp.vipCapacity,
+        premiumSeats: fp.premiumCapacity,
+        generalSeats: fp.generalCapacity
+      }
+    }))
+
+    return NextResponse.json(serialized)
   } catch (error: any) {
     console.error('Get floor plans error:', error)
     return NextResponse.json(
