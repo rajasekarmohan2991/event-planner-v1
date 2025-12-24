@@ -39,7 +39,12 @@ export async function GET(
         return NextResponse.json({
             success: true,
             registrations: serialized,
-            count: serialized.length
+            pagination: {
+                page: 0,
+                size: serialized.length,
+                total: serialized.length,
+                totalPages: 1
+            }
         })
     } catch (error: any) {
         console.error('[EMERGENCY REGISTRATIONS] Error:', error)

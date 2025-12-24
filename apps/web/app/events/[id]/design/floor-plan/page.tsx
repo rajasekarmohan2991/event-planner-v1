@@ -145,12 +145,20 @@ export default function FloorPlanDesignerPage() {
     const loadFloorPlan = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`/api/events/${eventId}/floor-plan`)
+            console.log('[Floor Plan Editor] Loading floor plan...')
+
+            // Use the working endpoint
+            const response = await fetch(`/api/events/${eventId}/floor-plans-direct`)
+
             if (response.ok) {
-                const data = await response.json() // Might default to empty if 404/500 treated as empty in some proxies, but we fixed API.
+                const data = await response.json()
+                console.log('[Floor Plan Editor] Received data:', data)
 
                 if (data.floorPlans && data.floorPlans.length > 0) {
+                    // Get the most recent floor plan (first in the list since they're ordered by createdAt desc)
                     const plan = data.floorPlans[0]
+                    console.log('[Floor Plan Editor] Loading plan:', plan.name, plan.id)
+
                     setFloorPlan({
                         ...plan,
                         // Ensure prices are numbers

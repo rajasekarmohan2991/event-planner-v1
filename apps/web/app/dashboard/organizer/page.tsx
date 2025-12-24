@@ -34,6 +34,13 @@ export default function OrganizerDashboard() {
     upcomingEvents: 0
   })
   const [loading, setLoading] = useState(true)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followerCount, setFollowerCount] = useState(1234)
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing)
+    setFollowerCount(prev => isFollowing ? prev - 1 : prev + 1)
+  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -50,9 +57,9 @@ export default function OrganizerDashboard() {
 
           // Calculate stats from live data
           const now = new Date()
-          const totalRegistrations = events.reduce((sum: number, event: Event) => 
+          const totalRegistrations = events.reduce((sum: number, event: Event) =>
             sum + (event.registrationCount || 0), 0)
-          
+
           setStats({
             totalEvents: events.length,
             activeEvents: events.filter((e: Event) => e.status === 'LIVE').length,
@@ -92,14 +99,51 @@ export default function OrganizerDashboard() {
   return (
     <RouteProtection requiredRoles={['ORGANIZER']}>
       <div className="p-6 space-y-6">
-        {/* Welcome Header */}
+        {/* Company Profile Header with Follow Button */}
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Organizer Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Welcome back, {(session as any)?.user?.name}! Manage your events and engage with attendees.
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {(session as any)?.user?.companyName || (session as any)?.user?.name}
+                </h1>
+                <button
+                  onClick={handleFollow}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isFollowing
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                >
+                  <Users className="w-4 h-4" />
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Welcome back! Manage your events and engage with attendees.
+              </p>
+
+              {/* Company Stats */}
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold text-gray-900">{followerCount.toLocaleString()}</span>
+                  <span className="text-gray-600">Followers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold text-gray-900">{stats.totalEvents}</span>
+                  <span className="text-gray-600">Events Hosted</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold text-gray-900">
+                    {new Date().getFullYear() - 2020}
+                  </span>
+                  <span className="text-gray-600">Years in Business</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -173,7 +217,7 @@ export default function OrganizerDashboard() {
               </Link>
             </div>
           </div>
-          
+
           {myEvents.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -194,13 +238,12 @@ export default function OrganizerDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-medium text-gray-900">{event.name}</h3>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        event.status === 'LIVE' 
-                          ? 'bg-green-100 text-green-800'
-                          : event.status === 'DRAFT'
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${event.status === 'LIVE'
+                        ? 'bg-green-100 text-green-800'
+                        : event.status === 'DRAFT'
                           ? 'bg-gray-100 text-gray-800'
                           : 'bg-blue-100 text-blue-800'
-                      }`}>
+                        }`}>
                         {event.status}
                       </span>
                     </div>
