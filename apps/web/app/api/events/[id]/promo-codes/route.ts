@@ -12,37 +12,27 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   try {
-    const codes = await prisma.$queryRaw`
-      SELECT 
-        id, event_id as "eventId", code, 
-        discount_type as "discountType", 
-        discount_amount as "discountAmount", 
-        max_uses as "maxUses", 
-        used_count as "usedCount", 
-        max_uses_per_user as "maxUsesPerUser", 
-        min_order_amount as "minOrderAmount", 
-        start_date as "startDate", 
-        end_date as "endDate", 
-        is_active as "isActive", 
-        description, 
-        created_at as "createdAt"
-      FROM promo_codes
-      WHERE event_id = ${BigInt(eventId)}
-      ORDER BY created_at DESC
-    ` as any[]
+    const codes = await prisma.promoCode.findMany({
+      where: {
+        eventId: BigInt(eventId)
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
 
     const response = codes.map(code => ({
-      id: String(code.id),
-      eventId: String(code.eventId),
+      id: code.id.toString(),
+      eventId: code.eventId.toString(),
       code: code.code,
-      discountType: code.discountType,
-      discountAmount: code.discountAmount,
-      maxUses: code.maxUses,
+      discountType: code.type,
+      discountAmount: code.amount,
+      maxUses: code.maxRedemptions,
       usedCount: code.usedCount,
-      maxUsesPerUser: code.maxUsesPerUser,
+      maxUsesPerUser: code.perUserLimit,
       minOrderAmount: code.minOrderAmount,
-      startDate: code.startDate,
-      endDate: code.endDate,
+      startDate: code.startsAt,
+      endDate: code.endsAt,
       isActive: code.isActive,
       description: code.description,
       createdAt: code.createdAt,

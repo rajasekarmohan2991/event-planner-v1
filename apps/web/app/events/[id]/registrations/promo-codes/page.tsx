@@ -35,8 +35,7 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
-        const res = await fetch(`${base}/api/events/${params.id}/promo-codes`)
+        const res = await fetch(`/api/events/${params.id}/promo-codes`)
         if (res.ok) {
           const data = await res.json()
           const rows = Array.isArray(data) ? data : []
@@ -59,7 +58,6 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
 
   const savePromoCode = async (promoCode: Partial<PromoCode>) => {
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
       const isUpdate = promoCode.id
 
       const payload = {
@@ -71,7 +69,7 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
           : promoCode.discountAmount
       }
 
-      const res = await fetch(`${base}/api/events/${params.id}/promo-codes${isUpdate ? `/${promoCode.id}` : ''}`, {
+      const res = await fetch(`/api/events/${params.id}/promo-codes${isUpdate ? `/${promoCode.id}` : ''}`, {
         method: isUpdate ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -112,8 +110,7 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
     if (!ok) return
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
-      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/${id}`, {
+      const res = await fetch(`/api/events/${params.id}/promo-codes/${id}`, {
         method: 'DELETE'
       })
 
@@ -129,9 +126,8 @@ export default function PromoCodesPage({ params }: { params: { id: string } }) {
     if (!validatingCode.trim()) return
 
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || ''
       // orderAmount in paise for validation
-      const res = await fetch(`${base}/api/events/${params.id}/promo-codes/validate`, {
+      const res = await fetch(`/api/events/${params.id}/promo-codes/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: validatingCode, orderAmount: 100000 })
