@@ -218,7 +218,7 @@ enum PromoType {
 model PromoCode {
   id               BigInt     @id @default(autoincrement())
   eventId          BigInt     @map("event_id")
-  code             String     @unique
+  code             String
   type             String     @map("discount_type") @default("PERCENT")
   amount           Int        @map("discount_amount")
   maxRedemptions   Int        @map("max_uses") @default(-1)
@@ -234,6 +234,7 @@ model PromoCode {
   updatedAt        DateTime   @map("updated_at") @updatedAt
 
   @@map("promo_codes")
+  @@unique([eventId, code], map: "idx_promo_codes_event_code_unique")
   @@index([eventId], map: "idx_promo_codes_event")
   @@index([code], map: "idx_promo_codes_code")
   @@index([isActive], map: "idx_promo_codes_active")
