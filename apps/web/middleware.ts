@@ -5,26 +5,7 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
-
-    // Allow public routes
-    if (
-      path.startsWith('/auth/') ||
-      path.startsWith('/api/auth/') ||
-      path.startsWith('/_next/') ||
-      path.startsWith('/static/') ||
-      path === '/favicon.ico'
-    ) {
-      return NextResponse.next()
-    }
-
-    // Redirect to login if not authenticated
-    if (!token) {
-      const loginUrl = new URL('/auth/login', req.url)
-      loginUrl.searchParams.set('callbackUrl', req.url)
-      return NextResponse.redirect(loginUrl)
-    }
-
-    const userRole = token.role as string
+    const userRole = token?.role as string
 
     // Admin routes - require SUPER_ADMIN, ADMIN, or EVENT_MANAGER
     if (path.startsWith('/admin') || path.startsWith('/(admin)')) {
@@ -45,7 +26,20 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const path = req.nextUrl.pathname
+
+        // Always allow auth pages
+        if (path.startsWith('/auth/')) {
+          return true
+        }
+
+        // Require token for all other pages
+        return !!token
+      },
+    },
+    pages: {
+      signIn: '/auth/login',
     },
   }
 )
@@ -54,12 +48,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - api/auth (NextAuth)
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico (favicon)
      * - public folder
+     * - auth pages (handled by authorized callback)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public|.*\\..*|site\\.webmanifest).*)',
   ],
 }
