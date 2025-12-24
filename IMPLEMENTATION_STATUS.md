@@ -58,6 +58,7 @@
 - ✅ **QR Code Download:** Simplified download function to use data URL instead of external API regeneration.
 - ✅ **Registration API:** Fixed OrderStatus enum casting and BigInt handling.
 - ✅ **Payment Processing:** Corrected eventId type conversion and QR code generation.
+- ✅ **Registrations List:** Fixed API response format to return 'registrations' array (was returning 'objects').
 
 ### **9. Previous Hotfixes (Floor Plan & Utilities)** ✅
 - ✅ **Floor Plan Designer:** Fixed 404 errors, Drag-and-drop zoom scaling, and AI seat overlapping.
