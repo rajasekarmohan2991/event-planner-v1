@@ -39,10 +39,14 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
   const [showModal, setShowModal] = useState(false)
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [groupNameInput, setGroupNameInput] = useState('')
-  const [activeTab, setActiveTab] = useState<'General'|'Offers'>('General')
+  const [activeTab, setActiveTab] = useState<'General' | 'Offers'>('General')
   const searchParams = useSearchParams()
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([
-    { id: 'g-1', name: 'vvip' },
+    { id: 'g-1', name: 'VIP' },
+    { id: 'g-2', name: 'General Admission' },
+    { id: 'g-3', name: 'Early Bird' },
+    { id: 'g-4', name: 'Student' },
+    { id: 'g-5', name: 'Corporate' },
   ])
   const [tickets, setTickets] = useState<Array<{
     id: string
@@ -51,11 +55,11 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
     price: number
     quantity: number
     sold: number
-    status: 'Open'|'Closed'|'YetToStart'
+    status: 'Open' | 'Closed' | 'YetToStart'
     requiresApproval: boolean
     salesEndDate: string
   }>>([])
-  const [editingId, setEditingId] = useState<string|null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [eventDetails, setEventDetails] = useState<{ capacity: number, price: number } | null>(null)
 
@@ -68,7 +72,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
           fetch(`/api/events/${params.id}/tickets`, { cache: 'no-store' }),
           fetch(`/api/events/${params.id}`, { cache: 'no-store' })
         ])
-        
+
         if (resTickets.ok) {
           const data = await resTickets.json()
           if (!aborted) {
@@ -81,7 +85,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
               sold: Number(t.sold || 0),
               status: (t.status as any) || 'Open',
               requiresApproval: !!t.requiresApproval,
-              salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0,10) : ''
+              salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0, 10) : ''
             }))
             setTickets(mapped)
           }
@@ -96,7 +100,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
             })
           }
         }
-      } catch {}
+      } catch { }
     }
     load()
     return () => { aborted = true }
@@ -135,10 +139,10 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
     requiresApproval: false,
     minBuyingLimit: 1,
     maxBuyingLimit: 10,
-    salesStartDate: new Date(Date.now() + 24*60*60*1000).toISOString().slice(0,10),
+    salesStartDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     salesStartNow: false,
     salesStartTime: '00:00',
-    salesEndDate: new Date(Date.now() + 31*24*60*60*1000).toISOString().slice(0,10),
+    salesEndDate: new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     salesEndAtEventEnd: false,
     salesEndTime: '17:00',
     description: '',
@@ -147,10 +151,10 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
     offerName: '',
     offerType: 'FIXED',
     offerAmount: 0,
-    offerStartDate: new Date(Date.now() + 24*60*60*1000).toISOString().slice(0,10),
+    offerStartDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     offerStartTime: '00:00',
     offerEndsBasedOn: 'TIME',
-    offerEndDate: new Date(Date.now() + 10*24*60*60*1000).toISOString().slice(0,10),
+    offerEndDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     offerEndTime: '00:00',
     offerQtyLimit: 0,
     offerStatus: 'Open'
@@ -159,7 +163,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
   const [form, setForm] = useState<FormState>(makeInitialForm())
 
   const nameCount = useMemo(() => `${form.name.length} / 50`, [form.name])
-  const totalCapacity = useMemo(() => tickets.reduce((s,t)=> s + t.quantity, 0), [tickets])
+  const totalCapacity = useMemo(() => tickets.reduce((s, t) => s + t.quantity, 0), [tickets])
   const offerDiscount = useMemo(() => {
     const base = form.isFree ? 0 : Math.max(0, form.price)
     if (form.offerType === 'FIXED') return Math.max(0, Math.min(form.offerAmount || 0, base))
@@ -171,8 +175,8 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
     return Math.max(0, base - offerDiscount)
   }, [form.isFree, form.price, offerDiscount])
 
-  const fmtInr = (n:number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n)
-  const fmtDate = (iso:string) => {
+  const fmtInr = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n)
+  const fmtDate = (iso: string) => {
     try {
       const d = new Date(iso)
       return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })
@@ -229,8 +233,8 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">Ticket Class ({tickets.length})</div>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-slate-600">Event Capacity : <span className="font-semibold">{tickets.reduce((s,t)=> s+t.sold, 0)} / {eventDetails?.capacity || 'UNLIMITED'}</span></div>
-          <button className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700" onClick={()=>{ setGroupNameInput(''); setShowGroupModal(true) }}>+ Add Ticket Group</button>
+          <div className="text-sm text-slate-600">Event Capacity : <span className="font-semibold">{tickets.reduce((s, t) => s + t.sold, 0)} / {eventDetails?.capacity || 'UNLIMITED'}</span></div>
+          <button className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700" onClick={() => { setGroupNameInput(''); setShowGroupModal(true) }}>+ Add Ticket Group</button>
         </div>
       </div>
 
@@ -320,7 +324,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white z-10">
               <h3 className="text-lg font-semibold">{editingId ? 'Edit Ticket Class' : 'Add Ticket Class'}</h3>
-              <button onClick={()=>setShowModal(false)} className="p-1 text-slate-500 hover:text-slate-700" aria-label="Close">
+              <button onClick={() => setShowModal(false)} className="p-1 text-slate-500 hover:text-slate-700" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -334,7 +338,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                     <input
                       ref={nameInputRef}
                       value={form.name}
-                      onChange={(e)=> setForm(f=> ({...f, name: e.target.value.slice(0,50)}))}
+                      onChange={(e) => setForm(f => ({ ...f, name: e.target.value.slice(0, 50) }))}
                       className="w-full rounded-md border px-3 py-2 text-sm"
                       placeholder="Name your ticket"
                     />
@@ -344,7 +348,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                 <div>
                   <label className="block text-sm font-medium">Color <span className="text-slate-400 text-xs align-middle">i</span></label>
                   <div className="mt-1 flex items-center gap-3">
-                    <input type="color" value={form.color} onChange={(e)=> setForm(f=> ({...f, color: e.target.value}))} className="h-9 w-16 rounded-md border p-1" />
+                    <input type="color" value={form.color} onChange={(e) => setForm(f => ({ ...f, color: e.target.value }))} className="h-9 w-16 rounded-md border p-1" />
                     <div className="h-8 w-20 rounded-md border" style={{ background: form.color }}></div>
                   </div>
                 </div>
@@ -355,7 +359,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                   <label className="block text-sm font-medium">Group</label>
                   <select
                     value={form.groupId}
-                    onChange={(e)=> setForm(f=> ({...f, groupId: e.target.value}))}
+                    onChange={(e) => setForm(f => ({ ...f, groupId: e.target.value }))}
                     className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
                   >
                     {groups.map(g => (
@@ -365,29 +369,29 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                 </div>
                 <div>
                   <label className="block text-sm font-medium">Quantity <span className="text-red-500">*</span></label>
-                  <input type="number" value={form.quantity} onChange={(e)=> setForm(f=> ({...f, quantity: Math.max(0, parseInt(e.target.value) || 0)}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                  <input type="number" value={form.quantity} onChange={(e) => setForm(f => ({ ...f, quantity: Math.max(0, parseInt(e.target.value) || 0) }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium">Price <span className="text-slate-400 text-xs align-middle">i</span></label>
                   <div className="mt-1 flex items-center gap-4">
                     <label className="inline-flex items-center gap-2">
-                      <input 
-                        type="radio" 
-                        checked={!form.isFree} 
-                        onChange={()=> setForm(f=> ({
-                          ...f, 
-                          isFree: false, 
-                          price: f.price || (eventDetails?.price || 0) 
-                        }))} 
+                      <input
+                        type="radio"
+                        checked={!form.isFree}
+                        onChange={() => setForm(f => ({
+                          ...f,
+                          isFree: false,
+                          price: f.price || (eventDetails?.price || 0)
+                        }))}
                       />
                       <span className="text-sm">Paid</span>
                     </label>
                     <div className={`flex items-center gap-2 ${form.isFree ? 'opacity-50 pointer-events-none' : ''}`}>
                       <span className="text-sm">₹</span>
-                      <input type="number" value={form.price} onChange={(e)=> setForm(f=> ({...f, price: Math.max(0, parseFloat(e.target.value) || 0)}))} className="w-40 rounded-md border px-3 py-2 text-sm" />
+                      <input type="number" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: Math.max(0, parseFloat(e.target.value) || 0) }))} className="w-40 rounded-md border px-3 py-2 text-sm" />
                     </div>
                     <label className="ml-4 inline-flex items-center gap-2">
-                      <input type="radio" checked={form.isFree} onChange={()=> setForm(f=> ({...f, isFree: true, price: 0}))} />
+                      <input type="radio" checked={form.isFree} onChange={() => setForm(f => ({ ...f, isFree: true, price: 0 }))} />
                       <span className="text-sm">Free</span>
                     </label>
                   </div>
@@ -397,8 +401,8 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
               {/* Tabs */}
               <div className="mt-6 border-b">
                 <div className="flex gap-6 text-sm">
-                  {(['General','Offers'] as const).map(tab => (
-                    <button key={tab} onClick={()=> setActiveTab(tab)} className={`pb-2 -mb-px border-b-2 ${activeTab===tab? 'border-slate-900 text-slate-900':'border-transparent text-slate-500 hover:text-slate-700'}`}>{tab}</button>
+                  {(['General', 'Offers'] as const).map(tab => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-2 -mb-px border-b-2 ${activeTab === tab ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{tab}</button>
                   ))}
                 </div>
               </div>
@@ -407,7 +411,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                 <div className="mt-6 space-y-6">
                   <div>
                     <label className="block text-sm font-medium">Status</label>
-                    <select value={form.status} onChange={(e)=> setForm(f=> ({...f, status: e.target.value as FormState['status']}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs">
+                    <select value={form.status} onChange={(e) => setForm(f => ({ ...f, status: e.target.value as FormState['status'] }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs">
                       <option value="Open">Open</option>
                       <option value="Closed">Closed</option>
                     </select>
@@ -420,9 +424,9 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                         <p className="text-xs text-slate-500 mt-1">You can pre-screen order requests and manually approve or deny them before issuing tickets.</p>
                       </div>
                       <label className="inline-flex cursor-pointer items-center">
-                        <input type="checkbox" className="sr-only" checked={form.requiresApproval} onChange={(e)=> setForm(f=> ({...f, requiresApproval: e.target.checked}))} />
-                        <span className={`h-6 w-10 rounded-full transition-colors ${form.requiresApproval? 'bg-indigo-600':'bg-slate-300' } relative`}>
-                          <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${form.requiresApproval? 'translate-x-4':''}`}></span>
+                        <input type="checkbox" className="sr-only" checked={form.requiresApproval} onChange={(e) => setForm(f => ({ ...f, requiresApproval: e.target.checked }))} />
+                        <span className={`h-6 w-10 rounded-full transition-colors ${form.requiresApproval ? 'bg-indigo-600' : 'bg-slate-300'} relative`}>
+                          <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${form.requiresApproval ? 'translate-x-4' : ''}`}></span>
                         </span>
                       </label>
                     </div>
@@ -431,42 +435,42 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium">Minimum Buying Limit <span className="text-red-500">*</span></label>
-                      <input type="number" value={form.minBuyingLimit} onChange={(e)=> setForm(f=> ({...f, minBuyingLimit: Math.max(1, parseInt(e.target.value) || 1)}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                      <input type="number" value={form.minBuyingLimit} onChange={(e) => setForm(f => ({ ...f, minBuyingLimit: Math.max(1, parseInt(e.target.value) || 1) }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Maximum Buying Limit <span className="text-red-500">*</span></label>
-                      <input type="number" value={form.maxBuyingLimit} onChange={(e)=> setForm(f=> ({...f, maxBuyingLimit: Math.max(form.minBuyingLimit, parseInt(e.target.value) || form.minBuyingLimit)}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                      <input type="number" value={form.maxBuyingLimit} onChange={(e) => setForm(f => ({ ...f, maxBuyingLimit: Math.max(form.minBuyingLimit, parseInt(e.target.value) || form.minBuyingLimit) }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium">Sales Start Date</label>
-                      <input type="date" value={form.salesStartDate} onChange={(e)=> setForm(f=> ({...f, salesStartDate: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
-                      <label className="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.salesStartNow} onChange={(e)=> setForm(f=> ({...f, salesStartNow: e.target.checked}))} /> Now</label>
+                      <input type="date" value={form.salesStartDate} onChange={(e) => setForm(f => ({ ...f, salesStartDate: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                      <label className="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.salesStartNow} onChange={(e) => setForm(f => ({ ...f, salesStartNow: e.target.checked }))} /> Now</label>
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Time</label>
-                      <input type="time" value={form.salesStartTime} onChange={(e)=> setForm(f=> ({...f, salesStartTime: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
+                      <input type="time" value={form.salesStartTime} onChange={(e) => setForm(f => ({ ...f, salesStartTime: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium">Sales End Date</label>
-                      <input type="date" value={form.salesEndDate} onChange={(e)=> setForm(f=> ({...f, salesEndDate: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
-                      <label className="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.salesEndAtEventEnd} onChange={(e)=> setForm(f=> ({...f, salesEndAtEventEnd: e.target.checked}))} /> Event End Date</label>
+                      <input type="date" value={form.salesEndDate} onChange={(e) => setForm(f => ({ ...f, salesEndDate: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                      <label className="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.salesEndAtEventEnd} onChange={(e) => setForm(f => ({ ...f, salesEndAtEventEnd: e.target.checked }))} /> Event End Date</label>
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Time</label>
-                      <input type="time" value={form.salesEndTime} onChange={(e)=> setForm(f=> ({...f, salesEndTime: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
+                      <input type="time" value={form.salesEndTime} onChange={(e) => setForm(f => ({ ...f, salesEndTime: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium">Description</label>
                     <div className="mt-1">
-                      <textarea value={form.description} onChange={(e)=> setForm(f=> ({...f, description: e.target.value.slice(0,1000)}))} rows={6} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Write a short description (max 1000 chars)" />
+                      <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value.slice(0, 1000) }))} rows={6} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Write a short description (max 1000 chars)" />
                       <div className="text-right text-xs text-slate-400">{form.description.length}/1000</div>
                     </div>
                   </div>
@@ -479,7 +483,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                     <label className="block text-sm font-medium">Offer Name <span className="text-red-500">*</span> <span className="text-slate-400 text-xs align-middle">i</span></label>
                     <input
                       value={form.offerName}
-                      onChange={(e)=> setForm(f=> ({...f, offerName: e.target.value}))}
+                      onChange={(e) => setForm(f => ({ ...f, offerName: e.target.value }))}
                       className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
                       placeholder="Early bird"
                     />
@@ -491,7 +495,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                       <div className="mt-1 flex items-center gap-3">
                         <select
                           value={form.offerType}
-                          onChange={(e)=> setForm(f=> ({...f, offerType: e.target.value as FormState['offerType']}))}
+                          onChange={(e) => setForm(f => ({ ...f, offerType: e.target.value as FormState['offerType'] }))}
                           className="rounded-md border bg-white px-3 py-2 text-sm"
                         >
                           <option value="FIXED">Fixed (₹)</option>
@@ -500,7 +504,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                         <input
                           type="number"
                           value={form.offerAmount}
-                          onChange={(e)=> setForm(f=> ({...f, offerAmount: Math.max(0, parseFloat(e.target.value) || 0)}))}
+                          onChange={(e) => setForm(f => ({ ...f, offerAmount: Math.max(0, parseFloat(e.target.value) || 0) }))}
                           className="w-40 rounded-md border px-3 py-2 text-sm"
                           placeholder={form.offerType === 'PERCENT' ? '0-100' : 'amount'}
                         />
@@ -522,11 +526,11 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium">Start Date</label>
-                      <input type="date" value={form.offerStartDate} onChange={(e)=> setForm(f=> ({...f, offerStartDate: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                      <input type="date" value={form.offerStartDate} onChange={(e) => setForm(f => ({ ...f, offerStartDate: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Time</label>
-                      <input type="time" value={form.offerStartTime} onChange={(e)=> setForm(f=> ({...f, offerStartTime: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
+                      <input type="time" value={form.offerStartTime} onChange={(e) => setForm(f => ({ ...f, offerStartTime: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
                     </div>
                   </div>
 
@@ -534,11 +538,11 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                     <div className="rounded-md border-2 border-dashed p-3">
                       <div className="flex items-center gap-6 text-sm">
                         <label className="inline-flex items-center gap-2">
-                          <input type="radio" checked={form.offerEndsBasedOn==='TIME'} onChange={()=> setForm(f=> ({...f, offerEndsBasedOn:'TIME'}))} />
+                          <input type="radio" checked={form.offerEndsBasedOn === 'TIME'} onChange={() => setForm(f => ({ ...f, offerEndsBasedOn: 'TIME' }))} />
                           Date & time
                         </label>
                         <label className="inline-flex items-center gap-2">
-                          <input type="radio" checked={form.offerEndsBasedOn==='QUANTITY'} onChange={()=> setForm(f=> ({...f, offerEndsBasedOn:'QUANTITY'}))} />
+                          <input type="radio" checked={form.offerEndsBasedOn === 'QUANTITY'} onChange={() => setForm(f => ({ ...f, offerEndsBasedOn: 'QUANTITY' }))} />
                           Ticket quantity
                         </label>
                       </div>
@@ -546,17 +550,17 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium">End Date</label>
-                            <input type="date" value={form.offerEndDate} onChange={(e)=> setForm(f=> ({...f, offerEndDate: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
+                            <input type="date" value={form.offerEndDate} onChange={(e) => setForm(f => ({ ...f, offerEndDate: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium">Time</label>
-                            <input type="time" value={form.offerEndTime} onChange={(e)=> setForm(f=> ({...f, offerEndTime: e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
+                            <input type="time" value={form.offerEndTime} onChange={(e) => setForm(f => ({ ...f, offerEndTime: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs" />
                           </div>
                         </div>
                       ) : (
                         <div className="mt-4">
                           <label className="block text-sm font-medium">Quantity Limit</label>
-                          <input type="number" value={form.offerQtyLimit} onChange={(e)=> setForm(f=> ({...f, offerQtyLimit: Math.max(0, parseInt(e.target.value) || 0)}))} className="mt-1 w-60 rounded-md border px-3 py-2 text-sm" />
+                          <input type="number" value={form.offerQtyLimit} onChange={(e) => setForm(f => ({ ...f, offerQtyLimit: Math.max(0, parseInt(e.target.value) || 0) }))} className="mt-1 w-60 rounded-md border px-3 py-2 text-sm" />
                         </div>
                       )}
                     </div>
@@ -564,15 +568,15 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
 
                   <div>
                     <label className="block text-sm font-medium">Offer Status <span className="text-red-500">*</span></label>
-                    <select value={form.offerStatus} onChange={(e)=> setForm(f=> ({...f, offerStatus: e.target.value as FormState['offerStatus']}))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs">
+                    <select value={form.offerStatus} onChange={(e) => setForm(f => ({ ...f, offerStatus: e.target.value as FormState['offerStatus'] }))} className="mt-1 w-full rounded-md border px-3 py-2 text-sm max-w-xs">
                       <option value="Open">Open</option>
                       <option value="Closed">Closed</option>
                     </select>
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
-                    <button type="button" onClick={()=> setActiveTab('General')} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Back</button>
-                    <button type="button" onClick={()=> setActiveTab('General')} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Done</button>
+                    <button type="button" onClick={() => setActiveTab('General')} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Back</button>
+                    <button type="button" onClick={() => setActiveTab('General')} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Done</button>
                   </div>
                 </div>
               )}
@@ -580,12 +584,12 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
 
             {/* Drawer footer */}
             <div className="flex items-center justify-end gap-3 border-t px-6 py-4 sticky bottom-0 bg-white z-10">
-              <button onClick={()=> { setForm(makeInitialForm()); setEditingId(null); }} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Cancel</button>
-              <button onClick={()=> { setShowModal(false); setEditingId(null); }} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Close</button>
+              <button onClick={() => { setForm(makeInitialForm()); setEditingId(null); }} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Cancel</button>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Close</button>
               <button
-                onClick={async ()=> {
+                onClick={async () => {
                   if (!form.name.trim()) { setShowModal(false); return }
-                  
+
                   // Validate capacity
                   if (eventDetails) {
                     const allocated = tickets.reduce((sum, t) => t.id === editingId ? sum : sum + t.quantity, 0)
@@ -627,7 +631,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                       })
                       if (!res.ok) {
                         const text = await res.text(); let msg = 'Failed to update ticket';
-                        try{ const j = JSON.parse(text); msg = j?.message || msg } catch{}
+                        try { const j = JSON.parse(text); msg = j?.message || msg } catch { }
                         throw new Error(msg)
                       }
                       t = await res.json()
@@ -640,7 +644,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                         sold: Number(t.sold ?? 0),
                         status: (t.status as any) || 'YetToStart',
                         requiresApproval: !!(t.requiresApproval ?? form.requiresApproval),
-                        salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0,10) : form.salesEndDate,
+                        salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0, 10) : form.salesEndDate,
                       }
                       setTickets(prev => prev.map(x => x.id === updated.id ? updated : x))
                     } else {
@@ -649,7 +653,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                       })
                       if (!res.ok) {
                         const text = await res.text(); let msg = 'Failed to save ticket';
-                        try{ const j = JSON.parse(text); msg = j?.message || msg } catch{}
+                        try { const j = JSON.parse(text); msg = j?.message || msg } catch { }
                         throw new Error(msg)
                       }
                       t = await res.json()
@@ -662,7 +666,7 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
                         sold: Number(t.sold ?? 0),
                         status: (t.status as any) || 'YetToStart',
                         requiresApproval: !!(t.requiresApproval ?? form.requiresApproval),
-                        salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0,10) : form.salesEndDate,
+                        salesEndDate: t.salesEndAt ? String(t.salesEndAt).slice(0, 10) : form.salesEndDate,
                       }
                       setTickets(prev => [...prev, newItem])
                     }
@@ -686,18 +690,18 @@ export default function TicketClassPage({ params }: { params: { id: string } }) 
           <div className="w-full max-w-md rounded-lg border bg-white shadow-lg">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h3 className="text-lg font-semibold">Add Ticket Group</h3>
-              <button onClick={()=> setShowGroupModal(false)} className="p-1 text-slate-500 hover:text-slate-700"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowGroupModal(false)} className="p-1 text-slate-500 hover:text-slate-700"><X className="h-5 w-5" /></button>
             </div>
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium">Group Name <span className="text-red-500">*</span></label>
-                <input value={groupNameInput} onChange={(e)=> setGroupNameInput(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="Enter group name" />
+                <input value={groupNameInput} onChange={(e) => setGroupNameInput(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="Enter group name" />
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
-              <button onClick={()=> setShowGroupModal(false)} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Close</button>
+              <button onClick={() => setShowGroupModal(false)} className="rounded-md border px-4 py-2 text-sm hover:bg-slate-50">Close</button>
               <button
-                onClick={()=> {
+                onClick={() => {
                   const name = groupNameInput.trim()
                   if (!name) { setShowGroupModal(false); return }
                   const id = crypto.randomUUID()
