@@ -11,87 +11,48 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
     req: NextRequest,
-    context: { params: Promise<{ id: string }> | { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
-    // Await params if it's a Promise (Next.js 15+)
-    const params = 'then' in context.params ? await context.params : context.params
-
-    // Force rebuild checksum
-    console.log('🔍 [FloorPlan GET] Request received for event:', params.id)
-
     try {
-        const session = await getServerSession(authOptions as any)
-        console.log('🔍 [FloorPlan GET] Session:', session ? 'Authenticated' : 'Not authenticated')
+        const params = await context.params
+        const id = params.id
+        console.log('🔍 [FloorPlan GET] Fetching for event:', id)
 
+        const session = await getServerSession(authOptions as any) as any
         if (!session) {
-            console.log('❌ [FloorPlan GET] Unauthorized - no session')
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
         }
 
-        let eventId: bigint
-        try {
-            eventId = BigInt(params.id)
-            console.log('🔍 [FloorPlan GET] Event ID converted:', eventId.toString())
-        } catch (e) {
-            console.error('❌ [FloorPlan GET] Invalid event ID:', params.id, e)
-            return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
-        }
+        const eventId = BigInt(id)
 
-        console.log('📐 [FloorPlan GET] Fetching floor plans for event:', eventId.toString())
+        // Use Prisma FindMany instead of Raw SQL (Safer)
+        const floorPlans = await prisma.floorPlan.findMany({
+            where: {
+                eventId: eventId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        })
 
-        const floorPlansRaw = await prisma.$queryRaw`
-            SELECT 
-                id,
-                "eventId"::text as "eventId",
-                name,
-                description,
-                "canvasWidth",
-                "canvasHeight",
-                "backgroundColor",
-                "gridSize",
-                "vipPrice",
-                "premiumPrice",
-                "generalPrice",
-                "totalCapacity",
-                "vipCapacity",
-                "premiumCapacity",
-                "generalCapacity",
-                "menCapacity",
-                "womenCapacity",
-                "layoutData",
-                status,
-                version,
-                created_at as "createdAt",
-                updated_at as "updatedAt",
-                tenant_id as "tenantId"
-            FROM floor_plans
-            WHERE "eventId" = ${eventId}
-            ORDER BY created_at DESC
-        ` as any[]
+        console.log(`✅ [FloorPlan GET] Found ${floorPlans.length} plans`)
 
-        console.log(`🔍 [FloorPlan GET] Raw query returned ${floorPlansRaw.length} results`)
-
-        const floorPlans = floorPlansRaw.map(fp => ({
+        // Start mapping serialization
+        const serialized = floorPlans.map(fp => ({
             ...fp,
-            objects: fp.layoutData?.objects || []
+            // Ensure BigInts are strings
+            eventId: fp.eventId.toString(),
+            // Ensure JSON is parsed if needed (Prisma does it auto, but ensuring objects array exists)
+            objects: (fp.layoutData as any)?.objects || []
         }))
 
-        console.log(`✅ [FloorPlan GET] Found ${floorPlans.length} floor plans`)
-
         return NextResponse.json({
-            floorPlans,
-            total: floorPlans.length
+            floorPlans: serialized,
+            total: serialized.length
         })
+
     } catch (error: any) {
-        console.error('❌ [FloorPlan GET] Error fetching floor plans:', error)
-
-        // Auto-heal
-        if (error.message.includes('relation') || error.message.includes('does not exist')) {
-            await ensureSchema()
-            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
-        }
-
-        console.error('❌ [FloorPlan GET] Error stack:', error.stack)
+        console.error('❌ [FloorPlan GET] Error:', error)
         return NextResponse.json({
             message: 'Failed to load floor plans',
             error: error.message
@@ -106,6 +67,18 @@ export async function POST(
     try {
         const params = await context.params
         const id = params.id
+
+        // DEBUG: Force 200 OK to verify routing
+        // Remove this later
+        console.log('📌 [FloorPlan POST] HIT DEBUG CHECK')
+        /* 
+        // Uncomment to verify routing if 404 persists
+        return NextResponse.json({ 
+            message: 'DEBUG: Route is reachable!',
+            eventId: id 
+        }, { status: 200 }) 
+        */
+
         console.log('📌 [FloorPlan POST] Creating for event:', id)
 
         const session = await getServerSession(authOptions as any) as any
@@ -124,8 +97,8 @@ export async function POST(
 
         if (!event) {
             console.error('❌ [FloorPlan POST] Event not found for ID:', id)
-            // Still return 404, but logged.
-            return NextResponse.json({ message: `Event ${id} not found` }, { status: 404 })
+            // Changing 404 to 400 to distinguish from "Route Not Found"
+            return NextResponse.json({ message: `Event ${id} not found in DB` }, { status: 400 })
         }
 
         console.log('✅ [FloorPlan POST] Event found, creating plan...')
@@ -155,13 +128,13 @@ export async function POST(
             }
         })
 
+        console.log('✅ [FloorPlan POST] Success:', newFloorPlan.id)
+
         const responseData = {
             ...newFloorPlan,
             id: newFloorPlan.id,
             eventId: id,
         }
-
-        console.log('✅ [FloorPlan POST] Success:', newFloorPlan.id)
 
         return NextResponse.json({
             message: 'Floor plan created successfully',
