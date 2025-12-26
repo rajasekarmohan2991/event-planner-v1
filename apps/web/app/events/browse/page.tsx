@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Calendar, MapPin, Ticket, Users, Clock, IndianRupee, Search, Filter, Compass, Sparkles } from 'lucide-react'
+import { Calendar, MapPin, Ticket, Users, Clock, IndianRupee, Search, Filter, Compass, Sparkles, Mic2, Palette, Music, Zap, Image as ImageIcon, Users2, Briefcase, Laptop, Heart } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from '@/components/ui/use-toast'
 
@@ -27,7 +27,7 @@ type Event = {
 
 type CategoryCard = {
   name: string
-  image: string
+  IconComponent: any
   color: string
 }
 
@@ -47,51 +47,51 @@ export default function BrowseEventsPage() {
   const [popularCities, setPopularCities] = useState<string[]>([])
   const [allCities, setAllCities] = useState<{ city: string, country: string }[]>([])
 
-  // Category cards - Simple icon style (matching Image 1)
+  // Category cards with modern icons
   const categoryCards: CategoryCard[] = [
     {
       name: "Business",
-      image: "💼",
-      color: "from-blue-600 to-indigo-700"
+      IconComponent: Briefcase,
+      color: "from-sky-600 to-blue-700"
     },
     {
       name: "Technology",
-      image: "💻",
+      IconComponent: Laptop,
       color: "from-cyan-500 to-blue-600"
     },
     {
       name: "Art",
-      image: "🎨",
-      color: "from-purple-500 to-pink-600"
+      IconComponent: Palette,
+      color: "from-purple-600 to-violet-700"
     },
     {
       name: "Music",
-      image: "🎵",
-      color: "from-pink-500 to-red-500"
+      IconComponent: Music,
+      color: "from-fuchsia-600 to-pink-700"
     },
     {
       name: "Food",
-      image: "🍔",
-      color: "from-orange-500 to-red-600"
+      IconComponent: Users,
+      color: "from-orange-600 to-red-700"
     },
     {
       name: "Sports",
-      image: "⚽",
-      color: "from-green-500 to-emerald-600"
+      IconComponent: Zap,
+      color: "from-teal-600 to-emerald-700"
     },
     {
       name: "Health",
-      image: "💪",
-      color: "from-teal-500 to-green-600"
+      IconComponent: Heart,
+      color: "from-green-500 to-emerald-600"
     },
     {
       name: "Education",
-      image: "📚",
-      color: "from-yellow-500 to-orange-600"
+      IconComponent: ImageIcon,
+      color: "from-amber-500 to-orange-600"
     },
     {
       name: "Other",
-      image: "📌",
+      IconComponent: Sparkles,
       color: "from-gray-500 to-gray-700"
     }
   ]
@@ -262,7 +262,7 @@ export default function BrowseEventsPage() {
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 via-fuchsia-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Browse Events
           </h1>
           <p className="text-gray-600">Discover and register for amazing events</p>
@@ -415,11 +415,11 @@ export default function BrowseEventsPage() {
                   }`}
               >
                 {/* Icon Circle */}
-                <div className={`w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center text-3xl shadow-md ${selectedCategory === card.name
-                  ? 'border-indigo-500 shadow-lg ring-2 ring-indigo-200'
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${card.color} border-2 flex items-center justify-center shadow-md ${selectedCategory === card.name
+                  ? 'border-pink-500 shadow-lg ring-2 ring-pink-200'
                   : 'border-gray-200'
                   }`}>
-                  {card.image}
+                  <card.IconComponent className="w-10 h-10 text-white" strokeWidth={2} />
                 </div>
 
                 {/* Selected Checkmark */}
