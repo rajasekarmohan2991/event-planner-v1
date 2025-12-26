@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2 } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -17,6 +17,7 @@ interface Event {
   registrationCount?: number
   category?: string
   imageUrl?: string
+  bannerUrl?: string
 }
 
 const categories = [
@@ -25,7 +26,7 @@ const categories = [
   { name: 'Concerts', IconComponent: Music, color: 'from-fuchsia-600 to-pink-700' },
   { name: 'Sports', IconComponent: Zap, color: 'from-teal-600 to-emerald-700' },
   { name: 'Exhibitions', IconComponent: ImageIcon, color: 'from-orange-600 to-red-700' },
-  { name: 'Networking', IconComponent: Network, color: 'from-indigo-600 to-blue-700' },
+  { name: 'Networking', IconComponent: Users2, color: 'from-indigo-600 to-blue-700' },
 ]
 
 export default function UserDashboard() {
@@ -132,13 +133,6 @@ export default function UserDashboard() {
           <div className="bg-white rounded-2xl shadow-2xl p-8 mb-12 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`text-sm font-medium transition-colors ${selectedCategory === null ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                View All
-              </button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -213,7 +207,17 @@ export default function UserDashboard() {
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     {/* Event Image */}
-                    <div className="relative h-48 bg-gradient-to-br from-teal-500 to-blue-600 overflow-hidden">
+                    <div className="relative h-48 overflow-hidden bg-gray-200">
+                      {event.bannerUrl ? (
+                        <Image
+                          src={event.bannerUrl}
+                          alt={event.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-blue-600" />
+                      )}
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
                       <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
                         <span className="text-xs font-bold text-indigo-600">
