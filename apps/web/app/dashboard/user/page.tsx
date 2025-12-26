@@ -151,8 +151,8 @@ export default function UserDashboard() {
                   <button
                     key={category.name}
                     onClick={() => setSelectedCategory(category.name)}
-                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-2 ${animations[index]} ${selectedCategory === category.name
-                      ? 'ring-4 ring-pink-500 ring-offset-2 scale-105'
+                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${selectedCategory === category.name
+                      ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
                       : ''
                       }`}
                     style={{
@@ -160,16 +160,30 @@ export default function UserDashboard() {
                       animationFillMode: 'backwards'
                     }}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-6`}></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative z-10 text-center">
-                      <div className="mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-float flex items-center justify-center">
-                        <category.IconComponent className="w-12 h-12 text-white" strokeWidth={2} />
-                      </div>
-                      <p className="text-white font-semibold text-sm group-hover:text-base transition-all duration-300">{category.name}</p>
+                    {/* Glassmorphism gradient background */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-80 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110`}></div>
+
+                    {/* Glass overlay */}
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+
+                    {/* Animated gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    {/* Shimmer effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
                     </div>
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="absolute inset-0 bg-white/20 blur-xl"></div>
+
+                    <div className="relative z-10 text-center">
+                      <div className="mb-4 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 animate-icon-float flex items-center justify-center">
+                        <category.IconComponent className="w-14 h-14 text-white drop-shadow-lg" strokeWidth={2.5} />
+                      </div>
+                      <p className="text-white font-bold text-base group-hover:text-lg transition-all duration-300 drop-shadow-md">{category.name}</p>
+                    </div>
+
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <div className="absolute inset-0 bg-white/20 blur-2xl"></div>
                     </div>
                   </button>
                 );
@@ -525,6 +539,20 @@ export default function UserDashboard() {
 
         .animation-delay-1000 {
           animation-delay: 1000ms;
+        }
+
+        /* Shimmer animation for glassmorphism */
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        .animate-shimmer {
+          animation: shimmer 2s ease-in-out infinite;
         }
 
         /* Unique animations for each category */
