@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2, Search, Filter, IndianRupee } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -38,6 +38,9 @@ export default function UserDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [isInterested, setIsInterested] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCity, setSelectedCity] = useState('all')
+  const [priceFilter, setPriceFilter] = useState('all')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -62,9 +65,13 @@ export default function UserDashboard() {
     fetchEvents()
   }, [status])
 
-  const filteredEvents = selectedCategory
-    ? upcomingEvents.filter(e => e.category === selectedCategory)
-    : upcomingEvents
+  const filteredEvents = upcomingEvents.filter(event => {
+    if (selectedCategory && event.category !== selectedCategory) return false
+    if (searchQuery && !event.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !event.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    if (selectedCity !== 'all' && event.city !== selectedCity) return false
+    return true
+  })
 
   if (loading) {
     return (
@@ -129,6 +136,73 @@ export default function UserDashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
+          {/* Filter Events Section */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-8 animate-slide-up">
+            <div className="flex items-center gap-2 mb-6">
+              <Filter className="w-6 h-6 text-orange-500" />
+              <h2 className="text-2xl font-bold text-gray-900">Filter Events</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Search */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <Search className="w-4 h-4 inline mr-1" />
+                  Search Events
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or description..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
+                />
+              </div>
+
+              {/* City Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  City
+                </label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white transition-all"
+                >
+                  <option value="all">All Cities</option>
+                  {[...new Set(upcomingEvents.map(e => e.city))].map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  <IndianRupee className="w-4 h-4 inline mr-1" />
+                  Price
+                </label>
+                <select
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white transition-all"
+                >
+                  <option value="all">All Events</option>
+                  <option value="free">Free Only</option>
+                  <option value="paid">Paid Only</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Showing <strong>{filteredEvents.length}</strong> of <strong>{upcomingEvents.length}</strong> events
+              </p>
+            </div>
+          </div>
+
           {/* Categories */}
           <div className="bg-white rounded-2xl shadow-2xl p-8 mb-12 animate-slide-up">
             <div className="flex items-center justify-between mb-6">
