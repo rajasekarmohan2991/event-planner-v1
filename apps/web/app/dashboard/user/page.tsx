@@ -2,9 +2,10 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, FileText, Search, Clock, MapPin, Users, Ticket } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
+import Image from 'next/image'
 
 interface Event {
   id: string
@@ -14,316 +15,351 @@ interface Event {
   venue: string
   city: string
   registrationCount?: number
+  category?: string
+  imageUrl?: string
 }
 
-interface Registration {
-  id: string
-  eventName: string
-  status: string
-  registeredAt: string
-  eventDate: string
-}
+const categories = [
+  { name: 'Conferences', icon: '🎤', color: 'from-blue-500 to-blue-600' },
+  { name: 'Workshops', icon: '🎨', color: 'from-purple-500 to-purple-600' },
+  { name: 'Concerts', icon: '🎵', color: 'from-pink-500 to-pink-600' },
+  { name: 'Sports', icon: '⚽', color: 'from-green-500 to-green-600' },
+  { name: 'Exhibitions', icon: '🖼️', color: 'from-orange-500 to-orange-600' },
+  { name: 'Networking', icon: '🤝', color: 'from-indigo-500 to-indigo-600' },
+]
 
 export default function UserDashboard() {
   const { data: session, status } = useSession()
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
-  const [myRegistrations, setMyRegistrations] = useState<Registration[]>([])
-  const [myCreatedEvents, setMyCreatedEvents] = useState<any[]>([])
+  const [trendingEvents, setTrendingEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
 
-    if (status === 'unauthenticated') {
-      setLoading(false)
-      return
-    }
-
-    const fetchDashboardData = async () => {
+    const fetchEvents = async () => {
       try {
-        const [eventsRes, registrationsRes, myEventsRes] = await Promise.allSettled([
-          fetch('/api/events/public?limit=6', { credentials: 'include' }),
-          fetch('/api/registrations/my', { credentials: 'include' }),
-          fetch('/api/events?my=true', { credentials: 'include' })
-        ])
-
-        // 1. Upcoming Events
-        if (eventsRes.status === 'fulfilled' && eventsRes.value.ok) {
-          try {
-            const data = await eventsRes.value.json()
-            setUpcomingEvents(data.events || [])
-          } catch (e) { console.error('Failed to parse public events', e) }
+        const res = await fetch('/api/events/public?limit=12', { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          const events = data.events || []
+          setUpcomingEvents(events)
+          // Simulate trending events (top 4 by registration count)
+          setTrendingEvents(events.slice(0, 4))
         }
-
-        // 2. My Registrations
-        if (registrationsRes.status === 'fulfilled' && registrationsRes.value.ok) {
-          try {
-            const data = await registrationsRes.value.json()
-            setMyRegistrations(data.registrations || [])
-          } catch (e) { console.error('Failed to parse registrations', e) }
-        }
-
-        // 3. My Created/Related Events
-        if (myEventsRes.status === 'fulfilled' && myEventsRes.value.ok) {
-          try {
-            const data = await myEventsRes.value.json()
-            setMyCreatedEvents(data.events || [])
-          } catch (e) { console.error('Failed to parse my events', e) }
-        }
-
       } catch (error) {
-        console.error('Error fetching dashboard data:', error)
+        console.error('Error fetching events:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchDashboardData()
-  }, [session, status])
+    fetchEvents()
+  }, [status])
+
+  const filteredEvents = selectedCategory
+    ? upcomingEvents.filter(e => e.category === selectedCategory)
+    : upcomingEvents
 
   if (loading) {
-    return <div className="p-6">Loading your dashboard...</div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading amazing events...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <RouteProtection requiredRoles={['USER']}>
-      <div className="p-6 space-y-6">
-        {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Welcome back, {(session as any)?.user?.name || 'User'}!
-          </h1>
-          <p className="text-gray-600">
-            Discover amazing events and manage your registrations
-          </p>
-          <p className="text-xs text-indigo-500 mt-2">System Version: {new Date().toISOString()}</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        {/* Hero Banner */}
+        <div className="relative h-[500px] bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 animate-fade-in">
+                <TrendingUp className="w-4 h-4 text-white" />
+                <span className="text-white text-sm font-medium">Trending Now</span>
+              </div>
+
+              <h1 className="text-6xl font-bold text-white mb-6 animate-slide-up">
+                Discover Amazing
+                <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-pink-300">
+                  Events Near You
+                </span>
+              </h1>
+
+              <p className="text-xl text-white/90 mb-8 animate-slide-up animation-delay-100">
+                Book tickets for conferences, concerts, workshops, and more!
+              </p>
+
+              <div className="flex gap-4 animate-slide-up animation-delay-200">
+                <Link
+                  href="/events/browse"
+                  className="group px-8 py-4 bg-white text-indigo-600 rounded-full font-semibold hover:bg-yellow-300 hover:text-indigo-700 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
+                >
+                  Explore Events
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/my-tickets"
+                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/20 transition-all duration-300 border-2 border-white/30 flex items-center gap-2"
+                >
+                  <Ticket className="w-5 h-5" />
+                  My Tickets
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Decorative Elements */}
+          <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FileText className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">My Registrations</p>
-                <p className="text-2xl font-bold text-gray-900">{myRegistrations.length}</p>
-              </div>
+        <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
+          {/* Categories */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-12 animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`text-sm font-medium transition-colors ${selectedCategory === null ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                View All
+              </button>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Upcoming Events</p>
-                <p className="text-2xl font-bold text-gray-900">{upcomingEvents.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Clock className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">This Week</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {upcomingEvents.filter(event => {
-                    const eventDate = new Date(event.startsAt)
-                    const weekFromNow = new Date()
-                    weekFromNow.setDate(weekFromNow.getDate() + 7)
-                    return eventDate <= weekFromNow
-                  }).length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              href="/events/browse"
-              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
-            >
-              <Search className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="font-medium text-gray-900">Browse Events</p>
-                <p className="text-sm text-gray-600">Discover new events to attend</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/my-tickets"
-              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors"
-            >
-              <Ticket className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="font-medium text-gray-900">My Tickets</p>
-                <p className="text-sm text-gray-600">View and download your tickets</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/registrations/my"
-              className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors"
-            >
-              <FileText className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="font-medium text-gray-900">My Registrations</p>
-                <p className="text-sm text-gray-600">View and manage your registrations</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Events Organized by You */}
-        {myCreatedEvents.length > 0 && (
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Events Organized by You</h2>
-            </div>
-            <div className="space-y-3">
-              {myCreatedEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{event.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(event.startDate).toLocaleDateString()} • {event.location}
-                    </p>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-2">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${event.status === 'LIVE' ? 'bg-green-100 text-green-800' :
-                      event.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 border border-gray-300' :
-                        'bg-indigo-100 text-indigo-800'
-                      }`}>
-                      {event.status}
-                    </span>
-                    <div className="flex gap-3">
-                      <Link href={`/events/${event.id}/edit`} className="text-xs text-blue-600 hover:underline">Edit</Link>
-                      <Link href={`/events/${event.id}`} className="text-xs text-blue-600 hover:underline">View</Link>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {categories.map((category, index) => (
+                <button
+                  key={category.name}
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`group relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-xl ${selectedCategory === category.name
+                      ? 'ring-4 ring-indigo-500 ring-offset-2'
+                      : ''
+                    }`}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
+                  <div className="relative z-10 text-center">
+                    <div className="text-5xl mb-3 transform group-hover:scale-110 transition-transform">
+                      {category.icon}
                     </div>
+                    <p className="text-white font-semibold text-sm">{category.name}</p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
-        )}
 
-        {/* My Registrations */}
-        <div className="bg-white rounded-lg border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Registrations</h2>
-            <Link
-              href="/registrations/my"
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              View all
-            </Link>
-          </div>
-
-          {myRegistrations.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-2">No registrations yet</p>
-              <p className="text-sm text-gray-500">Start by browsing available events</p>
+          {/* Recommended Events */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-gray-900">
+                {selectedCategory ? `${selectedCategory} Events` : 'Recommended Events'}
+              </h2>
               <Link
                 href="/events/browse"
-                className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 group"
               >
-                <Search className="w-4 h-4" />
-                Browse Events
+                See All
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {myRegistrations.slice(0, 3).map((registration) => (
-                <div key={registration.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{registration.eventName}</p>
-                    <p className="text-sm text-gray-600">
-                      Registered on {new Date(registration.registeredAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${registration.status === 'CONFIRMED'
-                      ? 'bg-green-100 text-green-800'
-                      : registration.status === 'PENDING'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                      }`}>
-                      {registration.status}
-                    </span>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {new Date(registration.eventDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Upcoming Events */}
-        <div className="bg-white rounded-lg border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Events</h2>
-            <Link
-              href="/events/browse"
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              View all
-            </Link>
+            {filteredEvents.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600 text-lg">No events available in this category</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {filteredEvents.slice(0, 8).map((event, index) => (
+                  <Link
+                    key={event.id}
+                    href={`/events/${event.id}/register`}
+                    className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-fade-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    {/* Event Image */}
+                    <div className="relative h-48 bg-gradient-to-br from-indigo-400 to-purple-500 overflow-hidden">
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                        <span className="text-xs font-bold text-indigo-600">
+                          {new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      {event.registrationCount && event.registrationCount > 10 && (
+                        <div className="absolute top-3 left-3 bg-yellow-400 px-3 py-1 rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-yellow-700 text-yellow-700" />
+                          <span className="text-xs font-bold text-yellow-900">Trending</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Event Details */}
+                    <div className="p-5">
+                      <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+                        {event.name}
+                      </h3>
+
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-indigo-500" />
+                          <span>{new Date(event.startsAt).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-indigo-500" />
+                          <span className="line-clamp-1">{event.city}</span>
+                        </div>
+                        {event.registrationCount && (
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-indigo-500" />
+                            <span>{event.registrationCount} attending</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-sm font-semibold text-gray-900">From ₹500</span>
+                        <span className="text-indigo-600 font-semibold text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                          Book Now
+                          <ChevronRight className="w-4 h-4" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
-          {upcomingEvents.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No upcoming events available</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {upcomingEvents.slice(0, 6).map((event) => (
-                <div key={event.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                  <h3 className="font-medium text-gray-900 mb-2">{event.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{event.description}</p>
+          {/* Trending Events Carousel */}
+          {trendingEvents.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center gap-3 mb-6">
+                <TrendingUp className="w-8 h-8 text-indigo-600" />
+                <h2 className="text-3xl font-bold text-gray-900">Trending This Week</h2>
+              </div>
 
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{new Date(event.startsAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{event.venue}, {event.city}</span>
-                    </div>
-                    {event.registrationCount && (
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        <span>{event.registrationCount} registered</span>
-                      </div>
-                    )}
-                  </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {trendingEvents.slice(0, 2).map((event, index) => (
                   <Link
+                    key={event.id}
                     href={`/events/${event.id}/register`}
-                    className="mt-4 w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+                    className="group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
                   >
-                    Register Now
+                    <div className="flex flex-col md:flex-row">
+                      <div className="relative w-full md:w-1/2 h-64 bg-gradient-to-br from-pink-400 to-purple-500">
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                        <div className="absolute top-4 left-4 bg-yellow-400 px-4 py-2 rounded-full flex items-center gap-2">
+                          <Star className="w-4 h-4 fill-yellow-700 text-yellow-700" />
+                          <span className="text-sm font-bold text-yellow-900">Hot Event</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 p-6 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                            {event.name}
+                          </h3>
+                          <p className="text-gray-600 mb-4 line-clamp-2">{event.description}</p>
+
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-indigo-500" />
+                              <span className="font-medium">{new Date(event.startsAt).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric'
+                              })}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-indigo-500" />
+                              <span>{event.venue}, {event.city}</span>
+                            </div>
+                            {event.registrationCount && (
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-indigo-500" />
+                                <span className="font-semibold">{event.registrationCount}+ people interested</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button className="mt-4 w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                          <Ticket className="w-5 h-5" />
+                          Get Tickets Now
+                        </button>
+                      </div>
+                    </div>
                   </Link>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
+
+        {/* Bottom Padding */}
+        <div className="h-20"></div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out forwards;
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.8s ease-out forwards;
+        }
+
+        .animation-delay-100 {
+          animation-delay: 100ms;
+        }
+
+        .animation-delay-200 {
+          animation-delay: 200ms;
+        }
+
+        .animation-delay-1000 {
+          animation-delay: 1000ms;
+        }
+      `}</style>
     </RouteProtection>
   )
 }
