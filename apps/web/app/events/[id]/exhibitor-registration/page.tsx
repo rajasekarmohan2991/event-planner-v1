@@ -109,34 +109,79 @@ export default function ExhibitorRegistrationPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {ex.status === 'PENDING_APPROVAL' ? (
+                      <div className="flex items-center gap-2">
+                        {/* Approve Button - Only for PENDING */}
+                        {ex.status === 'PENDING_APPROVAL' && (
+                          <button
+                            className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                            disabled={approvingId === ex.id}
+                            onClick={async () => {
+                              try {
+                                setApprovingId(ex.id)
+                                const res = await fetch(`/api/events/${eventId}/exhibitors/${ex.id}/approve`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({})
+                                })
+                                if (res.ok) {
+                                  setExhibitors(prev => prev.map((it: any) => it.id === ex.id ? { ...it, status: 'APPROVED' } : it))
+                                  alert('Exhibitor approved successfully!')
+                                } else {
+                                  const err = await res.json().catch(() => ({}))
+                                  alert(err.message || 'Failed to approve')
+                                }
+                              } finally {
+                                setApprovingId(null)
+                              }
+                            }}
+                          >
+                            {approvingId === ex.id ? 'Approving…' : 'Approve'}
+                          </button>
+                        )}
+
+                        {/* Edit Button - Always available */}
                         <button
-                          className="px-3 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
-                          disabled={approvingId === ex.id}
+                          className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
+                          onClick={() => {
+                            // TODO: Open edit modal
+                            alert('Edit functionality coming soon!')
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+
+                        {/* Delete Button - Always available */}
+                        <button
+                          className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 flex items-center gap-1"
                           onClick={async () => {
+                            if (!confirm(`Delete exhibitor "${ex.company_name}"? This cannot be undone.`)) return
+
                             try {
-                              setApprovingId(ex.id)
-                              const res = await fetch(`/api/events/${eventId}/exhibitors/${ex.id}/approve`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({})
+                              const res = await fetch(`/api/events/${eventId}/exhibitors/${ex.id}`, {
+                                method: 'DELETE'
                               })
+
                               if (res.ok) {
-                                setExhibitors(prev => prev.map((it: any) => it.id === ex.id ? { ...it, status: 'APPROVED' } : it))
+                                setExhibitors(prev => prev.filter((it: any) => it.id !== ex.id))
+                                alert('Exhibitor deleted successfully!')
                               } else {
                                 const err = await res.json().catch(() => ({}))
-                                alert(err.message || 'Failed to approve')
+                                alert(err.message || 'Failed to delete')
                               }
-                            } finally {
-                              setApprovingId(null)
+                            } catch (error) {
+                              alert('Failed to delete exhibitor')
                             }
                           }}
                         >
-                          {approvingId === ex.id ? 'Approving…' : 'Approve'}
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
                         </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))
