@@ -20,12 +20,12 @@ interface Event {
 }
 
 const categories = [
-  { name: 'Conferences', icon: '🎤', color: 'from-blue-500 to-blue-600' },
-  { name: 'Workshops', icon: '🎨', color: 'from-purple-500 to-purple-600' },
-  { name: 'Concerts', icon: '🎵', color: 'from-pink-500 to-pink-600' },
-  { name: 'Sports', icon: '⚽', color: 'from-green-500 to-green-600' },
-  { name: 'Exhibitions', icon: '🖼️', color: 'from-orange-500 to-orange-600' },
-  { name: 'Networking', icon: '🤝', color: 'from-indigo-500 to-indigo-600' },
+  { name: 'Conferences', icon: '🎤', color: 'from-slate-500 to-slate-600' },
+  { name: 'Workshops', icon: '🎨', color: 'from-violet-500 to-violet-600' },
+  { name: 'Concerts', icon: '🎵', color: 'from-rose-500 to-rose-600' },
+  { name: 'Sports', icon: '⚽', color: 'from-emerald-500 to-emerald-600' },
+  { name: 'Exhibitions', icon: '🖼️', color: 'from-amber-500 to-amber-600' },
+  { name: 'Networking', icon: '🤝', color: 'from-blue-500 to-blue-600' },
 ]
 
 export default function UserDashboard() {
@@ -77,7 +77,7 @@ export default function UserDashboard() {
     <RouteProtection requiredRoles={['USER']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Hero Banner */}
-        <div className="relative h-[500px] bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 overflow-hidden">
+        <div className="relative h-[500px] bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 overflow-hidden">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
@@ -91,7 +91,7 @@ export default function UserDashboard() {
               <h1 className="text-6xl font-bold text-white mb-6 animate-slide-up">
                 Discover Amazing
                 <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 to-pink-300">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-cyan-200">
                   Events Near You
                 </span>
               </h1>
@@ -103,7 +103,7 @@ export default function UserDashboard() {
               <div className="flex gap-4 animate-slide-up animation-delay-200">
                 <Link
                   href="/events/browse"
-                  className="group px-8 py-4 bg-white text-indigo-600 rounded-full font-semibold hover:bg-yellow-300 hover:text-indigo-700 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
+                  className="group px-8 py-4 bg-white text-slate-700 rounded-full font-semibold hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
                 >
                   Explore Events
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -144,8 +144,8 @@ export default function UserDashboard() {
                   key={category.name}
                   onClick={() => setSelectedCategory(category.name)}
                   className={`group relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-xl ${selectedCategory === category.name
-                      ? 'ring-4 ring-indigo-500 ring-offset-2'
-                      : ''
+                    ? 'ring-4 ring-indigo-500 ring-offset-2'
+                    : ''
                     }`}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
@@ -191,7 +191,7 @@ export default function UserDashboard() {
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     {/* Event Image */}
-                    <div className="relative h-48 bg-gradient-to-br from-indigo-400 to-purple-500 overflow-hidden">
+                    <div className="relative h-48 bg-gradient-to-br from-slate-400 to-blue-500 overflow-hidden">
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
                       <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
                         <span className="text-xs font-bold text-indigo-600">
@@ -263,9 +263,9 @@ export default function UserDashboard() {
                     className="group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
                   >
                     <div className="flex flex-col md:flex-row">
-                      <div className="relative w-full md:w-1/2 h-64 bg-gradient-to-br from-pink-400 to-purple-500">
+                      <div className="relative w-full md:w-1/2 h-64 bg-gradient-to-br from-rose-400 to-indigo-500">
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                        <div className="absolute top-4 left-4 bg-yellow-400 px-4 py-2 rounded-full flex items-center gap-2">
+                        <div className="absolute top-4 left-4 bg-amber-400 px-4 py-2 rounded-full flex items-center gap-2">
                           <Star className="w-4 h-4 fill-yellow-700 text-yellow-700" />
                           <span className="text-sm font-bold text-yellow-900">Hot Event</span>
                         </div>
