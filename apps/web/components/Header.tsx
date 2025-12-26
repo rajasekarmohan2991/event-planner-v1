@@ -35,7 +35,7 @@ export default function Header() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Link href={status === 'authenticated' ? '/dashboard' : '/'} className="flex items-center gap-2">
-              <BrandLogo variant="light" />
+              <BrandLogo variant="dark" />
             </Link>
 
             {/* Location chip (desktop) */}
