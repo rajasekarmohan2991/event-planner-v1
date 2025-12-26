@@ -20,12 +20,12 @@ interface Event {
 }
 
 const categories = [
-  { name: 'Conferences', icon: '◈', color: 'from-sky-600 to-blue-700' },
-  { name: 'Workshops', icon: '✦', color: 'from-purple-600 to-violet-700' },
-  { name: 'Concerts', icon: '♫', color: 'from-fuchsia-600 to-pink-700' },
-  { name: 'Sports', icon: '⚡', color: 'from-teal-600 to-emerald-700' },
-  { name: 'Exhibitions', icon: '◆', color: 'from-orange-600 to-red-700' },
-  { name: 'Networking', icon: '⬡', color: 'from-indigo-600 to-blue-700' },
+  { name: 'Conferences', icon: '▲', color: 'from-sky-600 to-blue-700' },
+  { name: 'Workshops', icon: '✱', color: 'from-purple-600 to-violet-700' },
+  { name: 'Concerts', icon: '♬', color: 'from-fuchsia-600 to-pink-700' },
+  { name: 'Sports', icon: '➤', color: 'from-teal-600 to-emerald-700' },
+  { name: 'Exhibitions', icon: '◉', color: 'from-orange-600 to-red-700' },
+  { name: 'Networking', icon: '⬢', color: 'from-indigo-600 to-blue-700' },
 ]
 
 export default function UserDashboard() {
@@ -384,8 +384,8 @@ export default function UserDashboard() {
                     <button
                       onClick={() => setIsFollowing(!isFollowing)}
                       className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${isFollowing
-                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         }`}
                     >
                       <UserPlus className="w-4 h-4" />
@@ -459,8 +459,8 @@ export default function UserDashboard() {
                   <button
                     onClick={() => setIsInterested(!isInterested)}
                     className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isInterested
-                        ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                   >
                     <Heart className={`w-5 h-5 ${isInterested ? 'fill-pink-700' : ''}`} />
