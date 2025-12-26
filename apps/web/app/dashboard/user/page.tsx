@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -34,6 +34,9 @@ export default function UserDashboard() {
   const [trendingEvents, setTrendingEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [isInterested, setIsInterested] = useState(false)
+  const [isFollowing, setIsFollowing] = useState(false)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -203,10 +206,10 @@ export default function UserDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredEvents.slice(0, 8).map((event, index) => (
-                  <Link
+                  <button
                     key={event.id}
-                    href={`/events/${event.id}/register`}
-                    className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-fade-in"
+                    onClick={() => setSelectedEvent(event)}
+                    className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-fade-in text-left"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     {/* Event Image */}
@@ -255,12 +258,12 @@ export default function UserDashboard() {
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <span className="text-sm font-semibold text-gray-900">From ₹500</span>
                         <span className="text-indigo-600 font-semibold text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                          Book Now
+                          View Details
                           <ChevronRight className="w-4 h-4" />
                         </span>
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 ))}
               </div>
             )}
@@ -334,6 +337,147 @@ export default function UserDashboard() {
 
         {/* Bottom Padding */}
         <div className="h-20"></div>
+
+        {/* Event Detail Modal */}
+        {selectedEvent && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedEvent(null)}>
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header with Image */}
+              <div className="relative h-64 bg-gradient-to-br from-teal-500 to-blue-600">
+                <div className="absolute inset-0 bg-black/30"></div>
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-700" />
+                </button>
+                <div className="absolute bottom-4 left-6 right-6">
+                  <h2 className="text-3xl font-bold text-white mb-2">{selectedEvent.name}</h2>
+                  <div className="flex items-center gap-4 text-white/90 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{new Date(selectedEvent.startsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{selectedEvent.city}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                {/* Organizer Info */}
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <Building2 className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Organized by</p>
+                        <p className="font-bold text-gray-900">Event Masters Inc.</p>
+                        <p className="text-xs text-gray-500">24 events hosted</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsFollowing(!isFollowing)}
+                      className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${isFollowing
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Event Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-xl">
+                    <Users className="w-6 h-6 mx-auto text-blue-600 mb-2" />
+                    <p className="text-2xl font-bold text-gray-900">{selectedEvent.registrationCount || 0}</p>
+                    <p className="text-xs text-gray-600">Attending</p>
+                  </div>
+                  <div className="text-center p-4 bg-pink-50 rounded-xl">
+                    <Heart className="w-6 h-6 mx-auto text-pink-600 mb-2" />
+                    <p className="text-2xl font-bold text-gray-900">1.2k</p>
+                    <p className="text-xs text-gray-600">Interested</p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-xl">
+                    <Star className="w-6 h-6 mx-auto text-purple-600 mb-2" />
+                    <p className="text-2xl font-bold text-gray-900">4.8</p>
+                    <p className="text-xs text-gray-600">Rating</p>
+                  </div>
+                </div>
+
+                {/* Event Description */}
+                <div className="mb-6">
+                  <h3 className="font-bold text-gray-900 mb-2">About This Event</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {selectedEvent.description || 'Join us for an amazing event experience! This event brings together industry leaders, innovators, and enthusiasts for an unforgettable experience.'}
+                  </p>
+                </div>
+
+                {/* Event Details */}
+                <div className="mb-6 space-y-3">
+                  <h3 className="font-bold text-gray-900 mb-3">Event Details</h3>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-indigo-500 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Date & Time</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(selectedEvent.startsAt).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-indigo-500 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Location</p>
+                      <p className="text-sm text-gray-600">{selectedEvent.venue}, {selectedEvent.city}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Ticket className="w-5 h-5 text-indigo-500 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Ticket Price</p>
+                      <p className="text-sm text-gray-600">Starting from ₹500</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsInterested(!isInterested)}
+                    className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isInterested
+                        ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isInterested ? 'fill-pink-700' : ''}`} />
+                    {isInterested ? 'Interested' : "I'm Interested"}
+                  </button>
+                  <Link
+                    href={`/events/${selectedEvent.id}/register`}
+                    className="flex-1 bg-gradient-to-r from-teal-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <Ticket className="w-5 h-5" />
+                    Book Tickets
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
