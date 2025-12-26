@@ -7,10 +7,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     try {
         const eventId = BigInt(params.id)
 
+        console.log('[FLOOR PLANS] Fetching for eventId:', eventId.toString())
+
         const plans = await prisma.floorPlan.findMany({
             where: { eventId },
             orderBy: { createdAt: 'desc' }
         })
+
+        console.log('[FLOOR PLANS] Found:', plans.length, 'plans')
 
         const serialized = plans.map(p => {
             // Extract objects from layoutData if it exists
