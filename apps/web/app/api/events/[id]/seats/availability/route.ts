@@ -32,18 +32,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const ticketClass = searchParams.get('ticketClass') // VIP, PREMIUM, GENERAL
 
     // Gate by actual existence: floor plan OR existing seats
-    const floorPlanRows = await prisma.$queryRaw`
-      SELECT id::text
-      FROM floor_plans
-      WHERE event_id = ${BigInt(eventId)}
-      ORDER BY created_at DESC
-      LIMIT 1
-    ` as any[]
-    const seatCountRows = await prisma.$queryRaw`
-      SELECT COUNT(*)::int as count FROM seat_inventory WHERE event_id = ${eventId}
-    ` as any[]
-    const hasFloorPlan = floorPlanRows.length > 0
-    const hasSeatInventory = (seatCountRows[0]?.count || 0) > 0
+    const floorPlan = await prisma.floorPlan.findFirst({
+      where: { eventId: BigInt(eventId) },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    const seatCount = await prisma.seatInventory.count({
+      where: { eventId }
+    })
+
+    const hasFloorPlan = !!floorPlan
+    const hasSeatInventory = seatCount > 0
+
     if (!hasFloorPlan && !hasSeatInventory) {
       // No floor plan or seats exist - return empty (seat selector only works after floor plan creation)
       return NextResponse.json({
@@ -118,24 +118,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return acc
     }, {} as Record<string, Record<string, any[]>>)
 
-    // Get floor plan configuration (exists as ensured above)
-    const floorPlan = await prisma.$queryRaw`
-      SELECT 
-        id::text,
-        name as "planName",
-        layout_data as "layoutData",
-        total_capacity::numeric as "totalSeats",
-        layout_data as sections
-      FROM floor_plans
-      WHERE event_id = ${BigInt(eventId)}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `
+    // Format floor plan data for response (already fetched above)
+    const floorPlanData = floorPlan ? {
+      id: floorPlan.id,
+      planName: floorPlan.name,
+      layoutData: floorPlan.layoutData,
+      totalSeats: floorPlan.totalCapacity,
+      sections: floorPlan.layoutData
+    } : null
 
     return NextResponse.json({
       seats: seats,
       groupedSeats,
-      floorPlan: (floorPlan as any[])[0] || null,
+      floorPlan: floorPlanData,
       totalSeats: (seats as any[]).length,
       availableSeats: (seats as any[]).filter(s => s.available).length
     })
