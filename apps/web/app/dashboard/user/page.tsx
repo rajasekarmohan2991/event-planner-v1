@@ -20,12 +20,12 @@ interface Event {
 }
 
 const categories = [
-  { name: 'Conferences', icon: '🎤', color: 'from-sky-600 to-blue-700' },
-  { name: 'Workshops', icon: '🎨', color: 'from-purple-600 to-violet-700' },
-  { name: 'Concerts', icon: '🎵', color: 'from-fuchsia-600 to-pink-700' },
-  { name: 'Sports', icon: '⚽', color: 'from-teal-600 to-emerald-700' },
-  { name: 'Exhibitions', icon: '🖼️', color: 'from-orange-600 to-red-700' },
-  { name: 'Networking', icon: '🤝', color: 'from-indigo-600 to-blue-700' },
+  { name: 'Conferences', icon: '◈', color: 'from-sky-600 to-blue-700' },
+  { name: 'Workshops', icon: '✦', color: 'from-purple-600 to-violet-700' },
+  { name: 'Concerts', icon: '♫', color: 'from-fuchsia-600 to-pink-700' },
+  { name: 'Sports', icon: '⚡', color: 'from-teal-600 to-emerald-700' },
+  { name: 'Exhibitions', icon: '◆', color: 'from-orange-600 to-red-700' },
+  { name: 'Networking', icon: '⬡', color: 'from-indigo-600 to-blue-700' },
 ]
 
 export default function UserDashboard() {
