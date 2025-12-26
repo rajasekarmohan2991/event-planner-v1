@@ -77,7 +77,7 @@ export default function UserDashboard() {
     <RouteProtection requiredRoles={['USER']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Hero Banner */}
-        <div className="relative h-[500px] bg-gradient-to-r from-teal-700 via-blue-700 to-purple-700 overflow-hidden">
+        <div className="relative h-[500px] bg-gradient-to-r from-pink-600 via-fuchsia-600 to-purple-600 overflow-hidden">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
@@ -143,18 +143,22 @@ export default function UserDashboard() {
                 <button
                   key={category.name}
                   onClick={() => setSelectedCategory(category.name)}
-                  className={`group relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-xl ${selectedCategory === category.name
-                    ? 'ring-4 ring-indigo-500 ring-offset-2'
+                  className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-2 animate-category-entrance ${selectedCategory === category.name
+                    ? 'ring-4 ring-pink-500 ring-offset-2 scale-105'
                     : ''
                     }`}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'backwards' }}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-6`}></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10 text-center">
-                    <div className="text-5xl mb-3 transform group-hover:scale-110 transition-transform">
+                    <div className="text-5xl mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-bounce">
                       {category.icon}
                     </div>
-                    <p className="text-white font-semibold text-sm">{category.name}</p>
+                    <p className="text-white font-semibold text-sm group-hover:text-base transition-all duration-300">{category.name}</p>
+                  </div>
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute inset-0 bg-white/20 blur-xl"></div>
                   </div>
                 </button>
               ))}
@@ -358,6 +362,34 @@ export default function UserDashboard() {
 
         .animation-delay-1000 {
           animation-delay: 1000ms;
+        }
+
+        @keyframes category-entrance {
+          from {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        @keyframes icon-bounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
+
+        .animate-category-entrance {
+          animation: category-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-icon-bounce {
+          animation: icon-bounce 2s ease-in-out infinite;
         }
       `}</style>
     </RouteProtection>
