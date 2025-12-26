@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -20,12 +20,12 @@ interface Event {
 }
 
 const categories = [
-  { name: 'Conferences', icon: '▲', color: 'from-sky-600 to-blue-700' },
-  { name: 'Workshops', icon: '✱', color: 'from-purple-600 to-violet-700' },
-  { name: 'Concerts', icon: '♬', color: 'from-fuchsia-600 to-pink-700' },
-  { name: 'Sports', icon: '➤', color: 'from-teal-600 to-emerald-700' },
-  { name: 'Exhibitions', icon: '◉', color: 'from-orange-600 to-red-700' },
-  { name: 'Networking', icon: '⬢', color: 'from-indigo-600 to-blue-700' },
+  { name: 'Conferences', IconComponent: Mic2, color: 'from-sky-600 to-blue-700' },
+  { name: 'Workshops', IconComponent: Palette, color: 'from-purple-600 to-violet-700' },
+  { name: 'Concerts', IconComponent: Music, color: 'from-fuchsia-600 to-pink-700' },
+  { name: 'Sports', IconComponent: Zap, color: 'from-teal-600 to-emerald-700' },
+  { name: 'Exhibitions', IconComponent: ImageIcon, color: 'from-orange-600 to-red-700' },
+  { name: 'Networking', IconComponent: Network, color: 'from-indigo-600 to-blue-700' },
 ]
 
 export default function UserDashboard() {
@@ -169,8 +169,8 @@ export default function UserDashboard() {
                     <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-6`}></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="relative z-10 text-center">
-                      <div className="text-5xl mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-float">
-                        {category.icon}
+                      <div className="mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-float flex items-center justify-center">
+                        <category.IconComponent className="w-12 h-12 text-white" strokeWidth={2} />
                       </div>
                       <p className="text-white font-semibold text-sm group-hover:text-base transition-all duration-300">{category.name}</p>
                     </div>
