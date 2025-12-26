@@ -139,29 +139,44 @@ export default function UserDashboard() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {categories.map((category, index) => (
-                <button
-                  key={category.name}
-                  onClick={() => setSelectedCategory(category.name)}
-                  className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-2 animate-category-entrance ${selectedCategory === category.name
-                    ? 'ring-4 ring-pink-500 ring-offset-2 scale-105'
-                    : ''
-                    }`}
-                  style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'backwards' }}
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-6`}></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative z-10 text-center">
-                    <div className="text-5xl mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-bounce">
-                      {category.icon}
+              {categories.map((category, index) => {
+                // Different animation for each category
+                const animations = [
+                  'animate-flip-in',      // Conferences - 3D flip
+                  'animate-slide-in',     // Workshops - Slide from left
+                  'animate-zoom-bounce',  // Concerts - Zoom with bounce
+                  'animate-rotate-in',    // Sports - Rotate entrance
+                  'animate-bounce-in',    // Exhibitions - Bounce from top
+                  'animate-wave-in'       // Networking - Wave effect
+                ];
+
+                return (
+                  <button
+                    key={category.name}
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-2 ${animations[index]} ${selectedCategory === category.name
+                      ? 'ring-4 ring-pink-500 ring-offset-2 scale-105'
+                      : ''
+                      }`}
+                    style={{
+                      animationDelay: `${index * 150}ms`,
+                      animationFillMode: 'backwards'
+                    }}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-6`}></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative z-10 text-center">
+                      <div className="text-5xl mb-3 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 animate-icon-float">
+                        {category.icon}
+                      </div>
+                      <p className="text-white font-semibold text-sm group-hover:text-base transition-all duration-300">{category.name}</p>
                     </div>
-                    <p className="text-white font-semibold text-sm group-hover:text-base transition-all duration-300">{category.name}</p>
-                  </div>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute inset-0 bg-white/20 blur-xl"></div>
-                  </div>
-                </button>
-              ))}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute inset-0 bg-white/20 blur-xl"></div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -364,32 +379,129 @@ export default function UserDashboard() {
           animation-delay: 1000ms;
         }
 
-        @keyframes category-entrance {
+        /* Unique animations for each category */
+        
+        /* 1. Flip In - 3D flip effect */
+        @keyframes flip-in {
           from {
             opacity: 0;
-            transform: scale(0.8) translateY(20px);
+            transform: perspective(1000px) rotateY(-90deg);
           }
           to {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: perspective(1000px) rotateY(0deg);
           }
         }
 
-        @keyframes icon-bounce {
+        /* 2. Slide In - Slide from left */
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateX(-100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        /* 3. Zoom Bounce - Zoom in with bounce */
+        @keyframes zoom-bounce {
+          0% {
+            opacity: 0;
+            transform: scale(0);
+          }
+          50% {
+            transform: scale(1.15);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        /* 4. Rotate In - Spinning entrance */
+        @keyframes rotate-in {
+          from {
+            opacity: 0;
+            transform: rotate(-180deg) scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+          }
+        }
+
+        /* 5. Bounce In - Drop from top */
+        @keyframes bounce-in {
+          0% {
+            opacity: 0;
+            transform: translateY(-100px);
+          }
+          60% {
+            transform: translateY(10px);
+          }
+          80% {
+            transform: translateY(-5px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* 6. Wave In - Wave effect */
+        @keyframes wave-in {
+          0% {
+            opacity: 0;
+            transform: translateY(30px) rotate(-10deg);
+          }
+          50% {
+            transform: translateY(-10px) rotate(5deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) rotate(0deg);
+          }
+        }
+
+        /* Icon Float - Gentle floating */
+        @keyframes icon-float {
           0%, 100% {
             transform: translateY(0);
           }
           50% {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
           }
         }
 
-        .animate-category-entrance {
-          animation: category-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        /* Apply animations */
+        .animate-flip-in {
+          animation: flip-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
-        .animate-icon-bounce {
-          animation: icon-bounce 2s ease-in-out infinite;
+        .animate-slide-in {
+          animation: slide-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-zoom-bounce {
+          animation: zoom-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-rotate-in {
+          animation: rotate-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-bounce-in {
+          animation: bounce-in 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-wave-in {
+          animation: wave-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .animate-icon-float {
+          animation: icon-float 3s ease-in-out infinite;
         }
       `}</style>
     </RouteProtection>
