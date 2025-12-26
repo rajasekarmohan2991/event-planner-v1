@@ -15,10 +15,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = parseInt(params.id)
     const tenantId = getTenantId()
-    
+
     // Validate eventId is numeric
     if (isNaN(eventId)) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         seats: [],
         groupedSeats: {},
         floorPlan: null,
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         availableSeats: 0
       })
     }
-    
+
     const { searchParams } = new URL(req.url)
     const section = searchParams.get('section')
     const ticketClass = searchParams.get('ticketClass') // VIP, PREMIUM, GENERAL
@@ -34,8 +34,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Gate by actual existence: floor plan OR existing seats
     const floorPlanRows = await prisma.$queryRaw`
       SELECT id::text
-      FROM floor_plan_configs
-      WHERE event_id = ${eventId}
+      FROM floor_plans
+      WHERE event_id = ${BigInt(eventId)}
       ORDER BY created_at DESC
       LIMIT 1
     ` as any[]
@@ -110,10 +110,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const groupedSeats = (seats as any[]).reduce((acc, seat) => {
       const section = seat.section || 'General'
       const row = seat.rowNumber
-      
+
       if (!acc[section]) acc[section] = {}
       if (!acc[section][row]) acc[section][row] = []
-      
+
       acc[section][row].push(seat)
       return acc
     }, {} as Record<string, Record<string, any[]>>)
@@ -122,12 +122,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const floorPlan = await prisma.$queryRaw`
       SELECT 
         id::text,
-        plan_name as "planName",
+        name as "planName",
         layout_data as "layoutData",
-        total_seats::numeric as "totalSeats",
-        sections
-      FROM floor_plan_configs
-      WHERE event_id = ${eventId}
+        total_capacity::numeric as "totalSeats",
+        layout_data as sections
+      FROM floor_plans
+      WHERE event_id = ${BigInt(eventId)}
       ORDER BY created_at DESC
       LIMIT 1
     `
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('Error fetching seat availability:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch seat availability',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })
