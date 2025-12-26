@@ -16,9 +16,21 @@ export default function CheckInPage() {
 
   useEffect(() => {
     if (!eventId) return
-    fetch(`/api/events/${eventId}/registrations`)
+    console.log('[CHECK-IN] Loading registrations for event:', eventId)
+    fetch(`/api/events/${eventId}/registrations-emergency`)
       .then(r => r.json())
-      .then(d => setRegistrations(d.registrations || []))
+      .then(d => {
+        console.log('[CHECK-IN] Loaded registrations:', d)
+        const regs = d.registrations || []
+        // Map the emergency endpoint format to the expected format
+        const mapped = regs.map((r: any) => ({
+          ...r,
+          attendeeName: `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.email,
+          checkInStatus: r.checkInStatus || 'NOT_CHECKED_IN'
+        }))
+        setRegistrations(mapped)
+      })
+      .catch(err => console.error('[CHECK-IN] Error loading registrations:', err))
       .finally(() => setLoading(false))
   }, [eventId])
 
@@ -183,8 +195,8 @@ export default function CheckInPage() {
         <button
           onClick={() => setScanning(!scanning)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${scanning
-              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+            : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}
         >
           {scanning ? (
