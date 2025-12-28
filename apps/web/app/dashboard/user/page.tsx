@@ -88,7 +88,7 @@ export default function UserDashboard() {
     <RouteProtection requiredRoles={['USER']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Hero Banner */}
-        <div className="relative h-[500px] bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 overflow-hidden">
+        <div className="relative h-[500px] bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 overflow-hidden">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
@@ -131,69 +131,97 @@ export default function UserDashboard() {
 
         <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
           {/* Filter Events Section */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-8 animate-slide-up">
-            <div className="flex items-center gap-2 mb-6">
-              <Filter className="w-6 h-6 text-orange-500" />
-              <h2 className="text-2xl font-bold text-gray-900">Filter Events</h2>
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl p-8 mb-8 animate-slide-up border border-gray-100 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-gradient-to-br from-pink-500 to-fuchsia-600 rounded-xl">
+                <Filter className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-fuchsia-600 bg-clip-text text-transparent">Filter Events</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Search */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  <Search className="w-4 h-4 inline mr-1" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                  <Search className="w-4 h-4 text-pink-500" />
                   Search Events
                 </label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or description..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name or description..."
+                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all bg-white shadow-sm hover:border-pink-300"
+                  />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
               </div>
 
               {/* City Filter */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  <MapPin className="w-4 h-4 inline mr-1" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-pink-500" />
                   City
                 </label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white transition-all"
-                >
-                  <option value="all">All Cities</option>
-                  {[...new Set(upcomingEvents.map(e => e.city))].map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 bg-white transition-all appearance-none shadow-sm hover:border-pink-300 cursor-pointer"
+                  >
+                    <option value="all">All Cities</option>
+                    {[...new Set(upcomingEvents.map(e => e.city))].map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 rotate-90 pointer-events-none" />
+                </div>
               </div>
 
               {/* Price Filter */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  <IndianRupee className="w-4 h-4 inline mr-1" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                  <IndianRupee className="w-4 h-4 text-pink-500" />
                   Price
                 </label>
-                <select
-                  value={priceFilter}
-                  onChange={(e) => setPriceFilter(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white transition-all"
-                >
-                  <option value="all">All Events</option>
-                  <option value="free">Free Only</option>
-                  <option value="paid">Paid Only</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={priceFilter}
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 bg-white transition-all appearance-none shadow-sm hover:border-pink-300 cursor-pointer"
+                  >
+                    <option value="all">All Events</option>
+                    <option value="free">Free Only</option>
+                    <option value="paid">Paid Only</option>
+                  </select>
+                  <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                  <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 rotate-90 pointer-events-none" />
+                </div>
               </div>
             </div>
 
             {/* Results Count */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                Showing <strong>{filteredEvents.length}</strong> of <strong>{upcomingEvents.length}</strong> events
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing <strong className="text-pink-600">{filteredEvents.length}</strong> of <strong className="text-gray-900">{upcomingEvents.length}</strong> events
+                </p>
+                {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSelectedCity('all')
+                      setPriceFilter('all')
+                    }}
+                    className="text-sm text-pink-600 hover:text-pink-700 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
