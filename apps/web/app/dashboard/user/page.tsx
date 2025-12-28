@@ -127,6 +127,52 @@ export default function UserDashboard() {
           <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
 
+          {/* Scrolling Promotional Banner */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-white/20 overflow-hidden">
+            <div className="animate-scroll-left flex items-center gap-8 py-4">
+              {/* Duplicate the content for seamless loop */}
+              {[...Array(2)].map((_, index) => (
+                <div key={index} className="flex items-center gap-8 whitespace-nowrap">
+                  {/* Promo Code 1 */}
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-amber-400 to-orange-400 px-6 py-2 rounded-full shadow-lg">
+                    <Ticket className="w-5 h-5 text-white" />
+                    <span className="text-white font-bold">USE CODE: SAVE20</span>
+                  </div>
+
+                  {/* Trending Badge */}
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-fuchsia-500 px-6 py-2 rounded-full shadow-lg">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                    <span className="text-white font-bold">🔥 TRENDING NOW</span>
+                  </div>
+
+                  {/* Book Soon */}
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-2 rounded-full shadow-lg">
+                    <Star className="w-5 h-5 text-white fill-white" />
+                    <span className="text-white font-bold">⚡ BOOK SOON - LIMITED SEATS</span>
+                  </div>
+
+                  {/* Promo Code 2 */}
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-teal-400 to-cyan-400 px-6 py-2 rounded-full shadow-lg">
+                    <Ticket className="w-5 h-5 text-white" />
+                    <span className="text-white font-bold">EARLY BIRD: GET30</span>
+                  </div>
+
+                  {/* Hot Event */}
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 px-6 py-2 rounded-full shadow-lg">
+                    <Star className="w-5 h-5 text-white fill-white" />
+                    <span className="text-white font-bold">🎉 HOT EVENTS THIS WEEK</span>
+                  </div>
+
+                  {/* Free Events */}
+                  <div className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-2 rounded-full shadow-lg">
+                    <Heart className="w-5 h-5 text-white" />
+                    <span className="text-white font-bold">💚 FREE EVENTS AVAILABLE</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
@@ -650,6 +696,20 @@ export default function UserDashboard() {
 
         .animate-shimmer {
           animation: shimmer 2s ease-in-out infinite;
+        }
+
+        /* Scrolling banner animation */
+        @keyframes scroll-left {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .animate-scroll-left {
+          animation: scroll-left 30s linear infinite;
         }
 
         /* Unique animations for each category */
