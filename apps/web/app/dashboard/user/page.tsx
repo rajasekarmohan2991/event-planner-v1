@@ -88,7 +88,7 @@ export default function UserDashboard() {
     <RouteProtection requiredRoles={['USER']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Hero Banner */}
-        <div className="relative h-[700px] bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 overflow-hidden">
+        <div className="relative h-[500px] bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 overflow-hidden">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
@@ -127,57 +127,6 @@ export default function UserDashboard() {
           <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
 
-          {/* Trending Events in Banner */}
-          {trendingEvents.length > 0 && (
-            <div className="absolute bottom-8 left-0 right-0 z-20">
-              <div className="max-w-7xl mx-auto px-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                  <h2 className="text-2xl font-bold text-white">Trending This Week</h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {trendingEvents.slice(0, 2).map((event) => (
-                    <Link
-                      key={event.id}
-                      href={`/events/${event.id}/register`}
-                      className="group relative bg-white/95 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className="flex flex-row h-40">
-                        <div className="relative w-1/3 bg-gradient-to-br from-rose-500 to-purple-600">
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                          <div className="absolute top-3 left-3 bg-amber-500 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                            <Star className="w-3 h-3 fill-yellow-700 text-yellow-700" />
-                            <span className="text-xs font-bold text-yellow-900">Hot Event</span>
-                          </div>
-                        </div>
-
-                        <div className="flex-1 p-4 flex flex-col justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                              {event.name}
-                            </h3>
-                            <p className="text-sm text-gray-600 line-clamp-1 mb-2">{event.description}</p>
-
-                            <div className="flex items-center gap-3 text-xs text-gray-600">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 text-indigo-500" />
-                                <span>{new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3 text-indigo-500" />
-                                <span>{event.city}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
@@ -406,7 +355,70 @@ export default function UserDashboard() {
             )}
           </div>
 
-          {/* Trending Events Carousel */}
+          {/* Trending Events */}
+          {trendingEvents.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center gap-3 mb-6">
+                <TrendingUp className="w-8 h-8 text-indigo-600" />
+                <h2 className="text-3xl font-bold text-gray-900">Trending This Week</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {trendingEvents.slice(0, 2).map((event) => (
+                  <Link
+                    key={event.id}
+                    href={`/events/${event.id}/register`}
+                    className="group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <div className="flex flex-col md:flex-row">
+                      <div className="relative w-full md:w-1/2 h-64 bg-gradient-to-br from-rose-500 to-purple-600">
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                        <div className="absolute top-4 left-4 bg-amber-500 px-4 py-2 rounded-full flex items-center gap-2">
+                          <Star className="w-4 h-4 fill-yellow-700 text-yellow-700" />
+                          <span className="text-sm font-bold text-yellow-900">Hot Event</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 p-6 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                            {event.name}
+                          </h3>
+                          <p className="text-gray-600 mb-4 line-clamp-2">{event.description}</p>
+
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-indigo-500" />
+                              <span className="font-medium">{new Date(event.startsAt).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'long',
+                                day: 'numeric'
+                              })}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-indigo-500" />
+                              <span>{event.venue}, {event.city}</span>
+                            </div>
+                            {event.registrationCount && (
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-indigo-500" />
+                                <span className="font-semibold">{event.registrationCount}+ people interested</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button className="mt-4 w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+                          <Ticket className="w-5 h-5" />
+                          Get Tickets Now
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
 
