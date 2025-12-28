@@ -113,15 +113,8 @@ export default function UserDashboard() {
 
               <div className="flex gap-4 animate-slide-up animation-delay-200">
                 <Link
-                  href="/events/browse"
-                  className="group px-8 py-4 bg-white text-teal-700 rounded-full font-semibold hover:bg-amber-400 hover:text-white transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
-                >
-                  Explore Events
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
                   href="/my-tickets"
-                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-white/20 transition-all duration-300 border-2 border-white/30 flex items-center gap-2"
+                  className="px-8 py-4 bg-white text-teal-700 rounded-full font-semibold hover:bg-amber-400 hover:text-white transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
                 >
                   <Ticket className="w-5 h-5" />
                   My Tickets
