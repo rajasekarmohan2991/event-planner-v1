@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2, Search, Filter, IndianRupee } from 'lucide-react'
+import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2, Search, Filter, IndianRupee, Briefcase, UtensilsCrossed, GraduationCap, MoreHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -21,12 +21,15 @@ interface Event {
 }
 
 const categories = [
-  { name: 'Conferences', IconComponent: Mic2, color: 'from-sky-600 to-blue-700' },
-  { name: 'Workshops', IconComponent: Palette, color: 'from-purple-600 to-violet-700' },
-  { name: 'Concerts', IconComponent: Music, color: 'from-fuchsia-600 to-pink-700' },
-  { name: 'Sports', IconComponent: Zap, color: 'from-teal-600 to-emerald-700' },
-  { name: 'Exhibitions', IconComponent: ImageIcon, color: 'from-orange-600 to-red-700' },
-  { name: 'Networking', IconComponent: Users2, color: 'from-indigo-600 to-blue-700' },
+  { name: 'Business', IconComponent: Briefcase, color: 'from-sky-600 to-blue-700' },
+  { name: 'Technology', IconComponent: Mic2, color: 'from-purple-600 to-violet-700' },
+  { name: 'Art', IconComponent: Palette, color: 'from-fuchsia-600 to-pink-700' },
+  { name: 'Music', IconComponent: Music, color: 'from-teal-600 to-emerald-700' },
+  { name: 'Food', IconComponent: UtensilsCrossed, color: 'from-orange-600 to-red-700' },
+  { name: 'Sports', IconComponent: Zap, color: 'from-indigo-600 to-blue-700' },
+  { name: 'Health', IconComponent: Heart, color: 'from-pink-600 to-rose-700' },
+  { name: 'Education', IconComponent: GraduationCap, color: 'from-green-600 to-emerald-700' },
+  { name: 'Other', IconComponent: MoreHorizontal, color: 'from-gray-600 to-slate-700' },
 ]
 
 export default function UserDashboard() {
