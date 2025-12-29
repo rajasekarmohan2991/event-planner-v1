@@ -328,12 +328,10 @@ export default function UserDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
-            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
+            <div
+              className="flex flex-nowrap gap-4 overflow-x-auto pb-4 px-2 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+            >
               {categories.map((category, index) => {
                 const isSelected = (category.name === 'All Events' && selectedCategory === '') || selectedCategory === category.name;
 
