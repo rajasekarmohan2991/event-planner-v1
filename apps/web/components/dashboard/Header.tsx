@@ -49,7 +49,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 border-b bg-white shadow-sm transition-all duration-300',
+        'sticky top-0 z-[100] border-b bg-white shadow-sm transition-all duration-300',
         scrolled ? 'py-2' : 'py-4'
       )}
     >
