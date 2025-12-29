@@ -135,17 +135,19 @@ export default function UserDashboard() {
             {/* Duplicate the content for seamless loop */}
             {[...Array(2)].map((_, index) => (
               <div key={index} className="flex items-center gap-6">
-                {/* Notification 1: New Event */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100 min-w-[320px]">
-                  <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
-                    <Calendar className="w-5 h-5 text-blue-600" />
+                {/* Notification 1: Latest Event */}
+                {upcomingEvents[0] && (
+                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-blue-200 min-w-[320px]">
+                    <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">🎉 New Event!</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[0].name} - {upcomingEvents[0].city}</p>
+                      <p className="text-xs text-gray-400 mt-1">Just added</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">New Event Added</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Tech Conference 2024 is now live</p>
-                    <p className="text-xs text-gray-400 mt-1">2h ago</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Notification 2: Promo Code */}
                 <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-amber-200 min-w-[320px]">
@@ -153,59 +155,67 @@ export default function UserDashboard() {
                     <Ticket className="w-5 h-5 text-amber-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">Limited Offer!</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Use code SAVE20 for 20% off</p>
-                    <p className="text-xs text-gray-400 mt-1">5h ago</p>
+                    <h4 className="font-semibold text-gray-900 text-sm">🎫 Limited Offer!</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Use code SAVE20 for 20% off all events</p>
+                    <p className="text-xs text-gray-400 mt-1">Expires soon</p>
                   </div>
                 </div>
 
-                {/* Notification 3: Trending */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-pink-200 min-w-[320px]">
-                  <div className="p-2 bg-pink-100 rounded-full flex-shrink-0">
-                    <TrendingUp className="w-5 h-5 text-pink-600" />
+                {/* Notification 3: Trending Event */}
+                {upcomingEvents[1] && (
+                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-pink-200 min-w-[320px]">
+                    <div className="p-2 bg-pink-100 rounded-full flex-shrink-0">
+                      <TrendingUp className="w-5 h-5 text-pink-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">🔥 Trending Now</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[1].name} selling fast!</p>
+                      <p className="text-xs text-gray-400 mt-1">Popular choice</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">Trending Now 🔥</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Music Festival selling fast!</p>
-                    <p className="text-xs text-gray-400 mt-1">1d ago</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Notification 4: Limited Seats */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-purple-200 min-w-[320px]">
-                  <div className="p-2 bg-purple-100 rounded-full flex-shrink-0">
-                    <Users className="w-5 h-5 text-purple-600" />
+                {upcomingEvents[2] && (
+                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-purple-200 min-w-[320px]">
+                    <div className="p-2 bg-purple-100 rounded-full flex-shrink-0">
+                      <Users className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">⚡ Almost Full</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[2].name} - Limited seats!</p>
+                      <p className="text-xs text-gray-400 mt-1">Book now</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">Almost Full ⚡</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Only 15 seats left for Workshop</p>
-                    <p className="text-xs text-gray-400 mt-1">3h ago</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Notification 5: Early Bird */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-teal-200 min-w-[320px]">
-                  <div className="p-2 bg-teal-100 rounded-full flex-shrink-0">
-                    <Star className="w-5 h-5 text-teal-600 fill-teal-600" />
+                {upcomingEvents[3] && (
+                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-teal-200 min-w-[320px]">
+                    <div className="p-2 bg-teal-100 rounded-full flex-shrink-0">
+                      <Star className="w-5 h-5 text-teal-600 fill-teal-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">⭐ Early Bird Special</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[3].name} - Get 30% off!</p>
+                      <p className="text-xs text-gray-400 mt-1">Code: GET30</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">Early Bird Special</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Get 30% off - Code: GET30</p>
-                    <p className="text-xs text-gray-400 mt-1">6h ago</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Notification 6: Free Event */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-green-200 min-w-[320px]">
-                  <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
-                    <Heart className="w-5 h-5 text-green-600" />
+                {upcomingEvents[4] && (
+                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-green-200 min-w-[320px]">
+                    <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
+                      <Heart className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 text-sm">💚 Featured Event</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[4].name} in {upcomingEvents[4].city}</p>
+                      <p className="text-xs text-gray-400 mt-1">Don't miss it!</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">Free Event Alert 💚</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Community Meetup - No cost!</p>
-                    <p className="text-xs text-gray-400 mt-1">4h ago</p>
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
