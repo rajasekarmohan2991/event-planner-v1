@@ -328,7 +328,12 @@ export default function UserDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
               {categories.map((category, index) => {
                 // Different animation for each category
                 const animations = [
