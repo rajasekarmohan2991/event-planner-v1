@@ -234,7 +234,7 @@ export async function POST(
                 ${formData.email},
                 NOW(),
                 NOW(),
-                'APPROVED',
+                'APPROVED'::"RegistrationStatus",
                 ${ticketId || null}
             )
         `
