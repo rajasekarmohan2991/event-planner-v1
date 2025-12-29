@@ -21,6 +21,7 @@ interface Event {
 }
 
 const categories = [
+  { name: 'All Events', IconComponent: Calendar, color: 'from-violet-600 to-purple-700' },
   { name: 'Business', IconComponent: Briefcase, color: 'from-sky-600 to-blue-700' },
   { name: 'Technology', IconComponent: Mic2, color: 'from-purple-600 to-violet-700' },
   { name: 'Art', IconComponent: Palette, color: 'from-fuchsia-600 to-pink-700' },
@@ -342,10 +343,10 @@ export default function UserDashboard() {
                 return (
                   <button
                     key={category.name}
-                    onClick={() => setSelectedCategory(category.name)}
-                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${selectedCategory === category.name
-                      ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
-                      : ''
+                    onClick={() => setSelectedCategory(category.name === 'All Events' ? '' : category.name)}
+                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${(category.name === 'All Events' && !selectedCategory) || selectedCategory === category.name
+                        ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
+                        : ''
                       }`}
                     style={{
                       animationDelay: `${index * 150}ms`,
