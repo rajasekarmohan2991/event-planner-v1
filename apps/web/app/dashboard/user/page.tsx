@@ -96,9 +96,9 @@ export default function UserDashboard() {
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
-            <div className="max-w-2xl">
+            <div className="max-w-2xl mt-16">
 
-              <h1 className="text-6xl font-bold text-white mb-6 animate-slide-up">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 animate-slide-up">
                 Discover Amazing
                 <br />
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-orange-300">
