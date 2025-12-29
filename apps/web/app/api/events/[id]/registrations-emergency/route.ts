@@ -15,11 +15,11 @@ export async function GET(
         // Use raw SQL to bypass tenant middleware
         const registrations = await prisma.$queryRaw`
             SELECT 
-                id, event_id as "eventId", data_json as "dataJson",
-                email, status, type, created_at as "createdAt"
+                id, "eventId", "dataJson",
+                email, status, type, "createdAt"
             FROM registrations
-            WHERE event_id = ${eventId}
-            ORDER BY created_at DESC
+            WHERE "eventId" = ${eventId}
+            ORDER BY "createdAt" DESC
         ` as any[]
 
         console.log('[EMERGENCY REGISTRATIONS] Found:', registrations.length)

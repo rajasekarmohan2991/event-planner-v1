@@ -12,17 +12,17 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         // Use raw SQL to bypass tenant middleware
         const plans = await prisma.$queryRaw`
             SELECT 
-                id, name, event_id as "eventId", created_at as "createdAt",
-                status, total_capacity as "totalCapacity",
-                vip_capacity as "vipCapacity", premium_capacity as "premiumCapacity",
-                general_capacity as "generalCapacity", canvas_width as "canvasWidth",
-                canvas_height as "canvasHeight", background_color as "backgroundColor",
-                grid_size as "gridSize", vip_price as "vipPrice",
-                premium_price as "premiumPrice", general_price as "generalPrice",
-                layout_data as "layoutData"
+                id, name, "eventId", "createdAt",
+                status, "totalCapacity",
+                "vipCapacity", "premiumCapacity",
+                "generalCapacity", "canvasWidth",
+                "canvasHeight", "backgroundColor",
+                "gridSize", "vipPrice",
+                "premiumPrice", "generalPrice",
+                "layoutData"
             FROM floor_plans
-            WHERE event_id = ${eventId}
-            ORDER BY created_at DESC
+            WHERE "eventId" = ${eventId}
+            ORDER BY "createdAt" DESC
         ` as any[]
 
         console.log('[FLOOR PLANS] Found:', plans.length, 'plans')
