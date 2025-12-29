@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import NotificationBell from '@/components/NotificationBell'
 import { BrandLogo } from '@/components/BrandLogo'
+import { useLocationDetection } from '@/hooks/useLocationDetection'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +29,10 @@ const tabs = [
 export default function Header() {
   const pathname = usePathname()
   const { data: session, status } = useSession()
+  const { location, loading: locationLoading } = useLocationDetection()
+
+  const displayLocation = location?.city || 'Detecting...'
+
   return (
     <header className="sticky top-0 z-[100] w-full bg-white border-b shadow-sm" style={{ backgroundColor: '#ffffff', opacity: 1 }}>
       {/* Top bar */}
@@ -42,17 +47,18 @@ export default function Header() {
             <button
               className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-sm text-slate-700 shadow-sm transition hover:bg-white md:flex"
               aria-label="Change location"
+              title={location ? `${location.city}, ${location.state}` : 'Detecting location...'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                className="h-4 w-4 text-blue-600"
+                className={`h-4 w-4 ${locationLoading ? 'text-gray-400 animate-pulse' : 'text-blue-600'}`}
                 aria-hidden="true"
               >
                 <path d="M12 2.25c-4.28 0-7.75 3.47-7.75 7.75 0 5.81 7.02 11.22 7.32 11.45.26.19.6.19.86 0 .3-.23 7.32-5.64 7.32-11.45 0-4.28-3.47-7.75-7.75-7.75Zm0 10.25a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
               </svg>
-              <span className="whitespace-nowrap">Kodandaram Nagar</span>
+              <span className="whitespace-nowrap">{displayLocation}</span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
