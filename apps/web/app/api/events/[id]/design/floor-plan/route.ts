@@ -147,18 +147,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Save floor plan to database using Prisma ORM
+    console.log('[Floor Plan Save] Saving floor plan for event:', eventId)
+    console.log('[Floor Plan Save] Config:', config)
+
     const result = await prisma.floorPlan.create({
       data: {
-        eventId,
+        eventId: BigInt(eventId),
         name: config.hallName || 'Untitled Floor Plan',
-        config: config, // Prisma handles JSON serialization
-        imageData: imageData,
+        description: config.description || null,
+        layoutData: {
+          config: config,
+          imageData: imageData,
+          objects: config.objects || []
+        },
+        canvasWidth: config.canvasWidth || 1200,
+        canvasHeight: config.canvasHeight || 800,
+        backgroundColor: config.backgroundColor || '#ffffff',
+        gridSize: config.gridSize || 20,
+        vipPrice: config.vipPrice || 0,
+        premiumPrice: config.premiumPrice || 0,
+        generalPrice: config.generalPrice || 0,
+        totalCapacity: config.guestCount || 0,
+        vipCapacity: config.vipSeats || 0,
+        premiumCapacity: config.premiumSeats || 0,
+        generalCapacity: config.generalSeats || 0
       },
       select: {
         id: true
       }
     })
 
+    console.log('[Floor Plan Save] Saved with ID:', result.id)
     const floorPlanId = result.id
 
     // Generate seats based on floor plan configuration
@@ -167,6 +186,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     try {
       await generateSeatsFromFloorPlan(eventId, config)
       seatsGenerated = true
+      console.log('[Floor Plan Save] Seats generated successfully')
     } catch (seatError) {
       console.warn('Seat generation skipped due to missing tables or configuration:', seatError)
     }

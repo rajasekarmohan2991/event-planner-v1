@@ -31,6 +31,16 @@ export default function CreateEventPage() {
       const diffTime = endDay.getTime() - startDay.getTime();
       const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
+      console.log('Date calculation:', {
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        startDay,
+        endDay,
+        diffTime,
+        dayCount,
+        willShow: dayCount >= 1
+      });
+
       if (dayCount >= 1) {
         setDaysDetails(prev => {
           // Preserve existing details if count matches, otherwise regenerate
@@ -199,6 +209,14 @@ export default function CreateEventPage() {
                 <option value="WEBINAR">Webinar</option>
               </select>
             </div>
+          </div>
+
+          {/* Debug Info */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-xs">
+            <strong>Debug:</strong> daysDetails.length = {daysDetails.length}
+            {daysDetails.length > 0 && (
+              <div className="mt-1">Days: {daysDetails.map((d, i) => `Day ${i + 1}`).join(', ')}</div>
+            )}
           </div>
 
           {/* Daily Configurations */}
