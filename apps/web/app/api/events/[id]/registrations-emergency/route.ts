@@ -16,8 +16,7 @@ export async function GET(
         const registrations = await prisma.$queryRaw`
             SELECT 
                 id, event_id as "eventId", data_json as "dataJson",
-                email, status, type, created_at as "createdAt",
-                checked_in as "checkedIn", checked_in_at as "checkedInAt"
+                email, status, type, created_at as "createdAt"
             FROM registrations
             WHERE event_id = ${eventId}
             ORDER BY created_at DESC
@@ -38,8 +37,7 @@ export async function GET(
                 jobTitle: data.jobTitle || '',
                 status: r.status,
                 type: r.type,
-                checkedIn: r.checkedIn || false,
-                checkedInAt: r.checkedInAt,
+                checkedIn: false,
                 createdAt: r.createdAt.toISOString(),
                 registeredAt: r.createdAt.toISOString()
             }
