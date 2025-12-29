@@ -328,35 +328,23 @@ export default function UserDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
-            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
               <style jsx>{`
                 div::-webkit-scrollbar {
                   display: none;
                 }
               `}</style>
               {categories.map((category, index) => {
-                // Different animation for each category
-                const animations = [
-                  'animate-flip-in',      // Conferences - 3D flip
-                  'animate-slide-in',     // Workshops - Slide from left
-                  'animate-zoom-bounce',  // Concerts - Zoom with bounce
-                  'animate-rotate-in',    // Sports - Rotate entrance
-                  'animate-bounce-in',    // Exhibitions - Bounce from top
-                  'animate-wave-in'       // Networking - Wave effect
-                ];
+                const isSelected = (category.name === 'All Events' && selectedCategory === '') || selectedCategory === category.name;
 
                 return (
                   <button
                     key={category.name}
                     onClick={() => setSelectedCategory(category.name === 'All Events' ? '' : category.name)}
-                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 flex-shrink-0 min-w-[160px] ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${(category.name === 'All Events' && !selectedCategory) || selectedCategory === category.name
-                      ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
+                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-xl flex-shrink-0 min-w-[160px] backdrop-blur-md bg-white/10 border border-white/20 ${isSelected
+                      ? 'ring-4 ring-orange-400 ring-offset-2 shadow-orange-300/50'
                       : ''
                       }`}
-                    style={{
-                      animationDelay: `${index * 150}ms`,
-                      animationFillMode: 'backwards'
-                    }}
                   >
                     {/* Glassmorphism gradient background */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-80 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110`}></div>
