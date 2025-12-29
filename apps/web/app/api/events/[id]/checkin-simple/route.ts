@@ -7,12 +7,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     // Make session optional: allow public QR check-in
     const session = await getServerSession(authOptions as any).catch(() => null)
-    
+
     const eventId = parseInt(params.id)
     const { token, location, deviceId } = await req.json()
-    
+
     console.log(`🔄 Simple Check-in for event ${eventId}`)
-    
+
     if (!token || typeof token !== 'string') {
       return NextResponse.json({ message: 'Token required' }, { status: 400 })
     }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     ]
     for (const f of decodeCandidates) {
-      try { payload = f(); break } catch {}
+      try { payload = f(); break } catch { }
     }
     if (!payload) {
       return NextResponse.json({ message: 'Invalid token format' }, { status: 400 })
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Check if registration exists using raw query to avoid type issues
     const registrationCheck = await prisma.$queryRaw`
       SELECT id FROM registrations 
-      WHERE id = ${BigInt(payload.registrationId)}
-        AND event_id = ${eventId}
+      WHERE id = ${payload.registrationId}
+        AND "eventId" = ${BigInt(eventId)}
       LIMIT 1
     ` as any[]
 
@@ -66,12 +66,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const registrationData = await prisma.$queryRaw`
       SELECT 
         id, 
-        data_json,
-        check_in_status,
-        created_at as "createdAt"
+        "dataJson",
+        "checkInStatus",
+        "createdAt"
       FROM registrations 
-      WHERE id = ${BigInt(payload.registrationId)}
-        AND event_id = ${eventId}
+      WHERE id = ${payload.registrationId}
+        AND "eventId" = ${BigInt(eventId)}
       LIMIT 1
     ` as any[]
 
@@ -80,22 +80,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const regRow = registrationData[0]
-    const rawJson = (regRow as any)?.data_json
+    const rawJson = (regRow as any)?.dataJson
     let regData: any = {}
     try {
       regData = typeof rawJson === 'string' ? JSON.parse(rawJson) : (rawJson || {})
     } catch {
       regData = {}
     }
-    
+
     // Check if already checked in (check both column and JSON data)
-    const isAlreadyCheckedIn = (regRow as any)?.check_in_status === 'CHECKED_IN' || regData?.checkedIn === true
-    
+    const isAlreadyCheckedIn = (regRow as any)?.checkInStatus === 'CHECKED_IN' || regData?.checkedIn === true
+
     if (isAlreadyCheckedIn) {
       console.log(`⚠️  Registration ${payload.registrationId} already checked in`)
-      return NextResponse.json({ 
-        ok: false, 
-        already: true, 
+      return NextResponse.json({
+        ok: false,
+        already: true,
         message: 'This QR code has already been used. Attendee is already checked in.',
         checkedInAt: regData.checkedInAt || (regRow as any)?.check_in_time
       }, { status: 400 })
@@ -130,12 +130,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await prisma.$executeRaw`
         UPDATE registrations 
         SET 
-          data_json = ${JSON.stringify(updatedData)},
-          check_in_status = 'CHECKED_IN',
-          check_in_time = NOW(),
-          updated_at = NOW()
-        WHERE id = ${BigInt(payload.registrationId)} 
-          AND event_id = ${eventId}
+          "dataJson" = ${JSON.stringify(updatedData)},
+          "checkInStatus" = 'CHECKED_IN',
+          "checkInTime" = NOW(),
+          "updatedAt" = NOW()
+        WHERE id = ${payload.registrationId} 
+          AND "eventId" = ${BigInt(eventId)}
       `
       console.log(`✅ Updated registration ${payload.registrationId} to CHECKED_IN`)
     } catch (e) {
@@ -145,10 +145,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         await prisma.$executeRaw`
           UPDATE registrations 
           SET 
-            data_json = ${JSON.stringify(updatedData)},
-            updated_at = NOW()
-          WHERE id = ${BigInt(payload.registrationId)} 
-            AND event_id = ${eventId}
+            "dataJson" = ${JSON.stringify(updatedData)},
+            "updatedAt" = NOW()
+          WHERE id = ${payload.registrationId} 
+            AND "eventId" = ${BigInt(eventId)}
         `
         console.log(`✅ Updated registration ${payload.registrationId} (fallback mode)`)
       } catch (fallbackErr) {
@@ -159,15 +159,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     console.log(`✅ Check-in successful for registration ${payload.registrationId}`)
 
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       message: 'Check-in successful',
       checkedInAt: new Date().toISOString()
     })
 
   } catch (error: any) {
     console.error('❌ Simple check-in error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: error?.message || 'Check-in failed',
       error: error.code || 'UNKNOWN_ERROR'
     }, { status: 500 })
