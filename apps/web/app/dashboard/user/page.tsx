@@ -94,10 +94,6 @@ export default function UserDashboard() {
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 animate-fade-in">
-                <TrendingUp className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">Trending Now</span>
-              </div>
 
               <h1 className="text-6xl font-bold text-white mb-6 animate-slide-up">
                 Discover Amazing
@@ -119,6 +115,11 @@ export default function UserDashboard() {
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
+
+                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-4 rounded-full">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                  <span className="text-white font-semibold">Trending Now</span>
+                </div>
               </div>
             </div>
           </div>
