@@ -127,88 +127,88 @@ export default function UserDashboard() {
           <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
 
-          {/* Scrolling Promotional Banner - Below Header */}
-          <div className="absolute top-16 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 overflow-hidden shadow-lg z-20">
-            <div className="animate-scroll-left flex items-center gap-6 py-3">
-              {/* Duplicate the content for seamless loop */}
-              {[...Array(2)].map((_, index) => (
-                <div key={index} className="flex items-center gap-6">
-                  {/* Notification 1: New Event */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100 min-w-[320px]">
-                    <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
-                      <Calendar className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">New Event Added</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Tech Conference 2024 is now live</p>
-                      <p className="text-xs text-gray-400 mt-1">2h ago</p>
-                    </div>
-                  </div>
+        </div>
 
-                  {/* Notification 2: Promo Code */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-amber-200 min-w-[320px]">
-                    <div className="p-2 bg-amber-100 rounded-full flex-shrink-0">
-                      <Ticket className="w-5 h-5 text-amber-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">Limited Offer!</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Use code SAVE20 for 20% off</p>
-                      <p className="text-xs text-gray-400 mt-1">5h ago</p>
-                    </div>
+        {/* Fixed Scrolling Promotional Banner - Below Header */}
+        <div className="fixed top-16 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 overflow-hidden shadow-lg z-50">
+          <div className="animate-scroll-left flex items-center gap-6 py-3">
+            {/* Duplicate the content for seamless loop */}
+            {[...Array(2)].map((_, index) => (
+              <div key={index} className="flex items-center gap-6">
+                {/* Notification 1: New Event */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100 min-w-[320px]">
+                  <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
+                    <Calendar className="w-5 h-5 text-blue-600" />
                   </div>
-
-                  {/* Notification 3: Trending */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-pink-200 min-w-[320px]">
-                    <div className="p-2 bg-pink-100 rounded-full flex-shrink-0">
-                      <TrendingUp className="w-5 h-5 text-pink-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">Trending Now 🔥</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Music Festival selling fast!</p>
-                      <p className="text-xs text-gray-400 mt-1">1d ago</p>
-                    </div>
-                  </div>
-
-                  {/* Notification 4: Limited Seats */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-purple-200 min-w-[320px]">
-                    <div className="p-2 bg-purple-100 rounded-full flex-shrink-0">
-                      <Users className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">Almost Full ⚡</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Only 15 seats left for Workshop</p>
-                      <p className="text-xs text-gray-400 mt-1">3h ago</p>
-                    </div>
-                  </div>
-
-                  {/* Notification 5: Early Bird */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-teal-200 min-w-[320px]">
-                    <div className="p-2 bg-teal-100 rounded-full flex-shrink-0">
-                      <Star className="w-5 h-5 text-teal-600 fill-teal-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">Early Bird Special</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Get 30% off - Code: GET30</p>
-                      <p className="text-xs text-gray-400 mt-1">6h ago</p>
-                    </div>
-                  </div>
-
-                  {/* Notification 6: Free Event */}
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-green-200 min-w-[320px]">
-                    <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
-                      <Heart className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">Free Event Alert 💚</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Community Meetup - No cost!</p>
-                      <p className="text-xs text-gray-400 mt-1">4h ago</p>
-                    </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">New Event Added</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Tech Conference 2024 is now live</p>
+                    <p className="text-xs text-gray-400 mt-1">2h ago</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
+                {/* Notification 2: Promo Code */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-amber-200 min-w-[320px]">
+                  <div className="p-2 bg-amber-100 rounded-full flex-shrink-0">
+                    <Ticket className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">Limited Offer!</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Use code SAVE20 for 20% off</p>
+                    <p className="text-xs text-gray-400 mt-1">5h ago</p>
+                  </div>
+                </div>
+
+                {/* Notification 3: Trending */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-pink-200 min-w-[320px]">
+                  <div className="p-2 bg-pink-100 rounded-full flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">Trending Now 🔥</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Music Festival selling fast!</p>
+                    <p className="text-xs text-gray-400 mt-1">1d ago</p>
+                  </div>
+                </div>
+
+                {/* Notification 4: Limited Seats */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-purple-200 min-w-[320px]">
+                  <div className="p-2 bg-purple-100 rounded-full flex-shrink-0">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">Almost Full ⚡</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Only 15 seats left for Workshop</p>
+                    <p className="text-xs text-gray-400 mt-1">3h ago</p>
+                  </div>
+                </div>
+
+                {/* Notification 5: Early Bird */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-teal-200 min-w-[320px]">
+                  <div className="p-2 bg-teal-100 rounded-full flex-shrink-0">
+                    <Star className="w-5 h-5 text-teal-600 fill-teal-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">Early Bird Special</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Get 30% off - Code: GET30</p>
+                    <p className="text-xs text-gray-400 mt-1">6h ago</p>
+                  </div>
+                </div>
+
+                {/* Notification 6: Free Event */}
+                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-green-200 min-w-[320px]">
+                  <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
+                    <Heart className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 text-sm">Free Event Alert 💚</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Community Meetup - No cost!</p>
+                    <p className="text-xs text-gray-400 mt-1">4h ago</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
