@@ -127,8 +127,8 @@ export default function UserDashboard() {
           <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
 
-          {/* Scrolling Promotional Banner */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 overflow-hidden shadow-lg">
+          {/* Scrolling Promotional Banner - Top */}
+          <div className="absolute top-0 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 overflow-hidden shadow-lg z-20">
             <div className="animate-scroll-left flex items-center gap-6 py-3">
               {/* Duplicate the content for seamless loop */}
               {[...Array(2)].map((_, index) => (
