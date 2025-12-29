@@ -47,9 +47,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     : (session.user.email ? String(session.user.email).charAt(0).toUpperCase() : 'U')
 
   return (
-    <header 
+    <header
       className={cn(
-        'sticky top-0 z-40 border-b bg-white/80 backdrop-blur-sm transition-all duration-300',
+        'sticky top-0 z-50 border-b bg-white shadow-sm transition-all duration-300',
         scrolled ? 'py-2' : 'py-4'
       )}
     >
