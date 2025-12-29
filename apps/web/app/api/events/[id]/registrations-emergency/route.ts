@@ -12,10 +12,16 @@ export async function GET(
 
         console.log('[EMERGENCY REGISTRATIONS] Fetching for event:', eventId.toString())
 
-        const registrations = await prisma.registration.findMany({
-            where: { eventId },
-            orderBy: { createdAt: 'desc' }
-        })
+        // Use raw SQL to bypass tenant middleware
+        const registrations = await prisma.$queryRaw`
+            SELECT 
+                id, event_id as "eventId", data_json as "dataJson",
+                email, status, type, created_at as "createdAt",
+                checked_in as "checkedIn", checked_in_at as "checkedInAt"
+            FROM registrations
+            WHERE event_id = ${eventId}
+            ORDER BY created_at DESC
+        ` as any[]
 
         console.log('[EMERGENCY REGISTRATIONS] Found:', registrations.length)
 
@@ -23,14 +29,19 @@ export async function GET(
             const data = r.dataJson as any || {}
             return {
                 id: r.id,
+                eventId: r.eventId.toString(),
                 firstName: data.firstName || '',
                 lastName: data.lastName || '',
                 email: r.email || data.email || '',
                 phone: data.phone || '',
+                company: data.company || '',
+                jobTitle: data.jobTitle || '',
                 status: r.status,
                 type: r.type,
+                checkedIn: r.checkedIn || false,
+                checkedInAt: r.checkedInAt,
                 createdAt: r.createdAt.toISOString(),
-                eventId: r.eventId.toString()
+                registeredAt: r.createdAt.toISOString()
             }
         })
 
