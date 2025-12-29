@@ -31,6 +31,15 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         _count: {
           select: { members: true }
+        },
+        members: {
+          where: { role: 'TENANT_ADMIN' },
+          take: 1,
+          select: {
+            user: {
+              select: { email: true }
+            }
+          }
         }
       },
       orderBy: {
@@ -47,10 +56,24 @@ export async function GET(req: NextRequest) {
 
     // Map to match UI expectations
     const companiesWithCounts = sortedCompanies.map(c => {
-      const fallbackEmail = c.billingEmail || c.emailFromAddress || process.env.EMAIL_FROM || process.env.EMAIL_SERVER_USER || `support@${c.slug}.com`
+      // Priority: Billing Email -> Email From Address -> Tenant Admin Email -> System Email -> Placeholder
+      const adminEmail = c.members[0]?.user.email
+      let fallbackEmail = c.billingEmail || c.emailFromAddress || adminEmail || process.env.EMAIL_FROM || process.env.EMAIL_SERVER_USER || `support@${c.slug}.com`
+
+      // Extract email if format is "Name <email>"
+      const emailMatch = fallbackEmail?.match(/<([^>]+)>/)
+      if (emailMatch) {
+        fallbackEmail = emailMatch[1]
+      }
       return {
-        ...c,
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        plan: c.plan,
+        status: c.status,
+        createdAt: c.createdAt,
         billingEmail: fallbackEmail,
+        _count: c._count,
         eventCount: 0 // Placeholder to avoid N+1 API calls to Java service
       }
     })

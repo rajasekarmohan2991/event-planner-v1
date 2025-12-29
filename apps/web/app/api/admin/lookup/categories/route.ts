@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
     const categories = await prisma.lookupGroup.findMany({
       include: {
         options: {
-          where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
         },
       },

@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma'
 import { getTenantId } from '@/lib/tenant-context'
 import { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 async function ensureFeedTables() {
   try {
     await prisma.$executeRawUnsafe(`
