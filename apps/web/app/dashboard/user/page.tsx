@@ -328,7 +328,7 @@ export default function UserDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {categories.map((category, index) => {
                 // Different animation for each category
                 const animations = [
@@ -344,9 +344,9 @@ export default function UserDashboard() {
                   <button
                     key={category.name}
                     onClick={() => setSelectedCategory(category.name === 'All Events' ? '' : category.name)}
-                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${(category.name === 'All Events' && !selectedCategory) || selectedCategory === category.name
-                        ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
-                        : ''
+                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-110 hover:shadow-2xl hover:-translate-y-3 flex-shrink-0 min-w-[160px] ${animations[index]} backdrop-blur-md bg-white/10 border border-white/20 ${(category.name === 'All Events' && !selectedCategory) || selectedCategory === category.name
+                      ? 'ring-4 ring-orange-400 ring-offset-2 scale-105 shadow-orange-300/50'
+                      : ''
                       }`}
                     style={{
                       animationDelay: `${index * 150}ms`,
