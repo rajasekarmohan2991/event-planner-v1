@@ -266,34 +266,58 @@ export default function RegisterWithSeatsPage() {
   }
 
   const handleReserveSeats = async () => {
+    console.log('🪑 [SEAT RESERVE] Starting seat reservation process...')
+    console.log('🪑 [SEAT RESERVE] Selected seats:', selectedSeats)
+    console.log('🪑 [SEAT RESERVE] Number of seats:', selectedSeats.length)
+
     if (selectedSeats.length === 0) {
+      console.error('❌ [SEAT RESERVE] No seats selected!')
       alert('Please select at least one seat')
       return
     }
 
     setLoading(true)
+    console.log('🪑 [SEAT RESERVE] Loading state set to true')
+
     try {
+      const seatIds = selectedSeats.map(s => s.id)
+      console.log('🪑 [SEAT RESERVE] Seat IDs to reserve:', seatIds)
+      console.log('🪑 [SEAT RESERVE] API endpoint:', `/api/events/${eventId}/seats/reserve`)
+
       const res = await fetch(`/api/events/${eventId}/seats/reserve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          seatIds: selectedSeats.map(s => s.id)
+          seatIds: seatIds
         })
       })
 
+      console.log('🪑 [SEAT RESERVE] Response status:', res.status)
+      console.log('🪑 [SEAT RESERVE] Response OK:', res.ok)
+
       if (res.ok) {
         const data = await res.json()
+        console.log('✅ [SEAT RESERVE] Success! Response data:', data)
+        console.log('✅ [SEAT RESERVE] Expiry time:', data.expiresAt)
+        console.log('✅ [SEAT RESERVE] Reservation ID:', data.reservations[0]?.id)
+
         setReservationExpiry(new Date(data.expiresAt))
         setReservationId(data.reservations[0]?.id)
         setStep(2) // Move to details step
+        console.log('✅ [SEAT RESERVE] Moving to step 2 (details)')
       } else {
         const error = await res.json()
+        console.error('❌ [SEAT RESERVE] Failed! Error:', error)
+        console.error('❌ [SEAT RESERVE] Error message:', error.error)
         alert(error.error || 'Failed to reserve seats')
       }
     } catch (error) {
+      console.error('❌ [SEAT RESERVE] Exception caught:', error)
+      console.error('❌ [SEAT RESERVE] Error details:', error)
       alert('Error reserving seats')
     } finally {
       setLoading(false)
+      console.log('🪑 [SEAT RESERVE] Loading state set to false')
     }
   }
 

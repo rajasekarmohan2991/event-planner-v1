@@ -62,32 +62,62 @@ export default function CheckInPage() {
   }, [scanning])
 
   const handleCheckIn = async (id: string, fromScanner = false) => {
+    console.log('✅ [CHECK-IN] Starting check-in process...')
+    console.log('✅ [CHECK-IN] Registration ID:', id)
+    console.log('✅ [CHECK-IN] From scanner:', fromScanner)
+    console.log('✅ [CHECK-IN] Event ID:', eventId)
+
     const registration = registrations.find(r => r.id === id)
+    console.log('✅ [CHECK-IN] Found registration:', registration)
 
     if (!registration) {
+      console.error('❌ [CHECK-IN] Registration not found in list!')
+      console.error('❌ [CHECK-IN] Available registrations:', registrations.map(r => r.id))
       if (fromScanner) toast.error("Invalid QR Code: Registration not found")
       return
     }
 
+    console.log('✅ [CHECK-IN] Registration details:', {
+      id: registration.id,
+      name: registration.attendeeName,
+      status: registration.checkInStatus
+    })
+
     if (registration.checkInStatus === 'CHECKED_IN') {
+      console.warn('⚠️ [CHECK-IN] Already checked in!')
       if (fromScanner) toast.info(`${registration.attendeeName} is already checked in`)
       return
     }
 
     try {
+      console.log('✅ [CHECK-IN] Sending API request...')
+      console.log('✅ [CHECK-IN] API endpoint:', `/api/events/${eventId}/check-in`)
+      console.log('✅ [CHECK-IN] Request body:', { registrationId: id })
+
       const res = await fetch(`/api/events/${eventId}/check-in`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ registrationId: id })
       })
 
+      console.log('✅ [CHECK-IN] Response status:', res.status)
+      console.log('✅ [CHECK-IN] Response OK:', res.ok)
+
       if (res.ok) {
+        const data = await res.json()
+        console.log('✅ [CHECK-IN] Success! Response data:', data)
         setRegistrations(prev => prev.map(r => r.id === id ? { ...r, checkInStatus: 'CHECKED_IN' } : r))
         toast.success(`Checked in ${registration.attendeeName}`)
+        console.log('✅ [CHECK-IN] Updated registration status in state')
       } else {
-        toast.error("Failed to check in")
+        const errorData = await res.json().catch(() => ({}))
+        console.error('❌ [CHECK-IN] Failed! Status:', res.status)
+        console.error('❌ [CHECK-IN] Error data:', errorData)
+        toast.error(errorData.error || "Failed to check in")
       }
     } catch (error) {
+      console.error('❌ [CHECK-IN] Exception caught:', error)
+      console.error('❌ [CHECK-IN] Error details:', error)
       toast.error("Error checking in")
     }
   }
