@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { validateCompanyEmail, isEmailAvailable } from '@/lib/email-validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    
+
     const {
       companyName,
       companyEmail,
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       adminEmail,
       password
     } = body
-    
+
     // Validation
     if (!companyName || !companyEmail || !adminName || !adminEmail || !password) {
       return NextResponse.json(
@@ -37,13 +38,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     // Generate unique slug from company name
     const baseSlug = companyName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
-    
+
     // Check if slug already exists
     let slug = baseSlug
     let counter = 1
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       slug = `${baseSlug}-${counter}`
       counter++
     }
-    
+
     // Generate subdomain (same as slug)
     let subdomain = slug
     counter = 1
@@ -59,23 +60,30 @@ export async function POST(req: NextRequest) {
       subdomain = `${slug}-${counter}`
       counter++
     }
-    
-    // Check if admin email already exists
-    let adminUser = await prisma.user.findUnique({
-      where: { email: adminEmail }
-    })
 
-    // Enforce unique company registration by companyEmail and adminEmail
-    // 1) Block if any existing tenant uses the same billingEmail (companyEmail)
-    const existingByBilling = await prisma.tenant.findFirst({
-      where: { billingEmail: { equals: companyEmail, mode: 'insensitive' } }
-    })
-    if (existingByBilling) {
+    // Validate company email
+    const companyEmailValidation = await validateCompanyEmail(companyEmail)
+    if (!companyEmailValidation.valid) {
       return NextResponse.json(
-        { error: 'A company already exists for this email' },
+        { error: companyEmailValidation.error },
         { status: 409 }
       )
     }
+
+    // Check if admin email is already used by a company (Tenant)
+    // We allow existing Users (`usedBy: 'USER'`) to create companies, but not if the email is a company billing email
+    const adminEmailAvailability = await isEmailAvailable(adminEmail)
+    if (!adminEmailAvailability.available && adminEmailAvailability.usedBy === 'TENANT') {
+      return NextResponse.json(
+        { error: 'This admin email is already registered to another company' },
+        { status: 409 }
+      )
+    }
+
+    // Check if admin user exists (to determine if we create a new one or attach to existing)
+    let adminUser = await prisma.user.findUnique({
+      where: { email: adminEmail }
+    })
 
     // 2) If admin user already exists and is a member of any tenant, block duplicate company creation
     if (adminUser) {
@@ -89,10 +97,10 @@ export async function POST(req: NextRequest) {
         )
       }
     }
-    
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
-    
+
     // Create tenant and admin user in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create tenant
@@ -115,7 +123,7 @@ export async function POST(req: NextRequest) {
           }
         }
       })
-      
+
       // Create or get admin user
       if (!adminUser) {
         adminUser = await tx.user.create({
@@ -138,7 +146,7 @@ export async function POST(req: NextRequest) {
           })
         }
       }
-      
+
       // Create tenant membership with OWNER role
       await tx.tenantMember.create({
         data: {
@@ -149,13 +157,13 @@ export async function POST(req: NextRequest) {
           joinedAt: new Date()
         }
       })
-      
+
       return { tenant, adminUser }
     })
-    
+
     console.log(`✅ Company registered: ${companyName} (${slug})`)
     console.log(`✅ Admin user: ${adminEmail}`)
-    
+
     return NextResponse.json({
       success: true,
       message: 'Company registered successfully',
@@ -172,17 +180,17 @@ export async function POST(req: NextRequest) {
         email: result.adminUser.email
       }
     }, { status: 201 })
-    
+
   } catch (error: any) {
     console.error('Error registering company:', error)
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Company with this name or email already exists' },
         { status: 409 }
       )
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to register company', details: error.message },
       { status: 500 }

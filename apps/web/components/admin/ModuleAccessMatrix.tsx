@@ -15,7 +15,7 @@ interface ModuleAccessMatrixProps {
 
 const MODULES = [
   'Events',
-  'Users', 
+  'Users',
   'Speakers',
   'Sponsors',
   'Registrations',
@@ -70,7 +70,7 @@ export default function ModuleAccessMatrix({ onSave }: ModuleAccessMatrixProps) 
   const [permissions, setPermissions] = useState<ModulePermission[]>(DEFAULT_PERMISSIONS)
   const [loading, setLoading] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [notification, setNotification] = useState<{type: 'success' | 'error' | 'info', message: string} | null>(null)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null)
 
   // Load permissions from API
   useEffect(() => {
@@ -84,9 +84,16 @@ export default function ModuleAccessMatrix({ onSave }: ModuleAccessMatrixProps) 
         const data = await response.json()
         // Transform API data to permissions format
         if (data.permissions && Array.isArray(data.permissions)) {
-          // Use API data if available
+          // Initialize map with defaults to ensure all modules are present
           const permissionsMap: Record<string, ModulePermission> = {}
+          // Deep copy defaults
+          DEFAULT_PERMISSIONS.forEach(def => {
+            permissionsMap[def.module] = JSON.parse(JSON.stringify(def))
+          })
+
+          // Override with API data
           data.permissions.forEach((perm: any) => {
+            // Add module if not in defaults (backwards compatibility)
             if (!permissionsMap[perm.moduleName]) {
               permissionsMap[perm.moduleName] = {
                 module: perm.moduleName,
@@ -126,7 +133,7 @@ export default function ModuleAccessMatrix({ onSave }: ModuleAccessMatrixProps) 
     setLoading(true)
     try {
       // Transform permissions to API format
-      const permissionsArray = permissions.flatMap(perm => 
+      const permissionsArray = permissions.flatMap(perm =>
         Object.entries(perm.roles).map(([role, hasAccess]) => ({
           moduleName: perm.module,
           role,
@@ -216,29 +223,28 @@ export default function ModuleAccessMatrix({ onSave }: ModuleAccessMatrixProps) 
                 {ROLES.map(role => {
                   const hasAccess = permission.roles[role.key]
                   const isDisabled = role.key === 'SUPER_ADMIN'
-                  
+
                   return (
                     <td key={role.key} className="py-4 px-4 w-32">
                       <div className="flex items-center justify-center">
                         <button
                           onClick={() => togglePermission(moduleIndex, role.key)}
                           disabled={isDisabled}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                            hasAccess 
-                              ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${hasAccess
+                              ? 'bg-green-100 text-green-600 hover:bg-green-200'
                               : 'bg-red-100 text-red-600 hover:bg-red-200'
-                          } ${isDisabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
+                            } ${isDisabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
                           title={isDisabled ? 'SUPER_ADMIN permissions cannot be modified' : `Toggle ${role.label} access to ${permission.module}`}
                         >
-                        {hasAccess ? (
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        )}
+                          {hasAccess ? (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </td>
@@ -265,11 +271,10 @@ export default function ModuleAccessMatrix({ onSave }: ModuleAccessMatrixProps) 
 
       {/* Notification Toast */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${
-          notification.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-          notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-          'bg-blue-50 border-blue-200 text-blue-800'
-        }`}>
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${notification.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+            notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+              'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
           <div className="flex items-center gap-2">
             {notification.type === 'success' && (
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

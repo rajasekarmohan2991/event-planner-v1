@@ -108,37 +108,7 @@ export default function SuperAdminSettingsPage() {
           </div>
         </div>
 
-        {/* Subscription (Read-Only Info) */}
-        <Link href="/admin/settings/billing">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full cursor-pointer">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Subscription</h3>
-                  <p className="text-xs text-gray-500">Plan and billing</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Current Plan</span>
-                <span className="font-medium text-indigo-600">Enterprise</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Status</span>
-                <span className="font-medium text-green-600">Active</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Renewal</span>
-                <span className="font-medium text-gray-900">Dec 31, 2025</span>
-              </div>
-            </div>
-          </div>
-        </Link>
 
         {/* Currency Link */}
         <Link href="/super-admin/settings/currency">
