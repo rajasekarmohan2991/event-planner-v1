@@ -52,6 +52,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         'sticky top-0 z-[100] border-b bg-white shadow-sm transition-all duration-300',
         scrolled ? 'py-2' : 'py-4'
       )}
+      style={{ backgroundColor: '#ffffff', opacity: 1 }}
     >
       <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center">

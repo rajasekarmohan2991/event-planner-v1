@@ -29,7 +29,7 @@ export default function Header() {
   const pathname = usePathname()
   const { data: session, status } = useSession()
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
+    <header className="sticky top-0 z-[100] w-full bg-white border-b shadow-sm" style={{ backgroundColor: '#ffffff', opacity: 1 }}>
       {/* Top bar */}
       <div className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
