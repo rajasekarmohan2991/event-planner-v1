@@ -31,7 +31,7 @@ export default function CreateEventPage() {
       const diffTime = endDay.getTime() - startDay.getTime();
       const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-      if (dayCount > 1) {
+      if (dayCount >= 1) {
         setDaysDetails(prev => {
           // Preserve existing details if count matches, otherwise regenerate
           if (prev.length === dayCount) return prev;
