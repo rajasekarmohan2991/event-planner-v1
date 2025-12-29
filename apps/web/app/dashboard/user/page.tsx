@@ -130,7 +130,7 @@ export default function UserDashboard() {
         </div>
 
         {/* Fixed Scrolling Promotional Banner - Below Header */}
-        <div className="fixed top-16 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 overflow-hidden shadow-lg z-50">
+        <div className="fixed top-16 left-0 right-0 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 backdrop-blur-md border-b border-white/20 overflow-hidden shadow-lg z-50">
           <div className="animate-scroll-left flex items-center gap-6 py-3">
             {/* Duplicate the content for seamless loop */}
             {[...Array(2)].map((_, index) => (
