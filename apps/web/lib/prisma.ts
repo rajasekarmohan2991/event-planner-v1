@@ -34,9 +34,16 @@ function buildSafeDatabaseUrl() {
 const databaseUrl = buildSafeDatabaseUrl()
 
 const prisma = globalThis.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'error', 'warn'],
+  log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query', 'error', 'warn'],
   datasources: databaseUrl ? { db: { url: databaseUrl } } : undefined,
 })
+
+// Ensure connection is established in serverless environments
+if (process.env.NODE_ENV === 'production') {
+  prisma.$connect().catch((err) => {
+    console.error('Failed to connect to database:', err)
+  })
+}
 
 // Add BigInt serialization support for JSON.stringify
 if (!(BigInt.prototype as any).toJSON) {
@@ -57,6 +64,17 @@ prisma.$use(createTenantMiddleware())
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma
+}
+
+// Helper to ensure connection before critical operations
+export async function ensureConnection() {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    return true
+  } catch (error) {
+    console.error('Database connection check failed:', error)
+    return false
+  }
 }
 
 export default prisma

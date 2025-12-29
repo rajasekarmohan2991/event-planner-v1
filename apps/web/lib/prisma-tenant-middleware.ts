@@ -30,21 +30,21 @@ const TENANT_MODELS = [
 
 function getTenantIdFromHeaders(): string {
   try {
+    // headers() might not be available in all contexts (e.g., raw SQL queries, middleware edge cases)
     const headersList = headers()
-    const tenantId = headersList.get('x-tenant-id') || process.env.DEFAULT_TENANT_ID || 'default-tenant'
-    
-    // Validate tenant ID
-    if (!tenantId || tenantId === 'null' || tenantId === 'undefined' || tenantId.trim() === '') {
-      throw new Error('❌ Tenant ID missing or invalid')
+    const tenantId = headersList.get('x-tenant-id')
+
+    if (tenantId && tenantId !== 'null' && tenantId !== 'undefined' && tenantId.trim() !== '') {
+      return tenantId
     }
-    
-    return tenantId
   } catch (error) {
-    // In case of error, use default but log warning
-    const defaultTenant = process.env.DEFAULT_TENANT_ID || 'default-tenant'
-    console.warn('⚠️ Tenant ID validation failed, using default:', defaultTenant)
-    return defaultTenant
+    // headers() not available or failed - this is normal for raw SQL queries
+    // Fall through to use default
   }
+
+  // Use default tenant ID
+  const defaultTenant = process.env.DEFAULT_TENANT_ID || 'default-tenant'
+  return defaultTenant
 }
 
 function shouldApplyTenantFilter(model: string): boolean {
@@ -54,7 +54,7 @@ function shouldApplyTenantFilter(model: string): boolean {
 export function createTenantMiddleware(): Prisma.Middleware {
   return async (params, next) => {
     const model = params.model?.toLowerCase()
-    
+
     // Skip if no model or model doesn't have tenant_id
     if (!model || !shouldApplyTenantFilter(model)) {
       return next(params)
@@ -66,7 +66,7 @@ export function createTenantMiddleware(): Prisma.Middleware {
     if (['findMany', 'findFirst', 'findUnique', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
       params.args = params.args || {}
       params.args.where = params.args.where || {}
-      
+
       // Add tenant filter to where clause (only if not already present)
       if (typeof params.args.where.tenantId === 'undefined') {
         params.args.where.tenantId = tenantId
@@ -77,7 +77,7 @@ export function createTenantMiddleware(): Prisma.Middleware {
     if (params.action === 'create') {
       params.args = params.args || {}
       params.args.data = params.args.data || {}
-      
+
       // Add tenantId to data if not provided
       if (typeof params.args.data.tenantId === 'undefined') {
         params.args.data.tenantId = tenantId
@@ -98,12 +98,12 @@ export function createTenantMiddleware(): Prisma.Middleware {
     if (['update', 'updateMany', 'upsert'].includes(params.action)) {
       params.args = params.args || {}
       params.args.where = params.args.where || {}
-      
+
       // Add tenant filter to where clause
       if (typeof params.args.where.tenantId === 'undefined') {
         params.args.where.tenantId = tenantId
       }
-      
+
       // For upsert, also add to create data
       if (params.action === 'upsert' && params.args.create) {
         if (typeof params.args.create.tenantId === 'undefined') {
@@ -116,7 +116,7 @@ export function createTenantMiddleware(): Prisma.Middleware {
     if (['delete', 'deleteMany'].includes(params.action)) {
       params.args = params.args || {}
       params.args.where = params.args.where || {}
-      
+
       // Add tenant filter to where clause
       if (typeof params.args.where.tenantId === 'undefined') {
         params.args.where.tenantId = tenantId
