@@ -9,11 +9,11 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions as any)
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = (session.user as any).role
     if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Super Admin access required' }, { status: 403 })
@@ -37,12 +37,36 @@ export async function POST(
       }
     })
 
-    return NextResponse.json({ 
-      success: true, 
+    // Create Calendar Events (Days) if config exists
+    if (body.daysConfig && Array.isArray(body.daysConfig)) {
+      await prisma.calendarEvent.createMany({
+        data: body.daysConfig.map((day: any) => {
+          const baseDate = new Date(day.date);
+          const [startH, startM] = day.startTime.split(':').map((n: string) => parseInt(n));
+          const [endH, endM] = day.endTime.split(':').map((n: string) => parseInt(n));
+
+          const start = new Date(baseDate);
+          start.setHours(startH, startM);
+
+          const end = new Date(baseDate);
+          end.setHours(endH, endM);
+
+          return {
+            eventId: event.id,
+            title: day.title,
+            startTime: start,
+            endTime: end,
+            location: venue
+          }
+        })
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
       event: {
         ...event,
         id: Number(event.id),
-        created_by: Number(event.created_by)
       }
     })
   } catch (error: any) {

@@ -310,21 +310,67 @@ export default function SuperAdminSettingsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Base Currency
                     </label>
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50/50 border-blue-100">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{globalCurrency.symbol}</span>
-                        <div>
-                          <div className="font-bold text-gray-900">{globalCurrency.code}</div>
-                          <div className="text-sm text-gray-500">{globalCurrency.name}</div>
-                        </div>
-                      </div>
-                      <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center">
-                        <div className="h-2 w-2 bg-white rounded-full" />
-                      </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {AVAILABLE_CURRENCIES.slice(0, 8).map((currency) => {
+                        const isSelected = globalCurrency.code === currency.code
+                        return (
+                          <div
+                            key={currency.code}
+                            className={`
+                              relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 cursor-default
+                              ${isSelected
+                                ? 'border-purple-600 bg-purple-50 shadow-sm'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                              }
+                            `}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 text-purple-600">
+                                <span className="flex h-4 w-4 rounded-full bg-purple-600 items-center justify-center">
+                                  <svg
+                                    width="10"
+                                    height="8"
+                                    viewBox="0 0 10 8"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M1 3.5L3.5 6L9 1"
+                                      stroke="white"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Flag Placeholder (using emoji for now as per previous logic or just span) */}
+                            <span className="text-2xl">
+                              {currency.code === 'USD' ? '🇺🇸' :
+                                currency.code === 'EUR' ? '🇪🇺' :
+                                  currency.code === 'GBP' ? '🇬🇧' :
+                                    currency.code === 'INR' ? '🇮🇳' :
+                                      currency.code === 'AUD' ? '🇦🇺' :
+                                        currency.code === 'CAD' ? '🇨🇦' :
+                                          currency.code === 'AED' ? '🇦🇪' :
+                                            currency.code === 'SGD' ? '🇸🇬' : '🏳️'}
+                            </span>
+
+                            <div className="text-center">
+                              <div className={`font-bold ${isSelected ? 'text-purple-700' : 'text-gray-900'}`}>
+                                {currency.code}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {currency.code} ({currency.symbol})
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      This is the primary currency for your dashboard and reports.
-                    </p>
                   </div>
                 </div>
               </div>

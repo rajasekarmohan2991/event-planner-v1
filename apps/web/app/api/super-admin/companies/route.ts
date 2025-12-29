@@ -30,7 +30,10 @@ export async function GET(req: NextRequest) {
         emailFromAddress: true,
         createdAt: true,
         _count: {
-          select: { members: true }
+          select: {
+            members: true,
+            events: true
+          }
         },
         members: {
           where: { role: 'TENANT_ADMIN' },
@@ -74,7 +77,7 @@ export async function GET(req: NextRequest) {
         createdAt: c.createdAt,
         billingEmail: fallbackEmail,
         _count: c._count,
-        eventCount: 0 // Placeholder to avoid N+1 API calls to Java service
+        eventCount: (c._count as any).events || 0
       }
     })
 

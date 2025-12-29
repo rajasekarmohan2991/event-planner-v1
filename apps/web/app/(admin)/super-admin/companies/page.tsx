@@ -31,6 +31,7 @@ export default function SuperAdminCompaniesPage() {
       const [companiesRes, analyticsRes] = await Promise.all([
         fetch("/api/super-admin/companies", {
           credentials: 'include',
+          cache: 'no-store',
           headers: { 'Content-Type': 'application/json' }
         }),
         fetch("/api/admin/analytics", {
