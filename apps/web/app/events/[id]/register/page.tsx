@@ -81,7 +81,31 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
         })
         if (res.ok) {
           const data = await res.json()
-          setHasSeats(data.totalSeats > 0)
+
+          // If no seats but floor plan exists, trigger generation
+          if (data.totalSeats === 0 && data.floorPlan) {
+            console.log('[REGISTER] No seats found but floor plan exists, triggering generation...')
+            try {
+              await fetch(`/api/events/${params.id}/seats/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+              })
+              // Re-check after generation
+              const recheckRes = await fetch(`/api/events/${params.id}/seats/availability`, {
+                cache: 'no-store'
+              })
+              if (recheckRes.ok) {
+                const recheckData = await recheckRes.json()
+                setHasSeats(recheckData.totalSeats > 0)
+              }
+            } catch (genError) {
+              console.error('[REGISTER] Failed to generate seats:', genError)
+              setHasSeats(false)
+            }
+          } else {
+            setHasSeats(data.totalSeats > 0)
+          }
         }
       } catch (error) {
         console.log('No seats available for this event')
