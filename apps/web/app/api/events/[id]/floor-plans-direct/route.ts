@@ -10,9 +10,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         console.log('[FLOOR PLANS] Fetching for eventId:', eventId.toString())
 
         // Use raw SQL to bypass tenant middleware
+        // Note: FloorPlan model has @map() for createdAt, updatedAt, tenantId only
         const plans = await prisma.$queryRaw`
             SELECT 
-                id, name, "eventId", "createdAt",
+                id, name, "eventId", created_at as "createdAt",
                 status, "totalCapacity",
                 "vipCapacity", "premiumCapacity",
                 "generalCapacity", "canvasWidth",
@@ -22,7 +23,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
                 "layoutData"
             FROM floor_plans
             WHERE "eventId" = ${eventId}
-            ORDER BY "createdAt" DESC
+            ORDER BY created_at DESC
         ` as any[]
 
         console.log('[FLOOR PLANS] Found:', plans.length, 'plans')
