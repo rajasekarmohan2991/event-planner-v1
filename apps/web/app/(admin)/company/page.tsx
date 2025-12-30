@@ -85,7 +85,6 @@ export default function CompanyDashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">{dashboard.company.name}</h1>
-          <p className="text-gray-600">Company Dashboard</p>
           <div className="flex items-center gap-2 mt-2">
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
               {dashboard.company.plan}
