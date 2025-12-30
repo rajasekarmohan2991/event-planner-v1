@@ -14,7 +14,8 @@ export default function CreateEventPage() {
     end_date: "",
     venue: "",
     max_attendees: "",
-    event_type: "CONFERENCE"
+    event_type: "CONFERENCE",
+    event_mode: "OFFLINE" // VIRTUAL, OFFLINE, HYBRID
   });
   const [daysDetails, setDaysDetails] = useState<any[]>([]);
 
@@ -166,18 +167,38 @@ export default function CreateEventPage() {
             </div>
           </div>
 
+          {/* Event Mode Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Venue
+              Event Mode
             </label>
-            <input
-              type="text"
-              value={formData.venue}
-              onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+            <select
+              value={formData.event_mode}
+              onChange={(e) => setFormData({ ...formData, event_mode: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Event venue"
-            />
+            >
+              <option value="OFFLINE">In-Person (Offline)</option>
+              <option value="VIRTUAL">Virtual (Online)</option>
+              <option value="HYBRID">Hybrid (Both)</option>
+            </select>
           </div>
+
+          {/* Venue - Only show for OFFLINE or HYBRID */}
+          {(formData.event_mode === "OFFLINE" || formData.event_mode === "HYBRID") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Venue {formData.event_mode === "OFFLINE" && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                required={formData.event_mode === "OFFLINE"}
+                value={formData.venue}
+                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Event venue location"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
