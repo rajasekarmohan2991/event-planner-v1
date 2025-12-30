@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Users, Ticket, Activity, RefreshCw, Plus, BarChart3, MessageSquare, Settings, Building2, Zap, Server, Mail, Tag, Edit, Eye, Trophy } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { RecentActivity } from '../_components/recent-activity';
-import { CurrencyConverter } from '../_components/currency-converter';
 
 import { StatsCard } from '../_components/stats-card';
 import { useToast } from '@/components/ui/use-toast';
@@ -424,11 +423,8 @@ export function AdminDashboardClient() {
           </CardContent>
         </Card>
 
-        {/* Right Column: Currency & Actions */}
+        {/* Right Column: Quick Actions */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="h-fit">
-            <CurrencyConverter />
-          </div>
 
           {/* Quick Actions Panel */}
           <Card className="border shadow-sm h-fit">
