@@ -68,9 +68,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json();
     const eventId = BigInt(params.id);
 
-    // 1. Fetch Event with dates
+    // 1. Fetch Event with dates and daysConfig
     const events = await prisma.$queryRaw`
-        SELECT tenant_id as "tenantId", starts_at as "startsAt", ends_at as "endsAt", name
+        SELECT tenant_id as "tenantId", starts_at as "startsAt", ends_at as "endsAt", name, days_config as "daysConfig"
         FROM events 
         WHERE id = ${eventId} LIMIT 1
     ` as any[]
@@ -90,15 +90,45 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
     }
 
-    // Validation 2: Within event dates
-    if (event.startsAt && event.endsAt) {
-      const eventStart = new Date(event.startsAt);
-      const eventEnd = new Date(event.endsAt);
+    // Validation 2: Check against day-specific times (multi-day) or event times (single-day)
+    const daysConfig = event.daysConfig as any[] | null;
 
-      if (sessionStart < eventStart || sessionEnd > eventEnd) {
+    if (daysConfig && daysConfig.length > 1) {
+      // Multi-day event: validate against specific day's time range
+      const sessionDate = sessionStart.toISOString().split('T')[0];
+      const dayConfig = daysConfig.find((d: any) => d.date.split('T')[0] === sessionDate);
+
+      if (!dayConfig) {
+        // Show available days
+        const availableDays = daysConfig.map((d: any) =>
+          `${d.title} (${new Date(d.date).toLocaleDateString()}): ${d.startTime} - ${d.endTime}`
+        ).join(', ');
+
         return NextResponse.json({
-          error: `Session must be between ${eventStart.toLocaleString()} and ${eventEnd.toLocaleString()}`
+          error: `Session date ${sessionDate} is not within event dates. Available days: ${availableDays}`
         }, { status: 400 });
+      }
+
+      // Combine date + time for validation
+      const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`);
+      const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`);
+
+      if (sessionStart < dayStart || sessionEnd > dayEnd) {
+        return NextResponse.json({
+          error: `Session must be between ${dayConfig.title}: ${dayConfig.startTime} - ${dayConfig.endTime}`
+        }, { status: 400 });
+      }
+    } else {
+      // Single-day event or no daysConfig: use event start/end
+      if (event.startsAt && event.endsAt) {
+        const eventStart = new Date(event.startsAt);
+        const eventEnd = new Date(event.endsAt);
+
+        if (sessionStart < eventStart || sessionEnd > eventEnd) {
+          return NextResponse.json({
+            error: `Session must be between ${eventStart.toLocaleString()} and ${eventEnd.toLocaleString()}`
+          }, { status: 400 });
+        }
       }
     }
 

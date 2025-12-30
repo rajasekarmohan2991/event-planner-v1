@@ -34,6 +34,7 @@ export async function POST(
         eventMode: event_type || 'OFFLINE',
         status: 'DRAFT',
         tenantId: params.id,
+        daysConfig: body.daysConfig || null, // Save multi-day configuration
       }
     })
 

@@ -33,26 +33,56 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
 
   const canSubmit = useMemo(() => title.trim().length > 0 && startTime && endTime, [title, startTime, endTime])
 
-  // Validate session times against event times
+  // Validate session times against event times (day-specific for multi-day events)
   const validateSessionTime = (sessionStart: string, sessionEnd: string) => {
     if (!event) return { valid: true, message: '' }
 
-    const eventStart = new Date(event.startsAt || event.startDate)
-    const eventEnd = new Date(event.endsAt || event.endDate)
     const sessStart = new Date(sessionStart)
     const sessEnd = new Date(sessionEnd)
+    const daysConfig = event.daysConfig as any[] | null
 
-    if (sessStart < eventStart) {
-      return {
-        valid: false,
-        message: `Session cannot start before event starts (${eventStart.toLocaleString()})`
+    if (daysConfig && daysConfig.length > 1) {
+      // Multi-day event: validate against specific day
+      const sessionDate = sessStart.toISOString().split('T')[0]
+      const dayConfig = daysConfig.find((d: any) => d.date.split('T')[0] === sessionDate)
+
+      if (!dayConfig) {
+        const availableDays = daysConfig.map((d: any) =>
+          `${d.title} (${new Date(d.date).toLocaleDateString()}): ${d.startTime} - ${d.endTime}`
+        ).join(', ')
+
+        return {
+          valid: false,
+          message: `Session date not in event. Available: ${availableDays}`
+        }
       }
-    }
 
-    if (sessEnd > eventEnd) {
-      return {
-        valid: false,
-        message: `Session cannot end after event ends (${eventEnd.toLocaleString()})`
+      const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`)
+      const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`)
+
+      if (sessStart < dayStart || sessEnd > dayEnd) {
+        return {
+          valid: false,
+          message: `Session must be between ${dayConfig.title}: ${dayConfig.startTime} - ${dayConfig.endTime}`
+        }
+      }
+    } else {
+      // Single-day event
+      const eventStart = new Date(event.startsAt || event.startDate)
+      const eventEnd = new Date(event.endsAt || event.endDate)
+
+      if (sessStart < eventStart) {
+        return {
+          valid: false,
+          message: `Session cannot start before event starts (${eventStart.toLocaleString()})`
+        }
+      }
+
+      if (sessEnd > eventEnd) {
+        return {
+          valid: false,
+          message: `Session cannot end after event ends (${eventEnd.toLocaleString()})`
+        }
       }
     }
 
@@ -188,16 +218,34 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
         {event && (event.startsAt || event.startDate) && (
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <div className="text-xs font-semibold text-blue-900 mb-1">
-              📅 Event Time Range
+              📅 {event.daysConfig && event.daysConfig.length > 1 ? 'Multi-Day Event Schedule' : 'Event Time Range'}
             </div>
-            <div className="text-xs text-blue-700">
-              {new Date(event.startsAt || event.startDate).toLocaleString()}
-              {' → '}
-              {new Date(event.endsAt || event.endDate).toLocaleString()}
-            </div>
-            <div className="text-xs text-blue-600 mt-1">
-              ℹ️ Sessions must be created within this time range
-            </div>
+            {event.daysConfig && event.daysConfig.length > 1 ? (
+              <div className="space-y-2">
+                {event.daysConfig.map((day: any, idx: number) => (
+                  <div key={idx} className="text-xs bg-white rounded p-2 border border-blue-100">
+                    <div className="font-semibold text-blue-900">{day.title}</div>
+                    <div className="text-blue-700">
+                      {new Date(day.date).toLocaleDateString()} • {day.startTime} - {day.endTime}
+                    </div>
+                  </div>
+                ))}
+                <div className="text-xs text-blue-600 mt-2">
+                  ℹ️ Sessions must be created within the specific day's time range
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-blue-700">
+                  {new Date(event.startsAt || event.startDate).toLocaleString()}
+                  {' → '}
+                  {new Date(event.endsAt || event.endDate).toLocaleString()}
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  ℹ️ Sessions must be created within this time range
+                </div>
+              </>
+            )}
           </div>
         )}
         {/* Session Selector for Auto-Fetch */}
