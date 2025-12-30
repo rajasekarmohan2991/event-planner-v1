@@ -147,26 +147,91 @@ export default function FloorPlanDesignerPage() {
             setLoading(true)
             console.log('[Floor Plan Editor] Loading floor plan...')
 
-            // Use the working endpoint
-            const response = await fetch(`/api/events/${eventId}/floor-plans-direct`)
+            const [response, countsRes] = await Promise.all([
+                fetch(`/api/events/${eventId}/floor-plans-direct`),
+                fetch(`/api/events/${eventId}/settings/seat-counts`)
+            ])
 
+            let planToUse = null
             if (response.ok) {
                 const data = await response.json()
-                console.log('[Floor Plan Editor] Received data:', data)
-
                 if (data.floorPlans && data.floorPlans.length > 0) {
-                    // Get the most recent floor plan (first in the list since they're ordered by createdAt desc)
-                    const plan = data.floorPlans[0]
-                    console.log('[Floor Plan Editor] Loading plan:', plan.name, plan.id)
+                    planToUse = data.floorPlans[0]
+                }
+            }
 
-                    setFloorPlan({
-                        ...plan,
-                        // Ensure prices are numbers
-                        vipPrice: Number(plan.vipPrice) || 0,
-                        premiumPrice: Number(plan.premiumPrice) || 0,
-                        generalPrice: Number(plan.generalPrice) || 0,
-                        objects: plan.objects || []
-                    })
+            if (planToUse) {
+                console.log('[Floor Plan Editor] Loading plan:', planToUse.name, planToUse.id)
+
+                // Ensure objects have necessary properties
+                const objects = planToUse.objects || []
+
+                setFloorPlan({
+                    ...planToUse,
+                    vipPrice: Number(planToUse.vipPrice) || 0,
+                    premiumPrice: Number(planToUse.premiumPrice) || 0,
+                    generalPrice: Number(planToUse.generalPrice) || 0,
+                    objects: objects
+                })
+
+                // Generate visual seats for loaded objects
+                setTimeout(() => {
+                    objects.forEach((obj: FloorPlanObject) => generateSeatsForObject(obj))
+                }, 100)
+
+            } else if (countsRes.ok) {
+                // Auto-generate based on saved counts
+                const counts = await countsRes.json()
+                const { vipSeats, premiumSeats, generalSeats } = counts
+
+                if ((vipSeats > 0 || premiumSeats > 0 || generalSeats > 0)) {
+                    const newObjects: FloorPlanObject[] = []
+                    let currentY = 100
+
+                    const colors = {
+                        VIP: { fill: '#fbbf24', stroke: '#f59e0b' },
+                        PREMIUM: { fill: '#3b82f6', stroke: '#2563eb' },
+                        GENERAL: { fill: '#6b7280', stroke: '#4b5563' }
+                    }
+
+                    const createBlock = (tier: string, count: number, color: any) => {
+                        if (count <= 0) return
+                        const cols = 10
+                        const rows = Math.ceil(count / cols)
+                        const obj: FloorPlanObject = {
+                            id: `${tier.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            type: 'GRID',
+                            subType: 'RECTANGLE',
+                            x: 100, y: currentY,
+                            width: cols * 25 + 30,
+                            height: rows * 25,
+                            rotation: 0,
+                            rows, cols,
+                            totalSeats: count,
+                            pricingTier: tier,
+                            fillColor: color.fill, strokeColor: color.stroke,
+                            label: `${tier} SECTION`
+                        }
+                        newObjects.push(obj)
+                        currentY += (rows * 25) + 50
+                    }
+
+                    createBlock('VIP', Number(vipSeats), colors.VIP)
+                    createBlock('PREMIUM', Number(premiumSeats), colors.PREMIUM)
+                    createBlock('GENERAL', Number(generalSeats), colors.GENERAL)
+
+                    if (newObjects.length > 0) {
+                        setFloorPlan(prev => ({
+                            ...prev,
+                            objects: newObjects
+                        }))
+
+                        setTimeout(() => {
+                            newObjects.forEach(obj => generateSeatsForObject(obj))
+                            // toast({ title: "Auto-generated layout", description: "Created floor plan based on your event capacity settings." })
+                            // alert('✨ Auto-generated floor plan layout based on your event settings!')
+                        }, 100)
+                    }
                 }
             }
         } catch (error) {

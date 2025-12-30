@@ -22,6 +22,7 @@ vi.mock('next-auth/react', () => ({
     data: null,
     status: 'unauthenticated',
   }),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock next/headers
@@ -32,3 +33,18 @@ vi.mock('next/headers', () => ({
     delete: vi.fn(),
   }),
 }));
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
