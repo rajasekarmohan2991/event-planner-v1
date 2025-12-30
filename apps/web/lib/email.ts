@@ -304,27 +304,114 @@ export const sendVerificationEmail = async ({
 
 export async function sendInviteEmail(email: string, name: string, inviteLink: string, companyName: string) {
   const html = `
-    <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-      <h2 style="color: #333;">Invitation to join ${companyName}</h2>
-      <p>Hi ${name},</p>
-      <p>You have been invited to join <strong>${companyName}</strong> on Event Planner.</p>
-      <p>Click the button below to accept the invitation and set up your account:</p>
-      <a href="${inviteLink}" 
-         style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-        Accept Invitation
-      </a>
-      <p>If the button doesn't work, copy and paste this link into your browser:</p>
-      <p style="word-break: break-all; color: #666;">${inviteLink}</p>
-      <p style="color: #666; font-size: 14px;">
-        This link will expire in 7 days. If you were not expecting this invitation, please ignore this email.
-      </p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Invitation to join ${companyName}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center" style="padding: 40px 20px;">
+            <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <!-- Header -->
+              <tr>
+                <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                    Invitation to join ${companyName}
+                  </h1>
+                </td>
+              </tr>
+              
+              <!-- Body -->
+              <tr>
+                <td style="padding: 40px;">
+                  <p style="margin: 0 0 20px; color: #333333; font-size: 16px; line-height: 1.6;">
+                    Hi <strong>${name}</strong>,
+                  </p>
+                  
+                  <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+                    You have been invited to join <strong style="color: #667eea;">${companyName}</strong> on Event Planner.
+                  </p>
+                  
+                  <p style="margin: 0 0 30px; color: #555555; font-size: 16px; line-height: 1.6;">
+                    Click the button below to accept the invitation and set up your account:
+                  </p>
+                  
+                  <!-- CTA Button -->
+                  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td align="center" style="padding: 0 0 30px;">
+                        <a href="${inviteLink}" 
+                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                          Accept Invitation
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <!-- Alternative Link -->
+                  <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 16px; border-radius: 4px; margin-bottom: 30px;">
+                    <p style="margin: 0 0 8px; color: #333333; font-size: 14px; font-weight: 600;">
+                      If the button doesn't work, copy and paste this link into your browser:
+                    </p>
+                    <p style="margin: 0; word-break: break-all;">
+                      <a href="${inviteLink}" style="color: #667eea; text-decoration: none; font-size: 13px;">
+                        ${inviteLink}
+                      </a>
+                    </p>
+                  </div>
+                  
+                  <!-- Expiry Notice -->
+                  <p style="margin: 0; color: #999999; font-size: 14px; line-height: 1.6;">
+                    ⏰ This link will expire in <strong>7 days</strong>. If you were not expecting this invitation, please ignore this email.
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;">
+                  <p style="margin: 0 0 10px; color: #666666; font-size: 14px; text-align: center;">
+                    Best regards,<br>
+                    <strong>The Event Planner Team</strong>
+                  </p>
+                  <p style="margin: 0; color: #999999; font-size: 12px; text-align: center;">
+                    © ${new Date().getFullYear()} Event Planner. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  const text = `
+Invitation to join ${companyName}
+
+Hi ${name},
+
+You have been invited to join ${companyName} on Event Planner.
+
+Click the link below to accept the invitation and set up your account:
+${inviteLink}
+
+This link will expire in 7 days. If you were not expecting this invitation, please ignore this email.
+
+Best regards,
+The Event Planner Team
   `
 
   return sendEmail({
     to: email,
     subject: `Invitation to join ${companyName} - Event Planner`,
     html,
+    text,
   })
 }
 
