@@ -788,19 +788,25 @@ export function MediaStep({
   }
 
   const handleSubmit = (data: MediaFormValues) => {
-    const totalSeats = (data.vipSeats || 0) + (data.premiumSeats || 0) + (data.generalSeats || 0);
+    const eventMode = initialData?.eventMode || 'IN_PERSON';
+    const isVirtual = eventMode === 'VIRTUAL';
 
-    if (totalSeats > capacity) {
-      form.setError('vipSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
-      form.setError('premiumSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
-      form.setError('generalSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
-      // Also toast for visibility
-      toast({
-        title: "Capacity Exceeded",
-        description: `Total allocated seats (${totalSeats}) exceeds event capacity (${capacity}). Please adjust your seat distribution.`,
-        variant: "destructive"
-      });
-      return;
+    // Skip seat capacity validation for virtual events (they have unlimited capacity)
+    if (!isVirtual) {
+      const totalSeats = (data.vipSeats || 0) + (data.premiumSeats || 0) + (data.generalSeats || 0);
+
+      if (totalSeats > capacity) {
+        form.setError('vipSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
+        form.setError('premiumSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
+        form.setError('generalSeats', { type: 'custom', message: `Total seats (${totalSeats}) exceeds capacity (${capacity})` });
+        // Also toast for visibility
+        toast({
+          title: "Capacity Exceeded",
+          description: `Total allocated seats (${totalSeats}) exceeds event capacity (${capacity}). Please adjust your seat distribution.`,
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     onSubmit(data);
@@ -881,109 +887,135 @@ export function MediaStep({
 
         {/* Ticket Pricing & Seat Configuration */}
         <div className="border-t pt-6 mt-6">
-          <h3 className="text-lg font-semibold mb-4">Ticket Pricing & Seating</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Total Capacity: <span className="font-semibold">{capacity}</span> seats
-          </p>
+          {(() => {
+            const eventMode = initialData?.eventMode || 'IN_PERSON';
+            const isVirtual = eventMode === 'VIRTUAL';
+            const attendeeLabel = isVirtual ? 'Attendees' : 'Seats';
+            const ticketLabel = isVirtual ? 'Tickets' : 'Tickets';
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* VIP Section */}
-            <div className="border rounded-lg p-4 bg-yellow-50">
-              <h4 className="font-semibold text-yellow-800 mb-3">VIP Tickets</h4>
-              <FormField
-                control={form.control}
-                name="vipSeats"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of VIP Seats</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="vipPrice"
-                render={({ field }) => (
-                  <FormItem className="mt-3">
-                    <FormLabel>Price per VIP Ticket (₹)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            return (
+              <>
+                <h3 className="text-lg font-semibold mb-4">
+                  Ticket Pricing {!isVirtual && '& Seating'}
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {isVirtual ? (
+                    <>
+                      Expected Attendees: <span className="font-semibold">{capacity}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">(Virtual events have unlimited capacity)</span>
+                    </>
+                  ) : (
+                    <>
+                      Total Capacity: <span className="font-semibold">{capacity}</span> seats
+                    </>
+                  )}
+                </p>
 
-            {/* Premium Section */}
-            <div className="border rounded-lg p-4 bg-blue-50">
-              <h4 className="font-semibold text-blue-800 mb-3">Premium Tickets</h4>
-              <FormField
-                control={form.control}
-                name="premiumSeats"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Premium Seats</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="premiumPrice"
-                render={({ field }) => (
-                  <FormItem className="mt-3">
-                    <FormLabel>Price per Premium Ticket (₹)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* VIP Section */}
+                  <div className="border rounded-lg p-4 bg-yellow-50">
+                    <h4 className="font-semibold text-yellow-800 mb-3">VIP {ticketLabel}</h4>
+                    <FormField
+                      control={form.control}
+                      name="vipSeats"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of VIP {attendeeLabel}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="vipPrice"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <FormLabel>Price per VIP Ticket (₹)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-            {/* General Section */}
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <h4 className="font-semibold text-gray-800 mb-3">General Tickets</h4>
-              <FormField
-                control={form.control}
-                name="generalSeats"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of General Seats</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="generalPrice"
-                render={({ field }) => (
-                  <FormItem className="mt-3">
-                    <FormLabel>Price per General Ticket (₹)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+                  {/* Premium Section */}
+                  <div className="border rounded-lg p-4 bg-blue-50">
+                    <h4 className="font-semibold text-blue-800 mb-3">Premium {ticketLabel}</h4>
+                    <FormField
+                      control={form.control}
+                      name="premiumSeats"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Premium {attendeeLabel}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="premiumPrice"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <FormLabel>Price per Premium Ticket (₹)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-          <p className="text-xs text-gray-500 mt-4">
-            💡 Tip: Total seats should not exceed capacity ({capacity}). Leave price as 0 for free tickets.
-          </p>
+                  {/* General Section */}
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <h4 className="font-semibold text-gray-800 mb-3">General {ticketLabel}</h4>
+                    <FormField
+                      control={form.control}
+                      name="generalSeats"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of General {attendeeLabel}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="generalPrice"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <FormLabel>Price per General Ticket (₹)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-4">
+                  {isVirtual ? (
+                    <>💡 Tip: Set ticket pricing tiers. Virtual events don't have seat limits. Leave price as 0 for free tickets.</>
+                  ) : (
+                    <>💡 Tip: Total seats should not exceed capacity ({capacity}). Leave price as 0 for free tickets.</>
+                  )}
+                </p>
+              </>
+            );
+          })()}
         </div>
       </form>
     </Form>
