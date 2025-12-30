@@ -1279,6 +1279,9 @@ model Event {
   eventManagerName   String?   @map("event_manager_name")
   eventManagerContact String?  @map("event_manager_contact")
   eventManagerEmail  String?   @map("event_manager_email")
+  
+  // Multi-day event configuration
+  daysConfig         Json?     @map("days_config") // Stores array of {date, title, startTime, endTime}
 
   tenant             Tenant?      @relation(fields: [tenantId], references: [id])
   speakers           Speaker[]
