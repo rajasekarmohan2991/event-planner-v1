@@ -185,52 +185,91 @@ export default function FloorPlanDesignerPage() {
                 const { vipSeats, premiumSeats, generalSeats } = counts
 
                 if ((vipSeats > 0 || premiumSeats > 0 || generalSeats > 0)) {
-                    const newObjects: FloorPlanObject[] = []
-                    let currentY = 100
+                    // Create a proper layoutData structure for seat generation
+                    const sections: any[] = []
 
-                    const colors = {
-                        VIP: { fill: '#fbbf24', stroke: '#f59e0b' },
-                        PREMIUM: { fill: '#3b82f6', stroke: '#2563eb' },
-                        GENERAL: { fill: '#6b7280', stroke: '#4b5563' }
-                    }
-
-                    const createBlock = (tier: string, count: number, color: any) => {
-                        if (count <= 0) return
+                    if (vipSeats > 0) {
                         const cols = 10
-                        const rows = Math.ceil(count / cols)
-                        const obj: FloorPlanObject = {
-                            id: `${tier.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                            type: 'GRID',
-                            subType: 'RECTANGLE',
-                            x: 100, y: currentY,
-                            width: cols * 25 + 30,
-                            height: rows * 25,
-                            rotation: 0,
-                            rows, cols,
-                            totalSeats: count,
-                            pricingTier: tier,
-                            fillColor: color.fill, strokeColor: color.stroke,
-                            label: `${tier} SECTION`
-                        }
-                        newObjects.push(obj)
-                        currentY += (rows * 25) + 50
+                        const rows = Math.ceil(vipSeats / cols)
+                        sections.push({
+                            name: 'VIP Section',
+                            basePrice: 5000,
+                            tier: 'VIP',
+                            rows: Array.from({ length: rows }).map((_, rIdx) => ({
+                                number: String.fromCharCode(65 + rIdx), // A, B, C...
+                                seats: cols,
+                                xOffset: 100,
+                                yOffset: 100 + (rIdx * 50)
+                            }))
+                        })
                     }
 
-                    createBlock('VIP', Number(vipSeats), colors.VIP)
-                    createBlock('PREMIUM', Number(premiumSeats), colors.PREMIUM)
-                    createBlock('GENERAL', Number(generalSeats), colors.GENERAL)
+                    if (premiumSeats > 0) {
+                        const cols = 10
+                        const rows = Math.ceil(premiumSeats / cols)
+                        const yStart = vipSeats > 0 ? 100 + (Math.ceil(vipSeats / cols) * 50) + 100 : 100
+                        sections.push({
+                            name: 'Premium Section',
+                            basePrice: 2000,
+                            tier: 'PREMIUM',
+                            rows: Array.from({ length: rows }).map((_, rIdx) => ({
+                                number: String.fromCharCode(65 + rIdx + (vipSeats > 0 ? Math.ceil(vipSeats / 10) : 0)),
+                                seats: cols,
+                                xOffset: 100,
+                                yOffset: yStart + (rIdx * 50)
+                            }))
+                        })
+                    }
 
-                    if (newObjects.length > 0) {
-                        setFloorPlan(prev => ({
-                            ...prev,
-                            objects: newObjects
-                        }))
+                    if (generalSeats > 0) {
+                        const cols = 10
+                        const rows = Math.ceil(generalSeats / cols)
+                        const prevRows = (vipSeats > 0 ? Math.ceil(vipSeats / 10) : 0) + (premiumSeats > 0 ? Math.ceil(premiumSeats / 10) : 0)
+                        const yStart = 100 + (prevRows * 50) + (prevRows > 0 ? 100 : 0)
+                        sections.push({
+                            name: 'General Section',
+                            basePrice: 500,
+                            tier: 'STANDARD',
+                            rows: Array.from({ length: rows }).map((_, rIdx) => ({
+                                number: String.fromCharCode(65 + rIdx + prevRows),
+                                seats: cols,
+                                xOffset: 100,
+                                yOffset: yStart + (rIdx * 50)
+                            }))
+                        })
+                    }
 
-                        setTimeout(() => {
-                            newObjects.forEach(obj => generateSeatsForObject(obj))
-                            // toast({ title: "Auto-generated layout", description: "Created floor plan based on your event capacity settings." })
-                            // alert('✨ Auto-generated floor plan layout based on your event settings!')
-                        }, 100)
+                    if (sections.length > 0) {
+                        const totalSeats = (vipSeats || 0) + (premiumSeats || 0) + (generalSeats || 0)
+
+                        // Save this layout to the database
+                        const saveRes = await fetch(`/api/events/${eventId}/floor-plan`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: 'Auto-Generated Layout',
+                                layoutData: {
+                                    name: 'Auto-Generated Layout',
+                                    totalSeats: totalSeats,
+                                    sections: sections
+                                },
+                                vipPrice: 5000,
+                                premiumPrice: 2000,
+                                generalPrice: 500
+                            })
+                        })
+
+                        if (saveRes.ok) {
+                            // Trigger seat generation
+                            await fetch(`/api/events/${eventId}/seats/generate`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({})
+                            })
+
+                            // Reload the page to show the generated plan
+                            window.location.reload()
+                        }
                     }
                 }
             }
