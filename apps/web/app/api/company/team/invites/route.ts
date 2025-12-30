@@ -103,7 +103,9 @@ export async function POST(req: NextRequest) {
       })
 
       if (existingMember) {
-        return NextResponse.json({ error: 'User is already a team member' }, { status: 409 })
+        return NextResponse.json({
+          error: 'This user is already a team member. Please try a different email address.'
+        }, { status: 409 })
       }
     }
 
