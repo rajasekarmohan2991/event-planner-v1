@@ -54,10 +54,10 @@ export default function TeamInvitationsPage() {
       setSaving(true)
       setMessage(null)
 
-      const url = editingInvite 
+      const url = editingInvite
         ? `/api/company/team/invites/${editingInvite.id}`
         : '/api/company/team/invites'
-      
+
       const method = editingInvite ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
@@ -68,7 +68,7 @@ export default function TeamInvitationsPage() {
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to save invite')
+        throw new Error(error.error || error.message || 'Failed to save invite')
       }
 
       setMessage({ type: 'success', text: editingInvite ? 'Invite updated' : 'Invite sent successfully' })
@@ -85,11 +85,11 @@ export default function TeamInvitationsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this invitation?')) return
-    
+
     try {
       const res = await fetch(`/api/company/team/invites/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete invite')
-      
+
       setMessage({ type: 'success', text: 'Invite deleted' })
       loadInvites()
     } catch (error: any) {
@@ -106,7 +106,7 @@ export default function TeamInvitationsPage() {
       })
 
       if (!res.ok) throw new Error('Failed to update status')
-      
+
       setMessage({ type: 'success', text: `Invite ${status.toLowerCase()}` })
       loadInvites()
     } catch (error: any) {
@@ -182,11 +182,10 @@ export default function TeamInvitationsPage() {
 
       {/* Success/Error Message */}
       {message && (
-        <div className={`px-4 py-3 rounded-lg border ${
-          message.type === 'success' 
-            ? 'bg-green-50 border-green-200 text-green-800' 
+        <div className={`px-4 py-3 rounded-lg border ${message.type === 'success'
+            ? 'bg-green-50 border-green-200 text-green-800'
             : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
+          }`}>
           {message.text}
         </div>
       )}
@@ -197,7 +196,7 @@ export default function TeamInvitationsPage() {
           <h2 className="text-xl font-semibold text-gray-900">Team Members</h2>
           <p className="text-gray-600 text-sm mt-1">Manage invitations and team member access</p>
         </div>
-        
+
         {invites.length === 0 ? (
           <div className="p-12 text-center">
             <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
