@@ -8,7 +8,7 @@ import {
     ChevronDown, Rocket
 } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function EventWorkspaceClient({
@@ -27,11 +27,27 @@ export default function EventWorkspaceClient({
     const { data: sessionData } = useSession()
     const base = `/events/${eventId}`
 
+    const [eventMode, setEventMode] = useState<string>('IN_PERSON')
+
+    useEffect(() => {
+        if (eventId) {
+            fetch(`/api/events/${eventId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data?.eventMode) setEventMode(data.eventMode)
+                })
+                .catch(e => console.error(e))
+        }
+    }, [eventId])
+
+    const isVirtual = eventMode === 'VIRTUAL'
+
     const items = [
         { href: `${base}`, label: 'Dashboard', icon: LayoutGrid },
         { href: `${base}/info`, label: 'Manage', icon: ClipboardList },
         { href: `${base}/registrations`, label: 'Registrations', icon: Users },
-        { href: `${base}/design`, label: 'Design', icon: PencilRuler },
+        // Only show Design for non-virtual events
+        ...(!isVirtual ? [{ href: `${base}/design`, label: 'Design', icon: PencilRuler }] : []),
         { href: `${base}/communicate`, label: 'Communicate', icon: MessageSquare },
         { href: `${base}/reports`, label: 'Reports', icon: FileBarChart },
         { href: `${base}/event-day`, label: 'Event Day', icon: CalendarCheck2 },

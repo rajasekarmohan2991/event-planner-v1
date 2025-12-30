@@ -25,6 +25,18 @@ function DesignEditor({ eventId }: { eventId: string }) {
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([])
   const [msg, setMsg] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (eventId) {
+      fetch(`/api/events/${eventId}`).then(r => r.json()).then(d => {
+        if (d?.eventMode === 'VIRTUAL') {
+          // Redirect virtual events away from design page
+          router.replace(`/events/${eventId}`)
+        }
+      }).catch(console.error)
+    }
+  }, [eventId, router])
+
+
   async function loadFloorPlans() {
     setLoading(true); setMsg(null)
     try {
