@@ -42,8 +42,8 @@ const sessionsSchema = z.object({
 });
 
 const eventDetailsSchema = z.object({
-  city: z.string().min(2, 'City is required'),
-  venue: z.string().min(3, 'Venue must be at least 3 characters'),
+  city: z.string().optional(), // Made optional, will validate conditionally
+  venue: z.string().optional(), // Made optional, will validate conditionally
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 });
@@ -271,10 +271,15 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
     },
   });
 
-  // Get event type, category, and capacity from previous step
+  // Get event mode, type, category, and capacity from previous step
+  const eventMode = initialData?.eventMode || 'IN_PERSON';
   const eventType = initialData?.type || '';
   const eventCategory = initialData?.category || '';
   const eventCapacity = initialData?.capacity || 50;
+
+  // Determine if venue/city are required
+  const isVirtual = eventMode === 'VIRTUAL';
+  const requiresVenue = eventMode === 'IN_PERSON';
 
   // City autocomplete and venue suggestions
   const [cityQuery, setCityQuery] = useState<string>('');
@@ -282,6 +287,31 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
   const [venueOptions, setVenueOptions] = useState<Array<{ name: string; lat?: number; lon?: number }>>([]);
   const [venueQuery, setVenueQuery] = useState<string>('');
   const city = form.watch('city');
+
+  // Custom validation and submission
+  const handleFormSubmit = (data: EventDetailsFormValues) => {
+    // For IN_PERSON events, venue and city are required
+    if (requiresVenue) {
+      if (!data.city || data.city.trim().length < 2) {
+        form.setError('city', { message: 'City is required for in-person events' });
+        return;
+      }
+      if (!data.venue || data.venue.trim().length < 3) {
+        form.setError('venue', { message: 'Venue must be at least 3 characters for in-person events' });
+        return;
+      }
+    }
+
+    // For VIRTUAL events, clear venue/city data
+    if (isVirtual) {
+      data.city = undefined;
+      data.venue = undefined;
+      data.latitude = undefined;
+      data.longitude = undefined;
+    }
+
+    onSubmit(data);
+  };
 
   // Fetch city suggestions (debounced) - using mock data
   useEffect(() => {
@@ -354,110 +384,123 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
 
   return (
     <Form {...form}>
-      <form id="step-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* City with autocomplete */}
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input
-                      placeholder="Type any city name (e.g., Auckland, London, Tokyo)..."
-                      value={field.value}
-                      onChange={(e) => { field.onChange(e.target.value); setCityQuery(e.target.value); }}
-                    />
-                  </FormControl>
-                  {cityOptions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md max-h-44 overflow-auto">
-                      {cityOptions.map((opt, idx) => (
-                        <button
-                          key={`${opt.name}-${idx}`}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                          onClick={() => {
-                            form.setValue('city', opt.name);
-                            if (typeof opt.lat === 'number' && typeof opt.lon === 'number') {
-                              form.setValue('latitude', opt.lat);
-                              form.setValue('longitude', opt.lon);
-                            }
-                            setCityOptions([]);
-                            setCityQuery('');
-                          }}
-                        >
-                          {opt.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You can type any city worldwide. Press Enter to use your typed city if no suggestions appear.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="venue"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Venue</FormLabel>
-                <div className="relative">
-                  <FormControl>
-                    <Input placeholder="Where is the event?" {...field} onChange={(e) => { field.onChange(e); setVenueQuery(e.target.value); }} />
-                  </FormControl>
-                  {venueOptions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md max-h-44 overflow-auto">
-                      {venueOptions.map((v, i) => (
-                        <button
-                          key={`${v.name}-${i}`}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                          onClick={() => {
-                            form.setValue('venue', v.name)
-                            if (typeof v.lat === 'number' && typeof v.lon === 'number') {
-                              form.setValue('latitude', v.lat)
-                              form.setValue('longitude', v.lon)
-                            }
-                            setVenueOptions([]);
-                          }}
-                        >
-                          {v.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {form.watch('venue') &&
-                  typeof form.watch('latitude') === 'number' &&
-                  typeof form.watch('longitude') === 'number' &&
-                  (form.watch('latitude') !== 0 || form.watch('longitude') !== 0) && (
-                    <div className="mt-2">
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${form.watch('latitude')},${form.watch('longitude')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Open in Google Maps ↗
-                      </a>
-                    </div>
-                  )}
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form id="step-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {/* Show event mode info */}
+        <div className="rounded-lg border bg-muted/50 p-4">
+          <h3 className="text-sm font-medium mb-2">Event Mode: <span className="text-primary">{eventMode === 'IN_PERSON' ? 'In Person' : eventMode === 'VIRTUAL' ? 'Virtual' : 'Hybrid'}</span></h3>
+          {isVirtual && (
+            <p className="text-xs text-muted-foreground">
+              ✨ Virtual events don't require venue or city information
+            </p>
+          )}
         </div>
+
+        {/* Only show venue/city for non-virtual events */}
+        {!isVirtual && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* City with autocomplete */}
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City {requiresVenue && <span className="text-red-500">*</span>}</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        placeholder="Type any city name (e.g., Auckland, London, Tokyo)..."
+                        value={field.value || ''}
+                        onChange={(e) => { field.onChange(e.target.value); setCityQuery(e.target.value); }}
+                      />
+                    </FormControl>
+                    {cityOptions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md max-h-44 overflow-auto">
+                        {cityOptions.map((opt, idx) => (
+                          <button
+                            key={`${opt.name}-${idx}`}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                            onClick={() => {
+                              form.setValue('city', opt.name);
+                              if (typeof opt.lat === 'number' && typeof opt.lon === 'number') {
+                                form.setValue('latitude', opt.lat);
+                                form.setValue('longitude', opt.lon);
+                              }
+                              setCityOptions([]);
+                              setCityQuery('');
+                            }}
+                          >
+                            {opt.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You can type any city worldwide. Press Enter to use your typed city if no suggestions appear.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="venue"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Venue {requiresVenue && <span className="text-red-500">*</span>}</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input placeholder="Where is the event?" {...field} value={field.value || ''} onChange={(e) => { field.onChange(e); setVenueQuery(e.target.value); }} />
+                    </FormControl>
+                    {venueOptions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md max-h-44 overflow-auto">
+                        {venueOptions.map((v, i) => (
+                          <button
+                            key={`${v.name}-${i}`}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                            onClick={() => {
+                              form.setValue('venue', v.name)
+                              if (typeof v.lat === 'number' && typeof v.lon === 'number') {
+                                form.setValue('latitude', v.lat)
+                                form.setValue('longitude', v.lon)
+                              }
+                              setVenueOptions([]);
+                            }}
+                          >
+                            {v.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {form.watch('venue') &&
+                    typeof form.watch('latitude') === 'number' &&
+                    typeof form.watch('longitude') === 'number' &&
+                    (form.watch('latitude') !== 0 || form.watch('longitude') !== 0) && (
+                      <div className="mt-2">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${form.watch('latitude')},${form.watch('longitude')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Open in Google Maps ↗
+                        </a>
+                      </div>
+                    )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         {/* Display selected event details from previous step */}
         <div className="rounded-lg border bg-muted/50 p-4">
@@ -476,9 +519,11 @@ export function EventDetailsStep({ onSubmit, initialData }: { onSubmit: (data: a
               <span className="ml-2 font-medium">{eventCapacity || 0}</span>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Venues below are filtered based on these criteria
-          </p>
+          {!isVirtual && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Venues below are filtered based on these criteria
+            </p>
+          )}
         </div>
 
       </form>
