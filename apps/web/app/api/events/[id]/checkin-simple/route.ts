@@ -54,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const registrationCheck = await prisma.$queryRaw`
       SELECT id FROM registrations 
       WHERE id = ${payload.registrationId}
-        AND "eventId" = ${BigInt(eventId)}
+        AND event_id = ${BigInt(eventId)}
       LIMIT 1
     ` as any[]
 
@@ -66,12 +66,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const registrationData = await prisma.$queryRaw`
       SELECT 
         id, 
-        "dataJson",
-        "checkInStatus",
-        "createdAt"
+        data_json as "dataJson",
+        check_in_status as "checkInStatus",
+        created_at as "createdAt"
       FROM registrations 
       WHERE id = ${payload.registrationId}
-        AND "eventId" = ${BigInt(eventId)}
+        AND event_id = ${BigInt(eventId)}
       LIMIT 1
     ` as any[]
 
@@ -130,12 +130,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await prisma.$executeRaw`
         UPDATE registrations 
         SET 
-          "dataJson" = ${JSON.stringify(updatedData)},
-          "checkInStatus" = 'CHECKED_IN',
-          "checkInTime" = NOW(),
-          "updatedAt" = NOW()
+          data_json = ${JSON.stringify(updatedData)},
+          check_in_status = 'CHECKED_IN',
+          check_in_time = NOW(),
+          updated_at = NOW()
         WHERE id = ${payload.registrationId} 
-          AND "eventId" = ${BigInt(eventId)}
+          AND event_id = ${BigInt(eventId)}
       `
       console.log(`✅ Updated registration ${payload.registrationId} to CHECKED_IN`)
     } catch (e) {
@@ -145,10 +145,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         await prisma.$executeRaw`
           UPDATE registrations 
           SET 
-            "dataJson" = ${JSON.stringify(updatedData)},
-            "updatedAt" = NOW()
+            data_json = ${JSON.stringify(updatedData)},
+            updated_at = NOW()
           WHERE id = ${payload.registrationId} 
-            AND "eventId" = ${BigInt(eventId)}
+            AND event_id = ${BigInt(eventId)}
         `
         console.log(`✅ Updated registration ${payload.registrationId} (fallback mode)`)
       } catch (fallbackErr) {
