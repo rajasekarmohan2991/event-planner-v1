@@ -24,9 +24,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     let assignments: any[] = []
+    let invitations: any[] = []
 
     try {
-      // Query with explicit no-cache
+      // Query accepted members from EventRoleAssignment
       assignments = await prisma.$queryRawUnsafe(`
         SELECT 
           a.id, 
@@ -37,34 +38,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           u.name, 
           u.email, 
           u.image,
-          u.password_hash as "hasPassword"
+          u.password_hash as "hasPassword",
+          'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id
         WHERE a."eventId" = $1
         ORDER BY a."createdAt" DESC
       `, eventId)
 
-      console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} members`)
+      console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} accepted members`)
 
-      if (assignments.length > 0) {
-        console.log(`📋 [TEAM MEMBERS ${timestamp}] First member:`, {
-          id: assignments[0].id,
-          eventId: assignments[0].eventId,
-          userId: assignments[0].userId,
-          email: assignments[0].email,
-          role: assignments[0].role
-        })
-      } else {
-        console.log(`⚠️ [TEAM MEMBERS ${timestamp}] NO MEMBERS FOUND for eventId: ${eventId}`)
+      // Query pending invitations from event_team_invitations
+      try {
+        invitations = await prisma.$queryRawUnsafe(`
+          SELECT 
+            id,
+            event_id as "eventId",
+            email,
+            role,
+            status,
+            created_at as "createdAt",
+            'INVITED' as source
+          FROM event_team_invitations
+          WHERE event_id = $1 AND status = 'PENDING'
+          ORDER BY created_at DESC
+        `, eventId)
 
-        // Debug: Check if ANY assignments exist
-        const allAssignments = await prisma.$queryRawUnsafe(`
-          SELECT "eventId", COUNT(*) as count
-          FROM "EventRoleAssignment"
-          GROUP BY "eventId"
-          LIMIT 5
-        `)
-        console.log(`📊 [TEAM MEMBERS ${timestamp}] All eventIds in DB:`, allAssignments)
+        console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${invitations.length} pending invitations`)
+      } catch (inviteError: any) {
+        console.log(`⚠️ [TEAM MEMBERS ${timestamp}] Could not fetch invitations (table may not exist):`, inviteError.message)
+        invitations = []
+      }
+
+      const totalCount = assignments.length + invitations.length
+      console.log(`📊 [TEAM MEMBERS ${timestamp}] Total: ${totalCount} (${assignments.length} joined + ${invitations.length} invited)`)
+
+      if (totalCount === 0) {
+        console.log(`⚠️ [TEAM MEMBERS ${timestamp}] NO MEMBERS OR INVITATIONS FOUND for eventId: ${eventId}`)
       }
 
     } catch (queryError: any) {
@@ -86,18 +96,38 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       throw queryError
     }
 
-    const items = assignments.map((a: any) => ({
+    // Map accepted members
+    const acceptedMembers = assignments.map((a: any) => ({
       id: String(a.id),
       userId: a.userId ? String(a.userId) : null,
       name: a.name || a.email?.split('@')[0] || 'Unknown User',
       email: a.email || 'unknown@example.com',
       role: a.role || 'STAFF',
-      status: a.hasPassword ? 'JOINED' : 'INVITED',
+      status: 'JOINED',
       imageUrl: a.image || null,
       invitedAt: a.createdAt,
-      joinedAt: a.hasPassword ? a.createdAt : null,
-      progress: a.hasPassword ? 100 : 25
+      joinedAt: a.createdAt,
+      progress: 100,
+      source: 'assignment'
     }))
+
+    // Map pending invitations
+    const pendingInvites = invitations.map((inv: any) => ({
+      id: String(inv.id),
+      userId: null,
+      name: inv.email?.split('@')[0] || 'Invited User',
+      email: inv.email || 'unknown@example.com',
+      role: inv.role || 'STAFF',
+      status: 'INVITED',
+      imageUrl: null,
+      invitedAt: inv.createdAt,
+      joinedAt: null,
+      progress: 25,
+      source: 'invitation'
+    }))
+
+    // Combine both lists
+    const items = [...acceptedMembers, ...pendingInvites]
 
     console.log(`✅ [TEAM MEMBERS ${timestamp}] Returning ${items.length} items`)
 
