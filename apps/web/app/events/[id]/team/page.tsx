@@ -47,22 +47,32 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
     const load = async () => {
       try {
         setLoading(true)
+        console.log('[team page] Loading team members for event:', params.id)
         const resp = await listTeamMembers(params.id, { page, limit, q: searchEventMembers || undefined, sortBy, sortDir }, accessToken)
+        console.log('[team page] API response:', resp)
+        console.log('[team page] Items count:', resp.items?.length)
+        console.log('[team page] Items data:', resp.items)
         if (!mounted) return
-        const mapped: Member[] = resp.items.map((m: ApiTeamMember) => ({
-          id: String(m.id),
-          name: m.name,
-          email: m.email,
-          role: m.role,
-          status: m.status === 'INVITED' ? 'Invited' : m.status === 'JOINED' ? 'Joined' : m.status === 'REJECTED' ? 'Rejected' : String(m.status),
-          statusAgo: m.invitedAt ? 'Recently' : undefined,
-          progressLabel: 'Profile',
-          progress: typeof m.progress === 'number' ? m.progress : 0,
-        }))
+        const mapped: Member[] = resp.items.map((m: ApiTeamMember) => {
+          console.log('[team page] Mapping member:', m)
+          return {
+            id: String(m.id),
+            name: m.name,
+            email: m.email,
+            role: m.role,
+            status: m.status === 'INVITED' ? 'Invited' : m.status === 'JOINED' ? 'Joined' : m.status === 'REJECTED' ? 'Rejected' : String(m.status),
+            statusAgo: m.invitedAt ? 'Recently' : undefined,
+            progressLabel: 'Profile',
+            progress: typeof m.progress === 'number' ? m.progress : 0,
+          }
+        })
+        console.log('[team page] Mapped members:', mapped)
+        console.log('[team page] Mapped count:', mapped.length)
         setEventMembers(mapped)
         setTotalPages(resp.totalPages || 1)
         setError(null)
       } catch (e: any) {
+        console.error('[team page] Error loading members:', e)
         if (mounted) setError(e?.message || 'Failed to load team members')
       } finally {
         if (mounted) setLoading(false)
@@ -107,10 +117,17 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
   }, [inviteOpen])
 
   const filteredEventMembers = useMemo(() => {
+    console.log('[team page] Filtering members. Total eventMembers:', eventMembers.length)
     const base = eventMembers.filter(m => m.name !== 'anonymousUser' && m.email !== 'anonymousUser')
+    console.log('[team page] After anonymousUser filter:', base.length)
     const q = searchEventMembers.trim().toLowerCase()
-    if (!q) return base
-    return base.filter(m => `${m.name} ${m.email} ${m.role} ${m.status}`.toLowerCase().includes(q))
+    if (!q) {
+      console.log('[team page] No search query, returning base:', base.length)
+      return base
+    }
+    const filtered = base.filter(m => `${m.name} ${m.email} ${m.role} ${m.status}`.toLowerCase().includes(q))
+    console.log('[team page] After search filter:', filtered.length)
+    return filtered
   }, [searchEventMembers, eventMembers])
 
   const reloadMembers = async () => {
