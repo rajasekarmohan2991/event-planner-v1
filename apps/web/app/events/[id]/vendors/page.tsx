@@ -48,6 +48,7 @@ export default function EventVendorsPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('')
     const [loading, setLoading] = useState(false)
 
+
     const [vendorForm, setVendorForm] = useState({
         name: '',
         contactName: '',
@@ -59,7 +60,12 @@ export default function EventVendorsPage() {
         paymentDueDate: '',
         status: 'ACTIVE',
         notes: '',
-        requirements: ''
+        requirements: '',
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        accountHolderName: '',
+        upiId: ''
     })
 
     const [contractFile, setContractFile] = useState<File | null>(null)
@@ -148,7 +154,12 @@ export default function EventVendorsPage() {
                 paymentDueDate: '',
                 status: 'ACTIVE',
                 notes: '',
-                requirements: ''
+                requirements: '',
+                bankName: '',
+                accountNumber: '',
+                ifscCode: '',
+                accountHolderName: '',
+                upiId: ''
             })
         }
     }
@@ -222,7 +233,12 @@ export default function EventVendorsPage() {
                     paymentDueDate: '',
                     status: 'ACTIVE',
                     notes: '',
-                    requirements: ''
+                    requirements: '',
+                    bankName: '',
+                    accountNumber: '',
+                    ifscCode: '',
+                    accountHolderName: '',
+                    upiId: ''
                 })
                 setContractFile(null)
                 setInvoiceFile(null)
