@@ -100,6 +100,25 @@ export async function ensureSchema() {
       );
     `)
 
+    // 4.1 Check and add missing columns for floor_plans
+    await prisma.$executeRawUnsafe(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "eventId" BIGINT;
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "layoutData" JSONB DEFAULT '{}';
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "vipPrice" DECIMAL(10,2) DEFAULT 0;
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "premiumPrice" DECIMAL(10,2) DEFAULT 0;
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "generalPrice" DECIMAL(10,2) DEFAULT 0;
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "canvasWidth" INTEGER DEFAULT 1200;
+          ALTER TABLE floor_plans ADD COLUMN IF NOT EXISTS "canvasHeight" INTEGER DEFAULT 800;
+        EXCEPTION
+          WHEN undefined_table THEN
+            RAISE NOTICE 'Table floor_plans does not exist yet';
+        END;
+      END $$;
+    `)
+
     // 5. Exchange Rates Table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS exchange_rates (

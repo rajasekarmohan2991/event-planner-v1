@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,14 @@ export async function GET(
 
     } catch (error: any) {
         console.error('❌ [FloorPlan GET] Fatal Error:', error)
+
+        // Attempt self-repair
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+            console.log('🔧 [FloorPlan GET] Attempting schema repair...')
+            await ensureSchema()
+            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+        }
+
         return NextResponse.json({
             message: 'Failed to load floor plans',
             error: error.message,
@@ -150,7 +159,7 @@ export async function POST(
             menCapacity: Number(body.menCapacity) || 0,
             womenCapacity: Number(body.womenCapacity) || 0,
             layoutData: body.layoutData || body.objects ? { objects: body.objects } : {},
-            status: 'DRAFT'
+            status: 'DRAFT' as any
         }
 
         console.log('📝 [FloorPlan POST] Data prepared:', {
@@ -209,9 +218,16 @@ export async function POST(
     } catch (error: any) {
         console.error('❌ [FloorPlan POST] FATAL ERROR:', {
             message: error.message,
-            name: error.name,
-            stack: error.stack?.split('\n').slice(0, 10)
+            name: error.name
         })
+
+        // Attempt self-repair
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+            console.log('🔧 [FloorPlan POST] Attempting schema repair...')
+            await ensureSchema()
+            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+        }
+
         return NextResponse.json({
             message: 'Fatal error in floor plan creation',
             error: error.message,
