@@ -1,20 +1,26 @@
 # ✅ Troubleshooting Report - Update
 
-## 🔍 Recent Error: Floor Plan 500
+## 🔍 Recent Error: Team Member Delete/Edit Failed
+**Issue**: "IT IS NT REMOVE THE MEMEBER" and "ALSO EDIT IT IS NT WORKING"
+**Cause**: The application was using a **hybrid architecture** where:
+- **Listing Members**: Read directly from the Postgres Database (Prisma).
+- **Deleting/Editing**: Proxied requests to an external Java Backend Service.
+- **The Mismatch**: The Java service was not aware of the member records created by the new invitation system in Postgres, so the delete/edit operations failed or did nothing.
 
-### **Issue**
-`GET /api/events/28/floor-plan` returned 500.
-**Cause**: The `floor_plans` table was likely missing or had mismatched columns compared to what the application expected (possibly due to older migrations or manual table creation).
 **Fix**:
-1. I enhanced the `ensureSchema` utility to strictly verify and add all necessary columns for `floor_plans` (like `layoutData`, `vipPrice`, etc.).
-2. I updated the Floor Plan API to **automatically run this repair** if it encounters a database error.
+1. I have rewritten the **DELETE** and **UPDATE** API endpoints to act directly on the Postgres Database (using Prisma), bypassing the Java proxy entirely.
+2. This ensures that what you see in the list (Postgres data) is exactly what gets modified or deleted.
 
 ---
 
 ## 🛠️ Action Plan
 
-1. **Wait 1 minute** for the new code to deploy.
-2. **Refresh the Page**: Go to the Floor Plan section.
-3. **If it fails once**: Refresh again. The first failure triggers the self-repair in the background. The second request should succeed.
+1. **Wait 1 minute** for deployment.
+2. **Hard Refresh** your browser (just in case).
+3. **Try Deleting/Editing Again**. It should work instantly now.
 
-The system is designed to heal itself now! 🚑
+---
+## 🔍 Previous Fixes (Recap)
+- **Floor Plan 500**: Fixed by self-healing schema.
+- **NaN Error**: Fixed by removing invalid type conversion.
+- **Vendor 500**: Fixed by ensuring schema columns.
