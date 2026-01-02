@@ -108,7 +108,20 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
     try {
       const res = await fetch(`/api/events/${params.id}/sponsors/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
-      toast({ title: 'Sponsor deleted' })
+
+      toast({
+        title: 'Sponsor deleted successfully',
+        description: 'The sponsor has been removed from the event.',
+        variant: 'default',
+        duration: 3000
+      })
+
+      // If we were viewing this sponsor, go back to list
+      if (viewState === 'VIEW' && viewData?.id === id) {
+        setViewState('LIST')
+        setViewData(null)
+      }
+
       load()
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' as any })
