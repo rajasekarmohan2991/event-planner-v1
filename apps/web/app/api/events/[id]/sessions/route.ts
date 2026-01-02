@@ -75,6 +75,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json();
     const eventId = BigInt(params.id);
 
+    console.log(`[SESSIONS POST] Creating session for event ${params.id}:`, body);
+
     // 1. Fetch Event with dates and daysConfig
     const events = await prisma.$queryRaw`
         SELECT tenant_id as "tenantId", starts_at as "startsAt", ends_at as "endsAt", name, days_config as "daysConfig"
@@ -82,18 +84,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         WHERE id = ${eventId} LIMIT 1
     ` as any[]
 
-    if (!events.length) return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    if (!events.length) {
+      console.error(`[SESSIONS POST] Event ${params.id} not found`);
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
     const event = events[0];
+
+    console.log(`[SESSIONS POST] Event config:`, {
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      daysConfig: event.daysConfig
+    });
 
     // 2. Parse session dates
     let sessionStart = new Date(body.startTime);
     let sessionEnd = new Date(body.endTime);
+
+    console.log(`[SESSIONS POST] Parsed times:`, {
+      startTime: body.startTime,
+      endTime: body.endTime,
+      sessionStart: sessionStart.toISOString(),
+      sessionEnd: sessionEnd.toISOString(),
+      isValidStart: !isNaN(sessionStart.getTime()),
+      isValidEnd: !isNaN(sessionEnd.getTime())
+    });
 
     if (isNaN(sessionStart.getTime())) sessionStart = new Date();
     if (isNaN(sessionEnd.getTime())) sessionEnd = new Date(sessionStart.getTime() + 3600000);
 
     // Validation 1: End before start
     if (sessionEnd < sessionStart) {
+      console.error(`[SESSIONS POST] Validation failed: End time before start time`);
       return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
     }
 
@@ -103,6 +124,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (daysConfig && daysConfig.length > 1) {
       // Multi-day event: validate against specific day's time range
       const sessionDate = sessionStart.toISOString().split('T')[0];
+      console.log(`[SESSIONS POST] Multi-day event, checking date ${sessionDate} against days:`, daysConfig);
+      
       const dayConfig = daysConfig.find((d: any) => d.date.split('T')[0] === sessionDate);
 
       if (!dayConfig) {
@@ -111,6 +134,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           `${d.title} (${new Date(d.date).toLocaleDateString()}): ${d.startTime} - ${d.endTime}`
         ).join(', ');
 
+        console.error(`[SESSIONS POST] Validation failed: Session date not in event dates. Available: ${availableDays}`);
         return NextResponse.json({
           error: `Session date ${sessionDate} is not within event dates. Available days: ${availableDays}`
         }, { status: 400 });
@@ -120,7 +144,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`);
       const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`);
 
+      console.log(`[SESSIONS POST] Day validation:`, {
+        dayStart: dayStart.toISOString(),
+        dayEnd: dayEnd.toISOString(),
+        sessionStart: sessionStart.toISOString(),
+        sessionEnd: sessionEnd.toISOString()
+      });
+
       if (sessionStart < dayStart || sessionEnd > dayEnd) {
+        console.error(`[SESSIONS POST] Validation failed: Session outside day time range`);
         return NextResponse.json({
           error: `Session must be between ${dayConfig.title}: ${dayConfig.startTime} - ${dayConfig.endTime}`
         }, { status: 400 });

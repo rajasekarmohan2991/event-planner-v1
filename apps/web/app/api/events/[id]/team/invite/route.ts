@@ -11,18 +11,25 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions as any) as any
-    if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    if (!session) {
+      console.error('[TEAM INVITE] Unauthorized - no session')
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
 
     const body = await req.json()
     const { emails, role } = body
     const eventIdString = params.id
 
+    console.log(`[TEAM INVITE] Request for event ${eventIdString}:`, { emails, role, userId: session.user?.id })
+
     if (isNaN(Number(eventIdString))) {
+      console.error('[TEAM INVITE] Invalid event ID:', eventIdString)
       return NextResponse.json({ message: 'Invalid event ID' }, { status: 400 })
     }
     const eventId = BigInt(eventIdString)
 
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      console.error('[TEAM INVITE] No emails provided:', emails)
       return NextResponse.json({ message: 'No emails provided' }, { status: 400 })
     }
 
@@ -41,6 +48,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const event = events[0]
     const tenantId = event.tenantId
 
+    console.log(`[TEAM INVITE] Event found:`, { eventId: event.id.toString(), name: event.name, tenantId: tenantId?.toString() })
+
     const results = []
 
     for (const email of emails) {
@@ -50,11 +59,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       if (dbRole === 'ADMIN') dbRole = 'ORGANIZER'
       if (!['OWNER', 'ORGANIZER', 'STAFF', 'VIEWER'].includes(dbRole)) dbRole = 'STAFF'
 
+      console.log(`[TEAM INVITE] Processing invite for ${email} with role ${dbRole}`)
+
       try {
         // Generate secure token
         const token = crypto.randomBytes(32).toString('hex')
 
         // Create or update invitation
+        console.log(`[TEAM INVITE] Inserting invitation to database...`)
         await prisma.$executeRaw`
           INSERT INTO event_team_invitations 
           (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
@@ -76,11 +88,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             updated_at = NOW(),
             expires_at = NOW() + INTERVAL '7 days'
         `
+        console.log(`[TEAM INVITE] Database insert successful for ${email}`)
 
         // Send invitation email with approve/reject links
         const approveUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventIdString}/team/approve?token=${token}`
         const rejectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventIdString}/team/reject?token=${token}`
 
+        console.log(`[TEAM INVITE] Sending email to ${email}...`)
         await sendEmail({
           to: email,
           subject: `You're invited to collaborate on an event`,
@@ -132,20 +146,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             </body>
             </html>
           `
-        }).catch(e => console.error('Email failed', e))
+        }).then(() => {
+          console.log(`[TEAM INVITE] Email sent successfully to ${email}`)
+        }).catch(e => {
+          console.error(`[TEAM INVITE] Email failed for ${email}:`, e)
+        })
 
         results.push({ email, status: 'invited', token })
+        console.log(`[TEAM INVITE] Successfully invited ${email}`)
 
       } catch (err: any) {
-        console.error(`Failed to create invitation for ${email}`, err)
+        console.error(`[TEAM INVITE] Failed to create invitation for ${email}:`, err)
+        console.error(`[TEAM INVITE] Error details:`, JSON.stringify(err, Object.getOwnPropertyNames(err)))
         results.push({ email, status: 'failed', reason: err.message })
       }
     }
 
+    console.log(`[TEAM INVITE] All invites processed. Results:`, results)
     return NextResponse.json({ message: 'Invites processed', results })
 
   } catch (error: any) {
-    console.error('Invite error:', error)
-    return NextResponse.json({ message: error?.message || 'Invite failed' }, { status: 500 })
+    console.error('[TEAM INVITE] Fatal error:', error)
+    console.error('[TEAM INVITE] Error stack:', error.stack)
+    return NextResponse.json({ message: error?.message || 'Invite failed', error: error.message }, { status: 500 })
   }
 }
