@@ -1,11 +1,12 @@
 # ✅ Current Status Report
 
-## 🛠️ Bug Fix Deployed
-**Issue**: Team member deletion was failing with `NaN` (Not a Number) because the member IDs were strings (UUIDs) but the delete function expected numbers.
-**Fix**: 
-1. Updated `deleteTeamMember` API function to accept string IDs.
-2. Updated Team page to pass the ID correctly without forcing number conversion.
-**Status**: ✅ Deployed. You can now delete team members.
+## 🛠️ Latest Fixes
+**1. Sponsor Delete Feedback**: Update `handleDelete` in Sponsors page to:
+   - Close the View Dialog automatically if deleting from view mode.
+   - Show a more descriptive "Sponsor deleted successfully" toast message (Duration: 3s).
+   - Ensure list refreshes immediately.
+
+**2. Team Member Delete**: Fixed previously (`NaN` issue resolved).
 
 ---
 
@@ -26,7 +27,7 @@
 To enable the new Approve/Reject email invitation workflow, you must run the database migration.
 
 ### **Run this SQL in your Database:**
-*(You can copy this from `prisma/migrations/create_event_team_invitations.sql`)*
+*(Copy from `prisma/migrations/create_event_team_invitations.sql`)*
 
 ```sql
 CREATE TABLE IF NOT EXISTS event_team_invitations (
@@ -48,16 +49,13 @@ CREATE INDEX IF NOT EXISTS idx_invitations_token ON event_team_invitations(token
 CREATE INDEX IF NOT EXISTS idx_invitations_email ON event_team_invitations(email);
 ```
 
-**Until this SQL is run:**
-- The new invitation emails might fail or error out.
-- The "Approve" links won't find the invitation record in the database.
+**Without this SQL, invitations will fail.**
 
 ---
 
 ## 🚀 Next Steps
-1. Wait 1-2 minutes for the Vercel deployment (triggered by the bug fix commit).
-2. **Test Delete**: Go to the Team page and try removing a member. It should work now.
-3. **Run Migration**: Execute the SQL above in your database console (Neon, Supabase, etc.).
-4. **Test Invitations**: Invite a new member and check the email flow.
+1. **Reload App**: Wait 1 min for Vercel deploy.
+2. **Test Sponsor Delete**: Try deleting a sponsor again. You should see the success toast and the dialog (if open) should close.
+3. **Run Migration**: Don't forget the SQL above for team invites!
 
 All set!
