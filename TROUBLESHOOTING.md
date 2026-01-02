@@ -1,21 +1,21 @@
 # ✅ Troubleshooting Report - Update
 
-## 🔍 Recent Error: 500 on Team Delete/Edit
+## 🔍 Recent Error: Registration 500
 **Cause**: 
-1. The transition from Java Proxy to Direct DB connection might have encountered Next.js specific issues with parameter handling (`params` vs `await params`).
-2. There was a potential inconsistency between using `executeRaw` vs `queryRaw`.
+The registration process was failing during the database insertion phase. 
+Likely causes:
+1. **Enum Mismatch**: Explicit casting to types like `::"RegistrationStatus"` can fail if the database environment uses slightly different Enum names or if raw SQL is strictly typed.
+2. **Type Mismatch**: The Order creation might have received a String ID instead of a BigInt ID.
 
 **Fix**:
-1. I refactored the code to safely handle URL parameters regardless of the Next.js version capabilities.
-2. I switched to using `queryRawUnsafe` for DELETE/UPDATE, which exactly matches the method used for LISTING members, ensuring consistency in how the database connection and middleware are handled.
-3. I added detailed error logging so if it fails again, the browser console will show the exact database error message instead of generic "500".
+1. I simplified the SQL queries to pass standard text values for Status fields (Postgres will handle the conversion automatically and safely).
+2. I ensured that valid `BigInteger` IDs are passed to the Order table.
 
 ---
 
 ## 🛠️ Action Plan
 
 1. **Wait 1 minute** for deployment.
-2. **Hard Refresh** your browser.
-3. **Try Deleting/Editing Again**.
+2. **Refresh** and try registering again.
 
-This should resolve the issue definitively.
+This should resolve the registration error.
