@@ -33,6 +33,7 @@ export async function ensureSchema() {
         tenant_id TEXT,
         name TEXT NOT NULL,
         category TEXT,
+        budget DECIMAL(10,2) DEFAULT 0,
         contact_name TEXT,
         contact_email TEXT,
         contact_phone TEXT,
@@ -59,6 +60,7 @@ export async function ensureSchema() {
       DO $$ 
       BEGIN 
         BEGIN
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS budget DECIMAL(10,2) DEFAULT 0;
           ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS bank_name TEXT;
           ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_number TEXT;
           ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS ifsc_code TEXT;
