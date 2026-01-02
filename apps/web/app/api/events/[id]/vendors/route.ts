@@ -29,6 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         event_id as "eventId",
         name,
         category,
+        budget,
         contact_name as "contactName",
         contact_email as "contactEmail",
         contact_phone as "contactPhone",
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const newId = randomUUID()
   const {
-    name, category, contactName, contactEmail, contactPhone,
+    name, category, budget, contactName, contactEmail, contactPhone,
     contractAmount, paidAmount, paymentStatus, paymentDueDate,
     status, notes, contractUrl, invoiceUrl,
     bankName, accountNumber, ifscCode, accountHolderName, upiId
@@ -119,22 +120,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const runInsert = async () => {
     await prisma.$executeRawUnsafe(`
       INSERT INTO event_vendors (
-        id, event_id, tenant_id, name, category,
+        id, event_id, tenant_id, name, category, budget,
         contact_name, contact_email, contact_phone,
         contract_amount, paid_amount, payment_status, payment_due_date,
         status, notes, contract_url, invoice_url,
         bank_name, account_number, ifsc_code, account_holder_name, upi_id,
         created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8,
-        $9, $10, $11, $12,
-        $13, $14, $15, $16,
-        $17, $18, $19, $20, $21,
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9,
+        $10, $11, $12, $13,
+        $14, $15, $16, $17,
+        $18, $19, $20, $21, $22,
         NOW(), NOW()
       )
     `,
-      newId, eventId, tenantId, name, category,
+      newId, eventId, tenantId, name, category, budget || 0,
       contactName || null, contactEmail || null, contactPhone || null,
       contractAmount || 0, paidAmount || 0, paymentStatus || 'PENDING', paymentDueDate || null,
       status || 'ACTIVE', notes || null, contractUrl || null, invoiceUrl || null,

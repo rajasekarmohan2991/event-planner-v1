@@ -19,6 +19,7 @@ interface Vendor {
     id?: string
     name: string
     category: string
+    budget?: number
     status: 'BOOKED' | 'ACTIVE' | 'CANCELLED'
     contractAmount: number
     paidAmount?: number
@@ -54,6 +55,7 @@ export default function EventVendorsPage() {
         contactName: '',
         contactEmail: '',
         contactPhone: '',
+        budget: 0,
         contractAmount: 0,
         paidAmount: 0,
         paymentStatus: 'PENDING',
@@ -105,8 +107,10 @@ export default function EventVendorsPage() {
                 const spent = categoryVendors.reduce((sum: number, v: Vendor) =>
                     sum + Number(v.contractAmount || 0), 0
                 )
-                // Set budget to spent amount if there are vendors, otherwise 0
-                const budgeted = spent > 0 ? spent : 0
+                // Use the budget from the first vendor in category, or 0 if no vendors
+                const budgeted = categoryVendors.length > 0 && categoryVendors[0].budget 
+                    ? Number(categoryVendors[0].budget) 
+                    : 0
 
                 return {
                     category,
@@ -160,6 +164,7 @@ export default function EventVendorsPage() {
                 contactName: '',
                 contactEmail: '',
                 contactPhone: '',
+                budget: 0,
                 contractAmount: 0,
                 paidAmount: 0,
                 paymentStatus: 'PENDING',
@@ -215,6 +220,7 @@ export default function EventVendorsPage() {
                 body: JSON.stringify({
                     name: vendorForm.name,
                     category: selectedCategory,
+                    budget: vendorForm.budget,
                     contactName: vendorForm.contactName,
                     contactEmail: vendorForm.contactEmail,
                     contactPhone: vendorForm.contactPhone,
@@ -239,6 +245,7 @@ export default function EventVendorsPage() {
                     contactName: '',
                     contactEmail: '',
                     contactPhone: '',
+                    budget: 0,
                     contractAmount: 0,
                     paidAmount: 0,
                     paymentStatus: 'PENDING',
@@ -481,6 +488,18 @@ export default function EventVendorsPage() {
                                 onChange={(e) => setVendorForm(prev => ({ ...prev, contactPhone: e.target.value }))}
                                 placeholder="+1234567890"
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="budget">Budget (Category Budget)</Label>
+                            <Input
+                                id="budget"
+                                type="number"
+                                value={vendorForm.budget}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, budget: Number(e.target.value) }))}
+                                placeholder="0"
+                            />
+                            <p className="text-xs text-gray-500">Set the budget allocated for this vendor category</p>
                         </div>
 
                         <div className="space-y-2">
