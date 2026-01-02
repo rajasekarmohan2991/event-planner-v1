@@ -1,28 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
-const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'
-// Spring Boot context-path is "/api", so all controllers are under /api
-const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
+export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
-  const url = new URL(req.url)
-  const qp = url.search ? url.search : ''
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const res = await fetch(`${API_BASE}/events/${params.id}/team/approve${qp}`, {
-      method: 'POST',
-      headers: { ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-      credentials: 'include',
+    const { searchParams } = new URL(req.url)
+    const token = searchParams.get('token')
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/error?message=Invalid invitation link', req.url))
+    }
+
+    // 1. Find invitation by token
+    const invitations = await prisma.$queryRaw`
+      SELECT * FROM event_team_invitations 
+      WHERE token = ${token} AND event_id = ${params.id}
+      LIMIT 1
+    ` as any[]
+
+    if (!invitations.length) {
+      return NextResponse.redirect(new URL('/error?message=Invitation not found', req.url))
+    }
+
+    const invitation = invitations[0]
+
+    // Check if expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      await prisma.$executeRaw`
+        UPDATE event_team_invitations 
+        SET status = 'EXPIRED', updated_at = NOW()
+        WHERE token = ${token}
+      `
+      return NextResponse.redirect(new URL('/error?message=Invitation has expired', req.url))
+    }
+
+    // Check if already processed
+    if (invitation.status !== 'PENDING') {
+      return NextResponse.redirect(new URL(`/events/${params.id}?message=Invitation already ${invitation.status.toLowerCase()}`, req.url))
+    }
+
+    // 2. Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { email: invitation.email }
     })
-    const text = await res.text()
-    const isJson = (res.headers.get('content-type') || '').includes('application/json')
-    const payload = isJson && text ? JSON.parse(text) : (text ? { message: text } : {})
-    if (!res.ok) return NextResponse.json(payload || { message: 'Approve failed' }, { status: res.status })
-    return NextResponse.json(payload)
-  } catch (e: any) {
-    return NextResponse.json({ message: e?.message || 'Approve failed' }, { status: 500 })
+
+    if (!user) {
+      // 3. User doesn't exist → Redirect to signup with token
+      const signupUrl = new URL('/auth/signup', req.url)
+      signupUrl.searchParams.set('email', invitation.email)
+      signupUrl.searchParams.set('token', token)
+      signupUrl.searchParams.set('event', params.id)
+      return NextResponse.redirect(signupUrl)
+    }
+
+    // 4. User exists → Assign role and approve
+    try {
+      // Assign role to user
+      await prisma.eventRoleAssignment.upsert({
+        where: {
+          eventId_userId: {
+            eventId: params.id,
+            userId: user.id
+          }
+        },
+        update: {
+          role: invitation.role as any,
+          tenantId: invitation.tenant_id
+        },
+        create: {
+          eventId: params.id,
+          userId: user.id,
+          role: invitation.role as any,
+          tenantId: invitation.tenant_id
+        }
+      })
+
+      // 5. Update invitation status
+      await prisma.$executeRaw`
+        UPDATE event_team_invitations 
+        SET status = 'APPROVED', updated_at = NOW()
+        WHERE token = ${token}
+      `
+
+      // 6. Redirect to event page
+      return NextResponse.redirect(new URL(`/events/${params.id}?invited=true&message=You have joined the event team!`, req.url))
+    } catch (error: any) {
+      console.error('Failed to assign role:', error)
+      return NextResponse.redirect(new URL('/error?message=Failed to join event team', req.url))
+    }
+
+  } catch (error: any) {
+    console.error('Approve error:', error)
+    return NextResponse.redirect(new URL('/error?message=Something went wrong', req.url))
   }
 }
