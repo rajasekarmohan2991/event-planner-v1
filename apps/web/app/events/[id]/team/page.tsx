@@ -308,7 +308,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                             if (confirm('Remove this member?')) {
                               try {
                                 console.log('Deleting member:', m.id, 'from event:', params.id)
-                                await deleteTeamMember(params.id, Number(m.id), accessToken);
+                                await deleteTeamMember(params.id, m.id, accessToken);
                                 await reloadMembers();
                                 setBanner('Member removed successfully')
                                 setTimeout(() => setBanner(null), 2500)

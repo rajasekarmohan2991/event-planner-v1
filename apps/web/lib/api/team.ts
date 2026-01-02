@@ -136,7 +136,7 @@ export async function updateTeamMember(
   return json as TeamMember
 }
 
-export async function deleteTeamMember(eventId: string, memberId: number, accessToken?: string): Promise<void> {
+export async function deleteTeamMember(eventId: string, memberId: string | number, accessToken?: string): Promise<void> {
   const url = `${API_URL}/events/${eventId}/team/members/${memberId}`
   console.log('DELETE request to:', url, 'with token:', accessToken ? 'present' : 'missing')
   const res = await fetch(url, {
