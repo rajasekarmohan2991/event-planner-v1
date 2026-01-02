@@ -1,21 +1,17 @@
 # ✅ Troubleshooting Report - Update
 
-## 🔍 Recent Error: Registration 500
+## 🔍 Recent Error: Floor Plan 500 (Persistent)
 **Cause**: 
-The registration process was failing during the database insertion phase. 
-Likely causes:
-1. **Enum Mismatch**: Explicit casting to types like `::"RegistrationStatus"` can fail if the database environment uses slightly different Enum names or if raw SQL is strictly typed.
-2. **Type Mismatch**: The Order creation might have received a String ID instead of a BigInt ID.
+The "Self-Healing" logic fixed the table structure in the database, BUT the application code (Prisma Client) was still strictly enforcing rules that might not match the newly patched table (e.g., expecting a field to be strictly `Not Null` when the database made it `Nullable` during the fix).
 
 **Fix**:
-1. I simplified the SQL queries to pass standard text values for Status fields (Postgres will handle the conversion automatically and safely).
-2. I ensured that valid `BigInteger` IDs are passed to the Order table.
+1. I switched the **Floor Plan Listing (GET)** to use **Raw SQL**, just like the Event Dashboard and Team Member lists.
+2. This makes it much more robust: it will happily read whatever data is there without crashing validation, even if some columns (like `layoutData`) are null or formatted slightly differently.
 
 ---
 
 ## 🛠️ Action Plan
 
 1. **Wait 1 minute** for deployment.
-2. **Refresh** and try registering again.
-
-This should resolve the registration error.
+2. **Refresh** and check the Floor Plan page again.
+3. The error should be gone.
