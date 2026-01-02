@@ -102,7 +102,7 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
               { label: 'Event Team', value: stats?.counts?.team ?? 0 },
               { label: 'Sponsors', value: stats?.counts?.sponsors ?? 0 },
               { label: 'Exhibitors', value: stats?.counts?.exhibitors ?? 0 },
-              { label: 'Badge', value: stats?.counts?.badges ?? 0 },
+              { label: 'Promos', value: stats?.counts?.promos ?? 0 },
             ].map((it) => (
               <div key={it.label} className="rounded-md bg-indigo-50/60 dark:bg-indigo-950/20 p-3">
                 <div className="text-xl font-semibold">{it.value}</div>
