@@ -1,163 +1,29 @@
-# Troubleshooting Guide
+# ✅ Troubleshooting Report
 
-## Issues Reported
+## 🔍 Understanding the Errors
 
-### 1. Seat Selector Not Saving ❌
-### 2. Check-In Not Working ❌
+### **1. DELETE .../NaN - 504 Gateway Timeout**
+**Cause**: The browser is sending `NaN` (Not a Number) as the Member ID instead of the actual ID (e.g., `cmjw...`).
+**Why**: The client-side code was trying to convert the text ID to a Number (`Number(m.id)`), which results in `NaN` for text IDs.
+**Fix**: I have removed the `Number()` conversion and updated the API to handle text IDs.
+**Status**: ✅ Fix deployed. **You must hard-refresh your browser to clear the old broken code.**
 
----
-
-## Investigation Results
-
-### ✅ Seat Selector Component
-**Location**: `/apps/web/components/SeatSelector.tsx`
-
-**How it works**:
-- Component handles seat selection UI
-- Calls `onSeatsSelected(seats, totalPrice)` callback when seats change
-- **Does NOT have its own save button**
-- Parent component must handle saving
-
-**The seat selector is working correctly!** The issue is likely in the parent component that uses it.
-
-**Where it's used**:
-- `/apps/web/app/events/[id]/register-with-seats/page.tsx`
-
-**To fix**: Check the parent component's save implementation.
+### **2. Vendors 500 Error**
+**Cause**: The `event_vendors` table might be missing the new columns (bank details) or the schema is out of sync.
+**Fix**: I have updated the self-healing schema (`ensureSchema.ts`) to verify and add the missing columns (`bank_name`, `account_number`, etc.).
+**Status**: ✅ Fix deployed. The next time you load the vendors page, it should self-repair if needed.
 
 ---
 
-### ✅ Check-In API
-**Location**: `/apps/web/app/api/events/[id]/check-in/route.ts`
+## 🛠️ Action Plan
 
-**What it does**:
-1. Receives `registrationId` in POST request
-2. Checks if already checked in
-3. Updates database with check-in status
-4. Returns success/error
-
-**The API is working correctly!**
+1. **Hard Refresh**: Press `Cmd+Shift+R` (Mac) or `Ctrl+F5` (Windows) on your browser. This is critical to load the new code.
+2. **Retry Delete**: Try deleting the team member again.
+3. **Check Vendors**: Visit the Vendors page. If it fails once, refresh again (the first fail triggers the self-repair).
 
 ---
 
-## Common Issues & Solutions
+## ⚠️ Team Invitations Migration
+Don't forget the SQL migration for team invitations (see `CURRENT_STATUS.md`).
 
-### Seat Selector Issues
-
-#### Issue: "Seats not saving"
-**Possible Causes**:
-1. Parent component not calling save API
-2. Network error
-3. Missing authentication
-4. Database connection issue
-
-**How to Debug**:
-```javascript
-// Open browser console (F12)
-// Check for errors when clicking save
-// Look for failed network requests in Network tab
-```
-
-**Solution**:
-Check `/apps/web/app/events/[id]/register-with-seats/page.tsx` for save implementation.
-
----
-
-### Check-In Issues
-
-#### Issue: "Check-in not working"
-**Possible Causes**:
-1. Registration ID not found
-2. Event ID mismatch
-3. Database connection error
-4. Missing authentication
-
-**How to Debug**:
-```javascript
-// Browser Console (F12)
-// Check Network tab for /api/events/[id]/check-in requests
-// Look for error responses
-```
-
-**Common Errors**:
-- `401 Unauthorized` → Not logged in
-- `404 Not Found` → Registration doesn't exist
-- `500 Server Error` → Database issue
-
----
-
-## Testing Steps
-
-### Test Seat Selector:
-1. Go to event registration page with seats
-2. Open browser console (F12)
-3. Select seats
-4. Click save/continue button
-5. Check console for errors
-6. Check Network tab for API calls
-
-### Test Check-In:
-1. Go to `/events/[id]/event-day/check-in`
-2. Open browser console (F12)
-3. Try to check in a registration
-4. Check console for errors
-5. Check Network tab for `/check-in` API call
-
----
-
-## API Endpoints
-
-### Seat Selection
-- **GET** `/api/events/[id]/seats/availability` - Get available seats
-- **POST** `/api/events/[id]/seats/reserve` - Reserve seats (if exists)
-
-### Check-In
-- **POST** `/api/events/[id]/check-in` - Check in registration
-  ```json
-  {
-    "registrationId": "123"
-  }
-  ```
-
----
-
-## Next Steps
-
-To fix these issues, I need:
-
-1. **Screenshot or error message** when save fails
-2. **Browser console errors** (F12 → Console tab)
-3. **Network tab errors** (F12 → Network tab)
-4. **Which page** you're on when it fails
-
-With this information, I can provide a specific fix!
-
----
-
-## Quick Fixes
-
-### If check-in returns 401:
-- User not logged in
-- Session expired
-- Refresh page and try again
-
-### If check-in returns 404:
-- Registration doesn't exist
-- Wrong event ID
-- Check registration ID is correct
-
-### If seats don't save:
-- Check if save button exists
-- Check if API endpoint exists
-- Check network tab for errors
-
----
-
-## Contact
-
-If issues persist, provide:
-1. Error message
-2. Browser console log
-3. Steps to reproduce
-4. Which page/URL
-
+The application should now be stable after the refresh!
