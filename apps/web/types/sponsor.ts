@@ -13,6 +13,7 @@ export interface PaymentData {
     paymentMode: 'BANK_TRANSFER' | 'CHEQUE' | 'ONLINE' | 'CASH' | 'UPI'
     paymentStatus: 'PENDING' | 'PAID' | 'PARTIAL'
     invoiceRequired: boolean
+    amount?: number
     amountPaid?: number
     balanceAmount?: number
     paymentDueDate?: string

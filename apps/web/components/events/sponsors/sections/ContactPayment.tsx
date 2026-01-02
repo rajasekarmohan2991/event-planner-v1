@@ -118,6 +118,16 @@ export default function ContactPayment({ data, updateData }: ContactPaymentProps
                         </Select>
                     </div>
                     <div className="space-y-2">
+                        <Label htmlFor="amount">Sponsorship Amount *</Label>
+                        <Input
+                            id="amount"
+                            type="number"
+                            value={payment.amount || ''}
+                            onChange={(e) => updatePayment('amount', Number(e.target.value))}
+                            placeholder="Enter total sponsorship amount"
+                        />
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="amountPaid">Amount Paid</Label>
                         <Input
                             id="amountPaid"
