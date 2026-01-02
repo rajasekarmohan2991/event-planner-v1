@@ -119,8 +119,9 @@ export default function EventWorkspaceClient({
             <aside className="w-52 border-r bg-slate-50/70 dark:bg-slate-950/30 flex flex-col sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
                 {/* Event Title in Sidebar */}
                 <div className="p-3 border-b">
-                    <div className="text-[10px] uppercase tracking-wide text-slate-500">Event</div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">EVENT</div>
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{eventTitle || 'Event'}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">ID: {eventId}</div>
                 </div>
 
                 {/* Publish Button */}
