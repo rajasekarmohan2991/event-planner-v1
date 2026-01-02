@@ -5,7 +5,7 @@ import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
 import SponsorForm from '@/components/events/sponsors/SponsorForm'
 import { ComprehensiveSponsor } from '@/types/sponsor'
 import { toast } from '@/components/ui/use-toast'
@@ -14,8 +14,9 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
   const { status } = useSession()
   const [items, setItems] = useState<ComprehensiveSponsor[]>([])
   const [loading, setLoading] = useState(false)
-  const [viewState, setViewState] = useState<'LIST' | 'FORM'>('LIST')
+  const [viewState, setViewState] = useState<'LIST' | 'FORM' | 'VIEW'>('LIST')
   const [editData, setEditData] = useState<Partial<ComprehensiveSponsor> | undefined>(undefined)
+  const [viewData, setViewData] = useState<ComprehensiveSponsor | null>(null)
 
   const load = async () => {
     try {
@@ -91,6 +92,11 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
     }
   }
 
+  const handleView = (item: ComprehensiveSponsor) => {
+    setViewData(item)
+    setViewState('VIEW')
+  }
+
   const handleEdit = (item: ComprehensiveSponsor) => {
     setEditData(item)
     setViewState('FORM')
@@ -159,13 +165,16 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
                   </span>
                 </div>
                 <div className="w-32 text-slate-600">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number((item.paymentData as any)?.amount || item.amount || 0))}
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(item.amount || (item.paymentData as any)?.amount || 0))}
                 </div>
-                <div className="w-32 text-right flex justify-end gap-2">
-                  <button onClick={() => handleEdit(item)} className="p-1 hover:bg-slate-100 rounded text-slate-600">
+                <div className="w-40 text-right flex justify-end gap-2">
+                  <button onClick={() => handleView(item)} className="p-1 hover:bg-slate-100 rounded text-blue-600" title="View Details">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleEdit(item)} className="p-1 hover:bg-slate-100 rounded text-slate-600" title="Edit">
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(item.id!)} className="p-1 hover:bg-slate-100 rounded text-rose-600">
+                  <button onClick={() => handleDelete(item.id!)} className="p-1 hover:bg-slate-100 rounded text-rose-600" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
