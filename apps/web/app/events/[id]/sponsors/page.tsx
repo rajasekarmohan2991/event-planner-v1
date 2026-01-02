@@ -7,6 +7,7 @@ import AvatarIcon from '@/components/ui/AvatarIcon'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
 import SponsorForm from '@/components/events/sponsors/SponsorForm'
+import SponsorViewDialog from '@/components/events/sponsors/SponsorViewDialog'
 import { ComprehensiveSponsor } from '@/types/sponsor'
 import { toast } from '@/components/ui/use-toast'
 
@@ -137,6 +138,13 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
           initialData={editData || { tier: 'BRONZE' }}
           onSubmit={handleSubmit}
           onCancel={() => { setViewState('LIST'); setEditData(undefined) }}
+        />
+      ) : viewState === 'VIEW' && viewData ? (
+        <SponsorViewDialog
+          sponsor={viewData}
+          onEdit={() => { setEditData(viewData); setViewState('FORM') }}
+          onDelete={() => handleDelete(viewData.id!)}
+          onClose={() => { setViewState('LIST'); setViewData(null) }}
         />
       ) : (
         <div className="rounded-md border bg-white">
