@@ -234,24 +234,25 @@ export async function POST(
                 ${formData.email},
                 NOW(),
                 NOW(),
-                'APPROVED'::"RegistrationStatus",
-                ${ticketId || null}
+                'APPROVED',
+                ${ticketId ? BigInt(ticketId) : null}
             )
         `
 
       // 2. Insert Order ('"Order"')
       // Columns: "eventId", "tenantId", "paymentStatus", "createdAt", "updatedAt" (Quoted CamelCase)
+      const orderEventId = BigInt(eventId)
       await tx.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
                 "paymentStatus", "totalInr", "meta", "createdAt", "updatedAt"
             ) VALUES (
                 ${newOrderId},
-                ${eventId},   -- String
-                ${tenantId},  -- String
+                ${orderEventId},
+                ${tenantId},
                 ${userId},
                 ${formData.email},
-                ${finalAmount > 0 ? 'PAID' : 'CREATED'}::"OrderStatus",
+                ${finalAmount > 0 ? 'PAID' : 'CREATED'},
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
                 ${JSON.stringify({ registrationId: newRegId, discountAmount, promoCode })}::jsonb,
