@@ -84,7 +84,18 @@ export default function EventVendorsPage() {
 
             // Fetch vendors
             const vendorRes = await fetch(`/api/events/${eventId}/vendors`)
+
+            if (!vendorRes.ok) {
+                const errorData = await vendorRes.json()
+                console.error('❌ Vendor API error:', errorData)
+                alert(`Failed to load vendors: ${errorData.message || 'Unknown error'}`)
+                setBudgets([])
+                setLoading(false)
+                return
+            }
+
             const vendorData = await vendorRes.json()
+            console.log('✅ Vendor data received:', vendorData)
 
             // Create budgets for each category
             const categoryBudgets: Budget[] = CATEGORIES.map(category => {
