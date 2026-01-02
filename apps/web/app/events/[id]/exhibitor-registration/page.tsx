@@ -9,6 +9,21 @@ export default function ExhibitorRegistrationPage() {
   const [exhibitors, setExhibitors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [editingExhibitor, setEditingExhibitor] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({
+    company: '',
+    name: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    boothType: '',
+    boothOption: '',
+    boothArea: '',
+    companyDescription: '',
+    productsServices: '',
+    businessAddress: '',
+    notes: ''
+  })
 
   useEffect(() => {
     if (!eventId) return
@@ -35,13 +50,6 @@ export default function ExhibitorRegistrationPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href={`/events/${eventId}/exhibitor-registration/register`}
-              target="_blank"
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 flex items-center gap-2 text-sm font-medium transition-colors"
-            >
-              View Public Form
-            </a>
             <a
               href={`/events/${eventId}/exhibitor-registration/register`}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 shadow-sm hover:shadow-md transition-all text-sm font-medium"
@@ -143,8 +151,21 @@ export default function ExhibitorRegistrationPage() {
                         <button
                           className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
                           onClick={() => {
-                            // TODO: Open edit modal
-                            alert('Edit functionality coming soon!')
+                            setEditingExhibitor(ex)
+                            setEditForm({
+                              company: ex.company_name || '',
+                              name: ex.brand_name || '',
+                              contactName: ex.contact_name || '',
+                              contactEmail: ex.contact_email || '',
+                              contactPhone: ex.contact_phone || '',
+                              boothType: ex.booth_type || '',
+                              boothOption: ex.booth_size || '',
+                              boothArea: ex.booth_area || '',
+                              companyDescription: ex.company_description || '',
+                              productsServices: ex.products_services || '',
+                              businessAddress: ex.business_address || '',
+                              notes: ex.notes || ''
+                            })
                           }}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,6 +210,177 @@ export default function ExhibitorRegistrationPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Edit Exhibitor Modal */}
+        {editingExhibitor && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-xl font-bold mb-4">Edit Exhibitor</h2>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Company Name</label>
+                      <input
+                        type="text"
+                        value={editForm.company}
+                        onChange={(e) => setEditForm({...editForm, company: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Brand Name</label>
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Contact Name</label>
+                      <input
+                        type="text"
+                        value={editForm.contactName}
+                        onChange={(e) => setEditForm({...editForm, contactName: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Contact Email</label>
+                      <input
+                        type="email"
+                        value={editForm.contactEmail}
+                        onChange={(e) => setEditForm({...editForm, contactEmail: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Contact Phone</label>
+                    <input
+                      type="tel"
+                      value={editForm.contactPhone}
+                      onChange={(e) => setEditForm({...editForm, contactPhone: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Business Address</label>
+                    <input
+                      type="text"
+                      value={editForm.businessAddress}
+                      onChange={(e) => setEditForm({...editForm, businessAddress: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Booth Type</label>
+                      <input
+                        type="text"
+                        value={editForm.boothType}
+                        onChange={(e) => setEditForm({...editForm, boothType: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Booth Size</label>
+                      <input
+                        type="text"
+                        value={editForm.boothOption}
+                        onChange={(e) => setEditForm({...editForm, boothOption: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Booth Area</label>
+                      <input
+                        type="text"
+                        value={editForm.boothArea}
+                        onChange={(e) => setEditForm({...editForm, boothArea: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-md"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Company Description</label>
+                    <textarea
+                      value={editForm.companyDescription}
+                      onChange={(e) => setEditForm({...editForm, companyDescription: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Products/Services</label>
+                    <textarea
+                      value={editForm.productsServices}
+                      onChange={(e) => setEditForm({...editForm, productsServices: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Notes</label>
+                    <textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setEditingExhibitor(null)}
+                    className="px-4 py-2 border rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/events/${eventId}/exhibitors/${editingExhibitor.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(editForm)
+                        })
+
+                        if (res.ok) {
+                          // Refresh exhibitors list
+                          const data = await fetch(`/api/events/${eventId}/exhibitors`).then(r => r.json())
+                          setExhibitors(Array.isArray(data) ? data : [])
+                          setEditingExhibitor(null)
+                          alert('Exhibitor updated successfully!')
+                        } else {
+                          const err = await res.json().catch(() => ({}))
+                          alert(err.message || 'Failed to update exhibitor')
+                        }
+                      } catch (error) {
+                        alert('Failed to update exhibitor')
+                      }
+                    }}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

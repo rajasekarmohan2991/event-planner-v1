@@ -157,12 +157,34 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       false
     )
 
+    // Prepare result object
+    const result = {
+      id: newId,
+      eventId: eventId,
+      name: body.name || body.company,
+      status: 'PENDING_CONFIRMATION',
+      createdAt: new Date()
+    }
+
     // 3. Send Email to Admin
     try {
       const { sendEmail } = await import('@/lib/email')
 
-      // Get admin email from event organizer or tenant
-      const adminEmail = (session.user as any)?.email || 'admin@example.com'
+      // Get admin emails from tenant members
+      const admins = await prisma.$queryRaw`
+        SELECT DISTINCT u.email, u.name
+        FROM users u
+        INNER JOIN tenant_members tm ON u.id = tm.user_id
+        WHERE tm.tenant_id = ${tenantId}
+        AND tm.role IN ('OWNER', 'ADMIN')
+      ` as any[]
+
+      console.log(`[EXHIBITOR POST] Found ${admins.length} admins to notify`)
+
+      if (admins.length === 0) {
+        console.warn('[EXHIBITOR POST] No admins found, skipping email notification')
+        return NextResponse.json(result, { status: 201 })
+      }
 
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -210,26 +232,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         </div>
       `
 
-      await sendEmail({
-        to: adminEmail,
-        subject: `New Exhibitor Registration - ${event.name}`,
-        html: emailHtml,
-        text: `New exhibitor registration for ${event.name}\n\nCompany: ${body.company}\nContact: ${body.contactEmail}`
-      })
-
-      console.log('✅ Admin notification email sent for exhibitor:', newId)
+      // Send email to each admin
+      for (const admin of admins) {
+        await sendEmail({
+          to: admin.email,
+          subject: `New Exhibitor Registration - ${event.name}`,
+          html: emailHtml,
+          text: `New exhibitor registration for ${event.name}\n\nCompany: ${body.company}\nContact: ${body.contactEmail}`
+        })
+        console.log(`✅ Admin notification email sent to ${admin.email} for exhibitor:`, newId)
+      }
     } catch (emailError) {
       console.error('❌ Failed to send admin email:', emailError)
       // Don't fail the request if email fails
-    }
-
-    // Fetch back to return partial obj
-    const result = {
-      id: newId,
-      eventId: eventId,
-      name: body.name || body.company,
-      status: 'PENDING_CONFIRMATION',
-      createdAt: new Date()
     }
 
     return NextResponse.json(result, { status: 201 })
