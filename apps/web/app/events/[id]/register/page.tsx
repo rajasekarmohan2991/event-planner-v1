@@ -378,9 +378,11 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
 
     const fetchSessions = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}/sessions/list`)
+        const res = await fetch(`/api/events/${eventId}/sessions`)
         if (res.ok) {
-          const apiSessionData = await res.json()
+          const data = await res.json()
+          // Handle both array and object response formats
+          const apiSessionData = Array.isArray(data) ? data : (data.sessions || [])
           setSessions(apiSessionData)
         }
       } catch (error) {
@@ -846,9 +848,11 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: strin
 
     const fetchSessions = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}/sessions/list`)
+        const res = await fetch(`/api/events/${eventId}/sessions`)
         if (res.ok) {
-          const apiSessionData = await res.json()
+          const data = await res.json()
+          // Handle both array and object response formats
+          const apiSessionData = Array.isArray(data) ? data : (data.sessions || [])
           setSessions(apiSessionData)
         }
       } catch (error) {
