@@ -132,6 +132,38 @@ export async function ensureSchema() {
       );
     `)
 
+    // 6. Registrations Table Columns (Self-Healing)
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS registrations (
+            id TEXT PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            data_json JSONB DEFAULT '{}',
+            type TEXT DEFAULT 'GENERAL',
+            email TEXT,
+            status TEXT DEFAULT 'PENDING',
+            ticket_id TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
+    // 6.1 Check and add missing columns for registrations
+    await prisma.$executeRawUnsafe(`
+        DO $$ 
+        BEGIN 
+            BEGIN
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_id TEXT;
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS data_json JSONB DEFAULT '{}';
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'GENERAL';
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING';
+            EXCEPTION
+                WHEN undefined_table THEN
+                    RAISE NOTICE 'Table registrations does not exist yet';
+            END;
+        END $$;
+    `)
+
     console.log('✅ Self-healing schema update complete.')
     return true
   } catch (error) {

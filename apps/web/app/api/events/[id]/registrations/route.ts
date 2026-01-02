@@ -241,7 +241,7 @@ export async function POST(
 
       // 2. Insert Order ('"Order"')
       // Columns: "eventId", "tenantId", "paymentStatus", "createdAt", "updatedAt" (Quoted CamelCase)
-      const orderEventId = BigInt(eventId)
+      const orderEventId = String(eventId) // Schema says "eventId" matches String
       await tx.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
@@ -371,9 +371,19 @@ export async function POST(
 
   } catch (error: any) {
     console.error('❌ Error creating registration:', error)
+
+    // Ensure schema self-healing ran if it was a DB error
+    // Import dynamically to avoid circular deps if any
+    try {
+      const { ensureSchema } = await import('@/lib/ensure-schema')
+      await ensureSchema()
+    } catch (e) { }
+
     return NextResponse.json({
       message: 'Registration failed',
-      error: error.message
+      error: error.message,
+      stack: error.stack,
+      details: JSON.stringify(error, Object.getOwnPropertyNames(error))
     }, { status: 500 })
   }
 }

@@ -51,7 +51,7 @@ export async function GET(
                 updated_at as "updatedAt",
                 "layoutData"
             FROM floor_plans
-            WHERE "eventId" = $1
+            WHERE "eventId" = $1::bigint
             ORDER BY created_at DESC
         `, eventId) as any[]
 
@@ -90,19 +90,25 @@ export async function GET(
         })
 
     } catch (error: any) {
-        console.error('❌ [FloorPlan GET] Fatal Error:', error)
+        console.error('❌ [FloorPlan GET] Error:', error)
 
-        // Attempt self-repair
-        if (error.message.includes('relation') || error.message.includes('does not exist')) {
-            console.log('🔧 [FloorPlan GET] Attempting schema repair...')
-            await ensureSchema()
-            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+        // Attempt self-healing if relation missing
+        if (error.message.includes('relation') || error.message.includes('column') || error.message.includes('does not exist')) {
+            try {
+                const { ensureSchema } = await import('@/lib/ensure-schema')
+                await ensureSchema()
+                return NextResponse.json({
+                    message: 'Schema repaired, please retry',
+                    repaired: true
+                }, { status: 503 })
+            } catch (e) { }
         }
 
         return NextResponse.json({
             message: 'Failed to load floor plans',
             error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            stack: error.stack,
+            details: JSON.stringify(error, Object.getOwnPropertyNames(error))
         }, { status: 500 })
     }
 }
