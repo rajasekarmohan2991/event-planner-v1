@@ -307,6 +307,10 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                             }
                             if (confirm('Remove this member?')) {
                               try {
+                                if (!m.id || m.id === 'NaN') {
+                                  setBanner('Invalid member ID (refresh page recommended)')
+                                  return
+                                }
                                 console.log('Deleting member:', m.id, 'from event:', params.id)
                                 await deleteTeamMember(params.id, m.id, accessToken);
                                 await reloadMembers();

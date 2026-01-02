@@ -44,9 +44,31 @@ export async function ensureSchema() {
         notes TEXT,
         contract_url TEXT,
         invoice_url TEXT,
+        bank_name TEXT,
+        account_number TEXT,
+        ifsc_code TEXT,
+        account_holder_name TEXT,
+        upi_id TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `)
+
+    // 3.1 Check and add missing columns for event_vendors if table exists
+    await prisma.$executeRawUnsafe(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS bank_name TEXT;
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_number TEXT;
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS ifsc_code TEXT;
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_holder_name TEXT;
+          ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS upi_id TEXT;
+        EXCEPTION
+          WHEN undefined_table THEN
+            RAISE NOTICE 'Table event_vendors does not exist yet';
+        END;
+      END $$;
     `)
 
     // 4. Floor Plans Table
