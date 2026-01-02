@@ -80,6 +80,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const body = await req.json()
   const eventId = params.id
 
+  console.log(`[VENDOR POST] Creating vendor for event ${eventId}:`, body)
+
   // 1. Get tenant and event details
   let tenantId = ''
   let eventDetails: any = null
@@ -93,11 +95,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       WHERE id = ${BigInt(eventId)} 
       LIMIT 1
     ` as any[]
-    if (!events.length) return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    if (!events.length) {
+      console.error(`[VENDOR POST] Event ${eventId} not found`)
+      return NextResponse.json({ message: 'Event not found' }, { status: 404 })
+    }
     tenantId = events[0].tenantId
     eventDetails = events[0]
+    console.log(`[VENDOR POST] Event found, tenantId: ${tenantId}`)
   } catch (e: any) {
-    return NextResponse.json({ message: 'Event fetch failed' }, { status: 500 })
+    console.error(`[VENDOR POST] Event fetch failed:`, e)
+    return NextResponse.json({ message: 'Event fetch failed', error: e.message }, { status: 500 })
   }
 
   const newId = randomUUID()
@@ -136,7 +143,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
+    console.log(`[VENDOR POST] Inserting vendor with ID: ${newId}`)
     await runInsert()
+    console.log(`[VENDOR POST] Vendor inserted successfully`)
 
     // Calculate remaining amount
     const remainingAmount = (contractAmount || 0) - (paidAmount || 0)
@@ -192,21 +201,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ message: 'Vendor created successfully', vendor: { id: newId, eventId, ...body } }, { status: 201 })
   } catch (error: any) {
-    console.error('Error creating vendor:', error)
+    console.error('[VENDOR POST] Error creating vendor:', error)
+    console.error('[VENDOR POST] Error message:', error.message)
+    console.error('[VENDOR POST] Error stack:', error.stack)
+    console.error('[VENDOR POST] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
 
     // Auto-repair and RETRY
-    if (error.message.includes('relation') || error.message.includes('does not exist')) {
-      console.log('🩹 Self-repairing schema for Vendor POST...')
+    if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+      console.log('[VENDOR POST] 🩹 Self-repairing schema for Vendor POST...')
       await ensureSchema()
       try {
+        console.log('[VENDOR POST] Retrying insert after schema repair...')
         await runInsert()
+        console.log('[VENDOR POST] Retry successful')
         return NextResponse.json({ message: 'Vendor created successfully (after repair)', vendor: { id: newId, eventId, ...body } }, { status: 201 })
       } catch (retryError: any) {
-        console.error('Retry failed:', retryError)
+        console.error('[VENDOR POST] Retry failed:', retryError)
+        console.error('[VENDOR POST] Retry error details:', JSON.stringify(retryError, Object.getOwnPropertyNames(retryError)))
         return NextResponse.json({ message: 'Failed to create vendor after repair', error: retryError.message }, { status: 500 })
       }
     }
 
-    return NextResponse.json({ message: 'Failed to create vendor', error: error.message }, { status: 500 })
+    return NextResponse.json({ message: 'Failed to create vendor', error: error.message, hint: 'Check server logs for details' }, { status: 500 })
   }
 }

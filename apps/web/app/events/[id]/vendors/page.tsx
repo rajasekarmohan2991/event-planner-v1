@@ -98,25 +98,26 @@ export default function EventVendorsPage() {
             console.log('✅ Vendor data received:', vendorData)
 
             // Create budgets for each category
-            const categoryBudgets: Budget[] = CATEGORIES.map(category => {
+            const budgetData = CATEGORIES.map(category => {
                 const categoryVendors = (vendorData.vendors || []).filter(
-                    (v: Vendor) => v.category === category && v.status !== 'CANCELLED'
+                    (v: Vendor) => v.category === category
                 )
-
                 const spent = categoryVendors.reduce((sum: number, v: Vendor) =>
                     sum + Number(v.contractAmount || 0), 0
                 )
+                // Set budget to spent amount if there are vendors, otherwise 0
+                const budgeted = spent > 0 ? spent : 0
 
                 return {
                     category,
-                    budgeted: 100000, // Default budget, can be customized
+                    budgeted,
                     spent,
-                    remaining: 100000 - spent,
+                    remaining: budgeted - spent,
                     vendors: categoryVendors
                 }
             })
 
-            setBudgets(categoryBudgets)
+            setBudgets(budgetData)
         } catch (error) {
             console.error('Failed to fetch data:', error)
         } finally {
