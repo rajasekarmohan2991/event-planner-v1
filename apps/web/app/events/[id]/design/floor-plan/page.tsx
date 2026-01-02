@@ -285,13 +285,28 @@ export default function FloorPlanDesignerPage() {
         try {
             setLoading(true)
 
+            const payload = {
+                id: floorPlan.id,
+                name: floorPlan.name,
+                canvasWidth: floorPlan.canvasWidth,
+                canvasHeight: floorPlan.canvasHeight,
+                backgroundColor: floorPlan.backgroundColor,
+                gridSize: floorPlan.gridSize,
+                vipPrice: floorPlan.vipPrice,
+                premiumPrice: floorPlan.premiumPrice,
+                generalPrice: floorPlan.generalPrice,
+                totalCapacity: floorPlan.objects.reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0),
+                vipCapacity: floorPlan.objects.filter(o => o.pricingTier === 'VIP').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0),
+                premiumCapacity: floorPlan.objects.filter(o => o.pricingTier === 'PREMIUM').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0),
+                generalCapacity: floorPlan.objects.filter(o => o.pricingTier === 'GENERAL').reduce((sum, obj) => sum + (Number(obj.totalSeats) || 0), 0),
+                layoutData: { objects: floorPlan.objects },
+                status: 'DRAFT'
+            }
+
             const response = await fetch(`/api/events/${eventId}/floor-plan`, {
                 method: floorPlan.id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...floorPlan,
-                    layoutData: { objects: floorPlan.objects }
-                })
+                body: JSON.stringify(payload)
             })
 
             if (response.ok) {
@@ -301,11 +316,13 @@ export default function FloorPlanDesignerPage() {
                     setFloorPlan(prev => ({ ...prev, id: data.floorPlan.id }))
                 }
             } else {
-                alert('Failed to save floor plan')
+                const errorData = await response.json().catch(() => ({}))
+                console.error('Save failed:', errorData)
+                alert(`Failed to save floor plan: ${errorData.message || errorData.error || 'Unknown error'}`)
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save:', error)
-            alert('Failed to save floor plan')
+            alert(`Failed to save floor plan: ${error.message}`)
         } finally {
             setLoading(false)
         }

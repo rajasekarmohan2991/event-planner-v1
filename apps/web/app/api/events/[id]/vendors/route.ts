@@ -53,13 +53,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       total: vendorsRaw.length
     })
   } catch (error: any) {
-    console.error('Error fetching vendors:', error)
+    console.error('❌ Error fetching vendors:', error)
+    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    
     // Attempt self-repair
-    if (error.message.includes('relation') || error.message.includes('does not exist')) {
+    if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+      console.log('🔧 Running schema self-healing for vendors...')
       await ensureSchema()
-      return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
+      return NextResponse.json({ 
+        message: 'Database schema repaired. Please refresh the page.', 
+        needsRetry: true 
+      }, { status: 503 })
     }
-    return NextResponse.json({ message: 'Failed to fetch vendors', error: error.message }, { status: 500 })
+    return NextResponse.json({ 
+      message: 'Failed to fetch vendors', 
+      error: error.message || 'Unknown error',
+      hint: 'Check console logs for details'
+    }, { status: 500 })
   }
 }
 

@@ -371,19 +371,29 @@ export async function POST(
 
   } catch (error: any) {
     console.error('❌ Error creating registration:', error)
+    console.error('❌ Error stack:', error.stack)
+    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
 
     // Ensure schema self-healing ran if it was a DB error
-    // Import dynamically to avoid circular deps if any
-    try {
-      const { ensureSchema } = await import('@/lib/ensure-schema')
-      await ensureSchema()
-    } catch (e) { }
+    if (error.message?.includes('relation') || error.message?.includes('column') || error.message?.includes('does not exist')) {
+      try {
+        console.log('🔧 Running schema self-healing...')
+        const { ensureSchema } = await import('@/lib/ensure-schema')
+        await ensureSchema()
+        return NextResponse.json({
+          message: 'Database schema updated. Please try again.',
+          needsRetry: true
+        }, { status: 503 })
+      } catch (e) {
+        console.error('Schema healing failed:', e)
+      }
+    }
 
     return NextResponse.json({
       message: 'Registration failed',
-      error: error.message,
-      stack: error.stack,
-      details: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      error: error.message || 'Unknown error occurred',
+      code: error.code,
+      hint: 'Please check the console logs for details'
     }, { status: 500 })
   }
 }

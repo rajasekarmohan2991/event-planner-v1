@@ -115,7 +115,9 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
       if (ticketClassFilter) qs.set('ticketClass', ticketClassFilter)
       const response = await fetch(`/api/events/${eventId}/seats/availability${qs.toString() ? `?${qs.toString()}` : ''}`)
       if (!response.ok) {
-        throw new Error(`Failed to fetch seats: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Seat fetch failed:', errorData)
+        throw new Error(errorData.message || errorData.error || `Failed to fetch seats: ${response.status}`)
       }
 
       const data = await response.json()
@@ -260,6 +262,23 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
           </div>
           <Button onClick={() => fetchSeats()} variant="outline">
             Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!loading && seats.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <div className="text-gray-500 mb-4">
+            <Armchair className="w-12 h-12 mx-auto mb-2" />
+            <p className="font-semibold">No seats available</p>
+            <p className="text-sm text-gray-600">Seats have not been configured for this event yet. Please contact the event organizer.</p>
+          </div>
+          <Button onClick={() => fetchSeats()} variant="outline">
+            Refresh
           </Button>
         </CardContent>
       </Card>

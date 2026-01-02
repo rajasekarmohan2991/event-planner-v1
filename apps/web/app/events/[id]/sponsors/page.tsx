@@ -107,7 +107,11 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
     if (!confirm('Are you sure you want to delete this sponsor?')) return
     try {
       const res = await fetch(`/api/events/${params.id}/sponsors/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Delete failed:', errorData)
+        throw new Error(errorData.message || errorData.error || 'Failed to delete sponsor')
+      }
 
       toast({
         title: 'Sponsor deleted successfully',
@@ -124,7 +128,13 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
 
       load()
     } catch (e: any) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' as any })
+      console.error('Sponsor deletion error:', e)
+      toast({ 
+        title: 'Error deleting sponsor', 
+        description: e.message || 'An unknown error occurred', 
+        variant: 'destructive' as any,
+        duration: 5000
+      })
     }
   }
 
