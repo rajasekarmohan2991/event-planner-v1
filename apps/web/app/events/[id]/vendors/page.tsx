@@ -554,6 +554,63 @@ export default function EventVendorsPage() {
                             </div>
                         </div>
 
+                        {/* Bank Details Section */}
+                        <div className="space-y-4 border-t pt-4 mt-4">
+                            <h3 className="text-sm font-semibold text-gray-700">Bank Details (For Payment)</h3>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="bankName">Bank Name</Label>
+                                <Input
+                                    id="bankName"
+                                    value={vendorForm.bankName}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, bankName: e.target.value }))}
+                                    placeholder="e.g., HDFC Bank"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="accountHolderName">Account Holder Name</Label>
+                                <Input
+                                    id="accountHolderName"
+                                    value={vendorForm.accountHolderName}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, accountHolderName: e.target.value }))}
+                                    placeholder="Account holder's full name"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="accountNumber">Account Number</Label>
+                                    <Input
+                                        id="accountNumber"
+                                        value={vendorForm.accountNumber}
+                                        onChange={(e) => setVendorForm(prev => ({ ...prev, accountNumber: e.target.value }))}
+                                        placeholder="1234567890"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="ifscCode">IFSC Code</Label>
+                                    <Input
+                                        id="ifscCode"
+                                        value={vendorForm.ifscCode}
+                                        onChange={(e) => setVendorForm(prev => ({ ...prev, ifscCode: e.target.value.toUpperCase() }))}
+                                        placeholder="HDFC0001234"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="upiId">UPI ID (Optional)</Label>
+                                <Input
+                                    id="upiId"
+                                    value={vendorForm.upiId}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, upiId: e.target.value }))}
+                                    placeholder="vendor@upi"
+                                />
+                            </div>
+                        </div>
+
                         {/* Vendor Status */}
                         <div className="space-y-2">
                             <Label htmlFor="status">Vendor Status</Label>
