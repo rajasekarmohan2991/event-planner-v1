@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const eventId = BigInt(params.id);
-    console.log(`[API] Fetching sessions for EventID: ${params.id}`);
+    console.log(`[SESSIONS API] Fetching sessions for EventID: ${params.id}`);
 
     const sessions = await prisma.$queryRaw`
       SELECT 
@@ -30,7 +30,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ORDER BY start_time ASC
     ` as any[]
 
-    console.log(`[API] Found ${sessions?.length || 0} sessions`);
+    console.log(`[SESSIONS API] Found ${sessions?.length || 0} sessions for event ${params.id}`);
+    if (sessions.length > 0) {
+      console.log(`[SESSIONS API] Session IDs:`, sessions.map(s => s.id.toString()));
+      console.log(`[SESSIONS API] Session Titles:`, sessions.map(s => s.title));
+    }
 
     const sessionsWithSpeakers = await Promise.all(sessions.map(async (sess) => {
       const speakers = await prisma.$queryRaw`
@@ -51,6 +55,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       id: s.id.toString(),
       eventId: s.eventId.toString()
     }));
+
+    console.log(`[SESSIONS API] Returning ${serialized.length} serialized sessions`);
+    console.log(`[SESSIONS API] Response payload:`, JSON.stringify({ sessions: serialized }, null, 2));
 
     return NextResponse.json({ sessions: serialized });
 

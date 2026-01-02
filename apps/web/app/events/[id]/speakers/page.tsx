@@ -50,18 +50,22 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
       // Fetch sessions for dropdown
       fetch(`/api/events/${params.id}/sessions`, { credentials: 'include' })
         .then(r => {
-          console.log('Sessions fetch response status:', r.status)
+          console.log('🔍 [SPEAKER PAGE] Sessions fetch response status:', r.status)
           if (!r.ok) throw new Error(`Failed to fetch sessions: ${r.status}`)
           return r.json()
         })
         .then(d => {
-          console.log('Sessions data:', d)
+          console.log('🔍 [SPEAKER PAGE] Sessions data received:', d)
           const sessionsList = d.sessions || d.content || (Array.isArray(d) ? d : [])
-          console.log('Parsed sessions list:', sessionsList)
+          console.log('🔍 [SPEAKER PAGE] Parsed sessions list:', sessionsList)
+          console.log('🔍 [SPEAKER PAGE] Number of sessions:', sessionsList.length)
+          if (sessionsList.length > 0) {
+            console.log('🔍 [SPEAKER PAGE] Session details:', sessionsList.map((s: any) => ({ id: s.id, title: s.title })))
+          }
           setSessions(sessionsList)
         })
         .catch(e => {
-          console.error('Sessions fetch error:', e)
+          console.error('❌ [SPEAKER PAGE] Sessions fetch error:', e)
           setSessions([])
         })
     }
