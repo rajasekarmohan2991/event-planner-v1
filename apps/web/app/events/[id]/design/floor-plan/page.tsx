@@ -163,8 +163,19 @@ export default function FloorPlanDesignerPage() {
             if (planToUse) {
                 console.log('[Floor Plan Editor] Loading plan:', planToUse.name, planToUse.id)
 
-                // Ensure objects have necessary properties
-                const objects = planToUse.objects || []
+                // Ensure objects have necessary properties and calculate totalSeats
+                const objects = (planToUse.objects || []).map((obj: FloorPlanObject) => {
+                    // Calculate totalSeats if not present
+                    let totalSeats = obj.totalSeats || 0
+                    if (!totalSeats && obj.rows && obj.cols) {
+                        const gaps = obj.gaps || []
+                        totalSeats = (obj.rows * obj.cols) - gaps.length
+                    }
+                    return {
+                        ...obj,
+                        totalSeats
+                    }
+                })
 
                 setFloorPlan({
                     ...planToUse,

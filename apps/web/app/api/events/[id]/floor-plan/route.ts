@@ -278,12 +278,15 @@ export async function PUT(
         const body = await req.json()
         const eventId = BigInt(id)
 
+        console.log('📌 [FloorPlan PUT] Request body:', JSON.stringify(body, null, 2))
+
         const session = await getServerSession(authOptions as any) as any
         if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
         if (!body.id) return NextResponse.json({ message: 'Floor plan ID is required' }, { status: 400 })
 
         console.log('📌 [FloorPlan PUT] Attempting upsert for:', body.id)
+        console.log('📌 [FloorPlan PUT] Event ID:', eventId.toString())
 
         // Use upsert to handle cases where the frontend thinks it's an update but record doesn't exist
         const updated = await prisma.floorPlan.upsert({
@@ -335,9 +338,19 @@ export async function PUT(
         })
     } catch (error: any) {
         console.error('❌ [FloorPlan PUT] Fatal Error:', error)
+        console.error('❌ [FloorPlan PUT] Error stack:', error.stack)
+        console.error('❌ [FloorPlan PUT] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        
+        // Check if it's a Prisma error
+        if (error.code) {
+            console.error('❌ [FloorPlan PUT] Prisma error code:', error.code)
+        }
+        
         return NextResponse.json({
             message: 'Failed to update floor plan',
-            error: error.message
+            error: error.message,
+            code: error.code,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 })
     }
 }
