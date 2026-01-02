@@ -24,17 +24,43 @@ export async function GET(
 
         const eventId = BigInt(id)
 
-        const plans = await prisma.floorPlan.findMany({
-            where: { eventId },
-            orderBy: { createdAt: 'desc' }
-        })
+        // Use queryRawUnsafe to be robust against schema mismatches (e.g. nullable fields)
+        const plans = await prisma.$queryRawUnsafe(`
+            SELECT 
+                id, 
+                "eventId", 
+                tenant_id as "tenantId", 
+                name, 
+                description,
+                "canvasWidth",
+                "canvasHeight",
+                "backgroundColor",
+                "gridSize",
+                "vipPrice",
+                "premiumPrice",
+                "generalPrice",
+                "totalCapacity",
+                "vipCapacity",
+                "premiumCapacity",
+                "generalCapacity",
+                "menCapacity",
+                "womenCapacity",
+                status,
+                version,
+                created_at as "createdAt",
+                updated_at as "updatedAt",
+                "layoutData"
+            FROM floor_plans
+            WHERE "eventId" = $1
+            ORDER BY created_at DESC
+        `, eventId) as any[]
 
         console.log(`✅ [FloorPlan GET] Found ${plans.length} plans in database`)
 
-        // Explicit serialization to avoid any hidden BigInt/Decimal issues
+        // Explicit serialization
         const serialized = plans.map(fp => ({
             id: fp.id,
-            eventId: fp.eventId.toString(),
+            eventId: fp.eventId ? fp.eventId.toString() : eventId.toString(),
             tenantId: fp.tenantId,
             name: fp.name,
             description: fp.description,
