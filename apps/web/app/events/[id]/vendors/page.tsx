@@ -309,11 +309,35 @@ export default function EventVendorsPage() {
                                             {vendor.status}
                                         </Badge>
 
-                                        {vendor.isTemporary && (
+                                        {vendor.isTemporary ? (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleCancelTempVendor(vendor)}
+                                                className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    if (confirm(`Delete vendor "${vendor.name}"?`)) {
+                                                        try {
+                                                            const res = await fetch(`/api/events/${eventId}/vendors/${vendor.id}`, { method: 'DELETE' })
+                                                            if (res.ok) {
+                                                                await fetchBudgetsAndVendors()
+                                                                alert('Vendor deleted successfully')
+                                                            } else {
+                                                                alert('Failed to delete vendor')
+                                                            }
+                                                        } catch (error) {
+                                                            console.error('Delete failed:', error)
+                                                            alert('Failed to delete vendor')
+                                                        }
+                                                    }
+                                                }}
                                                 className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
                                             >
                                                 <X className="h-4 w-4" />
@@ -372,7 +396,7 @@ export default function EventVendorsPage() {
                         {/* Category Selection */}
                         <div className="space-y-2">
                             <Label htmlFor="category">Category *</Label>
-                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <Select value={selectedCategory || ''} onValueChange={setSelectedCategory}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select Category" />
                                 </SelectTrigger>
@@ -457,7 +481,7 @@ export default function EventVendorsPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="paymentStatus">Payment Status</Label>
-                                <Select value={vendorForm.paymentStatus} onValueChange={(value) => setVendorForm(prev => ({ ...prev, paymentStatus: value }))}>
+                                <Select value={vendorForm.paymentStatus || 'PENDING'} onValueChange={(value) => setVendorForm(prev => ({ ...prev, paymentStatus: value }))}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -506,7 +530,7 @@ export default function EventVendorsPage() {
                         {/* Vendor Status */}
                         <div className="space-y-2">
                             <Label htmlFor="status">Vendor Status</Label>
-                            <Select value={vendorForm.status} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
+                            <Select value={vendorForm.status || 'ACTIVE'} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
