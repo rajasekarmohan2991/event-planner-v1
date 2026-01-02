@@ -188,7 +188,7 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
         ) : (
           <ul className="divide-y">
             {items.map(s => (
-              <SpeakerRow key={s.id} item={s} eventId={params.id} onChanged={load} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
+              <SpeakerRow key={s.id} item={s} eventId={params.id} sessions={sessions} onChanged={load} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
             ))}
           </ul>
         )}
@@ -199,12 +199,13 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
   )
 }
 
-function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem; eventId: string; onChanged: () => void; setBanner: (m: string) => void }) {
+function SpeakerRow({ item, eventId, onChanged, setBanner, sessions }: { item: SpeakerItem; eventId: string; onChanged: () => void; setBanner: (m: string) => void; sessions: any[] }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(item.name)
   const [title, setTitle] = useState(item.title || '')
   const [photoUrl, setPhotoUrl] = useState(item.photoUrl || '')
   const [bio, setBio] = useState(item.bio || '')
+  const [selectedSessionId, setSelectedSessionId] = useState(item.sessions?.[0]?.id || '')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | undefined>()
 
@@ -212,7 +213,13 @@ function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem
     if (!name.trim()) { setErr('Name is required'); return }
     try {
       setBusy(true); setErr(undefined)
-      const payload = { name: name.trim(), title: title || undefined, bio: bio || undefined, photoUrl: photoUrl || undefined }
+      const payload = { 
+        name: name.trim(), 
+        title: title || undefined, 
+        bio: bio || undefined, 
+        photoUrl: photoUrl || undefined,
+        sessionId: selectedSessionId || undefined
+      }
       const res = await fetch(`/api/events/${eventId}/speakers/${item.id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.message || 'Update failed')
@@ -221,8 +228,25 @@ function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem
     finally { setBusy(false) }
   }
   const del = async () => {
-    if (!confirm('Delete this speaker?')) return
-    try { setBusy(true); const res = await fetch(`/api/events/${eventId}/speakers/${item.id}`, { method: 'DELETE', credentials: 'include' }); if (!res.ok) { const t = await res.text(); throw new Error(t || 'Delete failed') }; setBanner('Speaker deleted'); await onChanged() } catch (e: any) { setErr(e?.message || 'Delete failed') } finally { setBusy(false) }
+    if (!confirm('Are you sure you want to delete this speaker? This will also remove them from all sessions.')) return
+    try { 
+      setBusy(true)
+      setErr(undefined)
+      const res = await fetch(`/api/events/${eventId}/speakers/${item.id}`, { method: 'DELETE', credentials: 'include' })
+      if (!res.ok) { 
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Delete speaker failed:', errorData)
+        throw new Error(errorData.message || errorData.error || 'Delete failed') 
+      }
+      setBanner('Speaker deleted successfully')
+      await onChanged()
+    } catch (e: any) { 
+      console.error('Speaker deletion error:', e)
+      setErr(e?.message || 'Delete failed')
+      setBanner(`Error: ${e?.message || 'Delete failed'}`)
+    } finally { 
+      setBusy(false) 
+    }
   }
 
   return (
@@ -293,6 +317,17 @@ function SpeakerRow({ item, eventId, onChanged, setBanner }: { item: SpeakerItem
             <input value={name} onChange={e => setName(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Name" />
             <input value={title} onChange={e => setTitle(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm" placeholder="Title" />
             <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm" placeholder="Photo URL" />
+            <div className="md:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Assign to Session</label>
+              <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="w-full rounded-md border px-2 py-1.5 text-sm bg-white">
+                <option value="">-- No session assigned --</option>
+                {sessions.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.title || `Session ${s.id}`} {s.startTime ? `(${format(new Date(s.startTime), 'MMM d, h:mm a')})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
             <textarea value={bio} onChange={e => setBio(e.target.value)} className="md:col-span-2 rounded-md border px-2 py-1.5 text-sm min-h-16" placeholder="Bio" />
           </div>
           <div className="flex items-center gap-2">
