@@ -94,8 +94,6 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
   const handleEdit = (item: ComprehensiveSponsor) => {
     setEditData(item)
     setViewState('FORM')
-    toast({ title: 'Note: Editing creates a new entry (Update API Pending)' })
-    // Honest placeholder until I verify PUT endpoint
   }
 
   const handleDelete = async (id: string) => {
@@ -161,7 +159,7 @@ export default function EventSponsorsPage({ params }: { params: { id: string } }
                   </span>
                 </div>
                 <div className="w-32 text-slate-600">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(item.amount || 0))}
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number((item.paymentData as any)?.amount || item.amount || 0))}
                 </div>
                 <div className="w-32 text-right flex justify-end gap-2">
                   <button onClick={() => handleEdit(item)} className="p-1 hover:bg-slate-100 rounded text-slate-600">
