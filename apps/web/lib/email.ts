@@ -114,7 +114,9 @@ export async function sendEmail(options: EmailOptions) {
     console.log('✅ Email sent successfully (Primary):', info.messageId)
     const preview = nodemailer.getTestMessageUrl(info)
     if (preview) {
+      console.log('⚠️ WARNING: Using Ethereal test account - emails are NOT sent to real addresses!')
       console.log('📧 Preview URL:', preview)
+      console.log('⚠️ To send real emails, configure SMTP or SendGrid in environment variables')
     }
     return { success: true, messageId: info.messageId, preview }
 

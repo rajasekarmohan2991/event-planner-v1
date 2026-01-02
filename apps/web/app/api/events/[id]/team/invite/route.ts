@@ -95,6 +95,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const rejectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventIdString}/team/reject?token=${token}`
 
         console.log(`[TEAM INVITE] Sending email to ${email}...`)
+        console.log(`[TEAM INVITE] Approve URL: ${approveUrl}`)
+        console.log(`[TEAM INVITE] Reject URL: ${rejectUrl}`)
         await sendEmail({
           to: email,
           subject: `You're invited to collaborate on an event`,

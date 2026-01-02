@@ -156,12 +156,14 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
       .map((u: any) => String(u.email).trim())
       .filter(Boolean)
     const list = Array.from(new Set([...typedList, ...selectedFromCompany]))
+    console.log('[TEAM INVITE] Inviting emails:', list, 'with role:', inviteRole)
     if (list.length === 0) {
       setBanner('Please enter at least one email')
       return
     }
     try {
-      await inviteTeamMembers(params.id, list, inviteRole, accessToken)
+      const result = await inviteTeamMembers(params.id, list, inviteRole, accessToken)
+      console.log('[TEAM INVITE] Invite result:', result)
       await reloadMembers()
       setInviteOpen(false)
       setInviteEmails('')
@@ -170,6 +172,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
       setBanner(`Invited ${list.length} member(s) as ${inviteRole}`)
       setTimeout(() => setBanner(null), 3000)
     } catch (e: any) {
+      console.error('[TEAM INVITE] Invite failed:', e)
       setBanner(e?.message || 'Invite failed')
       setTimeout(() => setBanner(null), 3000)
     }
@@ -177,6 +180,8 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
 
   const onReinvite = async (email: string) => {
     try {
+      console.log('[TEAM REINVITE] Reinviting email:', email)
+      await reinviteTeamMembers(params.id, email, accessToken)
       await reinviteTeamMember(params.id, email, accessToken)
       setBanner(`Reinvitation sent to ${email}`)
       setTimeout(() => setBanner(null), 2500)
