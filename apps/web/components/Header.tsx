@@ -34,7 +34,7 @@ export default function Header() {
   const displayLocation = location?.city || 'Detecting...'
 
   return (
-    <header className="sticky top-0 z-[100] w-full bg-white border-b shadow-sm backdrop-blur-none" style={{ backgroundColor: '#ffffff' }}>
+    <header className="sticky top-0 z-[100] w-full border-b shadow-md" style={{ backgroundColor: '#ffffff', isolation: 'isolate' }}>
       {/* Top bar */}
       <div className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">

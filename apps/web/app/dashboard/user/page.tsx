@@ -134,90 +134,68 @@ export default function UserDashboard() {
 
         </div>
 
-        {/* Fixed Scrolling Promotional Banner - Below Header */}
-        <div className="fixed top-20 left-0 right-0 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 backdrop-blur-md border-b border-white/20 overflow-hidden shadow-lg z-40">
-          <div className="animate-scroll-left flex items-center gap-6 py-3">
+        {/* Fixed Scrolling Promotional Banner - Directly Below Header */}
+        <div className="sticky top-[64px] left-0 right-0 bg-white border-b border-gray-200 overflow-hidden shadow-sm z-[90]">
+          <div className="animate-scroll-left flex items-center gap-8 py-2 px-4">
             {/* Duplicate the content for seamless loop */}
             {[...Array(2)].map((_, index) => (
-              <div key={index} className="flex items-center gap-6">
-                {/* Notification 1: Latest Event */}
+              <div key={index} className="flex items-center gap-8 whitespace-nowrap">
+                {/* Real-time Event 1 */}
                 {upcomingEvents[0] && (
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-blue-200 min-w-[320px]">
-                    <div className="p-2 bg-blue-100 rounded-full flex-shrink-0">
-                      <Calendar className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">🎉 New Event!</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[0].name} - {upcomingEvents[0].city}</p>
-                      <p className="text-xs text-gray-400 mt-1">Just added</p>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg px-4 py-2 border border-red-100">
+                    <span className="text-red-500 font-bold">🔥</span>
+                    <div>
+                      <span className="font-semibold text-gray-800 text-sm">Trending Now</span>
+                      <span className="text-gray-600 text-sm ml-2">{upcomingEvents[0].name}</span>
+                      <span className="text-gray-400 text-xs ml-2">Popular choice</span>
                     </div>
                   </div>
                 )}
 
-                {/* Notification 2: Promo Code */}
-                <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-amber-200 min-w-[320px]">
-                  <div className="p-2 bg-amber-100 rounded-full flex-shrink-0">
-                    <Ticket className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-sm">🎫 Limited Offer!</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Use code SAVE20 for 20% off all events</p>
-                    <p className="text-xs text-gray-400 mt-1">Expires soon</p>
-                  </div>
-                </div>
-
-                {/* Notification 3: Trending Event */}
+                {/* Real-time Event 2 - Almost Full */}
                 {upcomingEvents[1] && (
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-pink-200 min-w-[320px]">
-                    <div className="p-2 bg-pink-100 rounded-full flex-shrink-0">
-                      <TrendingUp className="w-5 h-5 text-pink-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">🔥 Trending Now</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[1].name} selling fast!</p>
-                      <p className="text-xs text-gray-400 mt-1">Popular choice</p>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg px-4 py-2 border border-amber-100">
+                    <span className="text-amber-500 font-bold">⚡</span>
+                    <div>
+                      <span className="font-semibold text-gray-800 text-sm">Almost Full</span>
+                      <span className="text-gray-600 text-sm ml-2">{upcomingEvents[1].name}</span>
+                      <span className="text-gray-400 text-xs ml-2">Limited seats!</span>
                     </div>
                   </div>
                 )}
 
-                {/* Notification 4: Limited Seats */}
+                {/* Real-time Event 3 - Early Bird */}
                 {upcomingEvents[2] && (
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-purple-200 min-w-[320px]">
-                    <div className="p-2 bg-purple-100 rounded-full flex-shrink-0">
-                      <Users className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">⚡ Almost Full</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[2].name} - Limited seats!</p>
-                      <p className="text-xs text-gray-400 mt-1">Book now</p>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg px-4 py-2 border border-green-100">
+                    <span className="text-green-500 font-bold">⭐</span>
+                    <div>
+                      <span className="font-semibold text-gray-800 text-sm">Early Bird Special</span>
+                      <span className="text-gray-600 text-sm ml-2">{upcomingEvents[2].name}</span>
+                      <span className="text-gray-400 text-xs ml-2">Get 30% off!</span>
                     </div>
                   </div>
                 )}
 
-                {/* Notification 5: Early Bird */}
+                {/* Real-time Event 4 - Featured */}
                 {upcomingEvents[3] && (
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-teal-200 min-w-[320px]">
-                    <div className="p-2 bg-teal-100 rounded-full flex-shrink-0">
-                      <Star className="w-5 h-5 text-teal-600 fill-teal-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">⭐ Early Bird Special</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[3].name} - Get 30% off!</p>
-                      <p className="text-xs text-gray-400 mt-1">Code: GET30</p>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-lg px-4 py-2 border border-purple-100">
+                    <span className="text-purple-500 font-bold">💎</span>
+                    <div>
+                      <span className="font-semibold text-gray-800 text-sm">Featured Event</span>
+                      <span className="text-gray-600 text-sm ml-2">{upcomingEvents[3].name}</span>
+                      <span className="text-gray-400 text-xs ml-2">in {upcomingEvents[3].city}</span>
                     </div>
                   </div>
                 )}
 
-                {/* Notification 6: Free Event */}
+                {/* Real-time Event 5 - New */}
                 {upcomingEvents[4] && (
-                  <div className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-green-200 min-w-[320px]">
-                    <div className="p-2 bg-green-100 rounded-full flex-shrink-0">
-                      <Heart className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 text-sm">💚 Featured Event</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">{upcomingEvents[4].name} in {upcomingEvents[4].city}</p>
-                      <p className="text-xs text-gray-400 mt-1">Don't miss it!</p>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg px-4 py-2 border border-blue-100">
+                    <span className="text-blue-500 font-bold">🆕</span>
+                    <div>
+                      <span className="font-semibold text-gray-800 text-sm">Just Added</span>
+                      <span className="text-gray-600 text-sm ml-2">{upcomingEvents[4].name}</span>
+                      <span className="text-gray-400 text-xs ml-2">Don't miss it!</span>
                     </div>
                   </div>
                 )}
