@@ -5,7 +5,7 @@ import ManageTabs from '@/components/events/ManageTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import SessionCalendarView from '@/components/events/SessionCalendarView'
-import { Calendar, List } from 'lucide-react'
+import { Calendar, List, Radio } from 'lucide-react'
 
 type SessionItem = { id: number; title: string; description?: string; startTime: string; endTime: string; room?: string; track?: string; capacity?: number }
 type SpeakerItem = { id: number; name: string; title?: string; bio?: string; company?: string; email?: string }
@@ -556,6 +556,13 @@ function SessionRow({ item, eventId, onChanged, speakers, setBanner }: { item: S
             <div className="text-xs text-slate-500 truncate">{new Date(item.startTime).toLocaleString()} → {new Date(item.endTime).toLocaleString()} {item.room ? `· ${item.room}` : ''}</div>
           </div>
           <div className="flex items-center gap-2">
+            <a 
+              href={`/events/${eventId}/sessions/${item.id}/stream`}
+              className="rounded-md border border-blue-300 bg-blue-50 text-blue-700 px-2 py-1 text-xs hover:bg-blue-100 inline-flex items-center gap-1"
+            >
+              <Radio className="w-3 h-3" />
+              Stream
+            </a>
             <button onClick={() => setEditing(true)} className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50">Edit</button>
             <button onClick={del} className="rounded-md border border-rose-300 text-rose-700 px-2 py-1 text-xs hover:bg-rose-50">Delete</button>
           </div>
