@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 
 // Venue suggestions using Google Places API (fallback to Nominatim)
 // Query params: city, q, limit

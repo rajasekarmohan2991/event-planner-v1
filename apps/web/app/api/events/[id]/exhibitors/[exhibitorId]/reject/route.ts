@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import { sendEmail } from '@/lib/email'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string; exhibitorId: string } }) {
   const session = await getServerSession(authOptions as any)

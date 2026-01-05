@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 // Prospects (MVP): RSVPs likely to convert but not yet registered
 // - RSVP status in (PENDING, MAYBE)

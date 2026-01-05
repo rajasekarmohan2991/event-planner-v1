@@ -4,6 +4,7 @@ import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import { sendEmail } from '@/lib/email'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {

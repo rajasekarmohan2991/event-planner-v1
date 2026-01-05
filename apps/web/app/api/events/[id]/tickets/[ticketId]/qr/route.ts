@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 function b64url(input: Buffer | string) {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')

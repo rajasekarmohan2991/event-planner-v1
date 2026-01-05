@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { ensureSchema } from '@/lib/ensure-schema'
+export const dynamic = 'force-dynamic'
 
 // Production schema: event_vendors has event_id (TEXT)
 

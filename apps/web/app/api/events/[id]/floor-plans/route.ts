@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+export const dynamic = 'force-dynamic'
 
 const bigIntReplacer = (key: string, value: any) =>
   typeof value === 'bigint' ? value.toString() : value

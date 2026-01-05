@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 import { sendEmail } from '@/lib/email'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const key = req.headers.get('x-diag-key') || ''

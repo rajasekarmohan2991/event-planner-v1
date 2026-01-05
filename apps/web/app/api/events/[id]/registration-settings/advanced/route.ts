@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+export const dynamic = 'force-dynamic'
 
 // Simple in-memory storage for demo purposes
 // In production, this would be stored in a database

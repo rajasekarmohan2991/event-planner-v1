@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {

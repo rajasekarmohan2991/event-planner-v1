@@ -6,6 +6,7 @@ import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import { sendEmail } from '@/lib/email'
 import QRCode from 'qrcode'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string; exhibitorId: string } }) {
   const session = await getServerSession(authOptions as any)

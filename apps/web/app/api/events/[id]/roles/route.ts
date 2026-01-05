@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 // List role assignments for an event
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

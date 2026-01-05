@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { withRateLimit } from '@/lib/rateLimit'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

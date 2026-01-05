@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
 import prisma from '@/lib/prisma'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 function b64urlToBuf(input: string) {
   const pad = input.length % 4 === 2 ? '==' : input.length % 4 === 3 ? '=' : ''

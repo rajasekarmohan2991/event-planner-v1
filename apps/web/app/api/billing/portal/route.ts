@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTenantContext } from '@/lib/saas/tenant'
 import { getStripe, isStripeConfigured } from '@/lib/saas/stripe'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   if (!isStripeConfigured()) return NextResponse.json({ message: 'Billing not configured' }, { status: 501 })

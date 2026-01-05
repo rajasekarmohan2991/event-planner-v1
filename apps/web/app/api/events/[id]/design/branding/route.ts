@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions, checkUserRole } from '@/lib/auth'
 import { getKV, setKV } from '@/lib/kv'
+export const dynamic = 'force-dynamic'
 
 const ns = (eventId: string) => `design:${eventId}`
 const key = 'branding'

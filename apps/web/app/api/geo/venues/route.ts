@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 
 // Simple venues search using Nominatim (OpenStreetMap)
 // Free/open source per project preferences. Server-side to set UA and avoid CORS issues.

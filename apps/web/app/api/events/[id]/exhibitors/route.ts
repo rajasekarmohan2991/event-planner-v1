@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { randomUUID } from 'crypto'
+export const dynamic = 'force-dynamic'
 
 // List exhibitors for an event
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getTenantId } from '@/lib/tenant-context'
 import { sendEmail } from '@/lib/email'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

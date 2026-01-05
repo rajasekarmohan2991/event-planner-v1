@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 
 function icsEscape(s: string) {
   return (s || '').replace(/,|;|\\/g, (m) => ({ ',': '\\,', ';': '\\;', '\\': '\\\\' } as any)[m])

@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { validateUserEmail } from '@/lib/email-validation'
+export const dynamic = 'force-dynamic'
 
 // Build API base just like in other routes (ensure trailing /api)
 const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'

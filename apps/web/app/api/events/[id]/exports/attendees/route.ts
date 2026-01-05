@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 function toCsvRow(values: any[]) {
   return values.map(v => {

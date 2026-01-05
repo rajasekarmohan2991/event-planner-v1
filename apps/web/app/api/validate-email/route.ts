@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isEmailAvailable, isValidEmailFormat } from '@/lib/email-validation';
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
     try {

@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 const NS_TPL = 'email_templates'
 const NS_SMTP = 'smtp_config'

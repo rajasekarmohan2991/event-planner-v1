@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 // PUT /api/admin/lookup/items/[id] - Update lookup item
 export async function PUT(

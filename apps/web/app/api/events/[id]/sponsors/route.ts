@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { validateSponsorForm } from '@/types/sponsor'
 import { ensureSchema } from '@/lib/ensure-schema'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {

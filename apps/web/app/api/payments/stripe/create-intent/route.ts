@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { createPaymentIntent, createCustomer } from '@/lib/stripe'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 // GET - Fetch comments for a post
 export async function GET(

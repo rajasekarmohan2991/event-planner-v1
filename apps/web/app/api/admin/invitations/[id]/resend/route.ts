@@ -3,6 +3,7 @@ import { getAuthSession } from '@/lib/auth'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import { sendEmail } from '@/lib/email'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import { sendPasswordResetEmail } from '@/lib/email'
 import { withRateLimit } from '@/lib/rateLimit'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

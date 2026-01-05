@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendSms } from '@/lib/sms'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

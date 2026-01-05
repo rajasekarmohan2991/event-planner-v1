@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 export async function POST(
     req: NextRequest,

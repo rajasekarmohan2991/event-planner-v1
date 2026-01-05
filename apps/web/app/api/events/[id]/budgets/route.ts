@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import { getTenantId } from '@/lib/tenant-context'
+export const dynamic = 'force-dynamic'
 
 // GET - List all budgets for an event
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

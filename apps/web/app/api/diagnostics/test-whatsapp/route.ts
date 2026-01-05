@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendWhatsApp } from '@/lib/messaging'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
     try {

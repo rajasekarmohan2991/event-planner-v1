@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 // List pending RSVPs (we treat waitlisted=true as pending approval)
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

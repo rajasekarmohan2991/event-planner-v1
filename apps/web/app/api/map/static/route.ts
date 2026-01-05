@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 
 function toInt(v: string | null, def: number) {
   const n = v ? parseInt(v, 10) : NaN

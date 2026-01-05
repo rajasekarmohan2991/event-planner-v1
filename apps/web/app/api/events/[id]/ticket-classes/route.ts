@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 // GET /api/events/[id]/ticket-classes - Get all ticket classes for an event
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

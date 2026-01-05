@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { sendSMS } from '@/lib/messaging'
 import { generateCalendarLinks } from '@/lib/calendar'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

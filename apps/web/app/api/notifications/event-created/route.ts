@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { sendMail } from '@/lib/email/mailer'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

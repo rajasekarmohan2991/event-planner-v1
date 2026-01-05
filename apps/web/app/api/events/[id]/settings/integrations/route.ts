@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getEventSettings, updateEventSettings } from '@/lib/event-settings'
+export const dynamic = 'force-dynamic'
 
 const KEY = 'integrations'
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getKV } from '@/lib/kv'
+export const dynamic = 'force-dynamic'
 
 // Generate seats based on floor plan configuration
 async function generateSeatsFromFloorPlan(eventId: string, config: any) {

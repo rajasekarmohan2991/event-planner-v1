@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'
 // Spring Boot context-path is "/api", so all controllers are under /api

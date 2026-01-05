@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions, checkUserRole } from '@/lib/auth'
+export const dynamic = 'force-dynamic'
 
 // Update field
 export async function PUT(req: NextRequest, { params }: { params: { id: string; fieldId: string } }) {

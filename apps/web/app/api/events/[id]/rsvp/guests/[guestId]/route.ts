@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string; guestId: string } }) {
   const { id: eventId, guestId } = params

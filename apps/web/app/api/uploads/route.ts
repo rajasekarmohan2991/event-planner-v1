@@ -4,6 +4,7 @@ import { mkdir, stat, writeFile } from 'fs/promises'
 import path from 'path'
 import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { supabase } from '@/lib/supabase'
+export const dynamic = 'force-dynamic'
 
 export const runtime = 'nodejs'
 

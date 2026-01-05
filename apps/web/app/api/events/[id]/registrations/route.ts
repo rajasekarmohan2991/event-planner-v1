@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import QRCode from 'qrcode'
 import crypto from 'crypto'
+export const dynamic = 'force-dynamic'
 
 // GET /api/events/[id]/registrations
 export async function GET(

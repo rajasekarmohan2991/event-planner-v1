@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+export const dynamic = 'force-dynamic'
 
 // GET /api/events/[id]/sessions/[sessionId] - Get single session
 export async function GET(req: NextRequest, { params }: { params: { id: string, sessionId: string } }) {

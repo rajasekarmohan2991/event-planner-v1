@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { verifyPaymentSignature, getPaymentDetails } from '@/lib/razorpay'
 import prisma from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {

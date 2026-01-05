@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { requireEventRole } from '@/lib/rbac'
+export const dynamic = 'force-dynamic'
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string; assignmentId: string } }) {
   const session = await getServerSession(authOptions as any)
