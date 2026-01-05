@@ -146,7 +146,9 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
       const res = await fetch(`/api/events/${params?.id}/sessions`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to load sessions');
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      // API returns { sessions: [...] }, extract the sessions array
+      const sessionsArray = data.sessions || data;
+      setItems(Array.isArray(sessionsArray) ? sessionsArray : []);
       // Load speakers for attach UI
       const sp = await fetch(`/api/events/${params.id}/speakers?page=0&size=100`, { credentials: 'include' })
       if (sp.ok) {
