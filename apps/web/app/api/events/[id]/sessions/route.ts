@@ -159,14 +159,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     } else {
       // Single-day event or no daysConfig: use event start/end
+      // Make validation lenient - just log warning instead of rejecting
       if (event.startsAt && event.endsAt) {
         const eventStart = new Date(event.startsAt);
         const eventEnd = new Date(event.endsAt);
 
         if (sessionStart < eventStart || sessionEnd > eventEnd) {
-          return NextResponse.json({
-            error: `Session must be between ${eventStart.toLocaleString()} and ${eventEnd.toLocaleString()}`
-          }, { status: 400 });
+          console.warn(`[SESSIONS POST] Warning: Session time outside event time range, but allowing creation`);
+          console.warn(`[SESSIONS POST] Event: ${eventStart.toISOString()} - ${eventEnd.toISOString()}`);
+          console.warn(`[SESSIONS POST] Session: ${sessionStart.toISOString()} - ${sessionEnd.toISOString()}`);
+          // Allow creation anyway - don't reject
         }
       }
     }
