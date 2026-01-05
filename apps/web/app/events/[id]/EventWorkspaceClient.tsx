@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
     LayoutGrid, ClipboardList, Users, Building2, PencilRuler,
     MessageSquare, FileBarChart, CalendarCheck2, Settings as SettingsIcon,
-    ChevronDown, Rocket
+    ChevronDown, Rocket, Calendar, Radio
 } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -48,6 +48,7 @@ export default function EventWorkspaceClient({
         { href: `${base}/registrations`, label: 'Registrations', icon: Users },
         // Only show Design for non-virtual events
         ...(!isVirtual ? [{ href: `${base}/design`, label: 'Design', icon: PencilRuler }] : []),
+        { href: `${base}/sessions`, label: 'Sessions', icon: Calendar },
         { href: `${base}/communicate`, label: 'Communicate', icon: MessageSquare },
         { href: `${base}/reports`, label: 'Reports', icon: FileBarChart },
         { href: `${base}/event-day`, label: 'Event Day', icon: CalendarCheck2 },
@@ -83,6 +84,11 @@ export default function EventWorkspaceClient({
     ]
     const isOnEventDay = pathname?.startsWith(eventDayBase)
     const [eventOpen, setEventOpen] = useState<boolean>(!!isOnEventDay)
+
+    // Sessions submenu
+    const sessionsBase = `${base}/sessions`
+    const isOnSessions = pathname?.startsWith(sessionsBase)
+    const [sessionsOpen, setSessionsOpen] = useState<boolean>(!!isOnSessions)
 
     if (!eventExists) {
         return (
@@ -243,6 +249,21 @@ export default function EventWorkspaceClient({
                                         </div>
                                     )}
                                 </div>
+                            )
+                        }
+                        if (href === sessionsBase) {
+                            return (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    className={`group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${isOnSessions
+                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300'
+                                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
+                                        }`}
+                                >
+                                    <Icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                                    <span className="truncate transition-colors">{label}</span>
+                                </Link>
                             )
                         }
                         if (href === eventDayBase) {
