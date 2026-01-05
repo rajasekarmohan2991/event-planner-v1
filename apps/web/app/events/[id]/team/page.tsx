@@ -181,11 +181,11 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
   const onReinvite = async (email: string) => {
     try {
       console.log('[TEAM REINVITE] Reinviting email:', email)
-      await reinviteTeamMembers(params.id, email, accessToken)
       await reinviteTeamMember(params.id, email, accessToken)
       setBanner(`Reinvitation sent to ${email}`)
       setTimeout(() => setBanner(null), 2500)
     } catch (e: any) {
+      console.error('[TEAM REINVITE] Reinvite failed:', e)
       setBanner(e?.message || 'Reinvite failed')
       setTimeout(() => setBanner(null), 3000)
     }
