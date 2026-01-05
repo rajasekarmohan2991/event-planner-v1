@@ -71,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           INSERT INTO event_team_invitations 
           (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
           VALUES (
-            ${eventIdString}, 
+            ${eventId}, 
             ${tenantId}, 
             ${email}, 
             ${dbRole}, 
@@ -91,8 +91,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         console.log(`[TEAM INVITE] Database insert successful for ${email}`)
 
         // Send invitation email with approve/reject links
-        const approveUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventIdString}/team/approve?token=${token}`
-        const rejectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventIdString}/team/reject?token=${token}`
+        const approveUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventId.toString()}/team/approve?token=${token}`
+        const rejectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventId.toString()}/team/reject?token=${token}`
 
         console.log(`[TEAM INVITE] Sending email to ${email}...`)
         console.log(`[TEAM INVITE] Approve URL: ${approveUrl}`)
