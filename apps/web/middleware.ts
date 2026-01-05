@@ -7,6 +7,11 @@ export default withAuth(
     const path = req.nextUrl.pathname
     const userRole = token?.role as string
 
+    // Redirect authenticated users from landing page to dashboard
+    if (path === '/' && token) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
     // Admin routes - require SUPER_ADMIN, ADMIN, or EVENT_MANAGER
     if (path.startsWith('/admin') || path.startsWith('/(admin)')) {
       const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'EVENT_MANAGER']
@@ -29,6 +34,11 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname
 
+        // Always allow public pages
+        if (path === '/') {
+          return true
+        }
+
         // Always allow auth pages
         if (path.startsWith('/auth/')) {
           return true
@@ -48,6 +58,7 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
+     * - / (landing page - public)
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization)

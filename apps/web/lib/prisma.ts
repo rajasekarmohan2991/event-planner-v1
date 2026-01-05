@@ -15,9 +15,12 @@ function buildSafeDatabaseUrl() {
   if (!raw) return raw
   try {
     const u = new URL(raw)
-    // Disable prepared statements in pooled environments
+    // Disable prepared statements in pooled environments (Supabase uses PgBouncer)
     if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true')
-    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '10')
+    // Reduce connection limit for serverless to prevent pool exhaustion
+    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '3')
+    // Add connection timeout
+    if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '10')
     // Force SSL in production if not explicitly set, but skip for localhost/IPs
     if (process.env.NODE_ENV === 'production' && !u.searchParams.has('sslmode')) {
       if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1' && !u.hostname.startsWith('192.168.')) {
@@ -38,12 +41,8 @@ const prisma = globalThis.prisma || new PrismaClient({
   datasources: databaseUrl ? { db: { url: databaseUrl } } : undefined,
 })
 
-// Ensure connection is established in serverless environments
-if (process.env.NODE_ENV === 'production') {
-  prisma.$connect().catch((err) => {
-    console.error('Failed to connect to database:', err)
-  })
-}
+// Don't eagerly connect in serverless - let connections happen lazily on first query
+// This prevents connection pool exhaustion during cold starts
 
 // Add BigInt serialization support for JSON.stringify
 if (!(BigInt.prototype as any).toJSON) {
