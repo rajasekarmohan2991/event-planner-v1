@@ -44,11 +44,11 @@ export default function EventWorkspaceClient({
 
     const items = [
         { href: `${base}`, label: 'Dashboard', icon: LayoutGrid },
+        { href: `${base}/sessions`, label: 'Sessions', icon: Calendar },
         { href: `${base}/info`, label: 'Manage', icon: ClipboardList },
         { href: `${base}/registrations`, label: 'Registrations', icon: Users },
         // Only show Design for non-virtual events
         ...(!isVirtual ? [{ href: `${base}/design`, label: 'Design', icon: PencilRuler }] : []),
-        { href: `${base}/sessions`, label: 'Sessions', icon: Calendar },
         { href: `${base}/communicate`, label: 'Communicate', icon: MessageSquare },
         { href: `${base}/reports`, label: 'Reports', icon: FileBarChart },
         { href: `${base}/event-day`, label: 'Event Day', icon: CalendarCheck2 },

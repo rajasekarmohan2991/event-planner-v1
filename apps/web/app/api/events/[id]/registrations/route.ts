@@ -236,7 +236,7 @@ export async function POST(
                 NOW(),
                 NOW(),
                 'APPROVED',
-                ${ticketId ? BigInt(ticketId) : null}
+                ${ticketId ? String(ticketId) : null}
             )
         `
 

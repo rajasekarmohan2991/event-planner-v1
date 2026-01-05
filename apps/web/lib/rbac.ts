@@ -16,27 +16,52 @@ export async function getEventRole(eventId: string) {
   const user = await getSessionUser()
   if (!user) return null
   if (user.role === 'ADMIN') return 'OWNER'
-  const assignment = await (prisma as any).eventRoleAssignment.findUnique({
-    where: { eventId_userId: { eventId, userId: user.id as any } },
-    select: { role: true },
-  })
-  if (assignment?.role) return assignment.role
-  // Fallback: treat event creator as OWNER. Try common fields without strict schema coupling.
+  
+  // Convert eventId to BigInt for database queries
+  let eventIdBigInt: bigint
   try {
-    const evt = await (prisma as any).event.findUnique({
-      where: { id: eventId as any },
-      select: { organizerId: true, createdBy: true, ownerId: true },
-    })
-    const uid = user.id as any
-    if (evt && (evt.organizerId === uid || evt.createdBy === uid || evt.ownerId === uid)) {
-      return 'OWNER'
+    eventIdBigInt = BigInt(eventId)
+  } catch {
+    console.error('Invalid eventId for role check:', eventId)
+    return null
+  }
+
+  // Use raw SQL for reliability with BigInt
+  try {
+    const assignments = await prisma.$queryRaw`
+      SELECT role FROM "EventRoleAssignment" 
+      WHERE "eventId" = ${eventIdBigInt} AND "userId" = ${BigInt(user.id)}
+      LIMIT 1
+    ` as any[]
+    if (assignments.length > 0) return assignments[0].role
+  } catch (e) {
+    console.warn('EventRoleAssignment query failed:', e)
+  }
+
+  // Fallback: treat event creator as OWNER
+  try {
+    const events = await prisma.$queryRaw`
+      SELECT "organizerId", "createdBy", "ownerId" FROM events 
+      WHERE id = ${eventIdBigInt}
+      LIMIT 1
+    ` as any[]
+    if (events.length > 0) {
+      const evt = events[0]
+      const uid = BigInt(user.id)
+      if (evt.organizerId === uid || evt.createdBy === uid || evt.ownerId === uid) {
+        return 'OWNER'
+      }
     }
   } catch {}
-  // Bootstrap: if the event has no role assignments yet, allow current user as OWNER to avoid 403s on fresh events
+
+  // Bootstrap: if the event has no role assignments yet, allow current user as OWNER
   try {
-    const count = await (prisma as any).eventRoleAssignment.count({ where: { eventId } })
-    if (count === 0) return 'OWNER'
+    const counts = await prisma.$queryRaw`
+      SELECT COUNT(*) as count FROM "EventRoleAssignment" WHERE "eventId" = ${eventIdBigInt}
+    ` as any[]
+    if (counts.length > 0 && Number(counts[0].count) === 0) return 'OWNER'
   } catch {}
+
   return null
 }
 

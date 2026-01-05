@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { ensureSchema } from '@/lib/ensure-schema'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -278,79 +279,127 @@ export async function PUT(
         const body = await req.json()
         const eventId = BigInt(id)
 
-        console.log('📌 [FloorPlan PUT] Request body:', JSON.stringify(body, null, 2))
+        console.log('📌 [FloorPlan PUT] Request for event:', id, 'plan:', body.id)
 
         const session = await getServerSession(authOptions as any) as any
         if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
         if (!body.id) return NextResponse.json({ message: 'Floor plan ID is required' }, { status: 400 })
 
-        console.log('📌 [FloorPlan PUT] Attempting upsert for:', body.id)
-        console.log('📌 [FloorPlan PUT] Event ID:', eventId.toString())
+        // Check if floor plan exists
+        const existing = await prisma.$queryRawUnsafe(`
+            SELECT id FROM floor_plans WHERE id = $1
+        `, body.id) as any[]
 
-        // Use upsert to handle cases where the frontend thinks it's an update but record doesn't exist
-        const updated = await prisma.floorPlan.upsert({
-            where: { id: body.id },
-            update: {
-                name: body.name,
-                description: body.description,
-                canvasWidth: Number(body.canvasWidth),
-                canvasHeight: Number(body.canvasHeight),
-                backgroundColor: body.backgroundColor,
-                gridSize: Number(body.gridSize),
-                vipPrice: body.vipPrice,
-                premiumPrice: body.premiumPrice,
-                generalPrice: body.generalPrice,
-                totalCapacity: Number(body.totalCapacity),
-                vipCapacity: Number(body.vipCapacity),
-                premiumCapacity: Number(body.premiumCapacity),
-                generalCapacity: Number(body.generalCapacity),
-                menCapacity: Number(body.menCapacity),
-                womenCapacity: Number(body.womenCapacity),
-                layoutData: body.layoutData,
-                status: body.status,
-                version: { increment: 1 }
-            },
-            create: {
-                id: body.id.startsWith('fp-') ? undefined : body.id, // Handle mock IDs
-                eventId: eventId,
-                name: body.name || 'New Floor Plan',
-                layoutData: body.layoutData || {},
-                canvasWidth: Number(body.canvasWidth) || 1200,
-                canvasHeight: Number(body.canvasHeight) || 800,
-                backgroundColor: body.backgroundColor || '#ffffff',
-                gridSize: Number(body.gridSize) || 20,
-                status: body.status || 'DRAFT'
-            }
-        })
+        const layoutDataJson = JSON.stringify(body.layoutData || {})
+
+        if (existing.length > 0) {
+            // UPDATE existing floor plan
+            console.log('📌 [FloorPlan PUT] Updating existing plan:', body.id)
+            await prisma.$executeRawUnsafe(`
+                UPDATE floor_plans SET
+                    name = $1,
+                    description = $2,
+                    "canvasWidth" = $3,
+                    "canvasHeight" = $4,
+                    "backgroundColor" = $5,
+                    "gridSize" = $6,
+                    "vipPrice" = $7,
+                    "premiumPrice" = $8,
+                    "generalPrice" = $9,
+                    "totalCapacity" = $10,
+                    "vipCapacity" = $11,
+                    "premiumCapacity" = $12,
+                    "generalCapacity" = $13,
+                    "menCapacity" = $14,
+                    "womenCapacity" = $15,
+                    "layoutData" = $16::jsonb,
+                    status = $17,
+                    version = version + 1,
+                    updated_at = NOW()
+                WHERE id = $18
+            `,
+                body.name || 'Floor Plan',
+                body.description || null,
+                Number(body.canvasWidth) || 1200,
+                Number(body.canvasHeight) || 800,
+                body.backgroundColor || '#ffffff',
+                Number(body.gridSize) || 20,
+                Number(body.vipPrice) || 0,
+                Number(body.premiumPrice) || 0,
+                Number(body.generalPrice) || 0,
+                Number(body.totalCapacity) || 0,
+                Number(body.vipCapacity) || 0,
+                Number(body.premiumCapacity) || 0,
+                Number(body.generalCapacity) || 0,
+                Number(body.menCapacity) || 0,
+                Number(body.womenCapacity) || 0,
+                layoutDataJson,
+                body.status || 'DRAFT',
+                body.id
+            )
+        } else {
+            // INSERT new floor plan
+            console.log('📌 [FloorPlan PUT] Creating new plan for event:', id)
+            const newId = body.id.startsWith('fp-') ? crypto.randomUUID() : body.id
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO floor_plans (
+                    id, "eventId", name, description, "canvasWidth", "canvasHeight",
+                    "backgroundColor", "gridSize", "vipPrice", "premiumPrice", "generalPrice",
+                    "totalCapacity", "vipCapacity", "premiumCapacity", "generalCapacity",
+                    "menCapacity", "womenCapacity", "layoutData", status, version, created_at, updated_at
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19, 1, NOW(), NOW()
+                )
+            `,
+                newId,
+                eventId,
+                body.name || 'New Floor Plan',
+                body.description || null,
+                Number(body.canvasWidth) || 1200,
+                Number(body.canvasHeight) || 800,
+                body.backgroundColor || '#ffffff',
+                Number(body.gridSize) || 20,
+                Number(body.vipPrice) || 0,
+                Number(body.premiumPrice) || 0,
+                Number(body.generalPrice) || 0,
+                Number(body.totalCapacity) || 0,
+                Number(body.vipCapacity) || 0,
+                Number(body.premiumCapacity) || 0,
+                Number(body.generalCapacity) || 0,
+                Number(body.menCapacity) || 0,
+                Number(body.womenCapacity) || 0,
+                layoutDataJson,
+                body.status || 'DRAFT'
+            )
+        }
 
         console.log('✅ [FloorPlan PUT] Success')
 
         return NextResponse.json({
             message: 'Floor plan saved successfully',
             floorPlan: {
-                ...updated,
-                eventId: updated.eventId.toString(),
-                vipPrice: String(updated.vipPrice),
-                premiumPrice: String(updated.premiumPrice),
-                generalPrice: String(updated.generalPrice)
+                id: body.id,
+                eventId: id,
+                name: body.name,
+                status: body.status || 'DRAFT'
             }
         })
     } catch (error: any) {
         console.error('❌ [FloorPlan PUT] Fatal Error:', error)
         console.error('❌ [FloorPlan PUT] Error stack:', error.stack)
-        console.error('❌ [FloorPlan PUT] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
         
-        // Check if it's a Prisma error
-        if (error.code) {
-            console.error('❌ [FloorPlan PUT] Prisma error code:', error.code)
+        // Attempt self-repair
+        if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+            console.log('🔧 [FloorPlan PUT] Attempting schema repair...')
+            await ensureSchema()
+            return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
         }
         
         return NextResponse.json({
             message: 'Failed to update floor plan',
             error: error.message,
-            code: error.code,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            code: error.code
         }, { status: 500 })
     }
 }
