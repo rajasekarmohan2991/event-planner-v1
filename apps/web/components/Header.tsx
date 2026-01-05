@@ -34,7 +34,7 @@ export default function Header() {
   const displayLocation = location?.city || 'Detecting...'
 
   return (
-    <header className="sticky top-0 z-[100] w-full bg-white border-b shadow-sm" style={{ backgroundColor: '#ffffff', opacity: 1 }}>
+    <header className="sticky top-0 z-[100] w-full bg-white border-b shadow-sm backdrop-blur-none" style={{ backgroundColor: '#ffffff' }}>
       {/* Top bar */}
       <div className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -45,7 +45,7 @@ export default function Header() {
 
             {/* Location chip (desktop) */}
             <button
-              className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-sm text-slate-700 shadow-sm transition hover:bg-white md:flex"
+              className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 shadow-sm transition hover:bg-gray-50 md:flex"
               aria-label="Change location"
               title={location ? `${location.city}, ${location.state}` : 'Detecting location...'}
             >
@@ -73,7 +73,7 @@ export default function Header() {
 
           {/* Search pill (desktop) */}
           <div className="flex-1 px-4 md:px-6">
-            <div className="mx-auto hidden max-w-xl items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-black/5 transition focus-within:border-slate-300 focus-within:ring-blue-100 md:flex">
+            <div className="mx-auto hidden max-w-xl items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-black/5 transition focus-within:border-slate-300 focus-within:ring-blue-100 md:flex">
               <MagnifyingGlassIcon />
               <input
                 className="w-full bg-transparent outline-none placeholder:text-slate-400"
@@ -89,7 +89,7 @@ export default function Header() {
                 {/* Notification Bell */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative h-9 w-9 rounded-full ring-1 ring-black/5 bg-white/80 shadow-sm hover:bg-white transition-colors flex items-center justify-center">
+                    <button className="relative h-9 w-9 rounded-full ring-1 ring-black/5 bg-white shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                       </svg>
@@ -126,7 +126,7 @@ export default function Header() {
                 {/* User Profile */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative h-9 w-9 rounded-full ring-1 ring-black/5 overflow-hidden bg-white/80 shadow-sm">
+                    <button className="relative h-9 w-9 rounded-full ring-1 ring-black/5 overflow-hidden bg-white shadow-sm">
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={session.user.image || ''} alt={session.user.name || session.user.email || ''} />
                         <AvatarFallback>
@@ -188,7 +188,7 @@ export default function Header() {
       </div>
 
       {/* Mobile search and location */}
-      <div className="border-b bg-white/90 p-2 md:hidden">
+      <div className="border-b bg-white p-2 md:hidden">
         <div className="mb-2 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
           <MagnifyingGlassIcon />
           <input className="w-full bg-transparent outline-none" placeholder="Search for events" aria-label="Search" />

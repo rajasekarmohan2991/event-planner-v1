@@ -19,36 +19,65 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = params.id
 
-    // Build WHERE clause
-    let whereClause = `WHERE event_id = '${eventId}'`
-    if (category) whereClause += ` AND category = '${category}'`
-    if (paymentStatus) whereClause += ` AND payment_status = '${paymentStatus}'`
+    // First ensure the table exists
+    await ensureSchema()
 
-    const vendorsRaw = await prisma.$queryRawUnsafe(`
-      SELECT 
-        id,
-        event_id as "eventId",
-        name,
-        category,
-        budget,
-        contact_name as "contactName",
-        contact_email as "contactEmail",
-        contact_phone as "contactPhone",
-        contract_amount as "contractAmount",
-        paid_amount as "paidAmount",
-        payment_status as "paymentStatus",
-        payment_due_date as "paymentDueDate",
-        status,
-        notes,
-        contract_url as "contractUrl",
-        invoice_url as "invoiceUrl",
-        created_at as "createdAt",
-        updated_at as "updatedAt",
-        tenant_id as "tenantId"
-      FROM event_vendors
-      ${whereClause}
-      ORDER BY created_at DESC
-    `) as any[]
+    // Use parameterized query for safety
+    let vendorsRaw: any[] = []
+    
+    if (category && paymentStatus) {
+      vendorsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+          id, event_id as "eventId", name, category, budget,
+          contact_name as "contactName", contact_email as "contactEmail", contact_phone as "contactPhone",
+          contract_amount as "contractAmount", paid_amount as "paidAmount",
+          payment_status as "paymentStatus", payment_due_date as "paymentDueDate",
+          status, notes, contract_url as "contractUrl", invoice_url as "invoiceUrl",
+          created_at as "createdAt", updated_at as "updatedAt", tenant_id as "tenantId"
+        FROM event_vendors
+        WHERE event_id = $1 AND category = $2 AND payment_status = $3
+        ORDER BY created_at DESC
+      `, eventId, category, paymentStatus)
+    } else if (category) {
+      vendorsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+          id, event_id as "eventId", name, category, budget,
+          contact_name as "contactName", contact_email as "contactEmail", contact_phone as "contactPhone",
+          contract_amount as "contractAmount", paid_amount as "paidAmount",
+          payment_status as "paymentStatus", payment_due_date as "paymentDueDate",
+          status, notes, contract_url as "contractUrl", invoice_url as "invoiceUrl",
+          created_at as "createdAt", updated_at as "updatedAt", tenant_id as "tenantId"
+        FROM event_vendors
+        WHERE event_id = $1 AND category = $2
+        ORDER BY created_at DESC
+      `, eventId, category)
+    } else if (paymentStatus) {
+      vendorsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+          id, event_id as "eventId", name, category, budget,
+          contact_name as "contactName", contact_email as "contactEmail", contact_phone as "contactPhone",
+          contract_amount as "contractAmount", paid_amount as "paidAmount",
+          payment_status as "paymentStatus", payment_due_date as "paymentDueDate",
+          status, notes, contract_url as "contractUrl", invoice_url as "invoiceUrl",
+          created_at as "createdAt", updated_at as "updatedAt", tenant_id as "tenantId"
+        FROM event_vendors
+        WHERE event_id = $1 AND payment_status = $2
+        ORDER BY created_at DESC
+      `, eventId, paymentStatus)
+    } else {
+      vendorsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+          id, event_id as "eventId", name, category, budget,
+          contact_name as "contactName", contact_email as "contactEmail", contact_phone as "contactPhone",
+          contract_amount as "contractAmount", paid_amount as "paidAmount",
+          payment_status as "paymentStatus", payment_due_date as "paymentDueDate",
+          status, notes, contract_url as "contractUrl", invoice_url as "invoiceUrl",
+          created_at as "createdAt", updated_at as "updatedAt", tenant_id as "tenantId"
+        FROM event_vendors
+        WHERE event_id = $1
+        ORDER BY created_at DESC
+      `, eventId)
+    }
 
     return NextResponse.json({
       vendors: vendorsRaw,
@@ -56,22 +85,39 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
   } catch (error: any) {
     console.error('❌ Error fetching vendors:', error)
-    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    console.error('❌ Error message:', error.message)
     
-    // Attempt self-repair
-    if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+    // Attempt self-repair for any error
+    try {
       console.log('🔧 Running schema self-healing for vendors...')
       await ensureSchema()
+      
+      // Retry the query after repair
+      const eventId = params.id
+      const vendorsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+          id, event_id as "eventId", name, category, budget,
+          contact_name as "contactName", contact_email as "contactEmail", contact_phone as "contactPhone",
+          contract_amount as "contractAmount", paid_amount as "paidAmount",
+          payment_status as "paymentStatus", payment_due_date as "paymentDueDate",
+          status, notes, contract_url as "contractUrl", invoice_url as "invoiceUrl",
+          created_at as "createdAt", updated_at as "updatedAt", tenant_id as "tenantId"
+        FROM event_vendors
+        WHERE event_id = $1
+        ORDER BY created_at DESC
+      `, eventId) as any[]
+      
+      return NextResponse.json({
+        vendors: vendorsRaw,
+        total: vendorsRaw.length
+      })
+    } catch (retryError: any) {
+      console.error('❌ Retry also failed:', retryError.message)
       return NextResponse.json({ 
-        message: 'Database schema repaired. Please refresh the page.', 
-        needsRetry: true 
-      }, { status: 503 })
+        message: 'Failed to fetch vendors', 
+        error: retryError.message || 'Unknown error'
+      }, { status: 500 })
     }
-    return NextResponse.json({ 
-      message: 'Failed to fetch vendors', 
-      error: error.message || 'Unknown error',
-      hint: 'Check console logs for details'
-    }, { status: 500 })
   }
 }
 
