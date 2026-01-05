@@ -12,9 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const session = await getServerSession(authOptions as any) as any
     // if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
-    const eventId = params.id
+    const eventIdStr = params.id
+    const eventId = BigInt(eventIdStr)
     const timestamp = new Date().toISOString()
-    console.log(`🔍 [TEAM MEMBERS ${timestamp}] Fetching for event:`, eventId)
+    console.log(`🔍 [TEAM MEMBERS ${timestamp}] Fetching for event:`, eventIdStr)
 
     // FORCE NO CACHE
     const headers = {
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     try {
       // Query accepted members from EventRoleAssignment
-      assignments = await prisma.$queryRawUnsafe(`
+      assignments = await prisma.$queryRaw`
         SELECT 
           a.id, 
           a."eventId", 
@@ -42,15 +43,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id
-        WHERE a."eventId" = $1
+        WHERE a."eventId" = ${eventId}
         ORDER BY a."createdAt" DESC
-      `, eventId)
+      ` as any[]
 
       console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} accepted members`)
 
       // Query pending invitations from event_team_invitations
       try {
-        invitations = await prisma.$queryRawUnsafe(`
+        invitations = await prisma.$queryRaw`
           SELECT 
             id,
             event_id as "eventId",
@@ -60,9 +61,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             created_at as "createdAt",
             'INVITED' as source
           FROM event_team_invitations
-          WHERE event_id = $1 AND status = 'PENDING'
+          WHERE event_id = ${eventId} AND status = 'PENDING'
           ORDER BY created_at DESC
-        `, eventId)
+        ` as any[]
 
         console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${invitations.length} pending invitations`)
       } catch (inviteError: any) {

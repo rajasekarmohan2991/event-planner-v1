@@ -13,44 +13,59 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
         }
 
         const body = await req.json()
-        const { basePrice, electricalPrice, tablesPrice, otherCharges, notes } = body
+        const { basePrice, electricalPrice, tablesPrice, otherCharges, notes, sendInvoice, customAmount } = body
 
-        const exhibitor = await prisma.exhibitor.findUnique({
-            where: { id: params.exhibitorId }
-        })
+        // Fetch exhibitor using raw SQL
+        const exhibitors = await prisma.$queryRawUnsafe(`
+            SELECT * FROM exhibitors WHERE id = $1
+        `, params.exhibitorId) as any[]
 
-        if (!exhibitor) {
+        if (!exhibitors.length) {
             return NextResponse.json({ message: 'Exhibitor not found' }, { status: 404 })
         }
 
-        // Calculate total
-        const base = parseFloat(basePrice) || 0
-        const electrical = exhibitor.electricalAccess ? (parseFloat(electricalPrice) || 0) : 0
-        const tables = exhibitor.displayTables ? (parseFloat(tablesPrice) || 0) : 0
-        const other = parseFloat(otherCharges) || 0
+        const exhibitor = exhibitors[0]
 
-        const subtotal = base + electrical + tables + other
-        const tax = Math.round(subtotal * 0.18) // 18% GST
-        const total = subtotal + tax
+        // Calculate total - support custom amount or calculated amount
+        let total: number
+        let base = 0, electrical = 0, tables = 0, other = 0, subtotal = 0, tax = 0
+
+        if (customAmount && parseFloat(customAmount) > 0) {
+            // Use custom amount directly
+            total = parseFloat(customAmount)
+            subtotal = Math.round(total / 1.18) // Reverse calculate subtotal from total with GST
+            tax = total - subtotal
+            base = subtotal
+        } else {
+            // Calculate from individual prices
+            base = parseFloat(basePrice) || 0
+            electrical = exhibitor.electrical_access ? (parseFloat(electricalPrice) || 0) : 0
+            tables = exhibitor.display_tables ? (parseFloat(tablesPrice) || 0) : 0
+            other = parseFloat(otherCharges) || 0
+
+            subtotal = base + electrical + tables + other
+            tax = Math.round(subtotal * 0.18) // 18% GST
+            total = subtotal + tax
+        }
 
         // Generate payment link
-        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/events/${params.id}/exhibitors/${params.exhibitorId}/payment`
+        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/events/${params.id}/exhibitors/${params.exhibitorId}/payment`
 
-        // Update exhibitor with pricing
-        const updated = await prisma.exhibitor.update({
-            where: { id: params.exhibitorId },
-            data: {
-                paymentAmount: total,
-                status: 'PAYMENT_PENDING',
-                notes: notes || exhibitor.notes
-            }
-        })
+        // Update exhibitor with pricing using raw SQL
+        await prisma.$executeRawUnsafe(`
+            UPDATE exhibitors SET
+                payment_amount = $1,
+                status = 'PAYMENT_PENDING',
+                notes = COALESCE($2, notes),
+                updated_at = NOW()
+            WHERE id = $3
+        `, total, notes || null, params.exhibitorId)
 
         // Fetch event details
-        const event = await prisma.event.findUnique({
-            where: { id: BigInt(params.id) },
-            select: { name: true, startsAt: true }
-        })
+        const events = await prisma.$queryRaw`
+            SELECT name, "startsAt" FROM events WHERE id = ${BigInt(params.id)}
+        ` as any[]
+        const event = events[0]
 
         // Send pricing email to exhibitor
         if (exhibitor.contactEmail) {
@@ -173,8 +188,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
         return NextResponse.json({
             message: 'Pricing finalized and payment link sent',
             exhibitor: {
-                id: updated.id,
-                status: updated.status,
+                id: exhibitor.id,
+                status: 'PAYMENT_PENDING',
                 paymentAmount: total
             },
             pricing: {

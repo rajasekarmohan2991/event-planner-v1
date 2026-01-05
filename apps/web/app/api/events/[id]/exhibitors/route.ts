@@ -167,9 +167,62 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       createdAt: new Date()
     }
 
-    // 3. Send Email to Admin
+    // 3. Send Thank You Email to Exhibitor
     try {
       const { sendEmail } = await import('@/lib/email')
+
+      // Send thank you email to exhibitor
+      if (body.contactEmail) {
+        const exhibitorEmailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0;">Thank You for Registering!</h1>
+            </div>
+            
+            <div style="padding: 30px; background: #ffffff;">
+              <p style="font-size: 16px; color: #333;">Dear ${body.contactName || body.firstName || 'Exhibitor'},</p>
+              
+              <p style="font-size: 16px; color: #333;">
+                Thank you for registering as an exhibitor for <strong>${event.name}</strong>!
+              </p>
+              
+              <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #4F46E5;">Your Registration Details</h3>
+                <p><strong>Company:</strong> ${body.company || 'N/A'}</p>
+                <p><strong>Booth Type:</strong> ${body.boothType || 'To be assigned'}</p>
+                <p><strong>Booth Size:</strong> ${body.boothOption || 'To be assigned'}</p>
+              </div>
+              
+              <div style="background: #FEF3C7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F59E0B;">
+                <h3 style="margin-top: 0; color: #92400E;">Next Steps</h3>
+                <p style="color: #78350F;">Our event manager will review your registration and contact you shortly with:</p>
+                <ul style="color: #78350F;">
+                  <li>Booth allocation details</li>
+                  <li>Payment information and invoice</li>
+                  <li>Event guidelines and setup instructions</li>
+                </ul>
+              </div>
+              
+              <p style="font-size: 14px; color: #666;">
+                If you have any questions, please contact our event management team.
+              </p>
+              
+              <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                Best regards,<br>
+                <strong>Event Management Team</strong>
+              </p>
+            </div>
+          </div>
+        `
+
+        await sendEmail({
+          to: body.contactEmail,
+          subject: `Thank You for Registering - ${event.name}`,
+          html: exhibitorEmailHtml,
+          text: `Thank you for registering as an exhibitor for ${event.name}. Our event manager will contact you shortly with booth allocation and payment details.`
+        })
+        console.log(`✅ Thank you email sent to exhibitor: ${body.contactEmail}`)
+      }
 
       // Get admin emails from tenant members
       const admins = await prisma.$queryRaw`
@@ -183,7 +236,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       console.log(`[EXHIBITOR POST] Found ${admins.length} admins to notify`)
 
       if (admins.length === 0) {
-        console.warn('[EXHIBITOR POST] No admins found, skipping email notification')
+        console.warn('[EXHIBITOR POST] No admins found, skipping admin email notification')
         return NextResponse.json(result, { status: 201 })
       }
 

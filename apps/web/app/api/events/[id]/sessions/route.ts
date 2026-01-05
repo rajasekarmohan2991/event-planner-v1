@@ -118,64 +118,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
     }
 
-    // Validation 2: Check against day-specific times (multi-day) or event times (single-day)
-    const daysConfig = event.daysConfig as any[] | null;
+    // Validation 2: Check session time is within event time range (STRICT)
+    if (event.startsAt && event.endsAt) {
+      const eventStart = new Date(event.startsAt);
+      const eventEnd = new Date(event.endsAt);
 
-    if (daysConfig && daysConfig.length > 1) {
-      // Multi-day event: validate against specific day's time range
-      // Make validation lenient - log warning but allow creation
-      const sessionDate = sessionStart.toISOString().split('T')[0];
-      console.log(`[SESSIONS POST] Multi-day event, checking date ${sessionDate} against days:`, daysConfig);
-      
-      const dayConfig = daysConfig.find((d: any) => d.date.split('T')[0] === sessionDate);
-
-      if (!dayConfig) {
-        // Show available days but allow creation anyway
-        const availableDays = daysConfig.map((d: any) =>
-          `${d.title} (${new Date(d.date).toLocaleDateString()}): ${d.startTime} - ${d.endTime}`
-        ).join(', ');
-
-        console.warn(`[SESSIONS POST] Warning: Session date ${sessionDate} not in event dates. Available: ${availableDays}`);
-        console.warn(`[SESSIONS POST] Allowing creation anyway for flexibility`);
-        // Don't reject - allow creation
-      } else {
-        // Combine date + time for validation
-        const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`);
-        const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`);
-
-        console.log(`[SESSIONS POST] Day validation:`, {
-          dayStart: dayStart.toISOString(),
-          dayEnd: dayEnd.toISOString(),
-          sessionStart: sessionStart.toISOString(),
-          sessionEnd: sessionEnd.toISOString()
+      if (sessionStart < eventStart || sessionEnd > eventEnd) {
+        const formatTime = (d: Date) => d.toLocaleString('en-IN', { 
+          dateStyle: 'medium', 
+          timeStyle: 'short' 
         });
-
-        if (sessionStart < dayStart || sessionEnd > dayEnd) {
-          console.warn(`[SESSIONS POST] Warning: Session outside day time range, but allowing creation`);
-          // Don't reject - allow creation
-        }
-      }
-    } else {
-      // Single-day event or no daysConfig: use event start/end
-      // Make validation lenient - just log warning instead of rejecting
-      if (event.startsAt && event.endsAt) {
-        const eventStart = new Date(event.startsAt);
-        const eventEnd = new Date(event.endsAt);
-
-        if (sessionStart < eventStart || sessionEnd > eventEnd) {
-          console.warn(`[SESSIONS POST] Warning: Session time outside event time range, but allowing creation`);
-          console.warn(`[SESSIONS POST] Event: ${eventStart.toISOString()} - ${eventEnd.toISOString()}`);
-          console.warn(`[SESSIONS POST] Session: ${sessionStart.toISOString()} - ${sessionEnd.toISOString()}`);
-          // Allow creation anyway - don't reject
-        }
+        return NextResponse.json({
+          error: `Session time must be within event time range. Event runs from ${formatTime(eventStart)} to ${formatTime(eventEnd)}, but session is scheduled from ${formatTime(sessionStart)} to ${formatTime(sessionEnd)}.`
+        }, { status: 400 });
       }
     }
 
-    // Validation 3: No time conflicts
+    // Validation 4: No time conflicts for same room
+    const sessionRoom = body.room?.toLowerCase()?.trim() || '';
+    
     const overlapping = await prisma.$queryRaw`
-      SELECT id, title, start_time, end_time
+      SELECT id, title, start_time, end_time, room
       FROM sessions
       WHERE event_id = ${eventId}
+        AND LOWER(TRIM(COALESCE(room, ''))) = ${sessionRoom}
         AND (
           (${sessionStart} >= start_time AND ${sessionStart} < end_time)
           OR (${sessionEnd} > start_time AND ${sessionEnd} <= end_time)
@@ -186,19 +152,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (overlapping.length > 0) {
       return NextResponse.json({
-        error: `Time conflicts with "${overlapping[0].title}"`
+        error: `Time conflict in room "${body.room || 'Default'}": This slot overlaps with "${overlapping[0].title}" (${new Date(overlapping[0].start_time).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})} - ${new Date(overlapping[0].end_time).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})})`
       }, { status: 400 });
     }
 
-    // 3. Insert Session
+    // 3. Insert Session (include room field)
     const newSessionResult = await prisma.$queryRaw`
         INSERT INTO sessions (
-            event_id, tenant_id, title, description, start_time, end_time, created_at, updated_at
+            event_id, tenant_id, title, description, start_time, end_time, room, track, created_at, updated_at
         ) VALUES (
             ${eventId}, ${event.tenantId}, ${body.title}, ${body.description || null},
-            ${sessionStart}, ${sessionEnd}, NOW(), NOW()
+            ${sessionStart}, ${sessionEnd}, ${body.room || null}, ${body.track || null}, NOW(), NOW()
         )
-        RETURNING id, event_id as "eventId"
+        RETURNING id, event_id as "eventId", room
     ` as any[]
 
     const newSession = newSessionResult[0];

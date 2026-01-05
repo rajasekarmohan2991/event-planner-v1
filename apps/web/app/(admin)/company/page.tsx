@@ -176,15 +176,15 @@ export default function CompanyDashboardPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow className="hover:bg-slate-50">
-                  <TableHead>Event Name</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Registrations</TableHead>
-                  <TableHead>Tickets Remaining</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
+              <TableHeader className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950">
+                <TableRow className="hover:bg-transparent border-b border-indigo-100 dark:border-indigo-800">
+                  <TableHead className="text-indigo-700 dark:text-indigo-300 font-semibold">Event Name</TableHead>
+                  <TableHead className="text-purple-700 dark:text-purple-300 font-semibold">Date</TableHead>
+                  <TableHead className="text-blue-700 dark:text-blue-300 font-semibold">Location</TableHead>
+                  <TableHead className="text-emerald-700 dark:text-emerald-300 font-semibold">Price</TableHead>
+                  <TableHead className="text-amber-700 dark:text-amber-300 font-semibold">Registrations</TableHead>
+                  <TableHead className="text-rose-700 dark:text-rose-300 font-semibold">Tickets Remaining</TableHead>
+                  <TableHead className="text-right text-violet-700 dark:text-violet-300 font-semibold">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

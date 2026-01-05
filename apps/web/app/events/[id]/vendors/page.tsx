@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus, X, FileText, FileCheck } from 'lucide-react'
+import { Plus, X, FileText, FileCheck, Eye, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,6 +72,8 @@ export default function EventVendorsPage() {
 
     const [contractFile, setContractFile] = useState<File | null>(null)
     const [invoiceFile, setInvoiceFile] = useState<File | null>(null)
+    const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null)
+    const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
 
     // Fetch budgets and vendors
     useEffect(() => {
@@ -318,17 +320,7 @@ export default function EventVendorsPage() {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 ml-2">
-                                        {vendor.contractUrl && (
-                                            <a href={vendor.contractUrl} target="_blank" rel="noopener noreferrer" title="View Contract" className="text-blue-600 hover:text-blue-800">
-                                                <FileText className="h-4 w-4" />
-                                            </a>
-                                        )}
-                                        {vendor.invoiceUrl && (
-                                            <a href={vendor.invoiceUrl} target="_blank" rel="noopener noreferrer" title="View Invoice" className="text-green-600 hover:text-green-800">
-                                                <FileCheck className="h-4 w-4" />
-                                            </a>
-                                        )}
+                                    <div className="flex items-center gap-1 ml-2">
                                         <Badge
                                             variant={
                                                 vendor.status === 'BOOKED' ? 'secondary' :
@@ -354,29 +346,75 @@ export default function EventVendorsPage() {
                                                 <X className="h-4 w-4" />
                                             </Button>
                                         ) : (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={async () => {
-                                                    if (confirm(`Delete vendor "${vendor.name}"?`)) {
-                                                        try {
-                                                            const res = await fetch(`/api/events/${eventId}/vendors/${vendor.id}`, { method: 'DELETE' })
-                                                            if (res.ok) {
-                                                                await fetchBudgetsAndVendors()
-                                                                alert('Vendor deleted successfully')
-                                                            } else {
+                                            <div className="flex items-center gap-1">
+                                                {/* View Button */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setViewingVendor(vendor)}
+                                                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                {/* Edit Button */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setEditingVendor(vendor)
+                                                        setSelectedCategory(vendor.category)
+                                                        setVendorForm({
+                                                            name: vendor.name || '',
+                                                            contactName: vendor.contactName || '',
+                                                            contactEmail: vendor.contactEmail || '',
+                                                            contactPhone: vendor.contactPhone || '',
+                                                            budget: vendor.budget || 0,
+                                                            contractAmount: vendor.contractAmount || 0,
+                                                            paidAmount: vendor.paidAmount || 0,
+                                                            paymentStatus: 'PENDING',
+                                                            paymentDueDate: '',
+                                                            status: vendor.status || 'ACTIVE',
+                                                            notes: '',
+                                                            requirements: '',
+                                                            bankName: '',
+                                                            accountNumber: '',
+                                                            ifscCode: '',
+                                                            accountHolderName: '',
+                                                            upiId: ''
+                                                        })
+                                                    }}
+                                                    className="h-6 w-6 p-0 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                                                    title="Edit Vendor"
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                {/* Delete Button */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={async () => {
+                                                        if (confirm(`Delete vendor "${vendor.name}"?`)) {
+                                                            try {
+                                                                const res = await fetch(`/api/events/${eventId}/vendors/${vendor.id}`, { method: 'DELETE' })
+                                                                if (res.ok) {
+                                                                    await fetchBudgetsAndVendors()
+                                                                    alert('Vendor deleted successfully')
+                                                                } else {
+                                                                    alert('Failed to delete vendor')
+                                                                }
+                                                            } catch (error) {
+                                                                console.error('Delete failed:', error)
                                                                 alert('Failed to delete vendor')
                                                             }
-                                                        } catch (error) {
-                                                            console.error('Delete failed:', error)
-                                                            alert('Failed to delete vendor')
                                                         }
-                                                    }
-                                                }}
-                                                className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
+                                                    }}
+                                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                                    title="Delete Vendor"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -687,6 +725,196 @@ export default function EventVendorsPage() {
                             disabled={!vendorForm.name || !selectedCategory || loading}
                         >
                             {loading ? 'Saving...' : 'Save Vendor'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* View Vendor Dialog */}
+            <Dialog open={!!viewingVendor} onOpenChange={() => setViewingVendor(null)}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Vendor Details</DialogTitle>
+                    </DialogHeader>
+                    {viewingVendor && (
+                        <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Vendor Name</p>
+                                    <p className="font-medium">{viewingVendor.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Category</p>
+                                    <p className="font-medium">{viewingVendor.category}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Contact Name</p>
+                                    <p className="font-medium">{viewingVendor.contactName || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Contact Email</p>
+                                    <p className="font-medium">{viewingVendor.contactEmail || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Contact Phone</p>
+                                    <p className="font-medium">{viewingVendor.contactPhone || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Status</p>
+                                    <Badge className={
+                                        viewingVendor.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                                        viewingVendor.status === 'BOOKED' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }>
+                                        {viewingVendor.status}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm text-gray-500">Contract Amount</p>
+                                    <p className="font-medium">₹{(viewingVendor.contractAmount || 0).toLocaleString()}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Paid Amount</p>
+                                    <p className="font-medium">₹{(viewingVendor.paidAmount || 0).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            {(viewingVendor.contractUrl || viewingVendor.invoiceUrl) && (
+                                <div className="flex gap-4 pt-2 border-t">
+                                    {viewingVendor.contractUrl && (
+                                        <a href={viewingVendor.contractUrl} target="_blank" rel="noopener noreferrer" 
+                                           className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                                            <FileText className="h-4 w-4" /> View Contract
+                                        </a>
+                                    )}
+                                    {viewingVendor.invoiceUrl && (
+                                        <a href={viewingVendor.invoiceUrl} target="_blank" rel="noopener noreferrer"
+                                           className="flex items-center gap-2 text-green-600 hover:text-green-800">
+                                            <FileCheck className="h-4 w-4" /> View Invoice
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setViewingVendor(null)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Vendor Dialog */}
+            <Dialog open={!!editingVendor} onOpenChange={() => setEditingVendor(null)}>
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Edit Vendor</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4 overflow-y-auto flex-1">
+                        <div className="space-y-2">
+                            <Label>Vendor Name *</Label>
+                            <Input
+                                value={vendorForm.name}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, name: e.target.value }))}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Contact Name</Label>
+                                <Input
+                                    value={vendorForm.contactName}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, contactName: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Contact Email</Label>
+                                <Input
+                                    type="email"
+                                    value={vendorForm.contactEmail}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Contact Phone</Label>
+                            <Input
+                                value={vendorForm.contactPhone}
+                                onChange={(e) => setVendorForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Contract Amount</Label>
+                                <Input
+                                    type="number"
+                                    value={vendorForm.contractAmount}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, contractAmount: Number(e.target.value) }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Paid Amount</Label>
+                                <Input
+                                    type="number"
+                                    value={vendorForm.paidAmount}
+                                    onChange={(e) => setVendorForm(prev => ({ ...prev, paidAmount: Number(e.target.value) }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Status</Label>
+                            <Select value={vendorForm.status} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVE">Active</SelectItem>
+                                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingVendor(null)}>Cancel</Button>
+                        <Button
+                            onClick={async () => {
+                                if (!editingVendor?.id) return
+                                try {
+                                    setLoading(true)
+                                    const res = await fetch(`/api/events/${eventId}/vendors/${editingVendor.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            name: vendorForm.name,
+                                            contactName: vendorForm.contactName,
+                                            contactEmail: vendorForm.contactEmail,
+                                            contactPhone: vendorForm.contactPhone,
+                                            contractAmount: vendorForm.contractAmount,
+                                            paidAmount: vendorForm.paidAmount,
+                                            status: vendorForm.status
+                                        })
+                                    })
+                                    if (res.ok) {
+                                        setEditingVendor(null)
+                                        await fetchBudgetsAndVendors()
+                                        alert('Vendor updated successfully!')
+                                    } else {
+                                        const err = await res.json()
+                                        alert(`Failed to update: ${err.message || 'Unknown error'}`)
+                                    }
+                                } catch (error) {
+                                    alert('Failed to update vendor')
+                                } finally {
+                                    setLoading(false)
+                                }
+                            }}
+                            disabled={loading}
+                        >
+                            {loading ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
