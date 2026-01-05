@@ -123,39 +123,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (daysConfig && daysConfig.length > 1) {
       // Multi-day event: validate against specific day's time range
+      // Make validation lenient - log warning but allow creation
       const sessionDate = sessionStart.toISOString().split('T')[0];
       console.log(`[SESSIONS POST] Multi-day event, checking date ${sessionDate} against days:`, daysConfig);
       
       const dayConfig = daysConfig.find((d: any) => d.date.split('T')[0] === sessionDate);
 
       if (!dayConfig) {
-        // Show available days
+        // Show available days but allow creation anyway
         const availableDays = daysConfig.map((d: any) =>
           `${d.title} (${new Date(d.date).toLocaleDateString()}): ${d.startTime} - ${d.endTime}`
         ).join(', ');
 
-        console.error(`[SESSIONS POST] Validation failed: Session date not in event dates. Available: ${availableDays}`);
-        return NextResponse.json({
-          error: `Session date ${sessionDate} is not within event dates. Available days: ${availableDays}`
-        }, { status: 400 });
-      }
+        console.warn(`[SESSIONS POST] Warning: Session date ${sessionDate} not in event dates. Available: ${availableDays}`);
+        console.warn(`[SESSIONS POST] Allowing creation anyway for flexibility`);
+        // Don't reject - allow creation
+      } else {
+        // Combine date + time for validation
+        const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`);
+        const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`);
 
-      // Combine date + time for validation
-      const dayStart = new Date(`${sessionDate}T${dayConfig.startTime}:00`);
-      const dayEnd = new Date(`${sessionDate}T${dayConfig.endTime}:00`);
+        console.log(`[SESSIONS POST] Day validation:`, {
+          dayStart: dayStart.toISOString(),
+          dayEnd: dayEnd.toISOString(),
+          sessionStart: sessionStart.toISOString(),
+          sessionEnd: sessionEnd.toISOString()
+        });
 
-      console.log(`[SESSIONS POST] Day validation:`, {
-        dayStart: dayStart.toISOString(),
-        dayEnd: dayEnd.toISOString(),
-        sessionStart: sessionStart.toISOString(),
-        sessionEnd: sessionEnd.toISOString()
-      });
-
-      if (sessionStart < dayStart || sessionEnd > dayEnd) {
-        console.error(`[SESSIONS POST] Validation failed: Session outside day time range`);
-        return NextResponse.json({
-          error: `Session must be between ${dayConfig.title}: ${dayConfig.startTime} - ${dayConfig.endTime}`
-        }, { status: 400 });
+        if (sessionStart < dayStart || sessionEnd > dayEnd) {
+          console.warn(`[SESSIONS POST] Warning: Session outside day time range, but allowing creation`);
+          // Don't reject - allow creation
+        }
       }
     } else {
       // Single-day event or no daysConfig: use event start/end
