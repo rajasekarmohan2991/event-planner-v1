@@ -6,8 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Radio, Users, Send, ThumbsUp, Heart, Clap } from 'lucide-react'
+import { Radio, Users, Send, ThumbsUp, Heart, Sparkles } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 interface ChatMessage {
@@ -240,7 +239,7 @@ export default function WatchStreamPage() {
               onClick={() => sendReaction('👏')}
               className="text-white hover:bg-gray-800"
             >
-              <Clap className="w-4 h-4 mr-1" />
+              <Sparkles className="w-4 h-4 mr-1" />
               Applause
             </Button>
           </div>
@@ -253,7 +252,7 @@ export default function WatchStreamPage() {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+          <div className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-3">
               {messages.map((msg) => (
                 <div key={msg.id} className="text-sm">
@@ -284,7 +283,7 @@ export default function WatchStreamPage() {
               ))}
               <div ref={chatEndRef} />
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Message Input */}
           <div className="p-4 border-t border-gray-800">
