@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import ManageTabs from '@/components/events/ManageTabs'
+import SessionsTabs from '@/components/events/SessionsTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import SessionCalendarView from '@/components/events/SessionCalendarView'
@@ -194,7 +194,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
   if (status === 'loading') return <div className="p-6">Loading...</div>
   return (
     <div className="space-y-4">
-      <ManageTabs eventId={params.id} />
+      <SessionsTabs eventId={params.id} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AvatarIcon seed={`event:${params.id}:sessions`} size={22} query="sessions,conference,event" />

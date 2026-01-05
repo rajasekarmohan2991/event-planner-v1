@@ -2,19 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Check } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 
-export default function ManageTabs({ eventId }: { eventId: string }) {
+export default function SessionsTabs({ eventId }: { eventId: string }) {
   const pathname = usePathname()
   const base = `/events/${eventId}`
 
   const tabs = [
-    { href: `${base}/info`, label: 'Event Info', short: 'Info' },
-    { href: `${base}/team`, label: 'Team', short: 'Team' },
-    { href: `${base}/sponsors`, label: 'Sponsors', short: 'Sponsors' },
-    { href: `${base}/vendors`, label: 'Vendors', short: 'Vendors' },
-    { href: `${base}/exhibitor-registration`, label: 'Exhibitor Registration', short: 'Exhibitors' },
+    { href: `${base}/sessions`, label: 'Sessions', short: 'Sessions' },
+    { href: `${base}/speakers`, label: 'Speakers', short: 'Speakers' },
   ]
 
   const activeIndex = tabs.findIndex(t => pathname === t.href)
@@ -69,4 +64,3 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
     </div>
   )
 }
-

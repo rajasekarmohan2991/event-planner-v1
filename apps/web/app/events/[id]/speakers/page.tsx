@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import ManageTabs from '@/components/events/ManageTabs'
+import SessionsTabs from '@/components/events/SessionsTabs'
 import { useEffect, useMemo, useState } from 'react'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import { Calendar, Clock, MapPin, Users } from 'lucide-react'
@@ -76,7 +76,7 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
 
   return (
     <div className="space-y-4">
-      <ManageTabs eventId={params.id} />
+      <SessionsTabs eventId={params.id} />
       <div className="flex items-center gap-2">
         <AvatarIcon seed={`event:${params.id}:speakers`} size={22} query="speakers,conference,portrait" />
         <h1 className="text-xl font-semibold">Speakers</h1>
