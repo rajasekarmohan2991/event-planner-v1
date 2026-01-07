@@ -53,8 +53,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#ffffff',
-  colorScheme: 'light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0e1a' }
+  ],
+  colorScheme: 'light dark',
 }
 
 export default async function RootLayout({
@@ -85,7 +88,7 @@ export default async function RootLayout({
       <body className={cn(
         inter.variable,
         'min-h-screen bg-background text-foreground font-sans antialiased'
-      )}>
+      )} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AppProviders session={session}>
             <ToastProvider>
