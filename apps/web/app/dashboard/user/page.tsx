@@ -153,45 +153,45 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Hero Banner - Modern Lighter Colors */}
-        <div className="relative h-[420px] bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-400 overflow-hidden">
-          <div className="absolute inset-0 bg-white/20"></div>
+        {/* Hero Banner - Light with Red Accent */}
+        <div className="relative h-[420px] bg-gradient-to-r from-rose-200 via-pink-200 to-orange-200 overflow-hidden">
+          <div className="absolute inset-0 bg-white/30"></div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
             <div className="max-w-2xl mt-8">
 
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 animate-slide-up">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6 animate-slide-up">
                 Discover Amazing
                 <br />
-                <span className="text-yellow-200">
+                <span className="text-red-600">
                   Events Near You
                 </span>
               </h1>
 
-              <p className="text-lg text-white/95 mb-8 animate-slide-up animation-delay-100">
+              <p className="text-lg text-gray-700 mb-8 animate-slide-up animation-delay-100">
                 Book tickets for conferences, concerts, workshops, and more!
               </p>
 
               <div className="flex gap-4 animate-slide-up animation-delay-200">
                 <Link
                   href="/my-tickets"
-                  className="px-8 py-3 bg-white text-purple-600 rounded-full font-semibold hover:bg-yellow-300 hover:text-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                  className="px-8 py-3 bg-red-500 text-white rounded-full font-semibold hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
                 >
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
 
-                <div className="inline-flex items-center gap-2 bg-white/25 backdrop-blur-sm px-6 py-3 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                  <span className="text-white font-semibold">Trending Now</span>
+                <div className="inline-flex items-center gap-2 bg-white/40 backdrop-blur-sm px-6 py-3 rounded-full border border-red-200">
+                  <TrendingUp className="w-5 h-5 text-red-600" />
+                  <span className="text-gray-800 font-semibold">Trending Now</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Decorative Elements */}
-          <div className="absolute top-10 right-10 w-64 h-64 bg-yellow-200/25 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-80 h-80 bg-pink-200/25 rounded-full blur-3xl"></div>
+          <div className="absolute top-10 right-10 w-64 h-64 bg-red-300/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-10 w-80 h-80 bg-orange-300/20 rounded-full blur-3xl"></div>
 
         </div>
 
