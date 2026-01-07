@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       try {
         invitations = await prisma.$queryRaw`
           SELECT 
-            id,
+            id::text as id,
             event_id as "eventId", 
             email, 
             role, 
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             created_at as "createdAt",
             'INVITED' as source
           FROM event_team_invitations
-          WHERE event_id = ${eventId} AND status = 'PENDING'
+          WHERE event_id::text = ${eventIdStr} AND status = 'PENDING'
           ORDER BY created_at DESC
         ` as any[]
 
