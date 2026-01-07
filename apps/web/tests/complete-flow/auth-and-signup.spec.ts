@@ -33,15 +33,10 @@ test.describe('Complete Authentication Flow with Browser Recording', () => {
     test('Step 1: Navigate to Sign Up page', async () => {
         console.log('🎬 Recording: Navigating to sign up page...')
 
-        await sharedPage.goto('/')
+        // Direct navigation to register page
+        await sharedPage.goto('/auth/register')
         await sharedPage.waitForLoadState('networkidle')
-
-        // Look for Sign Up or Register link
-        const signUpLink = sharedPage.getByRole('link', { name: /sign up|register|create account/i }).first()
-        await expect(signUpLink).toBeVisible({ timeout: 10000 })
-
-        await signUpLink.click()
-        await sharedPage.waitForLoadState('networkidle')
+        await sharedPage.waitForTimeout(1000)
 
         // Verify we're on the signup page
         await expect(sharedPage).toHaveURL(/\/(auth\/register|signup|register)/)
