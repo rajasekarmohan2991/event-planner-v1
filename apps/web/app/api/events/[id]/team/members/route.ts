@@ -29,8 +29,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     try {
       // Query accepted members from EventRoleAssignment
-      // Use COALESCE to handle missing columns gracefully
-      assignments = await prisma.$queryRawUnsafe(`
+      // Use tagged template for proper BigInt handling
+      assignments = await prisma.$queryRaw`
         SELECT 
           a.id, 
           a."eventId", 
@@ -44,9 +44,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id
-        WHERE a."eventId" = $1
+        WHERE a."eventId" = ${eventId}
         ORDER BY a."createdAt" DESC
-      `, eventId) as any[]
+      ` as any[]
 
       console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} accepted members`)
 
