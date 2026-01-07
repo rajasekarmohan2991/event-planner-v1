@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     try {
       // Query accepted members from EventRoleAssignment
-      // Use tagged template for proper BigInt handling
+      // Use text comparison for EventRoleAssignment as it is defined as String in schema but stores BigInt ID
       assignments = await prisma.$queryRaw`
         SELECT 
           a.id, 
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id
-        WHERE a."eventId" = ${eventId}
+        WHERE a."eventId"::text = ${eventIdStr}
         ORDER BY a."createdAt" DESC
       ` as any[]
 
@@ -55,10 +55,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         invitations = await prisma.$queryRaw`
           SELECT 
             id,
-            event_id as "eventId",
-            email,
-            role,
-            status,
+            event_id as "eventId", 
+            email, 
+            role, 
+            status, 
             created_at as "createdAt",
             'INVITED' as source
           FROM event_team_invitations
