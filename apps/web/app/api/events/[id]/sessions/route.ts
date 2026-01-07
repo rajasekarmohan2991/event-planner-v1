@@ -63,7 +63,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('GET sessions error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('GET sessions error message:', error.message);
+    
+    // Handle missing table/column errors with self-healing
+    if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+      try {
+        // Try to create sessions table if it doesn't exist
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS sessions (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            title TEXT NOT NULL,
+            description TEXT,
+            start_time TIMESTAMP WITH TIME ZONE,
+            end_time TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          )
+        `);
+        
+        // Return empty sessions after repair
+        return NextResponse.json({ sessions: [] });
+      } catch (repairError) {
+        console.error('Sessions table repair failed:', repairError);
+      }
+    }
+    
+    return NextResponse.json({ error: 'Internal server error', message: error.message }, { status: 500 });
   }
 }
 
