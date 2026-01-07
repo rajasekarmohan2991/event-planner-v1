@@ -231,22 +231,25 @@ export async function POST(
     try {
       // 1. Insert Registration ('registrations')
       console.log('📝 Inserting registration into database...')
-      await prisma.$executeRaw`
+      const regType = parsed?.type || 'GENERAL'
+      const regStatus = 'APPROVED'
+      
+      await prisma.$executeRawUnsafe(`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId},
-                ${eventIdBigInt},
-                ${tenantId},
-                ${JSON.stringify(registrationData)}::jsonb,
-                ${parsed?.type || 'GENERAL'},
-                ${formData.email},
-                NOW(),
-                NOW(),
-                'APPROVED',
-                ${ticketId ? String(ticketId) : null}
+                $1, $2, $3, $4::jsonb, $5, $6, NOW(), NOW(), $7, $8
             )
-        `
+        `,
+        newRegId,
+        eventIdBigInt.toString(),
+        tenantId,
+        JSON.stringify(registrationData),
+        regType,
+        formData.email,
+        regStatus,
+        ticketId ? String(ticketId) : null
+      )
       console.log('✅ Registration inserted')
 
       // 2. Insert Order ('"Order"')

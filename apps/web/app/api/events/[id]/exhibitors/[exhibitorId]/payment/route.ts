@@ -62,12 +62,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
     const updated = await prisma.exhibitor.update({
       where: { id: params.exhibitorId },
       data: {
-        paymentStatus: 'COMPLETED',
-        paymentMethod: paymentMethod || 'ONLINE',
+        paymentStatus: 'PAID',
+        paymentMethod: paymentMethod || exhibitor.paymentMethod || 'ONLINE',
         paymentReference: paymentReference,
         paymentAmount: amount || exhibitor.paymentAmount,
         paidAt: new Date(),
-        status: 'CONFIRMED',
+        status: 'BOOTH_ALLOTTED',
         qrCode: qrCodeDataURL,
         qrCodeData: JSON.stringify(qrData),
         checkInCode: checkInCode
