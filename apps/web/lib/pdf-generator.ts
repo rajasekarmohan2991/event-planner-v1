@@ -1,47 +1,48 @@
-import htmlPdf from 'html-pdf-node'
+/**
+ * PDF Generator Utility
+ * 
+ * Note: Server-side PDF generation doesn't work well in serverless environments.
+ * This utility provides HTML that can be converted to PDF client-side using browser's print function.
+ */
 
 export interface PDFOptions {
     format?: 'A4' | 'Letter'
     printBackground?: boolean
-    margin?: {
-        top?: string
-        right?: string
-        bottom?: string
-        left?: string
-    }
 }
 
 /**
- * Generate PDF from HTML content
- * @param html HTML string to convert to PDF
+ * Generate print-optimized HTML for PDF conversion
+ * @param html HTML string to prepare for PDF
  * @param options PDF generation options
- * @returns PDF buffer
+ * @returns Print-ready HTML
  */
-export async function generatePDFFromHTML(
+export function generatePrintableHTML(
     html: string,
     options: PDFOptions = {}
-): Promise<Buffer> {
-    const defaultOptions = {
-        format: 'A4',
-        printBackground: true,
-        margin: {
-            top: '0',
-            right: '0',
-            bottom: '0',
-            left: '0'
-        },
-        ...options
-    }
+): string {
+    // Add print-specific styles
+    const printStyles = `
+    <style>
+      @media print {
+        @page {
+          size: ${options.format || 'A4'};
+          margin: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+    </style>
+  `
 
-    const file = { content: html }
-
-    try {
-        const pdfBuffer = await htmlPdf.generatePdf(file, defaultOptions)
-        return pdfBuffer
-    } catch (error) {
-        console.error('PDF generation error:', error)
-        throw new Error('Failed to generate PDF')
-    }
+    // Insert print styles before closing head tag
+    return html.replace('</head>', `${printStyles}</head>`)
 }
 
 /**
@@ -66,14 +67,14 @@ export function generatePDFFilename(
 }
 
 /**
- * Create PDF response headers
+ * Create HTML response headers for browser PDF generation
  * @param filename PDF filename
  * @returns Headers object for NextResponse
  */
-export function createPDFHeaders(filename: string): Record<string, string> {
+export function createHTMLHeaders(filename: string): Record<string, string> {
     return {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `inline; filename="${filename.replace('.pdf', '.html')}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'

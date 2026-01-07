@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { generateInvoiceNumber, generateInvoiceHTML, InvoiceData } from '@/lib/invoice-generator'
-import { generatePDFFromHTML, generatePDFFilename, createPDFHeaders } from '@/lib/pdf-generator'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,19 +107,71 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
         // Generate HTML
         const invoiceHTML = generateInvoiceHTML(invoiceData)
 
-        // Generate PDF
-        const pdfBuffer = await generatePDFFromHTML(invoiceHTML)
+        // Add print button and auto-print script for better UX
+        const printableHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice ${invoiceNumber}</title>
+  <style>
+    .print-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: #4F46E5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .print-button:hover {
+      background: #4338CA;
+    }
+    @media print {
+      .print-button {
+        display: none !important;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="print-button no-print" onclick="window.print()">
+    🖨️ Print / Save as PDF
+  </button>
+  ${invoiceHTML.split('<body>')[1]?.split('</body>')[0] || invoiceHTML}
+  <script>
+    // Auto-open print dialog after page loads
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        // Uncomment to auto-print on load
+        // window.print();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
+    `
 
-        // Generate filename
-        const filename = generatePDFFilename(
-            'Invoice',
-            invoiceNumber,
-            exhibitor.company_name || exhibitor.name
-        )
-
-        // Return PDF with proper headers
-        return new NextResponse(pdfBuffer, {
-            headers: createPDFHeaders(filename)
+        // Return HTML with proper headers
+        return new NextResponse(printableHTML, {
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+            }
         })
 
     } catch (error: any) {
