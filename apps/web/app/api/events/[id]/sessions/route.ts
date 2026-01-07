@@ -24,7 +24,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         start_time as "startTime", 
         end_time as "endTime", 
         event_id as "eventId", 
-        tenant_id as "tenantId"
+        tenant_id as "tenantId",
+        location,
+        stream_url as "streamUrl",
+        is_live as "isLive"
       FROM sessions
       WHERE event_id = ${eventId}
       ORDER BY start_time ASC
