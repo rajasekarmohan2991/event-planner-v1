@@ -220,6 +220,13 @@ export async function POST(
       ticketId: ticketId || 'none'
     })
 
+    // Ensure schema exists before attempting insert
+    try {
+      await ensureSchema()
+    } catch (schemaError) {
+      console.warn('⚠️ Schema check failed, continuing anyway:', schemaError)
+    }
+
     // Use individual queries instead of transaction for better connection pool handling
     try {
       // 1. Insert Registration ('registrations')
@@ -282,22 +289,14 @@ export async function POST(
     } catch (insertError: any) {
       console.error('❌ Registration insert failed:', insertError.message)
       console.error('❌ Registration insert error stack:', insertError.stack)
+      console.error('❌ Registration insert error code:', insertError.code)
       
-      // Handle missing table/column errors with self-healing
-      if (insertError.message?.includes('relation') || insertError.message?.includes('does not exist') || insertError.message?.includes('column')) {
-        try {
-          console.log('🔧 [REGISTRATION] Attempting schema repair...');
-          await ensureSchema()
-          return NextResponse.json({ 
-            error: 'Database schema updated. Please try again.',
-            needsRetry: true 
-          }, { status: 503 });
-        } catch (repairError) {
-          console.error('Registration table repair failed:', repairError);
-        }
-      }
-      
-      throw insertError
+      // Return user-friendly error message
+      return NextResponse.json({ 
+        error: 'Registration failed. Please try again.',
+        details: insertError.message,
+        code: insertError.code
+      }, { status: 500 });
     }
 
     // 5. Approval (registration_approvals) - OPTIONAL, outside transaction
