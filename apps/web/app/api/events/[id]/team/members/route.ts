@@ -29,23 +29,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     try {
       // Query accepted members from EventRoleAssignment
-      assignments = await prisma.$queryRaw`
+      // Use COALESCE to handle missing columns gracefully
+      assignments = await prisma.$queryRawUnsafe(`
         SELECT 
           a.id, 
           a."eventId", 
           a."userId", 
           a.role, 
           a."createdAt",
-          u.name, 
-          u.email, 
-          u.image,
-          u.password_hash as "hasPassword",
+          COALESCE(u.name, '') as name, 
+          COALESCE(u.email, '') as email, 
+          COALESCE(u.image, '') as image,
+          CASE WHEN u.password IS NOT NULL THEN true ELSE false END as "hasPassword",
           'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id
-        WHERE a."eventId" = ${eventId}
+        WHERE a."eventId" = $1
         ORDER BY a."createdAt" DESC
-      ` as any[]
+      `, eventId) as any[]
 
       console.log(`✅ [TEAM MEMBERS ${timestamp}] Found ${assignments.length} accepted members`)
 

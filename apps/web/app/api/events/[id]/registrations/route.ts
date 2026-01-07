@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -6,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import QRCode from 'qrcode'
 import crypto from 'crypto'
+import { ensureSchema } from '@/lib/ensure-schema'
 export const dynamic = 'force-dynamic'
 
 // GET /api/events/[id]/registrations
@@ -281,6 +281,22 @@ export async function POST(
 
     } catch (insertError: any) {
       console.error('❌ Registration insert failed:', insertError.message)
+      console.error('❌ Registration insert error stack:', insertError.stack)
+      
+      // Handle missing table/column errors with self-healing
+      if (insertError.message?.includes('relation') || insertError.message?.includes('does not exist') || insertError.message?.includes('column')) {
+        try {
+          console.log('🔧 [REGISTRATION] Attempting schema repair...');
+          await ensureSchema()
+          return NextResponse.json({ 
+            error: 'Database schema updated. Please try again.',
+            needsRetry: true 
+          }, { status: 503 });
+        } catch (repairError) {
+          console.error('Registration table repair failed:', repairError);
+        }
+      }
+      
       throw insertError
     }
 

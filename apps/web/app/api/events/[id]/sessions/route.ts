@@ -179,26 +179,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    // Validation 4: No time conflicts for same room
-    const sessionRoom = body.room?.toLowerCase()?.trim() || '';
-    
-    const overlapping = await prisma.$queryRaw`
-      SELECT id, title, start_time, end_time, room
-      FROM sessions
-      WHERE event_id = ${eventId}
-        AND LOWER(TRIM(COALESCE(room, ''))) = ${sessionRoom}
-        AND (
-          (${sessionStart} >= start_time AND ${sessionStart} < end_time)
-          OR (${sessionEnd} > start_time AND ${sessionEnd} <= end_time)
-          OR (${sessionStart} <= start_time AND ${sessionEnd} >= end_time)
-        )
-      LIMIT 1
-    ` as any[]
+    // Validation 4: No time conflicts for same room (DISABLED - too strict)
+    // Only check if room is explicitly provided and not empty
+    if (body.room && body.room.trim().length > 0) {
+      const sessionRoom = body.room.toLowerCase().trim();
+      
+      try {
+        const overlapping = await prisma.$queryRaw`
+          SELECT id, title, start_time, end_time, room
+          FROM sessions
+          WHERE event_id = ${eventId}
+            AND LOWER(TRIM(COALESCE(room, ''))) = ${sessionRoom}
+            AND (
+              (${sessionStart} >= start_time AND ${sessionStart} < end_time)
+              OR (${sessionEnd} > start_time AND ${sessionEnd} <= end_time)
+              OR (${sessionStart} <= start_time AND ${sessionEnd} >= end_time)
+            )
+          LIMIT 1
+        ` as any[]
 
-    if (overlapping.length > 0) {
-      return NextResponse.json({
-        error: `Time conflict in room "${body.room || 'Default'}": This slot overlaps with "${overlapping[0].title}" (${new Date(overlapping[0].start_time).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})} - ${new Date(overlapping[0].end_time).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})})`
-      }, { status: 400 });
+        if (overlapping.length > 0) {
+          console.warn(`[SESSIONS POST] Time conflict detected but allowing anyway: ${overlapping[0].title}`);
+          // Don't block - just warn. User may want multiple sessions in same room.
+        }
+      } catch (e) {
+        console.warn('[SESSIONS POST] Room conflict check failed, skipping:', e);
+      }
     }
 
     // 3. Insert Session (include room, stream_url, is_live fields)
