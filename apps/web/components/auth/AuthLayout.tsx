@@ -114,7 +114,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
       {/* Main content */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Left side - Illustration */}
-      <div className="w-full md:w-3/5 xl:w-2/3 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center p-4 md:p-8 xl:p-12 relative overflow-hidden pointer-events-none select-none">
+      <div className="w-full md:w-3/5 xl:w-2/3 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 md:p-8 xl:p-12 relative overflow-hidden pointer-events-none select-none">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           {backgroundImageUrl && (

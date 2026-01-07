@@ -153,9 +153,9 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Hero Banner - Lighter Colors */}
-        <div className="relative h-[420px] bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 overflow-hidden">
-          <div className="absolute inset-0 bg-white/10"></div>
+        {/* Hero Banner - Modern Lighter Colors */}
+        <div className="relative h-[420px] bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-400 overflow-hidden">
+          <div className="absolute inset-0 bg-white/20"></div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
             <div className="max-w-2xl mt-8">
@@ -163,25 +163,25 @@ export default function UserDashboard() {
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 animate-slide-up">
                 Discover Amazing
                 <br />
-                <span className="text-yellow-300">
+                <span className="text-yellow-200">
                   Events Near You
                 </span>
               </h1>
 
-              <p className="text-lg text-white/90 mb-8 animate-slide-up animation-delay-100">
+              <p className="text-lg text-white/95 mb-8 animate-slide-up animation-delay-100">
                 Book tickets for conferences, concerts, workshops, and more!
               </p>
 
               <div className="flex gap-4 animate-slide-up animation-delay-200">
                 <Link
                   href="/my-tickets"
-                  className="px-8 py-3 bg-white text-pink-600 rounded-full font-semibold hover:bg-yellow-400 hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                  className="px-8 py-3 bg-white text-purple-600 rounded-full font-semibold hover:bg-yellow-300 hover:text-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
                 >
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
 
-                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full">
+                <div className="inline-flex items-center gap-2 bg-white/25 backdrop-blur-sm px-6 py-3 rounded-full">
                   <TrendingUp className="w-5 h-5 text-white" />
                   <span className="text-white font-semibold">Trending Now</span>
                 </div>
@@ -190,8 +190,8 @@ export default function UserDashboard() {
           </div>
 
           {/* Decorative Elements */}
-          <div className="absolute top-10 right-10 w-64 h-64 bg-yellow-300/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-80 h-80 bg-pink-300/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-10 right-10 w-64 h-64 bg-yellow-200/25 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-10 w-80 h-80 bg-pink-200/25 rounded-full blur-3xl"></div>
 
         </div>
 
