@@ -164,6 +164,22 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Event created successfully:', event.id)
 
+    // Automatically add the event creator as "Event Owner"
+    try {
+      await prisma.eventRoleAssignment.create({
+        data: {
+          eventId: String(event.id),
+          userId: user.id,
+          role: 'OWNER', // EventRole enum value
+          createdAt: new Date()
+        }
+      })
+      console.log(`✅ Event creator (${user.email}) automatically added as Event OWNER`)
+    } catch (roleError: any) {
+      console.error('⚠️ Failed to auto-assign Event Owner role:', roleError.message)
+      // Don't fail the event creation if role assignment fails
+    }
+
     // Convert BigInt to string for response
     const safeEvent = {
       ...event,
