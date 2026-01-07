@@ -145,6 +145,8 @@ export async function ensureSchema() {
             email TEXT,
             status TEXT DEFAULT 'PENDING',
             ticket_id TEXT,
+            check_in_status TEXT DEFAULT 'NOT_CHECKED_IN',
+            check_in_time TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
@@ -159,6 +161,8 @@ export async function ensureSchema() {
                 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS data_json JSONB DEFAULT '{}';
                 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'GENERAL';
                 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING';
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS check_in_status TEXT DEFAULT 'NOT_CHECKED_IN';
+                ALTER TABLE registrations ADD COLUMN IF NOT EXISTS check_in_time TIMESTAMP WITH TIME ZONE;
             EXCEPTION
                 WHEN undefined_table THEN
                     RAISE NOTICE 'Table registrations does not exist yet';

@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           COALESCE(u.name, '') as name, 
           COALESCE(u.email, '') as email, 
           COALESCE(u.image, '') as image,
-          CASE WHEN u.password IS NOT NULL THEN true ELSE false END as "hasPassword",
+          CASE WHEN u.password_hash IS NOT NULL THEN true ELSE false END as "hasPassword",
           'JOINED' as source
         FROM "EventRoleAssignment" a
         LEFT JOIN users u ON a."userId" = u.id

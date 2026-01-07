@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = params.id
+    const eventId = BigInt(params.id)
 
     // Get pending cancellation requests (JSON-first; do not rely on missing columns)
     const cancellations = await prisma.$queryRaw<any[]>`
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const { registrationIds, action, notes, refundAmount, refundMode } = await req.json()
-    const eventId = params.id
+    const eventId = BigInt(params.id)
 
     if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
       return NextResponse.json({ message: 'No registrations selected' }, { status: 400 })
