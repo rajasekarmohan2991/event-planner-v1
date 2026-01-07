@@ -1,14 +1,21 @@
 import { Page, expect } from '@playwright/test'
 
-// Test credentials from environment
+// Test credentials from environment - MUST be set before running tests
 export const TEST_USER = {
-  email: process.env.AUTH_EMAIL || 'testuser@example.com',
-  password: process.env.AUTH_PASSWORD || 'Password123!'
+  email: process.env.AUTH_EMAIL || '',
+  password: process.env.AUTH_PASSWORD || ''
 }
 
 export const ADMIN_USER = {
-  email: process.env.ADMIN_EMAIL || 'admin@example.com',
-  password: process.env.ADMIN_PASSWORD || 'AdminPass123!'
+  email: process.env.ADMIN_EMAIL || process.env.AUTH_EMAIL || '',
+  password: process.env.ADMIN_PASSWORD || process.env.AUTH_PASSWORD || ''
+}
+
+// Validate credentials before tests
+export function validateCredentials() {
+  if (!TEST_USER.email || !TEST_USER.password) {
+    throw new Error('AUTH_EMAIL and AUTH_PASSWORD environment variables must be set')
+  }
 }
 
 /**

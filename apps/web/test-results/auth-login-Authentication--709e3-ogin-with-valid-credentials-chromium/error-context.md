@@ -1,0 +1,61 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "Ayphen Logo Event Planner" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7]:
+          - img "Ayphen Logo" [ref=e9]
+          - generic [ref=e10]: Event Planner
+    - main [ref=e11]:
+      - generic [ref=e13]:
+        - generic:
+          - generic:
+            - generic:
+              - img "Lottie animation":
+                - generic:
+                  - img
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - heading "Welcome" [level=1] [ref=e17]
+            - paragraph [ref=e18]: Sign in to your account to continue
+          - generic [ref=e21]:
+            - alert [ref=e22]:
+              - img [ref=e23]
+              - generic [ref=e25]: Invalid email or password.
+            - generic [ref=e26]:
+              - generic [ref=e28]:
+                - generic [ref=e29]:
+                  - img [ref=e30]
+                  - text: Email
+                - textbox "name@example.com" [ref=e34]: testuser@example.com
+              - generic [ref=e36]:
+                - generic [ref=e37]:
+                  - generic [ref=e38]:
+                    - img [ref=e39]
+                    - text: Password
+                  - link "Forgot password?" [ref=e42] [cursor=pointer]:
+                    - /url: /auth/forgot-password
+                - generic [ref=e43]:
+                  - textbox "••••••••" [ref=e45]: Password123!
+                  - button [ref=e46] [cursor=pointer]:
+                    - img [ref=e47]
+              - button "Sign In" [ref=e51] [cursor=pointer]
+              - generic [ref=e56]: Or continue with
+              - generic [ref=e57]:
+                - button "Google" [ref=e58] [cursor=pointer]:
+                  - img
+                  - generic [ref=e59]: Google
+                - button "Instagram" [ref=e60] [cursor=pointer]:
+                  - img
+                  - generic [ref=e61]: Instagram
+    - contentinfo [ref=e62]:
+      - generic [ref=e63]: © 2026 Ayphen. All rights reserved.
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications (F8)":
+    - list
+  - alert [ref=e64]
+```
