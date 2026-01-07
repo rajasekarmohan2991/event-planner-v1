@@ -16,7 +16,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const eventId = BigInt(params.id);
     console.log(`[SESSIONS API] Fetching sessions for EventID: ${params.id}`);
 
-    const sessions = await prisma.$queryRaw`
+    // Use COALESCE to handle potentially missing columns gracefully
+    const sessions = await prisma.$queryRawUnsafe(`
       SELECT 
         id, 
         title, 
@@ -25,13 +26,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         end_time as "endTime", 
         event_id as "eventId", 
         tenant_id as "tenantId",
-        location,
-        stream_url as "streamUrl",
-        is_live as "isLive"
+        COALESCE(location, '') as location,
+        COALESCE(room, '') as room,
+        COALESCE(track, '') as track,
+        COALESCE(stream_url, '') as "streamUrl",
+        COALESCE(is_live, false) as "isLive"
       FROM sessions
-      WHERE event_id = ${eventId}
+      WHERE event_id = $1
       ORDER BY start_time ASC
-    ` as any[]
+    `, eventId) as any[]
 
     console.log(`[SESSIONS API] Found ${sessions?.length || 0} sessions for event ${params.id}`);
     if (sessions.length > 0) {
@@ -81,9 +84,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             description TEXT,
             start_time TIMESTAMP WITH TIME ZONE,
             end_time TIMESTAMP WITH TIME ZONE,
+            location TEXT,
+            room TEXT,
+            track TEXT,
+            stream_url TEXT,
+            is_live BOOLEAN DEFAULT false,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
           )
+        `);
+
+        // Add missing columns if table exists but columns don't
+        await prisma.$executeRawUnsafe(`
+          DO $$ BEGIN
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS location TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS room TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS track TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS stream_url TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_live BOOLEAN DEFAULT false;
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END $$;
         `);
         
         // Return empty sessions after repair
@@ -182,15 +202,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // 3. Insert Session (include room, stream_url, is_live fields)
-    const newSessionResult = await prisma.$queryRaw`
+    // Use $queryRawUnsafe for better error handling
+    const newSessionResult = await prisma.$queryRawUnsafe(`
         INSERT INTO sessions (
             event_id, tenant_id, title, description, start_time, end_time, room, track, location, stream_url, is_live, created_at, updated_at
         ) VALUES (
-            ${eventId}, ${event.tenantId}, ${body.title}, ${body.description || null},
-            ${sessionStart}, ${sessionEnd}, ${body.room || null}, ${body.track || null}, ${body.location || null}, ${body.streamUrl || body.stream_url || null}, ${body.isLive || body.is_live || false}, NOW(), NOW()
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()
         )
         RETURNING id, event_id as "eventId", room, stream_url as "streamUrl", is_live as "isLive"
-    ` as any[]
+    `, eventId, event.tenantId, body.title, body.description || null,
+       sessionStart, sessionEnd, body.room || null, body.track || null, 
+       body.location || null, body.streamUrl || body.stream_url || null, 
+       body.isLive || body.is_live || false) as any[]
 
     const newSession = newSessionResult[0];
 
@@ -226,6 +249,54 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('POST sessions error:', error);
+    console.error('POST sessions error stack:', error.stack);
+    
+    // Handle missing table/column errors with self-healing
+    if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
+      try {
+        console.log('🔧 [SESSIONS POST] Attempting schema repair...');
+        // Ensure sessions table exists with all columns
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS sessions (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            title TEXT NOT NULL,
+            description TEXT,
+            start_time TIMESTAMP WITH TIME ZONE,
+            end_time TIMESTAMP WITH TIME ZONE,
+            location TEXT,
+            room TEXT,
+            track TEXT,
+            stream_url TEXT,
+            is_live BOOLEAN DEFAULT false,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          )
+        `);
+
+        // Add missing columns
+        await prisma.$executeRawUnsafe(`
+          DO $$ BEGIN
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS location TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS room TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS track TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS stream_url TEXT;
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_live BOOLEAN DEFAULT false;
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END $$;
+        `);
+        
+        console.log('✅ [SESSIONS POST] Schema repaired, please retry');
+        return NextResponse.json({ 
+          error: 'Database schema updated. Please try again.',
+          needsRetry: true 
+        }, { status: 503 });
+      } catch (repairError) {
+        console.error('Sessions table repair failed:', repairError);
+      }
+    }
+    
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

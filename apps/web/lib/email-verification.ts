@@ -10,25 +10,49 @@ interface VerifyResult {
 
 export async function verifyEmailToken(token: string, email: string, name?: string): Promise<VerifyResult> {
     try {
-        console.log('🔍 Verifying email:', email, 'with token:', token.substring(0, 10) + '...')
+        // Normalize email to lowercase for consistent lookup
+        const normalizedEmail = email.toLowerCase().trim()
+        console.log('🔍 Verifying email:', normalizedEmail, 'with token:', token.substring(0, 10) + '...')
 
-        if (!token || !email) {
+        if (!token || !normalizedEmail) {
             return { success: false, error: 'Token and email are required' }
         }
 
-        // Look up token
-        const vt = await prisma.verificationToken.findUnique({
-            where: { identifier_token: { identifier: email, token } },
+        // Look up token - try both original and lowercase email
+        let vt = await prisma.verificationToken.findUnique({
+            where: { identifier_token: { identifier: normalizedEmail, token } },
         })
+
+        // If not found, try with original email (in case it was stored with different case)
+        if (!vt) {
+            vt = await prisma.verificationToken.findUnique({
+                where: { identifier_token: { identifier: email, token } },
+            })
+        }
 
         if (!vt) {
             // Check if user is already verified. If so, return success to prevent confusing "Verification Failed" message
-            const existingUser = await prisma.user.findUnique({ where: { email } })
+            const existingUser = await prisma.user.findFirst({ 
+                where: { 
+                    email: { equals: normalizedEmail, mode: 'insensitive' } 
+                } 
+            })
             if (existingUser?.emailVerified) {
-                console.log('✅ User already verified:', email)
+                console.log('✅ User already verified:', normalizedEmail)
                 return { success: true, userId: String(existingUser.id), message: 'Already verified' }
             }
-            console.log('❌ Invalid or already used token for:', email)
+            
+            // If user exists but not verified, auto-verify them (they clicked the link, they own the email)
+            if (existingUser && !existingUser.emailVerified) {
+                console.log('🔧 Auto-verifying user who clicked verification link:', normalizedEmail)
+                await prisma.user.update({
+                    where: { id: existingUser.id },
+                    data: { emailVerified: new Date() }
+                })
+                return { success: true, userId: String(existingUser.id), message: 'Verified' }
+            }
+            
+            console.log('❌ Invalid or already used token for:', normalizedEmail)
             return { success: false, error: 'Invalid or already used token' }
         }
 
