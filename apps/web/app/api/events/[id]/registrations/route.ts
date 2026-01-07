@@ -213,17 +213,18 @@ export async function POST(
       promoCode
     }
 
-    console.log('💾 Starting registration transaction:', {
+    console.log('💾 Starting registration (simplified):', {
       regId: newRegId,
       eventId,
       email: formData.email,
       ticketId: ticketId || 'none'
     })
 
-    await prisma.$transaction(async (tx) => {
+    // Use individual queries instead of transaction for better connection pool handling
+    try {
       // 1. Insert Registration ('registrations')
       console.log('📝 Inserting registration into database...')
-      await tx.$executeRaw`
+      await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
@@ -239,11 +240,11 @@ export async function POST(
                 ${ticketId ? String(ticketId) : null}
             )
         `
+      console.log('✅ Registration inserted')
 
       // 2. Insert Order ('"Order"')
-      // Columns: "eventId", "tenantId", "paymentStatus", "createdAt", "updatedAt" (Quoted CamelCase)
-      const orderEventId = String(eventId) // Schema says "eventId" matches String
-      await tx.$executeRaw`
+      const orderEventId = String(eventId)
+      await prisma.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
                 "paymentStatus", "totalInr", "meta", "createdAt", "updatedAt"
@@ -264,11 +265,13 @@ export async function POST(
 
       // 3. Promo Redemption - Moved outside transaction to prevent failure if table missing
 
-      // 4. Update Ticket Sold Count (tickets table)
+      console.log('✅ Order inserted')
+
+      // 3. Update Ticket Sold Count (tickets table)
       if (ticketId) {
         console.log('🎫 Updating sold count for ticket:', ticketId)
         const ticketIdBigInt = BigInt(ticketId)
-        await tx.$executeRaw`
+        await prisma.$executeRaw`
           UPDATE tickets 
           SET sold = sold + ${quantity}
           WHERE id = ${ticketIdBigInt}
@@ -276,7 +279,10 @@ export async function POST(
         console.log('✅ Ticket sold count updated')
       }
 
-    })
+    } catch (insertError: any) {
+      console.error('❌ Registration insert failed:', insertError.message)
+      throw insertError
+    }
 
     // 5. Approval (registration_approvals) - OPTIONAL, outside transaction
     try {
