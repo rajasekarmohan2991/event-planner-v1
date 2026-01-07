@@ -6,19 +6,19 @@ export interface InvoiceData {
   invoiceNumber: string
   invoiceDate: Date
   dueDate?: Date
-  
+
   // Payer details
   payerName: string
   payerEmail: string
   payerPhone?: string
   payerCompany?: string
   payerAddress?: string
-  
+
   // Event details
   eventId: string
   eventName: string
   eventDate?: Date
-  
+
   // Payment details
   type: InvoiceType
   description: string
@@ -28,19 +28,19 @@ export interface InvoiceData {
     unitPrice: number
     amount: number
   }>
-  
+
   subtotal: number
   tax: number
   taxRate: number
   discount?: number
   total: number
-  
+
   // Payment info
   paymentMethod?: string
   paymentReference?: string
   paymentDate?: Date
   paymentStatus: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE'
-  
+
   // Bank details for payment
   bankDetails?: {
     bankName: string
@@ -49,7 +49,7 @@ export interface InvoiceData {
     accountHolderName: string
     upiId?: string
   }
-  
+
   notes?: string
 }
 
@@ -57,13 +57,13 @@ export function generateInvoiceHTML(data: InvoiceData): string {
   const isPaid = data.paymentStatus === 'PAID'
   const statusColor = isPaid ? '#10B981' : data.paymentStatus === 'OVERDUE' ? '#EF4444' : '#F59E0B'
   const statusBg = isPaid ? '#D1FAE5' : data.paymentStatus === 'OVERDUE' ? '#FEE2E2' : '#FEF3C7'
-  
+
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Invoice ${data.invoiceNumber}</title>
+  <title>${data.paymentStatus === 'PAID' ? 'Payment Receipt' : 'Invoice'} ${data.invoiceNumber}</title>
   <style>
     body { 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -299,7 +299,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
         <p>Phone: +91 (800) 123-4567</p>
       </div>
       <div class="invoice-title">
-        <h2>INVOICE</h2>
+        <h2>${data.paymentStatus === 'PAID' ? 'PAYMENT RECEIPT' : 'INVOICE'}</h2>
         <div class="invoice-number">#${data.invoiceNumber}</div>
       </div>
     </div>
@@ -454,11 +454,11 @@ export function generateInvoiceHTML(data: InvoiceData): string {
 export async function sendInvoiceEmail(data: InvoiceData): Promise<boolean> {
   try {
     const invoiceHTML = generateInvoiceHTML(data)
-    
-    const subject = data.paymentStatus === 'PAID' 
+
+    const subject = data.paymentStatus === 'PAID'
       ? `Payment Receipt - Invoice ${data.invoiceNumber}`
       : `Invoice ${data.invoiceNumber} - ${data.eventName}`
-    
+
     await sendEmail({
       to: data.payerEmail,
       subject,
@@ -484,7 +484,7 @@ Thank you for your business!
 Ayphen Event Planner
       `
     })
-    
+
     console.log(`✅ Invoice ${data.invoiceNumber} sent to ${data.payerEmail}`)
     return true
   } catch (error) {
@@ -500,9 +500,9 @@ export function generateInvoiceNumber(type: InvoiceType, eventId: string): strin
     SPEAKER: 'SPK',
     VENDOR: 'VEN'
   }[type]
-  
+
   const timestamp = Date.now().toString().slice(-8)
   const eventPrefix = eventId.slice(0, 4)
-  
+
   return `${prefix}-${eventPrefix}-${timestamp}`
 }
