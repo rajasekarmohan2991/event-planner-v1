@@ -2,102 +2,100 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { getTenantId } from '@/lib/tenant-context'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions as any)
+  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+
   try {
-    const session = await getServerSession(authOptions as any)
-    if (!session) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-    }
+    const eventId = BigInt(params.id)
 
-    const eventId = params.id
-    const tenantId = getTenantId()
-
-    // Get stats using correct database schema
-    const eventIdNum = parseInt(eventId)
-    
-    const [
-      registrationsResult, 
-      eventResult,
-      sessionsResult,
-      speakersResult,
-      teamResult,
-      sponsorsResult,
-      exhibitorsResult,
-      promosResult
-    ] = await Promise.all([
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM registrations WHERE event_id = ${eventIdNum}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT name, starts_at, price_inr, venue, city, address FROM events WHERE id = ${eventIdNum}`.catch(() => []),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM sessions WHERE event_id = ${eventIdNum}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM speakers WHERE event_id = ${eventIdNum}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM "EventRoleAssignment" WHERE "eventId" = ${eventId}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM sponsors WHERE event_id = ${eventIdNum}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM exhibitors WHERE event_id = ${eventId}`.catch(() => [{ count: 0 }]),
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM promo_codes WHERE event_id = ${eventIdNum}`.catch(() => [{ count: 0 }])
-    ])
-
-    const registrations = (registrationsResult as any)[0]?.count || 0
-    const event = (eventResult as any)[0] || null
-    const sessions = (sessionsResult as any)[0]?.count || 0
-    const speakers = (speakersResult as any)[0]?.count || 0
-    const team = (teamResult as any)[0]?.count || 0
-    const sponsors = (sponsorsResult as any)[0]?.count || 0
-    const exhibitors = (exhibitorsResult as any)[0]?.count || 0
-    const promos = (promosResult as any)[0]?.count || 0
-    
-    // Calculate ticket sales (basic calculation)
-    const ticketSalesInr = registrations * (event?.price_inr || 0)
+    // Get event details for days calculation
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { starts_at: true }
+    })
 
     // Calculate days to event
-    let daysToEvent = null
-    if (event?.starts_at) {
-      const start = new Date(event.starts_at)
-      const now = new Date()
-      const diff = start.getTime() - now.getTime()
-      daysToEvent = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    }
+    const daysToEvent = event?.starts_at
+      ? Math.ceil((new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : null
+
+    // Get counts using raw queries for better performance
+    const [
+      registrations,
+      sessions,
+      speakers,
+      team,
+      sponsors,
+      exhibitors,
+      promos,
+      ticketSales
+    ] = await Promise.all([
+      // Registrations count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM registrations WHERE event_id = ${eventId.toString()}
+      `.then(r => Number(r[0]?.count || 0)),
+
+      // Sessions count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM sessions WHERE event_id = ${eventId}
+      `.then(r => Number(r[0]?.count || 0)),
+
+      // Speakers count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId}
+      `.then(r => Number(r[0]?.count || 0)),
+
+      // Team members count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM event_team_members WHERE event_id = ${eventId}
+      `.then(r => Number(r[0]?.count || 0)),
+
+      // Sponsors count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM sponsor_registrations WHERE event_id = ${eventId}
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
+
+      // Exhibitors count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM exhibitor_registrations WHERE event_id = ${eventId}
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
+
+      // Promo codes count
+      prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) as count FROM promo_codes WHERE event_id = ${eventId.toString()}
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
+
+      // Ticket sales total
+      prisma.$queryRaw<[{ total: number | null }]>`
+        SELECT COALESCE(SUM(total_amount), 0) as total 
+        FROM registrations 
+        WHERE event_id = ${eventId.toString()} AND payment_status = 'PAID'
+      `.then(r => Number(r[0]?.total || 0))
+    ])
 
     return NextResponse.json({
-      ticketSalesInr,
+      ticketSalesInr: ticketSales,
       registrations,
       daysToEvent,
-      event: {
-        name: event?.name,
-        startsAt: event?.starts_at,
-        priceInr: event?.price_inr,
-        venue: event?.venue,
-        city: event?.city,
-        address: event?.address,
-        location: event?.venue || event?.city || event?.address || 'TBD'
-      },
       counts: {
         sessions,
         speakers,
         team,
         sponsors,
         exhibitors,
-        promos,
-        registrations
+        promos
       }
     })
-  } catch (e: any) {
-    console.error('Stats error:', e)
+
+  } catch (error: any) {
+    console.error('Stats API error:', error)
     return NextResponse.json({
-      ticketSalesInr: 0,
-      registrations: 0,
-      daysToEvent: null,
-      counts: { 
-        sessions: 0,
-        speakers: 0,
-        team: 0,
-        sponsors: 0,
-        exhibitors: 0,
-        promos: 0,
-        registrations: 0 
-      }
-    })
+      error: 'Failed to fetch stats',
+      details: error.message
+    }, { status: 500 })
   }
 }

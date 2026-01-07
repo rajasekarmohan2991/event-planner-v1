@@ -5,38 +5,45 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const session = await getServerSession(authOptions as any)
-    if (!session) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-    }
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions as any)
+  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
+  try {
     const eventId = params.id
 
-    // Get registrations using correct database schema
-    const eventIdNum = parseInt(eventId)
-    
-    const registrations = await prisma.$queryRaw`
+    // Get registration trend for the last 14 days
+    const trend = await prisma.$queryRaw<Array<{ date: string; count: number }>>`
       SELECT 
         DATE(created_at) as date,
         COUNT(*)::int as count
-      FROM registrations 
-      WHERE event_id = ${eventIdNum} 
-        AND created_at >= NOW() - INTERVAL '30 days'
+      FROM registrations
+      WHERE event_id = ${eventId}
+        AND created_at >= NOW() - INTERVAL '14 days'
       GROUP BY DATE(created_at)
-      ORDER BY DATE(created_at) ASC
-    `.catch(() => [])
+      ORDER BY date ASC
+    `
 
-    // Convert to expected format
-    const trend = (registrations as any[]).map(row => ({
-      date: row.date,
-      count: row.count
+    // Fill in missing dates with zero counts
+    const last14Days = Array.from({ length: 14 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (13 - i))
+      return date.toISOString().split('T')[0]
+    })
+
+    const trendMap = new Map(trend.map(t => [t.date, t.count]))
+    const completeTrend = last14Days.map(date => ({
+      date,
+      count: trendMap.get(date) || 0
     }))
 
-    return NextResponse.json(trend)
-  } catch (e: any) {
-    console.error('Trend error:', e)
-    return NextResponse.json([])
+    return NextResponse.json(completeTrend)
+
+  } catch (error: any) {
+    console.error('Registration trend API error:', error)
+    return NextResponse.json({
+      error: 'Failed to fetch registration trend',
+      details: error.message
+    }, { status: 500 })
   }
 }
