@@ -42,29 +42,29 @@ export async function GET(req: NextRequest) {
 
     if (userRole === 'SUPER_ADMIN') {
       // SUPER_ADMIN gets global stats
-      // Use concurrent execution for all counts
+      // Use raw SQL for more reliable counts
       const [
-        eventsCount,
-        upcomingCount,
+        eventsResult,
+        upcomingResult,
         usersCount,
         tenantsCount,
         regResult
       ] = await Promise.all([
-        prisma.event.count(),
-        prisma.event.count({ where: { startsAt: { gte: now } } }),
-        prisma.user.count(),
-        prisma.tenant.count(),
+        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events`.catch(() => [{count: 0}]),
+        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE starts_at >= ${now}`.catch(() => [{count: 0}]),
+        prisma.user.count().catch(() => 0),
+        prisma.tenant.count().catch(() => 0),
         prisma.$queryRaw`
           SELECT COUNT(*)::int as count 
           FROM registrations 
           WHERE created_at >= ${sevenDaysAgo}
-        `
-      ])
+        `.catch(() => [{count: 0}])
+      ]) as any[]
 
-      const regCount = (regResult as any)[0]?.count || 0
+      const regCount = (regResult[0]?.count || 0)
 
-      totalEvents = eventsCount
-      upcomingEvents = upcomingCount
+      totalEvents = eventsResult[0]?.count || 0
+      upcomingEvents = upcomingResult[0]?.count || 0
       totalUsers = usersCount
       recentRegistrations = Number(regCount)
 

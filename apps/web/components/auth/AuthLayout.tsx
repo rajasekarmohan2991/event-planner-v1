@@ -114,7 +114,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
       {/* Main content */}
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Left side - Illustration */}
-      <div className="w-full md:w-3/5 xl:w-2/3 bg-gradient-to-br from-slate-100 via-blue-100 to-indigo-200 flex items-center justify-center p-4 md:p-8 xl:p-12 relative overflow-hidden pointer-events-none select-none">
+      <div className="w-full md:w-3/5 xl:w-2/3 bg-gradient-to-br from-red-50 via-rose-100 to-pink-200 flex items-center justify-center p-4 md:p-8 xl:p-12 relative overflow-hidden pointer-events-none select-none">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           {backgroundImageUrl && (
@@ -137,7 +137,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute top-10 left-10 w-20 h-20 bg-blue-200/30 rounded-full blur-xl"
+                className="absolute top-10 left-10 w-20 h-20 bg-red-300/30 rounded-full blur-xl"
               />
               <motion.div
                 animate={{
@@ -150,7 +150,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
                   repeat: Infinity,
                   ease: "linear"
                 }}
-                className="absolute bottom-20 right-20 w-32 h-32 bg-purple-200/20 rounded-full blur-2xl"
+                className="absolute bottom-20 right-20 w-32 h-32 bg-rose-300/20 rounded-full blur-2xl"
               />
               <motion.div
                 animate={{
@@ -163,7 +163,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
-                className="absolute top-1/2 left-1/4 w-16 h-16 bg-indigo-200/25 rounded-full blur-lg"
+                className="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-300/25 rounded-full blur-lg"
               />
             </>
           )}
