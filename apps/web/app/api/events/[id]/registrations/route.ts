@@ -276,19 +276,20 @@ export async function POST(
         console.log('✅ Ticket sold count updated')
       }
 
-      // 5. Approval (registration_approvals) - OPTIONAL
-      try {
-        await tx.$executeRaw`
-              INSERT INTO registration_approvals (
-                  registration_id, event_id, status, created_at
-              ) VALUES (
-                  ${newRegId}, ${eventIdBigInt}, 'APPROVED', NOW()
-              )
-          `
-      } catch (e: any) {
-        console.log('⚠️ registration_approvals not found, skipping')
-      }
     })
+
+    // 5. Approval (registration_approvals) - OPTIONAL, outside transaction
+    try {
+      await prisma.$executeRaw`
+            INSERT INTO registration_approvals (
+                registration_id, event_id, status, created_at
+            ) VALUES (
+                ${newRegId}, ${eventIdBigInt}, 'APPROVED', NOW()
+            )
+        `
+    } catch (e: any) {
+      console.log('⚠️ registration_approvals insert skipped:', e.message?.substring(0, 100))
+    }
 
     // 6. Log Promo Redemption (Non-critical)
     if (promoCodeId && userId) {

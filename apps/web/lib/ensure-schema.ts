@@ -166,6 +166,64 @@ export async function ensureSchema() {
         END $$;
     `)
 
+    // 7. Registration Approvals Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS registration_approvals (
+            id BIGSERIAL PRIMARY KEY,
+            registration_id TEXT NOT NULL,
+            event_id BIGINT NOT NULL,
+            status TEXT DEFAULT 'PENDING',
+            approved_by BIGINT,
+            notes TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
+    // 8. Sessions Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            title TEXT NOT NULL,
+            description TEXT,
+            start_time TIMESTAMP WITH TIME ZONE,
+            end_time TIMESTAMP WITH TIME ZONE,
+            location TEXT,
+            stream_url TEXT,
+            is_live BOOLEAN DEFAULT false,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
+    // 9. Session Speakers Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS session_speakers (
+            id BIGSERIAL PRIMARY KEY,
+            session_id BIGINT NOT NULL,
+            speaker_id BIGINT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
+    // 10. Speakers Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS speakers (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            name TEXT NOT NULL,
+            title TEXT,
+            bio TEXT,
+            photo_url TEXT,
+            email TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
     console.log('✅ Self-healing schema update complete.')
     return true
   } catch (error) {
