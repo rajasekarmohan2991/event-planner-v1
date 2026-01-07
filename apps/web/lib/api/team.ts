@@ -50,7 +50,7 @@ export async function listTeamMembers(
   return { items: Array.isArray(data) ? data : [], total: Array.isArray(data) ? data.length : 0, page: 1, limit, totalPages: 1 }
 }
 
-export async function inviteTeamMembers(eventId: string, emails: string[], role: string, accessToken?: string): Promise<TeamMember[]> {
+export async function inviteTeamMembers(eventId: string, emails: string[], role?: string, accessToken?: string): Promise<TeamMember[]> {
   const res = await fetch(`${API_URL}/events/${eventId}/team/invite`, {
     method: 'POST',
     credentials: 'include',
@@ -58,7 +58,7 @@ export async function inviteTeamMembers(eventId: string, emails: string[], role:
       'Content-Type': 'application/json',
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: JSON.stringify({ emails, role }),
+    body: JSON.stringify({ emails, ...(role ? { role } : {}) }),
   })
   if (!res.ok) {
     const text = await res.text().catch(() => '')

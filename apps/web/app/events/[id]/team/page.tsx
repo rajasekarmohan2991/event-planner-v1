@@ -23,7 +23,6 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
   const [banner, setBanner] = useState<string | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmails, setInviteEmails] = useState('')
-  const [inviteRole, setInviteRole] = useState('Event Staff')
   const [companyUsers, setCompanyUsers] = useState<any[]>([])
   const [loadingCompanyUsers, setLoadingCompanyUsers] = useState(false)
   const [selectedCompanyEmails, setSelectedCompanyEmails] = useState<Record<string, boolean>>({})
@@ -156,20 +155,20 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
       .map((u: any) => String(u.email).trim())
       .filter(Boolean)
     const list = Array.from(new Set([...typedList, ...selectedFromCompany]))
-    console.log('[TEAM INVITE] Inviting emails:', list, 'with role:', inviteRole)
+    console.log('[TEAM INVITE] Inviting emails:', list)
     if (list.length === 0) {
       setBanner('Please enter at least one email')
       return
     }
     try {
-      const result = await inviteTeamMembers(params.id, list, inviteRole, accessToken)
+      // Invite without specifying role - will use company user role
+      const result = await inviteTeamMembers(params.id, list, undefined, accessToken)
       console.log('[TEAM INVITE] Invite result:', result)
       await reloadMembers()
       setInviteOpen(false)
       setInviteEmails('')
-      setInviteRole('Event Staff')
       setSelectedCompanyEmails({})
-      setBanner(`Invited ${list.length} member(s) as ${inviteRole}`)
+      setBanner(`Invited ${list.length} member(s) - roles will be assigned from company profiles`)
       setTimeout(() => setBanner(null), 3000)
     } catch (e: any) {
       console.error('[TEAM INVITE] Invite failed:', e)
@@ -567,19 +566,7 @@ export default function EventTeamPage({ params }: { params: { id: string } }) {
                   value={inviteEmails}
                   onChange={(e) => setInviteEmails(e.target.value)}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-600 mb-1">Role</label>
-                <select
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                >
-                  <option>Event Staff</option>
-                  <option>Event Owner</option>
-                  <option>Coordinator</option>
-                  <option>Vendor</option>
-                </select>
+                <p className="text-[11px] text-slate-500 mt-1">Team members will be added with their company role and permissions.</p>
               </div>
               <div>
                 <label className="block text-xs text-slate-600 mb-1">Select from Company Users</label>
