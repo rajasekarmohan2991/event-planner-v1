@@ -81,7 +81,17 @@ export default function UserDashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <Image
+              src="/ayphen-logo.png"
+              alt="Ayphen"
+              width={96}
+              height={96}
+              className="animate-pulse"
+              priority
+            />
+          </div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-pink-500 mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Loading amazing events...</p>
         </div>
       </div>
@@ -91,36 +101,87 @@ export default function UserDashboard() {
   return (
     <RouteProtection requiredRoles={['USER']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Hero Banner */}
-        <div className="relative h-[500px] bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 overflow-hidden">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJWMzRoLTJ6bTAgNHYyaDJ2LTJoLTJ6bTAtOHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
+        {/* Scrolling Ticker - Real-time Event Info */}
+        <div className="bg-white border-b border-gray-100 overflow-hidden">
+          <div className="animate-scroll-left flex items-center gap-8 py-3 px-4">
+            {[...Array(2)].map((_, index) => (
+              <div key={index} className="flex items-center gap-8 whitespace-nowrap">
+                {upcomingEvents[0] && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-red-500">🔥</span>
+                    <span className="font-semibold text-gray-800">Trending Now</span>
+                    <span className="text-gray-600">{upcomingEvents[0].name}</span>
+                    <span className="text-pink-500 text-xs">Popular choice</span>
+                  </div>
+                )}
+                {upcomingEvents[1] && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-amber-500">⚡</span>
+                    <span className="font-semibold text-gray-800">Almost Full</span>
+                    <span className="text-gray-600">{upcomingEvents[1].name}</span>
+                    <span className="text-amber-500 text-xs">Limited seats!</span>
+                  </div>
+                )}
+                {upcomingEvents[2] && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-500">⭐</span>
+                    <span className="font-semibold text-gray-800">Early Bird</span>
+                    <span className="text-gray-600">{upcomingEvents[2].name}</span>
+                    <span className="text-green-500 text-xs">Get 30% off!</span>
+                  </div>
+                )}
+                {upcomingEvents[3] && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-purple-500">💎</span>
+                    <span className="font-semibold text-gray-800">Featured</span>
+                    <span className="text-gray-600">{upcomingEvents[3].name}</span>
+                    <span className="text-purple-500 text-xs">in {upcomingEvents[3].city}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-blue-500">🎫</span>
+                  <span className="font-semibold text-gray-800">FREE Events</span>
+                  <span className="text-gray-600">Check out free events near you!</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-pink-500">🎁</span>
+                  <span className="font-semibold text-gray-800">Promo Code</span>
+                  <span className="text-gray-600">Use SAVE20 for 20% off</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Hero Banner - Lighter Colors */}
+        <div className="relative h-[420px] bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 overflow-hidden">
+          <div className="absolute inset-0 bg-white/10"></div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
-            <div className="max-w-2xl mt-16">
+            <div className="max-w-2xl mt-8">
 
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 animate-slide-up">
                 Discover Amazing
                 <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-orange-300">
+                <span className="text-yellow-300">
                   Events Near You
                 </span>
               </h1>
 
-              <p className="text-xl text-white/90 mb-8 animate-slide-up animation-delay-100">
+              <p className="text-lg text-white/90 mb-8 animate-slide-up animation-delay-100">
                 Book tickets for conferences, concerts, workshops, and more!
               </p>
 
               <div className="flex gap-4 animate-slide-up animation-delay-200">
                 <Link
                   href="/my-tickets"
-                  className="px-8 py-4 bg-white text-teal-700 rounded-full font-semibold hover:bg-amber-400 hover:text-white transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
+                  className="px-8 py-3 bg-white text-pink-600 rounded-full font-semibold hover:bg-yellow-400 hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
                 >
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
 
-                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-4 rounded-full">
+                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full">
                   <TrendingUp className="w-5 h-5 text-white" />
                   <span className="text-white font-semibold">Trending Now</span>
                 </div>
@@ -129,12 +190,12 @@ export default function UserDashboard() {
           </div>
 
           {/* Decorative Elements */}
-          <div className="absolute top-20 right-20 w-72 h-72 bg-yellow-300/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+          <div className="absolute top-10 right-10 w-64 h-64 bg-yellow-300/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 left-10 w-80 h-80 bg-pink-300/20 rounded-full blur-3xl"></div>
 
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-20">
+        <div className="max-w-7xl mx-auto px-6 -mt-16 relative z-20">
           {/* Filter Events Section */}
           <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl p-8 mb-8 animate-slide-up border border-gray-100 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-6">
