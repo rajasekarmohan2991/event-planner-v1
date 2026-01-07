@@ -186,10 +186,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       }).catch(err => console.error('Failed to send confirmation email:', err))
     }
 
-    console.log(`✅ Payment confirmed for exhibitor: ${exhibitor.id}, Status: CONFIRMED, QR Code generated`)
+    console.log(`✅ Payment confirmed for exhibitor: ${exhibitor.id}, Status: BOOTH_ALLOTTED, QR Code generated`)
+
+    // Generate and send invoice automatically
+    try {
+      await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${params.id}/exhibitors/${params.exhibitorId}/generate-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      console.log('✅ Invoice generated and sent')
+    } catch (invoiceError) {
+      console.error('⚠️ Failed to generate invoice:', invoiceError)
+      // Don't fail the payment confirmation if invoice generation fails
+    }
 
     return NextResponse.json({
-      message: 'Payment confirmed successfully. Booth confirmed!',
+      message: 'Payment confirmed successfully. Booth allotted! Invoice sent to your email.',
       exhibitor: {
         id: updated.id,
         company: updated.name,
