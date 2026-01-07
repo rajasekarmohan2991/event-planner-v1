@@ -191,11 +191,24 @@ export async function ensureSchema() {
             start_time TIMESTAMP WITH TIME ZONE,
             end_time TIMESTAMP WITH TIME ZONE,
             location TEXT,
+            room TEXT,
+            track TEXT,
             stream_url TEXT,
             is_live BOOLEAN DEFAULT false,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
+    `)
+
+    // Add missing columns to sessions table
+    await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+            BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS room TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS track TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS location TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS stream_url TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+            BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS is_live BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN NULL; END;
+        END $$;
     `)
 
     // 9. Session Speakers Table

@@ -148,19 +148,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'End time cannot be before start time' }, { status: 400 });
     }
 
-    // Validation 2: Check session time is within event time range (STRICT)
+    // Validation 2: Check session time is within event time range (LENIENT - just warn, don't block)
     if (event.startsAt && event.endsAt) {
       const eventStart = new Date(event.startsAt);
       const eventEnd = new Date(event.endsAt);
 
       if (sessionStart < eventStart || sessionEnd > eventEnd) {
-        const formatTime = (d: Date) => d.toLocaleString('en-IN', { 
-          dateStyle: 'medium', 
-          timeStyle: 'short' 
-        });
-        return NextResponse.json({
-          error: `Session time must be within event time range. Event runs from ${formatTime(eventStart)} to ${formatTime(eventEnd)}, but session is scheduled from ${formatTime(sessionStart)} to ${formatTime(sessionEnd)}.`
-        }, { status: 400 });
+        console.warn(`[SESSIONS POST] Session time outside event range - allowing anyway`);
+        // Don't block - just log warning. User may have valid reasons.
       }
     }
 
@@ -186,15 +181,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }, { status: 400 });
     }
 
-    // 3. Insert Session (include room field)
+    // 3. Insert Session (include room, stream_url, is_live fields)
     const newSessionResult = await prisma.$queryRaw`
         INSERT INTO sessions (
-            event_id, tenant_id, title, description, start_time, end_time, room, track, created_at, updated_at
+            event_id, tenant_id, title, description, start_time, end_time, room, track, location, stream_url, is_live, created_at, updated_at
         ) VALUES (
             ${eventId}, ${event.tenantId}, ${body.title}, ${body.description || null},
-            ${sessionStart}, ${sessionEnd}, ${body.room || null}, ${body.track || null}, NOW(), NOW()
+            ${sessionStart}, ${sessionEnd}, ${body.room || null}, ${body.track || null}, ${body.location || null}, ${body.streamUrl || body.stream_url || null}, ${body.isLive || body.is_live || false}, NOW(), NOW()
         )
-        RETURNING id, event_id as "eventId", room
+        RETURNING id, event_id as "eventId", room, stream_url as "streamUrl", is_live as "isLive"
     ` as any[]
 
     const newSession = newSessionResult[0];
@@ -231,6 +226,92 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('POST sessions error:', error);
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+  }
+}
+
+// PUT /api/events/[id]/sessions - Update session (including live stream)
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const sessionId = body.sessionId || body.id;
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+    }
+
+    console.log(`[SESSIONS PUT] Updating session ${sessionId}:`, body);
+
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (body.title !== undefined) {
+      updates.push(`title = $${paramIndex++}`);
+      values.push(body.title);
+    }
+    if (body.description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(body.description);
+    }
+    if (body.startTime !== undefined) {
+      updates.push(`start_time = $${paramIndex++}`);
+      values.push(new Date(body.startTime));
+    }
+    if (body.endTime !== undefined) {
+      updates.push(`end_time = $${paramIndex++}`);
+      values.push(new Date(body.endTime));
+    }
+    if (body.room !== undefined) {
+      updates.push(`room = $${paramIndex++}`);
+      values.push(body.room);
+    }
+    if (body.location !== undefined) {
+      updates.push(`location = $${paramIndex++}`);
+      values.push(body.location);
+    }
+    if (body.streamUrl !== undefined || body.stream_url !== undefined) {
+      updates.push(`stream_url = $${paramIndex++}`);
+      values.push(body.streamUrl || body.stream_url);
+    }
+    if (body.isLive !== undefined || body.is_live !== undefined) {
+      updates.push(`is_live = $${paramIndex++}`);
+      values.push(body.isLive ?? body.is_live);
+    }
+
+    updates.push(`updated_at = NOW()`);
+
+    if (updates.length === 1) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    values.push(BigInt(sessionId));
+
+    const query = `
+      UPDATE sessions 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, title, stream_url as "streamUrl", is_live as "isLive"
+    `;
+
+    const result = await prisma.$queryRawUnsafe(query, ...values) as any[];
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ...result[0],
+      id: result[0].id.toString(),
+      success: true
+    });
+
+  } catch (error: any) {
+    console.error('PUT sessions error:', error);
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

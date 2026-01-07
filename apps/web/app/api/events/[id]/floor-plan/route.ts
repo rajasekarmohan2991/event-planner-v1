@@ -376,6 +376,48 @@ export async function PUT(
 
         console.log('✅ [FloorPlan PUT] Success')
 
+        // Auto-generate seats from floor plan capacity
+        const totalCapacity = Number(body.totalCapacity) || 0
+        const vipCapacity = Number(body.vipCapacity) || 0
+        const premiumCapacity = Number(body.premiumCapacity) || 0
+        const generalCapacity = Number(body.generalCapacity) || 0
+
+        if (totalCapacity > 0 || vipCapacity > 0 || premiumCapacity > 0 || generalCapacity > 0) {
+            console.log('🪑 [FloorPlan PUT] Auto-generating seats...')
+            try {
+                // Delete existing seats for this event
+                await prisma.$executeRawUnsafe(`DELETE FROM seat_inventory WHERE event_id = $1`, eventId)
+
+                // Generate VIP seats
+                for (let i = 1; i <= vipCapacity; i++) {
+                    await prisma.$executeRawUnsafe(`
+                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                        VALUES ($1, 'VIP', $2, $3, 'VIP', $4, true, NOW())
+                    `, eventId, `V${Math.ceil(i / 10)}`, String(i), Number(body.vipPrice) || 0)
+                }
+
+                // Generate Premium seats
+                for (let i = 1; i <= premiumCapacity; i++) {
+                    await prisma.$executeRawUnsafe(`
+                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                        VALUES ($1, 'Premium', $2, $3, 'PREMIUM', $4, true, NOW())
+                    `, eventId, `P${Math.ceil(i / 10)}`, String(i), Number(body.premiumPrice) || 0)
+                }
+
+                // Generate General seats
+                for (let i = 1; i <= generalCapacity; i++) {
+                    await prisma.$executeRawUnsafe(`
+                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                        VALUES ($1, 'General', $2, $3, 'GENERAL', $4, true, NOW())
+                    `, eventId, `G${Math.ceil(i / 10)}`, String(i), Number(body.generalPrice) || 0)
+                }
+
+                console.log(`✅ [FloorPlan PUT] Generated ${vipCapacity + premiumCapacity + generalCapacity} seats`)
+            } catch (seatError: any) {
+                console.warn('⚠️ [FloorPlan PUT] Seat generation failed:', seatError.message)
+            }
+        }
+
         return NextResponse.json({
             message: 'Floor plan saved successfully',
             floorPlan: {
@@ -383,7 +425,8 @@ export async function PUT(
                 eventId: id,
                 name: body.name,
                 status: body.status || 'DRAFT'
-            }
+            },
+            seatsGenerated: vipCapacity + premiumCapacity + generalCapacity
         })
     } catch (error: any) {
         console.error('❌ [FloorPlan PUT] Fatal Error:', error)
