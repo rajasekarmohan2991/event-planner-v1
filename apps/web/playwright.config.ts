@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Base URL defaults to localhost:3001 (Docker maps 3001->3000), override with BASE_URL env
-const baseURL = process.env.BASE_URL || 'http://localhost:3001'
+// Base URL defaults to production, override with BASE_URL env
+const baseURL = process.env.BASE_URL || 'https://aypheneventplanner.vercel.app'
 const videoSetting = process.env.PLAYWRIGHT_VIDEO === 'on' ? 'on' : 'retain-on-failure'
 
 export default defineConfig({
