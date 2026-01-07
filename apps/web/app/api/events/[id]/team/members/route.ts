@@ -141,7 +141,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       limit: 100,
       timestamp,
       debug: {
-        eventId,
+        eventId: eventIdStr,
         queryExecutedAt: timestamp,
         rawCount: assignments.length,
         mappedCount: items.length
