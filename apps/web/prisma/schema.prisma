@@ -176,6 +176,10 @@ model Tenant {
   events          Event[]
   taxStructures   TaxStructure[]
   invoices        Invoice[]
+  payouts         Payout[]
+  charges         Charge[]
+  credits         Credit[]
+  financeSettings FinanceSettings?
   
   @@index([status])
   @@index([plan])
@@ -1290,6 +1294,9 @@ model Event {
   speakers           Speaker[]
   floorPlans         FloorPlan[]
   invoices           Invoice[]
+  payouts            Payout[]
+  charges            Charge[]
+  credits            Credit[]
 
   @@map("events")
 }
@@ -1718,5 +1725,160 @@ model Receipt {
 
   @@unique([invoiceId, number])
   @@map("receipts")
+}
+
+// ==============================
+// Payouts Module
+// ==============================
+
+model Payout {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  eventId         BigInt?  @map("event_id")
+  
+  // Recipient Details
+  recipientType   String   // VENDOR, SPONSOR, EXHIBITOR, SPEAKER, STAFF
+  recipientId     String?  @map("recipient_id")
+  recipientName   String   @map("recipient_name")
+  recipientEmail  String?  @map("recipient_email")
+  
+  // Bank Details
+  bankName        String?  @map("bank_name")
+  accountNumber   String?  @map("account_number")
+  ifscCode        String?  @map("ifsc_code")
+  accountHolder   String?  @map("account_holder")
+  upiId           String?  @map("upi_id")
+  
+  // Payout Details
+  amount          Float
+  currency        String   @default("USD")
+  method          String   // BANK_TRANSFER, UPI, CASH, CHECK
+  reference       String?  // Transaction reference
+  
+  status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  scheduledDate   DateTime @map("scheduled_date")
+  processedDate   DateTime? @map("processed_date")
+  
+  description     String?
+  notes           String?
+  
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  event           Event?   @relation(fields: [eventId], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([status])
+  @@map("payouts")
+}
+
+// ==============================
+// Charges & Credits Module
+// ==============================
+
+model Charge {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  eventId         BigInt?  @map("event_id")
+  
+  type            String   // PLATFORM_FEE, SERVICE_CHARGE, SUBSCRIPTION, PENALTY, OTHER
+  description     String
+  amount          Float
+  currency        String   @default("USD")
+  
+  status          String   @default("PENDING") // PENDING, APPLIED, WAIVED, REFUNDED
+  appliedDate     DateTime? @map("applied_date")
+  
+  // Reference to invoice if charged via invoice
+  invoiceId       String?  @map("invoice_id")
+  
+  notes           String?
+  
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  event           Event?   @relation(fields: [eventId], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([status])
+  @@map("charges")
+}
+
+model Credit {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  eventId         BigInt?  @map("event_id")
+  
+  type            String   // REFUND, DISCOUNT, PROMOTIONAL, ADJUSTMENT, OTHER
+  description     String
+  amount          Float
+  currency        String   @default("USD")
+  
+  status          String   @default("PENDING") // PENDING, APPLIED, EXPIRED, CANCELLED
+  appliedDate     DateTime? @map("applied_date")
+  expiryDate      DateTime? @map("expiry_date")
+  
+  // Reference to original charge/invoice if applicable
+  referenceId     String?  @map("reference_id")
+  referenceType   String?  @map("reference_type") // CHARGE, INVOICE, PAYMENT
+  
+  notes           String?
+  
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  event           Event?   @relation(fields: [eventId], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([status])
+  @@map("credits")
+}
+
+// ==============================
+// Finance Settings
+// ==============================
+
+model FinanceSettings {
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique @map("tenant_id")
+  
+  // Module Enablement
+  enableInvoicing       Boolean  @default(true) @map("enable_invoicing")
+  enablePayouts         Boolean  @default(true) @map("enable_payouts")
+  enableCharges         Boolean  @default(true) @map("enable_charges")
+  
+  // Default Settings
+  defaultCurrency       String   @default("USD") @map("default_currency")
+  defaultPaymentTerms   Int      @default(30) @map("default_payment_terms") // Days
+  
+  // Tax Settings
+  defaultTaxRate        Float    @default(0) @map("default_tax_rate")
+  taxRegistrationNumber String?  @map("tax_registration_number")
+  
+  // Bank Details (for receiving payments)
+  bankName              String?  @map("bank_name")
+  accountNumber         String?  @map("account_number")
+  ifscCode              String?  @map("ifsc_code")
+  accountHolder         String?  @map("account_holder")
+  
+  // Digital Signature
+  digitalSignatureUrl   String?  @map("digital_signature_url")
+  
+  // Invoice Customization
+  invoicePrefix         String   @default("INV") @map("invoice_prefix")
+  invoiceFooter         String?  @map("invoice_footer")
+  
+  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("finance_settings")
 }
 
