@@ -566,16 +566,22 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/login',
-    error: '/auth/error',
+    error: '/auth/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
-  // Trust the host header - required for Vercel deployments
-  // This allows NextAuth to work with preview URLs
-  ...(process.env.NODE_ENV === 'production' && {
-    trustHost: true,
-  } as any),
-}
+  debug: true,
+  logger: {
+    error(code, metadata) {
+      console.error('❌ [NEXTAUTH ERROR]', code, metadata)
+    },
+    warn(code) {
+      console.warn('⚠️ [NEXTAUTH WARN]', code)
+    },
+    debug(code, metadata) {
+      console.log('🔍 [NEXTAUTH DEBUG]', code, metadata)
+    }
+  },
+} as NextAuthOptions
 
 export const getAuthSession = () => getServerSession(authOptions)
 
