@@ -46,13 +46,9 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/currency');
 
     if (isIndividualCompanyView) {
-      // Inside Individual Company: Show limited options with back to companies
-      baseNavigation.push(
-        { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
-        { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
-        { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet }
-        // Add more module links specific to individual companies here if needed
-      )
+      // Inside Individual Company: Don't show sidebar - the company page has its own sidebar
+      // Return empty navigation to hide this sidebar completely
+      return []
     } else if (isSuperAdminCompanyView) {
       // Inside Super Admin Company (Detailed View): Show full system modules
       // This is the "Detailed" view requested by the user
