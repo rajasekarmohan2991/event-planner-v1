@@ -651,72 +651,81 @@ export default function CompanyDetailsPage() {
                 </>
               ) : (
                 <>
-                  <div
-                    onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
-                        <Users className="h-5 w-5 text-blue-600" />
+                  {/* Company Management - Collapsible Section */}
+                  <div className="border-b">
+                    <div className="p-4 bg-gray-50 font-semibold text-sm text-gray-700 flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Company Management
+                    </div>
+                    
+                    {/* Users */}
+                    <div
+                      onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
+                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-blue-500"
+                    >
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
+                          <Users className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">Users</h3>
+                          <p className="text-xs text-gray-500">Manage company users</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Users</h3>
-                        <p className="text-xs text-gray-500">Manage company users</p>
+                    </div>
+
+                    {/* System Settings */}
+                    <div
+                      onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
+                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-purple-500"
+                    >
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
+                          <Settings className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">System Settings</h3>
+                          <p className="text-xs text-gray-500">Configure system settings</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+
+                    {/* Finance */}
+                    <div
+                      onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
+                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-green-500"
+                    >
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-all">
+                          <Wallet className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">Finance</h3>
+                          <p className="text-xs text-gray-500">Payouts, charges & invoices</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                      </div>
+                    </div>
+
+                    {/* Tax Structures */}
+                    <div
+                      onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
+                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-teal-500"
+                    >
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-all">
+                          <Percent className="h-5 w-5 text-teal-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">Tax Structures</h3>
+                          <p className="text-xs text-gray-500">Manage tax rates</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                      </div>
                     </div>
                   </div>
-                  <div
-                    onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
-                        <Settings className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">System Settings</h3>
-                        <p className="text-xs text-gray-500">Configure system settings</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* Finance */}
-                  <div
-                    onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-all">
-                        <Wallet className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Finance</h3>
-                        <p className="text-xs text-gray-500">Payouts, charges & invoices</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* Tax Structures */}
-                  <div
-                    onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-all">
-                        <Percent className="h-5 w-5 text-teal-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Tax Structures</h3>
-                        <p className="text-xs text-gray-500">Manage tax rates</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-
                 </>
               )}
             </div>
