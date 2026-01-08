@@ -5,15 +5,23 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    // Test database connection
+    // Test basic connection
     await prisma.$queryRaw`SELECT 1`
-    
+
+    // Test table access
+    const userCount = await prisma.user.count();
+    const tenantCount = await prisma.tenant.count();
+
     return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       services: {
         database: 'connected',
         api: 'running'
+      },
+      counts: {
+        users: userCount,
+        tenants: tenantCount
       }
     })
   } catch (error) {
