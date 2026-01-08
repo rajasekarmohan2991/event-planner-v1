@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
     LayoutGrid, ClipboardList, Users, Building2, PencilRuler,
     MessageSquare, FileBarChart, CalendarCheck2, Settings as SettingsIcon,
-    ChevronDown, Rocket, Calendar, Radio
+    ChevronDown, Rocket, Calendar, Radio, Receipt,
 } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -47,6 +47,7 @@ export default function EventWorkspaceClient({
         { href: `${base}/sessions`, label: 'Sessions', icon: Calendar },
         { href: `${base}/info`, label: 'Manage', icon: ClipboardList },
         { href: `${base}/registrations`, label: 'Registrations', icon: Users },
+        { href: `${base}/invoices`, label: 'Finances', icon: Receipt },
         // Only show Design for non-virtual events
         ...(!isVirtual ? [{ href: `${base}/design`, label: 'Design', icon: PencilRuler }] : []),
         { href: `${base}/communicate`, label: 'Communicate', icon: MessageSquare },

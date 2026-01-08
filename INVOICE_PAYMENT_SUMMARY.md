@@ -40,13 +40,13 @@
 
 ## 📋 Remaining Work
 
-### 1. Invoice Management UI (Next Step)
-- Create a centralized page `/events/[id]/invoices`
-- List all invoices (Exhibitors, Sponsors, Vendors)
-- Filter by status (Paid vs Pending) and Type
-- "Download" and "Email" action buttons
+### 1. Invoice Management UI ✅
+- **Page**: `/events/[id]/invoices` (Created)
+- **API**: `/api/events/[id]/invoices` (Created - Aggregates all types)
+- **Features**: List, Filter by Status/Type, Stats Cards, Download Actions
+- **Sidebar**: Added "Finances" link with Receipt icon
 
-### 2. Bulk Operations
+### 2. Bulk Operations (Next Step)
 - Select multiple invoices
 - Download as ZIP (optional, or just bulk generate)
 - Bulk email reminders
