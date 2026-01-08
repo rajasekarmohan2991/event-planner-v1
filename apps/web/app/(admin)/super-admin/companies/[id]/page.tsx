@@ -383,20 +383,6 @@ export default function CompanyDetailsPage() {
               </div>
             </div>
 
-            {/* Finance */}
-            <div
-              onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
-              className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Wallet className="h-5 w-5 text-green-400" />
-                <div>
-                  <div className="font-medium">Finance</div>
-                  <div className="text-xs text-gray-400">Payouts, charges & invoices</div>
-                </div>
-              </div>
-            </div>
-
             {/* Tax Structures */}
             <div
               onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
