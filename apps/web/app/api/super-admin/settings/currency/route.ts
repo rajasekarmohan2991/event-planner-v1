@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { AVAILABLE_CURRENCIES } from '@/lib/currency'
+import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
@@ -17,9 +18,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Super Admin access required' }, { status: 403 })
     }
 
-    // Mock global currency settings
+    // Get global currency from super-admin tenant
+    const superAdminTenant = await prisma.tenant.findFirst({
+      where: { slug: 'super-admin' }
+    })
+
     const settings = {
-      globalCurrency: 'USD',
+      globalCurrency: superAdminTenant?.currency || 'USD',
       allowedCurrencies: AVAILABLE_CURRENCIES.map(c => c.code),
       lastUpdated: new Date().toISOString()
     }
@@ -55,9 +60,22 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid currency code' }, { status: 400 })
     }
 
-    // In a real implementation, this would update the database
+    // Update super-admin tenant currency as global default
+    const superAdminTenant = await prisma.tenant.upsert({
+      where: { slug: 'super-admin' },
+      update: { currency: globalCurrency },
+      create: {
+        slug: 'super-admin',
+        name: 'Super Admin',
+        subdomain: 'super-admin',
+        currency: globalCurrency,
+        plan: 'ENTERPRISE',
+        status: 'ACTIVE'
+      }
+    })
+
     const updatedSettings = {
-      globalCurrency: globalCurrency || 'USD',
+      globalCurrency: superAdminTenant.currency,
       allowedCurrencies: AVAILABLE_CURRENCIES.map(c => c.code),
       lastUpdated: new Date().toISOString()
     }

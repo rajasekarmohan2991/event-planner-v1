@@ -58,6 +58,29 @@ export default function SuperAdminSettingsPage() {
     }
   }
 
+  const updateGlobalCurrency = async (currencyCode: string) => {
+    try {
+      setCurrencyLoading(true)
+      const res = await fetch('/api/super-admin/settings/currency', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ globalCurrency: currencyCode })
+      })
+
+      if (res.ok) {
+        setGlobalCurrency(getCurrencyByCode(currencyCode))
+        alert('Global currency updated successfully!')
+      } else {
+        alert('Failed to update global currency')
+      }
+    } catch (error) {
+      console.error('Error updating global currency:', error)
+      alert('Error updating global currency')
+    } finally {
+      setCurrencyLoading(false)
+    }
+  }
+
   const updateCompanyCurrency = async (companyId: string, currencyCode: string) => {
     try {
       const res = await fetch(`/api/super-admin/companies/${companyId}/currency`, {
@@ -74,9 +97,13 @@ export default function SuperAdminSettingsPage() {
               : company
           )
         )
+        alert('Company currency updated successfully!')
+      } else {
+        alert('Failed to update company currency')
       }
     } catch (error) {
       console.error('Error updating company currency:', error)
+      alert('Error updating company currency')
     }
   }
 
@@ -317,12 +344,14 @@ export default function SuperAdminSettingsPage() {
                         return (
                           <div
                             key={currency.code}
+                            onClick={() => !currencyLoading && updateGlobalCurrency(currency.code)}
                             className={`
-                              relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 cursor-default
+                              relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 cursor-pointer
                               ${isSelected
                                 ? 'border-purple-600 bg-purple-50 shadow-sm'
-                                : 'border-gray-200 bg-white hover:border-gray-300'
+                                : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'
                               }
+                              ${currencyLoading ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
                           >
                             {isSelected && (
