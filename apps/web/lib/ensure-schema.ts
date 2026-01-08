@@ -241,7 +241,130 @@ export async function ensureSchema() {
         );
     `)
 
-    console.log('✅ Self-healing schema update complete.')
+    // 11. Finance Tables - Payouts
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS payouts (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            recipient_type TEXT NOT NULL,
+            recipient_id TEXT,
+            recipient_name TEXT NOT NULL,
+            recipient_email TEXT,
+            bank_name TEXT,
+            account_number TEXT,
+            ifsc_code TEXT,
+            account_holder TEXT,
+            upi_id TEXT,
+            amount DOUBLE PRECISION NOT NULL,
+            currency TEXT DEFAULT 'USD' NOT NULL,
+            method TEXT NOT NULL,
+            reference TEXT,
+            status TEXT DEFAULT 'PENDING' NOT NULL,
+            scheduled_date TIMESTAMP NOT NULL,
+            processed_date TIMESTAMP,
+            description TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_payouts_tenant ON payouts(tenant_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_payouts_event ON payouts(event_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(status);
+    `)
+
+    // 12. Finance Tables - Charges
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS charges (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            type TEXT NOT NULL,
+            description TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
+            currency TEXT DEFAULT 'USD' NOT NULL,
+            status TEXT DEFAULT 'PENDING' NOT NULL,
+            applied_date TIMESTAMP,
+            invoice_id TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_charges_tenant ON charges(tenant_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_charges_event ON charges(event_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_charges_status ON charges(status);
+    `)
+
+    // 13. Finance Tables - Credits
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS credits (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            type TEXT NOT NULL,
+            description TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
+            currency TEXT DEFAULT 'USD' NOT NULL,
+            status TEXT DEFAULT 'PENDING' NOT NULL,
+            applied_date TIMESTAMP,
+            expiry_date TIMESTAMP,
+            reference_id TEXT,
+            reference_type TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_credits_tenant ON credits(tenant_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_credits_event ON credits(event_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_credits_status ON credits(status);
+    `)
+
+    // 14. Finance Tables - Finance Settings
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS finance_settings (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT UNIQUE NOT NULL,
+            enable_invoicing BOOLEAN DEFAULT true NOT NULL,
+            enable_payouts BOOLEAN DEFAULT true NOT NULL,
+            enable_charges BOOLEAN DEFAULT true NOT NULL,
+            default_currency TEXT DEFAULT 'USD' NOT NULL,
+            default_payment_terms INTEGER DEFAULT 30 NOT NULL,
+            default_tax_rate DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            tax_registration_number TEXT,
+            bank_name TEXT,
+            account_number TEXT,
+            ifsc_code TEXT,
+            account_holder TEXT,
+            digital_signature_url TEXT,
+            invoice_prefix TEXT DEFAULT 'INV' NOT NULL,
+            invoice_footer TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+
+    console.log('✅ Self-healing schema update complete (including finance tables).')
     return true
   } catch (error) {
     console.error('❌ Self-healing schema failed:', error)
