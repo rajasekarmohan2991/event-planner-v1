@@ -59,25 +59,26 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // 2. All Events
       // 3. All Users
       // 4. Lookup Management
-      // 5. System Settings (Consolidated)
-      // 6. Billing & Subscription
-      // 7. Run Diagnostics
+      // 5. Finance (NEW!)
+      // 6. System Settings (Consolidated)
+      // 7. Billing & Subscription
+      // 8. Run Diagnostics
       baseNavigation.push(
         { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft }, // Helpful back link
         { name: 'Dashboard', href: `/admin`, icon: LayoutDashboard },
         { name: 'All Events', href: '/admin/events', icon: Calendar },
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
+        { name: 'Finance', href: '/super-admin/finance', icon: Wallet },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
         { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
       )
     } else {
-      // Global Super Admin View: Only Companies, Finance, and Settings
+      // Global Super Admin View: Only Companies and Settings
       // This is the "Landing" view requested by the user
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
-        { name: 'Finance', href: '/super-admin/finance', icon: Wallet },
         { name: 'Settings', href: '/super-admin/settings', icon: Settings }
       )
     }
