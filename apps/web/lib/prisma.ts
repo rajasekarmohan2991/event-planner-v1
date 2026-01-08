@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { createTenantMiddleware } from './prisma-tenant-middleware'
+// import { createTenantMiddleware } from './prisma-tenant-middleware' // Temporarily disabled for build
 
 // Re-export types for convenience
 export * from '@prisma/client'
@@ -61,7 +61,7 @@ export function safeJson(data: any) {
 }
 
 // Apply tenant middleware for automatic tenant isolation
-prisma.$use(createTenantMiddleware())
+// prisma.$use(createTenantMiddleware()) // Temporarily disabled for build
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma

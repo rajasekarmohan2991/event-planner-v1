@@ -135,6 +135,7 @@ model Tenant {
   
   // Branding
   logo            String?
+  digitalSignatureUrl String?     @map("digital_signature_url")
   primaryColor    String?         @default("#3B82F6")
   secondaryColor  String?         @default("#10B981")
   faviconUrl      String?
@@ -173,6 +174,8 @@ model Tenant {
   
   members         TenantMember[]
   events          Event[]
+  taxStructures   TaxStructure[]
+  invoices        Invoice[]
   
   @@index([status])
   @@index([plan])
@@ -1286,6 +1289,7 @@ model Event {
   tenant             Tenant?      @relation(fields: [tenantId], references: [id])
   speakers           Speaker[]
   floorPlans         FloorPlan[]
+  invoices           Invoice[]
 
   @@map("events")
 }
@@ -1583,3 +1587,136 @@ model ExchangeRate {
   @@unique([fromCurrency, toCurrency])
   @@map("exchange_rates")
 }
+
+model TaxStructure {
+  id          String   @id @default(cuid())
+  name        String
+  rate        Float
+  description String?
+  isDefault   Boolean  @default(false) @map("is_default")
+  
+  tenantId    String?  @map("tenant_id")
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("tax_structures")
+}
+
+// ==============================
+// Finance Module (Invoices, Tax, Receipts)
+// ==============================
+
+model Invoice {
+  id              String            @id @default(cuid())
+  tenantId        String            @map("tenant_id")
+  eventId         BigInt?           @map("event_id")
+  number          String            // INV-2026-001
+  
+  date            DateTime
+  dueDate         DateTime          @map("due_date")
+  
+  // Recipient Details (Snapshot)
+  recipientType   String            // CUSTOMER, SPONSOR, EXHIBITOR, VENDOR, SPEAKER
+  recipientId     String?           @map("recipient_id") 
+  recipientName   String            @map("recipient_name")
+  recipientEmail  String?           @map("recipient_email")
+  recipientAddress String?          @map("recipient_address")
+  recipientTaxId  String?           @map("recipient_tax_id")
+
+  currency        String            @default("USD")
+  status          String            @default("DRAFT") // DRAFT, SENT, PAID, PARTIAL, CANCELLED, OVERDUE
+
+  // Amounts
+  subtotal        Float             @default(0)
+  taxTotal        Float             @default(0) @map("tax_total")
+  discountTotal   Float             @default(0) @map("discount_total")
+  grandTotal      Float             @default(0) @map("grand_total")
+  
+  notes           String?
+  terms           String?
+  
+  // Digital Signature
+  isSigned        Boolean           @default(false) @map("is_signed")
+  signatureUrl    String?           @map("signature_url")
+  signedAt        DateTime?         @map("signed_at")
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  event           Event?            @relation(fields: [eventId], references: [id])
+  items           InvoiceLineItem[]
+  payments        Payment[]
+  receipts        Receipt[]
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@unique([tenantId, number])
+  @@index([eventId])
+  @@index([recipientType, recipientId])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float    @map("unit_price")
+  
+  taxRate     Float    @default(0) @map("tax_rate") // Percentage
+  taxAmount   Float    @default(0) @map("tax_amount")
+  discount    Float    @default(0)
+  
+  total       Float
+
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  
+  amount      Float
+  method      String   // STRIPE, CASH, CHECK, BANK_TRANSFER, ONLINE
+  reference   String?  // Transaction ID
+  date        DateTime @default(now())
+  status      String   // SUCCESS, PENDING, FAILED
+  notes       String?
+
+  receipt     Receipt?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("payment_records")
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  paymentId   String   @unique @map("payment_id")
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+
+  number      String   // REC-2026-001
+  date        DateTime @default(now())
+  
+  // Receipt Data
+  amountPaid      Float    @map("amount_paid")
+  balanceDue      Float    @map("balance_due")
+  paymentMethod   String   @map("payment_method")
+
+  url         String?  // PDF URL
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([invoiceId, number])
+  @@map("receipts")
+}
+

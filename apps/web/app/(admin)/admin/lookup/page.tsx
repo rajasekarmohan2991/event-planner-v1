@@ -378,12 +378,13 @@ export default function LookupManagementPage() {
                         <TableRow key={option.id} className="group hover:bg-gray-50/50">
                           <TableCell>
                             <div
-                              onClick={() => handleToggleActive(option)}
+                              onClick={() => !option.isSystem && handleToggleActive(option)}
                               className={cn(
-                                "w-2 h-2 rounded-full cursor-pointer transition-all hover:scale-150",
-                                option.isActive ? "bg-emerald-500" : "bg-gray-300"
+                                "w-2 h-2 rounded-full transition-all hover:scale-150",
+                                option.isActive ? "bg-emerald-500" : "bg-gray-300",
+                                option.isSystem ? "cursor-not-allowed opacity-70 hover:scale-100" : "cursor-pointer"
                               )}
-                              title={option.isActive ? 'Active' : 'Inactive'}
+                              title={option.isSystem ? 'System Value (Protected)' : (option.isActive ? 'Active' : 'Inactive')}
                             />
                           </TableCell>
                           <TableCell className="font-medium">
@@ -402,7 +403,7 @@ export default function LookupManagementPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -417,7 +418,6 @@ export default function LookupManagementPage() {
                                   });
                                   setIsOptionModalOpen(true);
                                 }}
-                                disabled={option.isSystem} // Prevent editing system values? Maybe allow editing label/desc but not value.
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -426,7 +426,7 @@ export default function LookupManagementPage() {
                                 size="icon"
                                 className="h-8 w-8 text-gray-500 hover:text-red-600"
                                 onClick={() => handleDeleteOption(option)}
-                                disabled={option.isSystem} // Cannot delete system options
+                                disabled={option.isSystem}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

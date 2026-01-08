@@ -6,27 +6,28 @@ import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Settings, Globe, Bell, Lock, ArrowLeft, CreditCard, Mail } from 'lucide-react'
+import { CompanyLogoUpload } from '@/components/admin/CompanyLogoUpload'
 
 export default function CompanySettingsPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const params = useParams()
   const companyId = params?.id as string
-  
+
   const [loading, setLoading] = useState(true)
   const [companyName, setCompanyName] = useState('')
   const [billing, setBilling] = useState<any>(null)
   const [creating, setCreating] = useState(false)
-  const [plan, setPlan] = useState<'PRO'|'ENTERPRISE'>('PRO')
-  const [period, setPeriod] = useState<'MONTHLY'|'YEARLY'>('MONTHLY')
+  const [plan, setPlan] = useState<'PRO' | 'ENTERPRISE'>('PRO')
+  const [period, setPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
   const [amountInr, setAmountInr] = useState<number>(4999)
   const [email, setEmail] = useState<string>('')
-  const [createdLink, setCreatedLink] = useState<{code:string, payUrl:string}|null>(null)
+  const [createdLink, setCreatedLink] = useState<{ code: string, payUrl: string } | null>(null)
 
   useEffect(() => {
     async function loadData() {
       if (!companyId) return
-      
+
       try {
         setLoading(true)
         const companyRes = await fetch(`/api/super-admin/companies/${companyId}`)
@@ -38,7 +39,7 @@ export default function CompanySettingsPage() {
         const tenantsRes = await fetch('/api/admin/billing/tenants', { credentials: 'include' })
         if (tenantsRes.ok) {
           const d = await tenantsRes.json()
-          const t = (d.tenants||[]).find((x:any)=> String(x.id)===String(companyId))
+          const t = (d.tenants || []).find((x: any) => String(x.id) === String(companyId))
           if (t) {
             setBilling(t)
             if (!email && t.billingEmail) setEmail(t.billingEmail)
@@ -50,17 +51,17 @@ export default function CompanySettingsPage() {
         setLoading(false)
       }
     }
-    
+
     if (companyId) {
       loadData()
     }
   }, [companyId])
 
   useEffect(() => {
-    if (plan==='PRO' && period==='MONTHLY') setAmountInr((prev)=> prev||4999)
-    if (plan==='PRO' && period==='YEARLY') setAmountInr((prev)=> prev||4999*12)
-    if (plan==='ENTERPRISE' && period==='MONTHLY') setAmountInr((prev)=> prev||14999)
-    if (plan==='ENTERPRISE' && period==='YEARLY') setAmountInr((prev)=> prev||14999*12)
+    if (plan === 'PRO' && period === 'MONTHLY') setAmountInr((prev) => prev || 4999)
+    if (plan === 'PRO' && period === 'YEARLY') setAmountInr((prev) => prev || 4999 * 12)
+    if (plan === 'ENTERPRISE' && period === 'MONTHLY') setAmountInr((prev) => prev || 14999)
+    if (plan === 'ENTERPRISE' && period === 'YEARLY') setAmountInr((prev) => prev || 14999 * 12)
   }, [plan, period])
 
   const createLink = async () => {
@@ -71,7 +72,7 @@ export default function CompanySettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ tenantId: companyId, plan, period, amountInr: Number(amountInr||0), email: email||undefined })
+        body: JSON.stringify({ tenantId: companyId, plan, period, amountInr: Number(amountInr || 0), email: email || undefined })
       })
       if (res.ok) {
         const d = await res.json()
@@ -79,7 +80,7 @@ export default function CompanySettingsPage() {
         const tenantsRes = await fetch('/api/admin/billing/tenants', { credentials: 'include' })
         if (tenantsRes.ok) {
           const j = await tenantsRes.json()
-          const t = (j.tenants||[]).find((x:any)=> String(x.id)===String(companyId))
+          const t = (j.tenants || []).find((x: any) => String(x.id) === String(companyId))
           if (t) setBilling(t)
         }
       }
@@ -106,14 +107,14 @@ export default function CompanySettingsPage() {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6">
         <div className="flex flex-col gap-4">
-          <button 
+          <button
             onClick={() => router.push(`/super-admin/companies/${companyId}`)}
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Company Details</span>
           </button>
-          
+
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
               <Settings className="w-8 h-8" />
@@ -155,6 +156,20 @@ export default function CompanySettingsPage() {
               <span className="text-sm text-gray-500">English</span>
             </div>
           </div>
+        </div>
+
+        {/* Logo Upload */}
+        <div className="bg-white rounded-lg border shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Settings className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Company Logo</h3>
+              <p className="text-sm text-gray-600">Upload organization photo</p>
+            </div>
+          </div>
+          <CompanyLogoUpload companyId={companyId} />
         </div>
 
         {/* Email Settings */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Users, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket } from "lucide-react";
+import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Table,
@@ -677,6 +677,40 @@ export default function CompanyDetailsPage() {
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">System Settings</h3>
                         <p className="text-xs text-gray-500">Configure system settings</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+
+                  {/* Tax Structures */}
+                  <div
+                    onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-all">
+                        <Percent className="h-5 w-5 text-teal-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Tax Structures</h3>
+                        <p className="text-xs text-gray-500">Manage tax rates</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+                    </div>
+                  </div>
+
+                  {/* Finance Configuration */}
+                  <div
+                    onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
+                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-t border-gray-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-all">
+                        <Wallet className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">Finance Configuration</h3>
+                        <p className="text-xs text-gray-500">Invoices, Receipts, Signatures</p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
                     </div>

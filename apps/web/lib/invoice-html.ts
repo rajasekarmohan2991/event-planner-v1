@@ -462,50 +462,7 @@ export function generateInvoiceHTML(data: InvoiceData): string {
   `
 }
 
-export async function sendInvoiceEmail(data: InvoiceData): Promise<boolean> {
-  try {
-    const invoiceHTML = generateInvoiceHTML(data)
-
-    const subject = data.paymentStatus === 'PAID'
-      ? `Payment Receipt - Invoice ${data.invoiceNumber}`
-      : `Invoice ${data.invoiceNumber} - ${data.eventName}`
-
-    // Dynamic import to avoid bundling nodemailer in client components
-    const { sendEmail } = await import('./email')
-
-    await sendEmail({
-      to: data.payerEmail,
-      subject,
-      html: invoiceHTML,
-      text: `
-Invoice ${data.invoiceNumber}
-${data.eventName}
-
-Bill To: ${data.payerName}
-${data.payerCompany || ''}
-
-Items:
-${data.items.map(item => `${item.description}: ₹${item.amount.toLocaleString()}`).join('\n')}
-
-Subtotal: ₹${data.subtotal.toLocaleString()}
-Tax (${data.taxRate}%): ₹${data.tax.toLocaleString()}
-Total: ₹${data.total.toLocaleString()}
-
-Payment Status: ${data.paymentStatus}
-${data.paymentStatus !== 'PAID' ? `Due Date: ${data.dueDate?.toLocaleDateString() || 'N/A'}` : ''}
-
-Thank you for your business!
-      `.trim()
-    })
-
-    console.log(`✅ Invoice ${data.invoiceNumber} sent to ${data.payerEmail}`)
-    return true
-  } catch (error) {
-    console.error(`❌ Failed to send invoice ${data.invoiceNumber}:`, error)
-    return false
-  }
-}
-
+// Invoice number generation (client-safe)
 export function generateInvoiceNumber(type: InvoiceType, eventId: string): string {
   const prefix = {
     EXHIBITOR: 'EXH',

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, MapPin, Users, Edit, Trash2, Plus, Eye, Ticket } from 'lucide-react'
+import { Calendar, MapPin, Users, Edit, Trash2, Plus, Eye, Ticket, Search } from 'lucide-react'
 import dynamicImport from 'next/dynamic'
 import BackButton from '@/components/ui/back-button'
 
@@ -26,6 +26,7 @@ export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'past' | 'draft'>('all')
+    const [searchQuery, setSearchQuery] = useState('')
 
     const loadEvents = async () => {
         try {
@@ -102,7 +103,17 @@ export default function EventsPage() {
     }
 
     const filteredEvents = events.filter(event => {
-        // Include Drafts in "All"
+        // Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            const matchName = event.name.toLowerCase().includes(query)
+            const matchLoc = event.location?.toLowerCase().includes(query)
+            const matchDesc = event.description?.toLowerCase().includes(query)
+            const matchStatus = event.status?.toLowerCase().includes(query)
+            if (!matchName && !matchLoc && !matchDesc && !matchStatus) return false
+        }
+
+        // Tab Filter
         if (filter === 'all') return true
         if (filter === 'draft') return event.status === 'DRAFT'
         if (filter === 'upcoming') {
@@ -137,33 +148,57 @@ export default function EventsPage() {
                 <BackButton fallbackUrl="/admin" />
             </div>
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12">
+                    <div className="w-12 h-12 shrink-0">
                         <LottieAnimation
                             animationUrl="/animations/success.json"
                             loop={true}
                             autoplay={true}
                         />
                     </div>
-                    <h1 className="text-2xl font-bold">Events Management</h1>
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold">Events Management</h1>
+                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                                {filteredEvents.length} Total
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <button
-                    onClick={() => router.push('/admin/events/create')}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                    <Plus className="w-4 h-4" />
-                    Create Event
-                </button>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    {/* Search Input */}
+                    <div className="relative flex-1 md:w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm shadow-sm transition-all duration-200"
+                            placeholder="Search events..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <button
+                        onClick={() => router.push('/admin/events/create')}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Event
+                    </button>
+                </div>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 mb-6 border-b">
+            <div className="flex gap-2 mb-6 border-b overflow-x-auto">
                 {(['all', 'upcoming', 'past', 'draft'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setFilter(tab)}
-                        className={`px-4 py-2 font-medium capitalize ${filter === tab
+                        className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${filter === tab
                             ? 'border-b-2 border-indigo-600 text-indigo-600'
                             : 'text-gray-600 hover:text-gray-900'
                             }`}
@@ -181,14 +216,24 @@ export default function EventsPage() {
                 </div>
             ) : filteredEvents.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
-                    <p className="text-gray-600 mb-4">
-                        {filter === 'all'
-                            ? 'Create your first event to get started'
-                            : `No ${filter} events at the moment`
-                        }
-                    </p>
+                    {searchQuery ? (
+                        <>
+                            <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+                            <p className="text-gray-600 mb-4">No events match your search query.</p>
+                        </>
+                    ) : (
+                        <>
+                            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+                            <p className="text-gray-600 mb-4">
+                                {filter === 'all'
+                                    ? 'Create your first event to get started'
+                                    : `No ${filter} events at the moment`
+                                }
+                            </p>
+                        </>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
