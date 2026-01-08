@@ -22,8 +22,18 @@ export async function GET(
 
     // Tenant check? For now, list all for event.
 
+    // Ensure schema exists (self-healing)
+    try {
+      const { ensureSchema } = await import('@/lib/ensure-schema')
+      await ensureSchema()
+    } catch (e) {
+      // Ignore schema check errors, try query anyway
+    }
+
     // Using Raw SQL for reliability
     // Registrations table has snake_case columns
+    // event_id is stored as TEXT in database (from POST handler uses .toString())
+    // So we must compare with string, not BigInt (Postgres strict typing: text = bigint fails)
     const registrations = await prisma.$queryRaw`
       SELECT 
         id, 
@@ -32,14 +42,14 @@ export async function GET(
         status, 
         type
       FROM registrations
-      WHERE event_id = ${BigInt(params.id)}
+      WHERE event_id = ${params.id}
       ORDER BY created_at DESC
     ` as any[]
 
     const safeRegs = registrations.map(r => ({
       ...r,
       id: r.id,
-      dataJson: r.dataJson,
+      dataJson: typeof r.dataJson === 'string' ? JSON.parse(r.dataJson) : r.dataJson,
       createdAt: r.createdAt
     }))
 
@@ -233,7 +243,7 @@ export async function POST(
       console.log('📝 Inserting registration into database...')
       const regType = parsed?.type || 'GENERAL'
       const regStatus = 'APPROVED'
-      
+
       await prisma.$executeRawUnsafe(`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
@@ -293,9 +303,9 @@ export async function POST(
       console.error('❌ Registration insert failed:', insertError.message)
       console.error('❌ Registration insert error stack:', insertError.stack)
       console.error('❌ Registration insert error code:', insertError.code)
-      
+
       // Return user-friendly error message
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Registration failed. Please try again.',
         details: insertError.message,
         code: insertError.code
