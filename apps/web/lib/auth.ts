@@ -182,64 +182,88 @@ export const authOptions: NextAuthOptions = {
 
           console.log('🔍 [AUTH] Looking up user in database:', credentials.email.toLowerCase())
 
-          // Try to authenticate directly with database
-          let user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() }
-          })
+          // Try to authenticate directly with database using raw SQL for reliability
+          const users = await prisma.$queryRaw<any[]>`
+            SELECT id, email, name, image, role, password_hash as password, 
+                   email_verified as "emailVerified", current_tenant_id as "currentTenantId"
+            FROM users 
+            WHERE LOWER(email) = LOWER(${credentials.email})
+            LIMIT 1
+          `
 
-          console.log('👤 [AUTH] User found:', user ? 'Yes' : 'No')
+          console.log('👤 [AUTH] User query result:', users.length > 0 ? 'Found' : 'Not found')
           
-          if (!user) {
+          if (users.length === 0) {
             console.error('❌ [AUTH] User not found in database')
+            console.error('❌ [AUTH] Attempted email:', credentials.email)
             return null
           }
+
+          let user = users[0]
           
           console.log('🔑 [AUTH] User has password:', user?.password ? 'Yes' : 'No')
           console.log('📧 [AUTH] User email verified:', user?.emailVerified ? 'Yes' : 'No')
           console.log('👥 [AUTH] User role:', user?.role)
+          console.log('🆔 [AUTH] User ID:', user?.id)
 
           if (!user.password) {
             console.error('❌ [AUTH] User has no password set (OAuth-only account)')
+            console.error('💡 [AUTH] Hint: Try signing in with Google or Instagram, or reset your password')
             return null
           }
 
           console.log('🔐 [AUTH] Verifying password with bcrypt...')
 
           // Verify password
-          const isPasswordValid = await compare(credentials.password, user.password)
-
-          console.log('✅ [AUTH] Password comparison result:', isPasswordValid)
-
-          if (!isPasswordValid) {
-            console.error('❌ [AUTH] Password does not match')
+          let isPasswordValid = false
+          try {
+            isPasswordValid = await compare(credentials.password, user.password)
+            console.log('✅ [AUTH] Password comparison result:', isPasswordValid)
+          } catch (compareError) {
+            console.error('❌ [AUTH] Password comparison error:', compareError)
             return null
           }
 
-          console.log('✅ Login successful for:', user.email)
+          if (!isPasswordValid) {
+            console.error('❌ [AUTH] Password does not match')
+            console.error('💡 [AUTH] Hint: Check your password or use "Forgot password" link')
+            return null
+          }
+
+          console.log('✅ [AUTH] Login successful for:', user.email)
 
           // Temporarily bypass email verification for production
           // TODO: Re-enable email verification after fixing email delivery
           if (!user.emailVerified) {
-            console.warn('⚠️ Email not verified, but allowing login (temporary bypass)')
+            console.warn('⚠️ [AUTH] Email not verified, but allowing login (temporary bypass)')
             // Auto-verify on login for now
             try {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { emailVerified: new Date() }
-              })
+              await prisma.$executeRaw`
+                UPDATE users 
+                SET email_verified = NOW() 
+                WHERE id = ${user.id}
+              `
               user.emailVerified = new Date()
-              console.log('✅ Auto-verified user on login')
+              console.log('✅ [AUTH] Auto-verified user on login')
             } catch (verifyError) {
-              console.error('Failed to auto-verify:', verifyError)
+              console.error('❌ [AUTH] Failed to auto-verify:', verifyError)
             }
           }
 
           if ((user as any).role === 'SUPER_ADMIN') {
             try {
               await ensureSuperAdminTenantForUser(user.id)
-              user = (await prisma.user.findUnique({ where: { id: user.id } }))!
+              const updatedUsers = await prisma.$queryRaw<any[]>`
+                SELECT id, email, name, image, role, current_tenant_id as "currentTenantId"
+                FROM users 
+                WHERE id = ${user.id}
+                LIMIT 1
+              `
+              if (updatedUsers.length > 0) {
+                user = { ...user, ...updatedUsers[0] }
+              }
             } catch (e) {
-              console.error('Failed to ensure super admin tenant:', e)
+              console.error('❌ [AUTH] Failed to ensure super admin tenant:', e)
             }
           }
 
