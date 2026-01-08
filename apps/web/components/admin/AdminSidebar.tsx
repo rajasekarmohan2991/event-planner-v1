@@ -97,6 +97,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
 
   if (userRole === 'ADMIN' || userRole === 'TENANT_ADMIN') {
     baseNavigation.push({ name: 'Users', href: '/admin/users', icon: Users })
+    // Add Finance for company admins
+    baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
   }
 
   baseNavigation.push({ name: 'Settings', href: '/admin/settings', icon: Settings })
