@@ -46,9 +46,14 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/currency');
 
     if (isIndividualCompanyView) {
-      // Inside Individual Company: Don't show sidebar - the company page has its own sidebar
-      // Return empty navigation to hide this sidebar completely
-      return []
+      // Inside Individual Company: Show company modules in left sidebar
+      baseNavigation.push(
+        { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
+        { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
+        { name: 'Users', href: `/super-admin/companies/${currentCompanyId}/users`, icon: Users },
+        { name: 'System Settings', href: `/super-admin/companies/${currentCompanyId}/settings`, icon: Settings },
+        { name: 'Tax Structures', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Database }
+      )
     } else if (isSuperAdminCompanyView) {
       // Inside Super Admin Company (Detailed View): Show full system modules
       // This is the "Detailed" view requested by the user
