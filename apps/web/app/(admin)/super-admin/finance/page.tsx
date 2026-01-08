@@ -225,6 +225,14 @@ export default function SuperAdminFinancePage() {
                             </p>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => router.push('/super-admin/finance/reports')}
+                            >
+                                <TrendingUp className="w-4 h-4" />
+                                <span className="hidden sm:inline">Reports</span>
+                            </Button>
                             <Button variant="outline" className="gap-2">
                                 <Download className="w-4 h-4" />
                                 <span className="hidden sm:inline">Export</span>
