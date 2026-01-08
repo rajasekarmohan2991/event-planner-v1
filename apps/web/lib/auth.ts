@@ -118,21 +118,27 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('🔐 [AUTH] Starting authorization...')
+        
         if (!credentials?.email || !credentials?.password) {
-          console.error('❌ Missing credentials')
-          throw new Error('Email and password are required')
+          console.error('❌ [AUTH] Missing credentials')
+          return null
         }
 
         try {
+          console.log('🔍 [AUTH] Attempting login for:', credentials.email)
+          
           const devEnabled = String(process.env.ENABLE_DEV_LOGIN || '').toLowerCase() === 'true'
             || String(process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN || '').toLowerCase() === 'true'
           const devEmail = process.env.DEV_LOGIN_EMAIL
           const devPassword = process.env.DEV_LOGIN_PASSWORD
+          
           if (
             devEnabled && devEmail && devPassword &&
             credentials.email.toLowerCase() === devEmail.toLowerCase() &&
             credentials.password === devPassword
           ) {
+            console.log('✅ [AUTH] Dev login detected')
             let user = await prisma.user.findUnique({ where: { email: devEmail.toLowerCase() } })
             if (!user) {
               user = await prisma.user.create({
@@ -149,7 +155,6 @@ export const authOptions: NextAuthOptions = {
               try {
                 await prisma.user.update({ where: { id: user.id }, data: { password: await hash(devPassword, 10) } })
               } catch { }
-              // Ensure dev user is treated as verified
               try {
                 if (!user.emailVerified) {
                   await prisma.user.update({ where: { id: user.id }, data: { emailVerified: new Date() } })
@@ -163,6 +168,7 @@ export const authOptions: NextAuthOptions = {
               iat: Math.floor(Date.now() / 1000),
               exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24)
             })).toString('base64')
+            console.log('✅ [AUTH] Dev login successful')
             return {
               id: String(user.id),
               name: user.name,
@@ -174,31 +180,39 @@ export const authOptions: NextAuthOptions = {
             } as any
           }
 
-          console.log('🔍 Looking up user:', credentials.email.toLowerCase())
+          console.log('🔍 [AUTH] Looking up user in database:', credentials.email.toLowerCase())
 
           // Try to authenticate directly with database
           let user = await prisma.user.findUnique({
             where: { email: credentials.email.toLowerCase() }
           })
 
-          console.log('👤 User found:', user ? 'Yes' : 'No')
-          console.log('🔑 Has password:', user?.password ? 'Yes' : 'No')
+          console.log('👤 [AUTH] User found:', user ? 'Yes' : 'No')
+          
+          if (!user) {
+            console.error('❌ [AUTH] User not found in database')
+            return null
+          }
+          
+          console.log('🔑 [AUTH] User has password:', user?.password ? 'Yes' : 'No')
+          console.log('📧 [AUTH] User email verified:', user?.emailVerified ? 'Yes' : 'No')
+          console.log('👥 [AUTH] User role:', user?.role)
 
-          if (!user || !user.password) {
-            console.error('❌ User not found or no password')
-            throw new Error('Invalid email or password')
+          if (!user.password) {
+            console.error('❌ [AUTH] User has no password set (OAuth-only account)')
+            return null
           }
 
-          console.log('🔐 Verifying password...')
+          console.log('🔐 [AUTH] Verifying password with bcrypt...')
 
           // Verify password
           const isPasswordValid = await compare(credentials.password, user.password)
 
-          console.log('✅ Password valid:', isPasswordValid)
+          console.log('✅ [AUTH] Password comparison result:', isPasswordValid)
 
           if (!isPasswordValid) {
-            console.error('❌ Password does not match')
-            throw new Error('Invalid email or password')
+            console.error('❌ [AUTH] Password does not match')
+            return null
           }
 
           console.log('✅ Login successful for:', user.email)
@@ -252,8 +266,9 @@ export const authOptions: NextAuthOptions = {
             accessToken: accessToken,
           } as any
         } catch (error: any) {
-          console.error('❌ Credentials login error:', error.message)
-          throw new Error(error.message || 'Authentication failed')
+          console.error('❌ [AUTH] Credentials login error:', error)
+          console.error('❌ [AUTH] Error stack:', error.stack)
+          return null
         }
       },
     }),
