@@ -49,7 +49,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // Inside Individual Company: Show limited options with back to companies
       baseNavigation.push(
         { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
-        { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard }
+        { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
+        { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet }
         // Add more module links specific to individual companies here if needed
       )
     } else if (isSuperAdminCompanyView) {
