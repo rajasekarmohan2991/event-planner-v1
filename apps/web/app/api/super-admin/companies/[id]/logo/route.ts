@@ -6,8 +6,10 @@ import prisma from "@/lib/prisma";
 // PATCH /api/super-admin/companies/[id]/logo - Update company logo
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+    const params = 'then' in context.params ? await context.params : context.params;
+    
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,17 +29,22 @@ export async function PATCH(
         });
 
         return NextResponse.json({ success: true, company });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update logo:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to update logo", 
+            details: error.message 
+        }, { status: 500 });
     }
 }
 
 // DELETE /api/super-admin/companies/[id]/logo - Remove company logo
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+    const params = 'then' in context.params ? await context.params : context.params;
+    
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -55,8 +62,11 @@ export async function DELETE(
         });
 
         return NextResponse.json({ success: true, company });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to remove logo:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Failed to remove logo", 
+            details: error.message 
+        }, { status: 500 });
     }
 }
