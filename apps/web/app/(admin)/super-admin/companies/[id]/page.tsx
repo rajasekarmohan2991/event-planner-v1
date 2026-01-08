@@ -332,26 +332,121 @@ export default function CompanyDetailsPage() {
 
   // For other companies, show original view
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{company.name}</h1>
-          <p className="text-gray-600">{company.billingEmail}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-              {company.plan}
-            </span>
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-              {company.status}
-            </span>
+    <div className="flex h-screen">
+      {/* Left Sidebar - Navigation */}
+      <div className="w-64 bg-gray-900 text-white flex flex-col">
+        <div className="p-4 border-b border-gray-800">
+          <h2 className="text-lg font-semibold">{company.name}</h2>
+          <p className="text-sm text-gray-400 truncate">{company.billingEmail}</p>
+        </div>
+        
+        <nav className="flex-1 overflow-y-auto">
+          {/* Dashboard */}
+          <div className="p-4 hover:bg-gray-800 cursor-pointer border-l-4 border-indigo-500 bg-gray-800">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5" />
+              <span className="font-medium">Dashboard</span>
+            </div>
           </div>
+
+          {/* Modules Section */}
+          <div className="mt-4">
+            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Modules
+            </div>
+            
+            {/* Users */}
+            <div
+              onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
+              className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-blue-400" />
+                <div>
+                  <div className="font-medium">Users</div>
+                  <div className="text-xs text-gray-400">Manage company users</div>
+                </div>
+              </div>
+            </div>
+
+            {/* System Settings */}
+            <div
+              onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
+              className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="h-5 w-5 text-purple-400" />
+                <div>
+                  <div className="font-medium">System Settings</div>
+                  <div className="text-xs text-gray-400">Configure settings</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Finance */}
+            <div
+              onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
+              className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Wallet className="h-5 w-5 text-green-400" />
+                <div>
+                  <div className="font-medium">Finance</div>
+                  <div className="text-xs text-gray-400">Payouts, charges & invoices</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tax Structures */}
+            <div
+              onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
+              className="p-4 hover:bg-gray-800 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Percent className="h-5 w-5 text-teal-400" />
+                <div>
+                  <div className="font-medium">Tax Structures</div>
+                  <div className="text-xs text-gray-400">Manage tax rates</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Back Button */}
+        <div className="p-4 border-t border-gray-800">
+          <button
+            onClick={() => router.push('/super-admin/companies')}
+            className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            ← Back to Companies
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
+                <p className="text-gray-600 mt-1">{company.billingEmail}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                  {company.plan}
+                </span>
+                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
+                  {company.status}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="space-y-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Events Card - Blue Gradient */}
@@ -549,225 +644,6 @@ export default function CompanyDetailsPage() {
               )}
             </div>
           </div>
-        </div>
-
-        {/* Right Sidebar - Company Management & Featured Apps */}
-        <div className="w-full lg:w-80 shrink-0 space-y-6">
-          {/* Company Management Options / Super Admin Modules */}
-          <div className="bg-white rounded-lg shadow border overflow-hidden sticky top-6">
-            <div className="p-4 border-b bg-indigo-50/50 flex items-center gap-2">
-              <Settings className="h-5 w-5 text-indigo-600" />
-              <h2 className="font-semibold text-gray-900">
-                {isSuperAdminCompany ? 'Super Admin Modules' : 'Company Management'}
-              </h2>
-            </div>
-            <div className="divide-y">
-              {isSuperAdminCompany ? (
-                <>
-                  {/* Lookup Management */}
-                  <div
-                    onClick={() => router.push('/admin/lookup')}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-all">
-                        <BookOpen className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Lookup Management</h3>
-                        <p className="text-xs text-gray-500">Manage system lookups</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* User Management */}
-                  <div
-                    onClick={() => router.push('/admin/users')}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">User Management</h3>
-                        <p className="text-xs text-gray-500">Manage all users</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* System Settings */}
-                  <div
-                    onClick={() => router.push('/super-admin/settings')}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
-                        <Settings className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">System Settings</h3>
-                        <p className="text-xs text-gray-500">Configure system settings</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* Verifications */}
-                  <div
-                    onClick={() => router.push('/admin/verifications')}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-orange-100 group-hover:bg-orange-200 transition-all">
-                        <UserCheck className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Verifications</h3>
-                        <p className="text-xs text-gray-500">Review user verifications</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-
-                  {/* Analytics */}
-                  <div
-                    onClick={() => router.push('/admin/analytics')}
-                    className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-indigo-100 group-hover:bg-indigo-200 transition-all">
-                        <Calendar className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">Analytics</h3>
-                        <p className="text-xs text-gray-500">View system analytics</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Company Management - Collapsible Section */}
-                  <div className="border-b">
-                    <div className="p-4 bg-gray-50 font-semibold text-sm text-gray-700 flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Company Management
-                    </div>
-                    
-                    {/* Users */}
-                    <div
-                      onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
-                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-blue-500"
-                    >
-                      <div className="flex items-center gap-3 pl-2">
-                        <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-all">
-                          <Users className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">Users</h3>
-                          <p className="text-xs text-gray-500">Manage company users</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                      </div>
-                    </div>
-
-                    {/* System Settings */}
-                    <div
-                      onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
-                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-purple-500"
-                    >
-                      <div className="flex items-center gap-3 pl-2">
-                        <div className="p-2 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-all">
-                          <Settings className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">System Settings</h3>
-                          <p className="text-xs text-gray-500">Configure system settings</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                      </div>
-                    </div>
-
-                    {/* Finance */}
-                    <div
-                      onClick={() => router.push(`/super-admin/companies/${company.id}/finance`)}
-                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-green-500"
-                    >
-                      <div className="flex items-center gap-3 pl-2">
-                        <div className="p-2 rounded-lg bg-green-100 group-hover:bg-green-200 transition-all">
-                          <Wallet className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">Finance</h3>
-                          <p className="text-xs text-gray-500">Payouts, charges & invoices</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                      </div>
-                    </div>
-
-                    {/* Tax Structures */}
-                    <div
-                      onClick={() => router.push(`/super-admin/companies/${company.id}/tax-structures`)}
-                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-teal-500"
-                    >
-                      <div className="flex items-center gap-3 pl-2">
-                        <div className="p-2 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-all">
-                          <Percent className="h-5 w-5 text-teal-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">Tax Structures</h3>
-                          <p className="text-xs text-gray-500">Manage tax rates</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Featured App Highlights */}
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
-            <div className="p-4 border-b bg-blue-50/50 flex items-center gap-2">
-              <Star className="h-5 w-5 text-blue-600 fill-blue-600" />
-              <h2 className="font-semibold text-gray-900">Featured App Highlights</h2>
-            </div>
-            <div className="divide-y">
-              {apps.map(app => (
-                <div
-                  key={app.id}
-                  className="p-4 hover:bg-gray-50 transition-colors cursor-pointer group"
-                  onClick={() => {
-                    if (app.id === 'events') {
-                      const eventsSection = document.getElementById('events');
-                      if (eventsSection) {
-                        eventsSection.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all ${app.color}`}>
-                      <app.icon className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-gray-900 truncate pr-2">{app.name}</h3>
-                        {app.status === 'active' && <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">ACTIVE</span>}
-                        {app.status === 'coming_soon' && <span className="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">COMING SOON</span>}
-                      </div>
-                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{app.description}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-400 mt-2" />
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
