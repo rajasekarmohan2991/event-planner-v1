@@ -1257,7 +1257,7 @@ model RsvpResponse {
 model Event {
   id                 BigInt    @id @default(autoincrement())
   name               String
-  description        String?
+  description        String?   @db.Text
   startsAt           DateTime  @map("starts_at")
   endsAt             DateTime  @map("ends_at")
   status             String
@@ -1277,8 +1277,8 @@ model Event {
   tenantId           String?   @map("tenant_id")
 
   // Legal & Manager Info
-  termsAndConditions String?   @map("terms_and_conditions")
-  disclaimer         String?
+  termsAndConditions String?   @db.Text @map("terms_and_conditions")
+  disclaimer         String?   @db.Text
   eventManagerName   String?   @map("event_manager_name")
   eventManagerContact String?  @map("event_manager_contact")
   eventManagerEmail  String?   @map("event_manager_email")
@@ -1302,7 +1302,7 @@ model Speaker {
   id          BigInt    @id @default(autoincrement())
   name        String
   title       String?
-  bio         String?
+  bio         String?   @db.Text
   photoUrl    String?   @map("photo_url")
   email       String?
   linkedin    String?
