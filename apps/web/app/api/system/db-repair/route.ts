@@ -6,30 +6,34 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     const key = req.nextUrl.searchParams.get('key');
 
-    // Simple protection
-    if (key !== 'fix_finance_tables_2026') {
+    // Support both the original and the one user preferred
+    const validKeys = ['fix_finance_tables_2026', 'fix_finance_now', 'repair_db'];
+    if (!key || !validKeys.includes(key)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    try {
-        const results = [];
+    const results: string[] = [];
 
-        // 1. Fix Tenant Table
+    async function safeExecute(name: string, sql: string) {
         try {
-            await prisma.$executeRawUnsafe(`
-        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "logo" TEXT;
-        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "digital_signature_url" TEXT;
-        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "currency" TEXT DEFAULT 'USD';
-        ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
-      `);
-            results.push('✅ Tenant table updated');
+            await prisma.$executeRawUnsafe(sql);
+            results.push(`✅ ${name} completed successfully`);
         } catch (e: any) {
-            results.push(`⚠️ Tenant update skipped: ${e.message}`);
+            console.error(`Error during ${name}:`, e.message);
+            results.push(`⚠️ ${name} skipped: ${e.message}`);
         }
+    }
 
-        // 2. Create TaxStructure
-        try {
-            await prisma.$executeRawUnsafe(`
+    // 1. Fix Tenant Table - Add columns individually to avoid complete failure if one exists
+    await safeExecute('Add Tenant logo', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "logo" TEXT;');
+    await safeExecute('Add Tenant digital_signature_url', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "digital_signature_url" TEXT;');
+    await safeExecute('Add Tenant currency', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "currency" TEXT DEFAULT \'USD\';');
+    await safeExecute('Add Tenant metadata', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "metadata" JSONB;');
+    await safeExecute('Add Tenant primaryColor', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "primaryColor" TEXT;');
+    await safeExecute('Add Tenant secondaryColor', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "secondaryColor" TEXT;');
+
+    // 2. Create TaxStructure
+    await safeExecute('Create tax_structures table', `
         CREATE TABLE IF NOT EXISTS "tax_structures" (
             "id" TEXT NOT NULL,
             "name" TEXT NOT NULL,
@@ -41,15 +45,10 @@ export async function GET(req: NextRequest) {
             "updated_at" TIMESTAMP(3) NOT NULL,
             CONSTRAINT "tax_structures_pkey" PRIMARY KEY ("id")
         );
-      `);
-            results.push('✅ TaxStructure table created');
-        } catch (e: any) {
-            results.push(`⚠️ TaxStructure creation skipped: ${e.message}`);
-        }
+    `);
 
-        // 3. Create Invoices
-        try {
-            await prisma.$executeRawUnsafe(`
+    // 3. Create Invoices
+    await safeExecute('Create invoices table', `
         CREATE TABLE IF NOT EXISTS "invoices" (
             "id" TEXT NOT NULL,
             "tenant_id" TEXT NOT NULL,
@@ -66,20 +65,25 @@ export async function GET(req: NextRequest) {
             "updated_at" TIMESTAMP(3) NOT NULL,
             CONSTRAINT "invoices_pkey" PRIMARY KEY ("id")
         );
-      `);
-            results.push('✅ Invoices table created');
-        } catch (e: any) {
-            results.push(`⚠️ Invoices creation skipped: ${e.message}`);
-        }
+    `);
 
-        return NextResponse.json({
-            success: true,
-            message: 'Database repair attempted',
-            results
-        });
+    // 4. Create Invoice Items
+    await safeExecute('Create invoice_line_items table', `
+        CREATE TABLE IF NOT EXISTS "invoice_line_items" (
+            "id" TEXT NOT NULL,
+            "invoice_id" TEXT NOT NULL,
+            "description" TEXT NOT NULL,
+            "quantity" INTEGER NOT NULL DEFAULT 1,
+            "unit_price" DOUBLE PRECISION NOT NULL,
+            "total" DOUBLE PRECISION NOT NULL,
+            CONSTRAINT "invoice_line_items_pkey" PRIMARY KEY ("id")
+        );
+    `);
 
-    } catch (error: any) {
-        console.error('Repair failed:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    return NextResponse.json({
+        success: true,
+        message: 'Database repair attempted in granular mode',
+        timestamp: new Date().toISOString(),
+        results
+    });
 }
