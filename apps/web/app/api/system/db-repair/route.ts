@@ -27,10 +27,13 @@ export async function GET(req: NextRequest) {
     // 1. Fix Tenant Table - Add columns individually to avoid complete failure if one exists
     await safeExecute('Add Tenant logo', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "logo" TEXT;');
     await safeExecute('Add Tenant digital_signature_url', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "digital_signature_url" TEXT;');
+    await safeExecute('Add Tenant digitalSignatureUrl', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "digitalSignatureUrl" TEXT;');
     await safeExecute('Add Tenant currency', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "currency" TEXT DEFAULT \'USD\';');
     await safeExecute('Add Tenant metadata', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "metadata" JSONB;');
+    await safeExecute('Add Tenant features', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "features" JSONB;');
     await safeExecute('Add Tenant primaryColor', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "primaryColor" TEXT;');
     await safeExecute('Add Tenant secondaryColor', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "secondaryColor" TEXT;');
+    await safeExecute('Add Tenant faviconUrl', 'ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "faviconUrl" TEXT;');
 
     // 2. Create TaxStructure
     await safeExecute('Create tax_structures table', `
