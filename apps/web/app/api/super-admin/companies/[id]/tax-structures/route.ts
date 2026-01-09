@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { getTaxTemplatesForCountry } from '@/lib/tax-templates';
+import { getTaxTemplatesForCountry, getCountryFromCurrency } from '@/lib/tax-templates';
+import { ensureSchema } from '@/lib/ensure-schema';
 
 export async function GET(
     req: NextRequest,
@@ -14,42 +15,73 @@ export async function GET(
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     try {
-        let taxes = await prisma.taxStructure.findMany({
-            where: { tenantId: params.id },
-            orderBy: { createdAt: 'desc' }
-        });
+        // Use raw query to avoid schema issues with country field
+        let taxes: any[] = [];
+        
+        try {
+            taxes = await prisma.$queryRawUnsafe(`
+                SELECT id, name, rate, description, is_default as "isDefault", tenant_id as "tenantId", created_at as "createdAt", updated_at as "updatedAt"
+                FROM tax_structures 
+                WHERE tenant_id = $1 
+                ORDER BY created_at DESC
+            `, params.id) as any[];
+        } catch (tableError: any) {
+            console.log('Tax structures table may not exist, running schema update...');
+            await ensureSchema();
+            taxes = [];
+        }
 
-        // If no tax structures exist, auto-populate based on company country
+        // If no tax structures exist, auto-populate based on company country or currency
         if (taxes.length === 0) {
-            console.log('No tax structures found, auto-populating based on country...');
+            console.log('No tax structures found, auto-populating based on country/currency...');
             
-            const company = await prisma.tenant.findUnique({
-                where: { id: params.id },
-                select: { country: true }
-            });
-
-            if (company?.country) {
-                const templates = getTaxTemplatesForCountry(company.country);
-                console.log(`Creating ${templates.length} tax structures for country: ${company.country}`);
-
-                // Create tax structures from templates
-                const createdTaxes = await Promise.all(
-                    templates.map(template =>
-                        prisma.taxStructure.create({
-                            data: {
-                                name: template.name,
-                                rate: template.rate,
-                                description: template.description,
-                                isDefault: template.isDefault,
-                                tenantId: params.id
-                            }
-                        })
-                    )
-                );
-
-                taxes = createdTaxes;
-                console.log(`Successfully created ${taxes.length} tax structures`);
+            // Try to get company with country, fallback to currency-based detection
+            let country = 'US'; // Default
+            let currency = 'USD';
+            
+            try {
+                const companyData: any[] = await prisma.$queryRawUnsafe(`
+                    SELECT country, currency FROM tenants WHERE id = $1
+                `, params.id);
+                
+                if (companyData.length > 0) {
+                    country = companyData[0].country || getCountryFromCurrency(companyData[0].currency || 'USD');
+                    currency = companyData[0].currency || 'USD';
+                }
+            } catch (e) {
+                // country column might not exist, try just currency
+                const companyData: any[] = await prisma.$queryRawUnsafe(`
+                    SELECT currency FROM tenants WHERE id = $1
+                `, params.id);
+                
+                if (companyData.length > 0) {
+                    currency = companyData[0].currency || 'USD';
+                    country = getCountryFromCurrency(currency);
+                }
             }
+
+            console.log(`Detected country: ${country}, currency: ${currency}`);
+            const templates = getTaxTemplatesForCountry(country);
+            console.log(`Creating ${templates.length} tax structures for country: ${country}`);
+
+            // Create tax structures from templates using raw SQL
+            for (const template of templates) {
+                const id = `tax_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                await prisma.$executeRawUnsafe(`
+                    INSERT INTO tax_structures (id, name, rate, description, is_default, tenant_id, created_at, updated_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                `, id, template.name, template.rate, template.description || '', template.isDefault, params.id);
+            }
+
+            // Fetch the newly created taxes
+            taxes = await prisma.$queryRawUnsafe(`
+                SELECT id, name, rate, description, is_default as "isDefault", tenant_id as "tenantId", created_at as "createdAt", updated_at as "updatedAt"
+                FROM tax_structures 
+                WHERE tenant_id = $1 
+                ORDER BY created_at DESC
+            `, params.id) as any[];
+            
+            console.log(`Successfully created ${taxes.length} tax structures`);
         }
 
         return NextResponse.json({ taxes });

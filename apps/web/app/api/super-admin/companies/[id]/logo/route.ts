@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 // PATCH /api/super-admin/companies/[id]/logo - Update company logo
 export async function PATCH(
     req: NextRequest,
@@ -10,27 +12,56 @@ export async function PATCH(
 ) {
     const params = 'then' in context.params ? await context.params : context.params;
     
+    console.log('Logo update request for company:', params.id);
+    
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
+        console.log('Logo update: Unauthorized - no session');
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = session.user as any;
     if (user.role !== "SUPER_ADMIN") {
+        console.log('Logo update: Forbidden - not super admin');
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     try {
-        const { logoUrl } = await req.json();
+        const body = await req.json();
+        const { logoUrl } = body;
+        
+        console.log('Logo update: Received logoUrl:', logoUrl ? `${logoUrl.substring(0, 50)}...` : 'null');
 
-        const company = await prisma.tenant.update({
-            where: { id: params.id },
-            data: { logo: logoUrl }
-        });
+        if (!logoUrl) {
+            return NextResponse.json({ 
+                error: "Logo URL is required",
+                details: "Please provide a valid logoUrl in the request body"
+            }, { status: 400 });
+        }
 
-        return NextResponse.json({ success: true, company });
+        // Use raw SQL to avoid any Prisma schema sync issues
+        await prisma.$executeRawUnsafe(`
+            UPDATE tenants SET logo = $1, updated_at = NOW() WHERE id = $2
+        `, logoUrl, params.id);
+
+        // Fetch the updated company
+        const companies: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, name, logo FROM tenants WHERE id = $1
+        `, params.id);
+
+        if (companies.length === 0) {
+            return NextResponse.json({ error: "Company not found" }, { status: 404 });
+        }
+
+        console.log('Logo update: Success for company', companies[0].name);
+        return NextResponse.json({ success: true, company: companies[0] });
     } catch (error: any) {
         console.error("Failed to update logo:", error);
+        console.error("Error details:", {
+            message: error.message,
+            code: error.code,
+            meta: error.meta
+        });
         return NextResponse.json({ 
             error: "Failed to update logo", 
             details: error.message 

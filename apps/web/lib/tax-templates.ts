@@ -142,3 +142,49 @@ export function hasCountryTaxTemplates(countryCode: string): boolean {
   const upperCode = countryCode.toUpperCase();
   return upperCode in TAX_TEMPLATES && upperCode !== 'DEFAULT';
 }
+
+/**
+ * Currency to country mapping for automatic tax detection
+ */
+const CURRENCY_TO_COUNTRY: Record<string, string> = {
+  'USD': 'US',
+  'INR': 'IN',
+  'GBP': 'GB',
+  'EUR': 'EU',
+  'CAD': 'CA',
+  'AUD': 'AU',
+  'SGD': 'SG',
+  'AED': 'AE',
+  'JPY': 'JP',
+  'CNY': 'CN',
+  'BRL': 'BR',
+  'MXN': 'MX',
+  'ZAR': 'ZA',
+  'NZD': 'NZ',
+  'CHF': 'EU', // Switzerland uses EU-like VAT
+  'SEK': 'EU', // Sweden
+  'NOK': 'EU', // Norway
+  'DKK': 'EU', // Denmark
+  'PLN': 'EU', // Poland
+  'CZK': 'EU', // Czech Republic
+  'HUF': 'EU', // Hungary
+  'RUB': 'EU', // Russia (similar VAT structure)
+  'KRW': 'JP', // South Korea (similar to Japan)
+  'THB': 'SG', // Thailand (similar to Singapore)
+  'MYR': 'SG', // Malaysia
+  'PHP': 'SG', // Philippines
+  'IDR': 'SG', // Indonesia
+  'VND': 'SG', // Vietnam
+  'HKD': 'SG', // Hong Kong
+  'TWD': 'JP', // Taiwan
+};
+
+/**
+ * Get country code from currency code
+ * @param currencyCode ISO 4217 currency code (e.g., 'USD', 'INR', 'GBP')
+ * @returns ISO 3166-1 alpha-2 country code
+ */
+export function getCountryFromCurrency(currencyCode: string): string {
+  const upperCode = currencyCode.toUpperCase();
+  return CURRENCY_TO_COUNTRY[upperCode] || 'US'; // Default to US if unknown
+}
