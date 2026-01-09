@@ -7,9 +7,8 @@ export async function GET() {
   try {
     console.log('🔧 Creating finance tables...')
     
-    // Create all finance tables in one go
+    // TDS Deductions
     await prisma.$executeRawUnsafe(`
-      -- TDS Deductions
       CREATE TABLE IF NOT EXISTS tds_deductions (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
@@ -29,9 +28,11 @@ export async function GET() {
         notes TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
+    `)
 
-      -- Legal Consents
+    // Legal Consents
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS legal_consents (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
@@ -47,9 +48,11 @@ export async function GET() {
         signature_type TEXT,
         signature_data TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
+    `)
 
-      -- Refund Requests
+    // Refund Requests
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS refund_requests (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
@@ -69,9 +72,11 @@ export async function GET() {
         notes TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
+    `)
 
-      -- Finance Audit Logs
+    // Finance Audit Logs
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS finance_audit_logs (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
@@ -88,9 +93,11 @@ export async function GET() {
         external_reference TEXT,
         webhook_event_id TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
+    `)
 
-      -- Payment Webhook Logs
+    // Payment Webhook Logs
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS payment_webhook_logs (
         id TEXT PRIMARY KEY,
         gateway TEXT NOT NULL,
@@ -101,9 +108,11 @@ export async function GET() {
         processed BOOLEAN DEFAULT FALSE,
         received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         processed_at TIMESTAMP WITH TIME ZONE
-      );
+      )
+    `)
 
-      -- Payment Records (if not exists)
+    // Payment Records
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS payment_records (
         id TEXT PRIMARY KEY,
         invoice_id TEXT,
@@ -119,9 +128,11 @@ export async function GET() {
         gateway_fee DOUBLE PRECISION DEFAULT 0,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
+    `)
 
-      -- Payouts (if not exists)
+    // Payouts
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS payouts (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
@@ -143,21 +154,19 @@ export async function GET() {
         gross_amount DOUBLE PRECISION,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
+      )
     `)
     
     console.log('✅ Finance tables created')
     
     // Create indexes
-    await prisma.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id);
-      CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id);
-      CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id);
-      CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);
-      CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);
-      CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id);
-      CREATE INDEX IF NOT EXISTS idx_payouts_tenant ON payouts(tenant_id);
-    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id)`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payouts_tenant ON payouts(tenant_id)`)
     
     console.log('✅ Indexes created')
     
