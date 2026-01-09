@@ -733,8 +733,11 @@ export async function ensureSchema() {
 
     console.log('✅ Self-healing schema update complete (including finance tables and signatures).')
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)
-    return false
+    console.error('❌ Error message:', error.message)
+    console.error('❌ Error stack:', error.stack)
+    console.error('❌ Error code:', error.code)
+    throw error // Re-throw to get full details in API response
   }
 }
