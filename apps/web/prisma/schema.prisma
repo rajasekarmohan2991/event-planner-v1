@@ -145,6 +145,7 @@ model Tenant {
   currency        String          @default("USD")
   dateFormat      String          @default("MM/DD/YYYY")
   locale          String          @default("en")
+  country         String          @default("US")
   
   // Subscription & Billing
   plan            String          @default("FREE")

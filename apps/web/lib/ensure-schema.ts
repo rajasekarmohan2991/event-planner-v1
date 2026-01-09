@@ -3,6 +3,12 @@ import prisma from '@/lib/prisma'
 export async function ensureSchema() {
   console.log('🔧 Running self-healing schema update...')
   try {
+    // 0. Tenants Table - Add country column
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE tenants
+      ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
+    `)
+
     // 1. Sponsors Table Columns
     await prisma.$executeRawUnsafe(`
       ALTER TABLE sponsors 

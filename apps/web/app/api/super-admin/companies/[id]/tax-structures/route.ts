@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getTaxTemplatesForCountry } from '@/lib/tax-templates';
 
 export async function GET(
     req: NextRequest,
@@ -13,14 +14,56 @@ export async function GET(
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     try {
-        const taxes = await prisma.taxStructure.findMany({
+        let taxes = await prisma.taxStructure.findMany({
             where: { tenantId: params.id },
             orderBy: { createdAt: 'desc' }
         });
+
+        // If no tax structures exist, auto-populate based on company country
+        if (taxes.length === 0) {
+            console.log('No tax structures found, auto-populating based on country...');
+            
+            const company = await prisma.tenant.findUnique({
+                where: { id: params.id },
+                select: { country: true }
+            });
+
+            if (company?.country) {
+                const templates = getTaxTemplatesForCountry(company.country);
+                console.log(`Creating ${templates.length} tax structures for country: ${company.country}`);
+
+                // Create tax structures from templates
+                const createdTaxes = await Promise.all(
+                    templates.map(template =>
+                        prisma.taxStructure.create({
+                            data: {
+                                name: template.name,
+                                rate: template.rate,
+                                description: template.description,
+                                isDefault: template.isDefault,
+                                tenantId: params.id
+                            }
+                        })
+                    )
+                );
+
+                taxes = createdTaxes;
+                console.log(`Successfully created ${taxes.length} tax structures`);
+            }
+        }
+
         return NextResponse.json({ taxes });
     } catch (error: any) {
-        console.error('Error fetching taxes:', error);
-        return NextResponse.json({ message: 'Failed to fetch taxes' }, { status: 500 });
+        console.error('Error fetching/creating taxes:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            meta: error.meta
+        });
+        return NextResponse.json({ 
+            message: 'Failed to fetch taxes',
+            details: error.message 
+        }, { status: 500 });
     }
 }
 
