@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent } from "lucide-react";
+import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Table,
@@ -87,10 +87,40 @@ export default function CompanyDetailsPage() {
   const [stats, setStats] = useState<any>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isSuperAdminCompany, setIsSuperAdminCompany] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (params?.id) fetchData();
   }, [params?.id]);
+
+  async function handleDeleteCompany() {
+    if (!company || deleting) return;
+    
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/super-admin/companies/${params.id}/delete`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Company "${company.name}" deleted successfully!`);
+        router.push('/super-admin/companies');
+      } else {
+        alert(`Failed to delete company: ${data.error || data.message}`);
+      }
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(`Error deleting company: ${error.message}`);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
 
   async function fetchData() {
     if (!params?.id) return;
@@ -340,6 +370,13 @@ export default function CompanyDetailsPage() {
                 <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
                 <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
               </div>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Company
+              </button>
             </div>
           </div>
 
@@ -542,6 +579,71 @@ export default function CompanyDetailsPage() {
               )}
             </div>
           </div>
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete <strong>{company.name}</strong>? 
+              This will permanently delete:
+            </p>
+            
+            <ul className="mb-6 space-y-2 text-sm text-gray-700">
+              <li className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-red-500" />
+                {company.events.length} event{company.events.length !== 1 ? 's' : ''}
+              </li>
+              <li className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-red-500" />
+                {company.members.length} team member{company.members.length !== 1 ? 's' : ''}
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-red-500" />
+                All associated data and settings
+              </li>
+            </ul>
+            
+            <p className="text-red-600 font-semibold mb-6">
+              This action cannot be undone!
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCompany}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete Company
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </div>
       </div>
   );
