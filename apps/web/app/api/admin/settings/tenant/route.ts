@@ -13,27 +13,35 @@ export async function GET(req: NextRequest) {
     }
 
     let tenantId = (session as any).user.currentTenantId as string | undefined
+    const userId = (session as any).user.id
     
     // If no tenant ID, try resolving by role/membership/defaults
     if (!tenantId) {
       // SUPER_ADMIN global view: try well-known id, else fall through
       if ((session as any).user.role === 'SUPER_ADMIN') {
-        tenantId = 'default-tenant'
+        tenantId = 'super-admin'
       }
       
-      // If still missing, resolve via membership
-      if (!tenantId) {
-        const membership = await prisma.tenantMember.findFirst({
-          where: { userId: BigInt((session as any).user.id) },
-          select: { tenantId: true }
-        })
-        tenantId = membership?.tenantId
+      // If still missing, resolve via membership using raw SQL
+      if (!tenantId && userId) {
+        try {
+          const memberships: any[] = await prisma.$queryRawUnsafe(`
+            SELECT tenant_id as "tenantId" FROM tenant_members WHERE user_id = $1 LIMIT 1
+          `, BigInt(userId))
+          if (memberships.length > 0) {
+            tenantId = memberships[0].tenantId
+          }
+        } catch (e) {
+          console.log('Could not find membership, trying fallback')
+        }
       }
       
       // If still missing, pick the first tenant in the system as a safe fallback
       if (!tenantId) {
-        const anyTenant = await prisma.tenant.findFirst({ select: { id: true } })
-        tenantId = anyTenant?.id
+        const tenants: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM tenants LIMIT 1`)
+        if (tenants.length > 0) {
+          tenantId = tenants[0].id
+        }
       }
     }
     
@@ -41,24 +49,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'No tenant found' }, { status: 404 })
     }
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId }
-    })
+    // Use raw SQL to fetch tenant
+    const tenants: any[] = await prisma.$queryRawUnsafe(`
+      SELECT id, name, currency, metadata FROM tenants WHERE id = $1
+    `, tenantId)
 
-    if (!tenant) {
+    if (tenants.length === 0) {
       return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
     }
 
+    const tenant = tenants[0]
     // Extract supported currencies from metadata
-    const metadata = (tenant.metadata as any) || {}
+    const metadata = tenant.metadata || {}
     const supportedCurrencies = metadata.supportedCurrencies || []
 
     return NextResponse.json({
-      currency: tenant.currency,
+      currency: tenant.currency || 'USD',
       supportedCurrencies
     })
   } catch (error: any) {
     console.error('Error fetching tenant settings:', error)
+    console.error('Stack:', error.stack)
     return NextResponse.json({ message: error.message }, { status: 500 })
   }
 }
@@ -71,22 +82,30 @@ export async function PUT(req: NextRequest) {
     }
 
     let tenantId = (session as any).user.currentTenantId as string | undefined
+    const userId = (session as any).user.id
     
     // If no tenant ID, try resolving by role/membership/defaults
     if (!tenantId) {
       if ((session as any).user.role === 'SUPER_ADMIN') {
-        tenantId = 'default-tenant'
+        tenantId = 'super-admin'
+      }
+      if (!tenantId && userId) {
+        try {
+          const memberships: any[] = await prisma.$queryRawUnsafe(`
+            SELECT tenant_id as "tenantId" FROM tenant_members WHERE user_id = $1 LIMIT 1
+          `, BigInt(userId))
+          if (memberships.length > 0) {
+            tenantId = memberships[0].tenantId
+          }
+        } catch (e) {
+          console.log('Could not find membership')
+        }
       }
       if (!tenantId) {
-        const membership = await prisma.tenantMember.findFirst({
-          where: { userId: BigInt((session as any).user.id) },
-          select: { tenantId: true }
-        })
-        tenantId = membership?.tenantId
-      }
-      if (!tenantId) {
-        const anyTenant = await prisma.tenant.findFirst({ select: { id: true } })
-        tenantId = anyTenant?.id
+        const tenants: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM tenants LIMIT 1`)
+        if (tenants.length > 0) {
+          tenantId = tenants[0].id
+        }
       }
     }
 
@@ -97,31 +116,35 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const { supportedCurrencies, defaultCurrency } = body
 
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }})
-    if (!tenant) {
-        return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
+    // Fetch current tenant using raw SQL
+    const tenants: any[] = await prisma.$queryRawUnsafe(`
+      SELECT id, currency, metadata FROM tenants WHERE id = $1
+    `, tenantId)
+    
+    if (tenants.length === 0) {
+      return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
     }
 
-    const metadata = (tenant.metadata as any) || {}
+    const tenant = tenants[0]
+    const metadata = tenant.metadata || {}
+    const newMetadata = {
+      ...metadata,
+      supportedCurrencies: supportedCurrencies || metadata.supportedCurrencies || []
+    }
     
-    const updatedTenant = await prisma.tenant.update({
-      where: { id: tenantId },
-      data: {
-        currency: defaultCurrency || tenant.currency,
-        metadata: {
-          ...metadata,
-          supportedCurrencies: supportedCurrencies || metadata.supportedCurrencies || []
-        }
-      }
-    })
+    // Update using raw SQL
+    await prisma.$executeRawUnsafe(`
+      UPDATE tenants SET currency = $1, metadata = $2, updated_at = NOW() WHERE id = $3
+    `, defaultCurrency || tenant.currency || 'USD', JSON.stringify(newMetadata), tenantId)
 
     return NextResponse.json({ 
       message: 'Settings updated',
-      currency: updatedTenant.currency,
-      supportedCurrencies: (updatedTenant.metadata as any).supportedCurrencies
+      currency: defaultCurrency || tenant.currency || 'USD',
+      supportedCurrencies: newMetadata.supportedCurrencies
     })
   } catch (error: any) {
     console.error('Error updating tenant settings:', error)
+    console.error('Stack:', error.stack)
     return NextResponse.json({ message: error.message }, { status: 500 })
   }
 }

@@ -147,8 +147,8 @@ export function AdminSidebar() {
       <div
         className={cn(
           'hidden lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:z-[40] lg:flex lg:flex-col',
-          'bg-[#1a1a2e]',
-          'border-r border-slate-700/50 shadow-2xl',
+          'bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#1a1a2e]',
+          'border-r border-indigo-500/20 shadow-2xl',
           'transition-all duration-300 ease-in-out',
           isCollapsed ? 'lg:w-20' : 'lg:w-72'
         )}
@@ -220,7 +220,7 @@ export function AdminSidebar() {
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-[60] w-72 bg-[#1a1a2e] border-r border-slate-700/50 shadow-2xl',
+          'fixed inset-y-0 left-0 z-[60] w-72 bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#1a1a2e] border-r border-indigo-500/20 shadow-2xl',
           'transform transition-transform duration-300 ease-in-out lg:hidden',
           'flex flex-col',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'

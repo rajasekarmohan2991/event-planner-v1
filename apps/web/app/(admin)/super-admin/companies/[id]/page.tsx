@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2 } from "lucide-react";
+import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2, Ban, CheckCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Table,
@@ -27,7 +27,7 @@ interface CompanyDetails {
   id: string;
   name: string;
   plan: string;
-  status: string;
+  status: 'ACTIVE' | 'DISABLED' | string;
   billingEmail: string;
   maxEvents: number;
   maxUsers: number;
@@ -88,11 +88,44 @@ export default function CompanyDetailsPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isSuperAdminCompany, setIsSuperAdminCompany] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     if (params?.id) fetchData();
   }, [params?.id]);
+
+  async function handleToggleStatus() {
+    if (!company || toggling) return;
+    
+    setToggling(true);
+    const newStatus = company.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+    
+    try {
+      const response = await fetch(`/api/super-admin/companies/${params?.id}/status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Company "${company.name}" ${newStatus === 'ACTIVE' ? 'enabled' : 'disabled'} successfully!`);
+        fetchData(); // Refresh data
+      } else {
+        alert(`Failed to update company status: ${data.error || data.message}`);
+      }
+    } catch (error: any) {
+      console.error('Status toggle error:', error);
+      alert(`Error updating company status: ${error.message}`);
+    } finally {
+      setToggling(false);
+      setShowDisableConfirm(false);
+    }
+  }
 
   async function handleDeleteCompany() {
     if (!company || deleting) return;
@@ -367,60 +400,87 @@ export default function CompanyDetailsPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
+                  <Badge variant={company.status === 'ACTIVE' ? 'default' : 'destructive'} className={company.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}>
+                    {company.status || 'ACTIVE'}
+                  </Badge>
+                </div>
                 <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
               </div>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Company
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowDisableConfirm(true)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    company.status === 'ACTIVE' 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                >
+                  {company.status === 'ACTIVE' ? (
+                    <>
+                      <Ban className="h-4 w-4" />
+                      Disable Company
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Enable Company
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Company
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Main Content */}
           <div className="space-y-8">
-          {/* Stats Cards */}
+          {/* Stats Cards - Modern Vibrant Gradients */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Total Events Card - Blue Gradient */}
-            <div className="bg-gradient-to-br from-blue-400 to-blue-500 p-6 rounded-lg shadow-md border border-blue-300/30 h-full">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Calendar className="h-8 w-8 text-white" />
+            {/* Total Events Card - Coral/Orange Gradient */}
+            <div className="bg-gradient-to-br from-[#FF6B6B] via-[#FF8E53] to-[#FFA726] p-6 rounded-2xl shadow-lg border border-orange-200/30 h-full transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
+                  <Calendar className="h-8 w-8 text-white drop-shadow-md" />
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-white">{company.events.length}</div>
-                  <div className="text-blue-100 font-medium">Total Events</div>
+                  <div className="text-4xl font-bold text-white drop-shadow-sm">{company.events.length}</div>
+                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Total Events</div>
                 </div>
               </div>
             </div>
 
-            {/* Team Members Card - Green Gradient */}
-            <div className="bg-gradient-to-br from-green-400 to-green-500 p-6 rounded-lg shadow-md border border-green-300/30 h-full">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Users className="h-8 w-8 text-white" />
+            {/* Team Members Card - Emerald/Teal Gradient */}
+            <div className="bg-gradient-to-br from-[#00D9A5] via-[#00C9B7] to-[#00B4D8] p-6 rounded-2xl shadow-lg border border-teal-200/30 h-full transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
+                  <Users className="h-8 w-8 text-white drop-shadow-md" />
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-white">{company.members.length}</div>
-                  <div className="text-green-100 font-medium">Team Members</div>
+                  <div className="text-4xl font-bold text-white drop-shadow-sm">{company.members.length}</div>
+                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Team Members</div>
                 </div>
               </div>
             </div>
 
-            {/* Total Registrations Card - Purple Gradient */}
-            <div className="bg-gradient-to-br from-purple-400 to-purple-500 p-6 rounded-lg shadow-md border border-purple-300/30 h-full">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Settings className="h-8 w-8 text-white" />
+            {/* Total Registrations Card - Violet/Purple Gradient */}
+            <div className="bg-gradient-to-br from-[#A855F7] via-[#8B5CF6] to-[#6366F1] p-6 rounded-2xl shadow-lg border border-purple-200/30 h-full transform hover:scale-105 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
+                  <Ticket className="h-8 w-8 text-white drop-shadow-md" />
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-white">
+                  <div className="text-4xl font-bold text-white drop-shadow-sm">
                     {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
                   </div>
-                  <div className="text-purple-100 font-medium">Total Registrations</div>
+                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Total Registrations</div>
                 </div>
               </div>
             </div>
@@ -637,6 +697,75 @@ export default function CompanyDetailsPage() {
                   <>
                     <Trash2 className="h-4 w-4" />
                     Delete Company
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+          {/* Disable/Enable Confirmation Modal */}
+          {showDisableConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-3 rounded-full ${company.status === 'ACTIVE' ? 'bg-amber-100' : 'bg-green-100'}`}>
+                {company.status === 'ACTIVE' ? (
+                  <Ban className="h-6 w-6 text-amber-600" />
+                ) : (
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                {company.status === 'ACTIVE' ? 'Disable' : 'Enable'} Company
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to {company.status === 'ACTIVE' ? 'disable' : 'enable'} <strong>{company.name}</strong>?
+              {company.status === 'ACTIVE' ? (
+                <span className="block mt-2 text-amber-600">
+                  Disabled companies cannot create events or access their dashboard.
+                </span>
+              ) : (
+                <span className="block mt-2 text-green-600">
+                  This will restore full access to the company dashboard and features.
+                </span>
+              )}
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDisableConfirm(false)}
+                disabled={toggling}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleToggleStatus}
+                disabled={toggling}
+                className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  company.status === 'ACTIVE' 
+                    ? 'bg-amber-500 hover:bg-amber-600' 
+                    : 'bg-green-500 hover:bg-green-600'
+                }`}
+              >
+                {toggling ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : company.status === 'ACTIVE' ? (
+                  <>
+                    <Ban className="h-4 w-4" />
+                    Disable Company
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Enable Company
                   </>
                 )}
               </button>

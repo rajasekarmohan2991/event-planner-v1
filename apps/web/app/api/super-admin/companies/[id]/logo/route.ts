@@ -39,6 +39,13 @@ export async function PATCH(
             }, { status: 400 });
         }
 
+        // First ensure logo column exists
+        try {
+            await prisma.$executeRawUnsafe(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo TEXT`);
+        } catch (e) {
+            // Column might already exist, ignore
+        }
+
         // Use raw SQL to avoid any Prisma schema sync issues
         await prisma.$executeRawUnsafe(`
             UPDATE tenants SET logo = $1, updated_at = NOW() WHERE id = $2
@@ -60,7 +67,8 @@ export async function PATCH(
         console.error("Error details:", {
             message: error.message,
             code: error.code,
-            meta: error.meta
+            meta: error.meta,
+            stack: error.stack
         });
         return NextResponse.json({ 
             error: "Failed to update logo", 

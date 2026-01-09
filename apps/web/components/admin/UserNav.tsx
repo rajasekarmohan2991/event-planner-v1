@@ -14,6 +14,20 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
 
+// Get initials from name - first two letters of first word, or first letter of first two words
+function getInitials(name: string | null | undefined): string {
+  if (!name) return 'U'
+  const words = name.trim().split(' ').filter(w => w.length > 0)
+  if (words.length >= 2) {
+    // First letter of first two words (e.g., "Fiserv Admin" -> "FA")
+    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+  } else if (words.length === 1 && words[0].length >= 2) {
+    // First two letters of single word (e.g., "Admin" -> "AD")
+    return words[0].substring(0, 2).toUpperCase()
+  }
+  return words[0]?.charAt(0).toUpperCase() || 'U'
+}
+
 export function UserNav() {
   const { data: session } = useSession()
   const router = useRouter()
@@ -23,16 +37,18 @@ export function UserNav() {
   }
 
   const user = session.user
-  const userInitial = user.name ? user.name.charAt(0).toUpperCase() : 'U'
+  const userInitials = getInitials(user.name)
   const role = String(user.role || '')
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+          <Avatar className="h-10 w-10 ring-2 ring-purple-400/50 ring-offset-2 ring-offset-background">
             <AvatarImage src={user.image || ''} alt={user.name || ''} />
-            <AvatarFallback>{userInitial}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-semibold text-sm">
+              {userInitials}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -47,6 +63,9 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => router.push('/profile')}>
+            Profile
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
             Settings
           </DropdownMenuItem>
@@ -56,7 +75,6 @@ export function UserNav() {
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
-        {/* Sign out removed per requirement */}
       </DropdownMenuContent>
     </DropdownMenu>
   )

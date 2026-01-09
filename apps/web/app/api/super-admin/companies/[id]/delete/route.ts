@@ -25,25 +25,16 @@ export async function DELETE(
     try {
         console.log(`Super Admin ${user.email} attempting to delete company: ${params.id}`);
 
-        // Check if company exists
-        const company = await prisma.tenant.findUnique({
-            where: { id: params.id },
-            select: { 
-                id: true, 
-                name: true, 
-                slug: true,
-                _count: {
-                    select: {
-                        events: true,
-                        members: true
-                    }
-                }
-            }
-        });
+        // Check if company exists using raw SQL
+        const companies: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, name, slug FROM tenants WHERE id = $1
+        `, params.id);
 
-        if (!company) {
+        if (companies.length === 0) {
             return NextResponse.json({ error: 'Company not found' }, { status: 404 });
         }
+
+        const company = companies[0];
 
         // Prevent deletion of super-admin tenant
         if (company.slug === 'super-admin') {
@@ -52,13 +43,30 @@ export async function DELETE(
             }, { status: 400 });
         }
 
-        console.log(`Deleting company: ${company.name} (${company.id})`);
-        console.log(`Company has ${company._count.events} events and ${company._count.members} members`);
+        // Get counts
+        const eventCount: any[] = await prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) as count FROM events WHERE tenant_id = $1
+        `, params.id);
+        const memberCount: any[] = await prisma.$queryRawUnsafe(`
+            SELECT COUNT(*) as count FROM tenant_members WHERE tenant_id = $1
+        `, params.id);
 
-        // Delete the company (cascade will handle related records)
-        await prisma.tenant.delete({
-            where: { id: params.id }
-        });
+        const eventsDeleted = parseInt(eventCount[0]?.count || '0');
+        const membersRemoved = parseInt(memberCount[0]?.count || '0');
+
+        console.log(`Deleting company: ${company.name} (${company.id})`);
+        console.log(`Company has ${eventsDeleted} events and ${membersRemoved} members`);
+
+        // Delete related records first (manual cascade)
+        await prisma.$executeRawUnsafe(`DELETE FROM tenant_members WHERE tenant_id = $1`, params.id);
+        await prisma.$executeRawUnsafe(`DELETE FROM tax_structures WHERE tenant_id = $1`, params.id);
+        await prisma.$executeRawUnsafe(`DELETE FROM invoices WHERE tenant_id = $1`, params.id);
+        
+        // Delete events (this will cascade to registrations, etc.)
+        await prisma.$executeRawUnsafe(`DELETE FROM events WHERE tenant_id = $1`, params.id);
+        
+        // Finally delete the tenant
+        await prisma.$executeRawUnsafe(`DELETE FROM tenants WHERE id = $1`, params.id);
 
         console.log(`Successfully deleted company: ${company.name}`);
 
@@ -68,8 +76,8 @@ export async function DELETE(
             deletedCompany: {
                 id: company.id,
                 name: company.name,
-                eventsDeleted: company._count.events,
-                membersRemoved: company._count.members
+                eventsDeleted,
+                membersRemoved
             }
         });
     } catch (error: any) {
@@ -77,7 +85,8 @@ export async function DELETE(
         console.error('Error details:', {
             message: error.message,
             code: error.code,
-            meta: error.meta
+            meta: error.meta,
+            stack: error.stack
         });
         
         return NextResponse.json({ 
