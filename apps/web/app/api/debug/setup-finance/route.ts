@@ -7,9 +7,7 @@ export async function GET() {
   try {
     console.log('🔧 Creating finance tables...')
     
-    // TDS Deductions
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS tds_deductions (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS tds_deductions (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
         event_id BIGINT,
@@ -31,9 +29,7 @@ export async function GET() {
       )
     `)
 
-    // Legal Consents
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS legal_consents (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS legal_consents (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
         event_id BIGINT,
@@ -51,9 +47,7 @@ export async function GET() {
       )
     `)
 
-    // Refund Requests
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS refund_requests (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS refund_requests (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
         event_id BIGINT,
@@ -75,9 +69,7 @@ export async function GET() {
       )
     `)
 
-    // Finance Audit Logs
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS finance_audit_logs (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS finance_audit_logs (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
         event_id BIGINT,
@@ -96,9 +88,7 @@ export async function GET() {
       )
     `)
 
-    // Payment Webhook Logs
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS payment_webhook_logs (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS payment_webhook_logs (
         id TEXT PRIMARY KEY,
         gateway TEXT NOT NULL,
         event_type TEXT NOT NULL,
@@ -111,9 +101,7 @@ export async function GET() {
       )
     `)
 
-    // Payment Records
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS payment_records (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS payment_records (
         id TEXT PRIMARY KEY,
         invoice_id TEXT,
         amount DOUBLE PRECISION NOT NULL,
@@ -131,9 +119,7 @@ export async function GET() {
       )
     `)
 
-    // Payouts
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS payouts (
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS payouts (
         id TEXT PRIMARY KEY,
         tenant_id TEXT NOT NULL,
         event_id BIGINT,
@@ -158,8 +144,6 @@ export async function GET() {
     `)
     
     console.log('✅ Finance tables created')
-    
-    // Create indexes
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id)`)
