@@ -370,6 +370,21 @@ export async function ensureSchema() {
         );
     `)
 
+    // 15. Add payment_terms, sent_at, sent_to columns to invoices table if exists
+    await prisma.$executeRawUnsafe(`
+        DO $$ 
+        BEGIN 
+            BEGIN
+                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms INTEGER DEFAULT 30;
+                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP;
+                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to TEXT;
+            EXCEPTION
+                WHEN undefined_table THEN
+                    RAISE NOTICE 'Table invoices does not exist yet';
+            END;
+        END $$;
+    `)
+
     console.log('✅ Self-healing schema update complete (including finance tables).')
     return true
   } catch (error) {

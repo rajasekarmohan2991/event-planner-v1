@@ -1625,6 +1625,7 @@ model Invoice {
   
   date            DateTime
   dueDate         DateTime          @map("due_date")
+  paymentTerms    Int               @default(30) @map("payment_terms") // Days (e.g., 30 for Net 30)
   
   // Recipient Details (Snapshot)
   recipientType   String            // CUSTOMER, SPONSOR, EXHIBITOR, VENDOR, SPEAKER
@@ -1636,6 +1637,8 @@ model Invoice {
 
   currency        String            @default("USD")
   status          String            @default("DRAFT") // DRAFT, SENT, PAID, PARTIAL, CANCELLED, OVERDUE
+  sentAt          DateTime?         @map("sent_at")
+  sentTo          String?           @map("sent_to") // Email address where invoice was sent
 
   // Amounts
   subtotal        Float             @default(0)
