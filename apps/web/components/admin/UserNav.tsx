@@ -10,11 +10,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-// Get first letter initial from name
-function getInitial(name: string | null | undefined): string {
+// Get first two initials from name (e.g., "Fiserv Admin" -> "FA")
+function getInitials(name: string | null | undefined): string {
   if (!name) return 'U'
-  const trimmed = name.trim()
-  return trimmed.charAt(0).toUpperCase() || 'U'
+  const words = name.trim().split(' ').filter(w => w.length > 0)
+  if (words.length >= 2) {
+    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+  } else if (words.length === 1 && words[0].length >= 2) {
+    return words[0].substring(0, 2).toUpperCase()
+  }
+  return words[0]?.charAt(0).toUpperCase() || 'U'
 }
 
 export function UserNav() {
@@ -25,16 +30,16 @@ export function UserNav() {
   }
 
   const user = session.user
-  const userInitial = getInitial(user.name)
+  const userInitials = getInitials(user.name)
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-          <Avatar className="h-9 w-9">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
+          <Avatar className="h-10 w-10 ring-2 ring-purple-400/50 ring-offset-2 ring-offset-background">
             <AvatarImage src={user.image || ''} alt={user.name || ''} />
-            <AvatarFallback className="bg-slate-700 text-white font-medium text-sm">
-              {userInitial}
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-semibold text-sm">
+              {userInitials}
             </AvatarFallback>
           </Avatar>
         </Button>

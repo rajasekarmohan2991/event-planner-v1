@@ -152,14 +152,6 @@ export async function GET() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payouts_tenant ON payouts(tenant_id)`)
     
-    // Add effective_from and effective_to columns to tax_structures for time-based tax application
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_from TIMESTAMP WITH TIME ZONE`)
-      await prisma.$executeRawUnsafe(`ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_to TIMESTAMP WITH TIME ZONE`)
-    } catch (e) {
-      // Columns might already exist
-    }
-    
     // Add status column to tenants for disable functionality
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE'`)

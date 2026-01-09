@@ -177,7 +177,7 @@ export function AdminSidebar() {
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
                     isActive
-                      ? 'bg-[#0d9488] text-white shadow-md'
+                      ? 'bg-[#3b82f6] text-white shadow-md'
                       : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
                     'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200',
                     isCollapsed && 'justify-center px-2'
@@ -241,7 +241,7 @@ export function AdminSidebar() {
                   href={item.href}
                   className={cn(
                     isActive
-                      ? 'bg-[#0d9488] text-white shadow-md'
+                      ? 'bg-[#3b82f6] text-white shadow-md'
                       : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
                     'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200'
                   )}
