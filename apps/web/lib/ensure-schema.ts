@@ -455,6 +455,282 @@ export async function ensureSchema() {
         CREATE INDEX IF NOT EXISTS idx_signature_requests_status ON signature_requests(status);
     `)
 
+    console.log('📝 Step 17: Creating finance module tables...')
+    
+    // 17. TDS/Withholding Tax Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS tds_deductions (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            payout_id TEXT,
+            recipient_type TEXT NOT NULL,
+            recipient_id TEXT,
+            recipient_name TEXT NOT NULL,
+            recipient_pan TEXT,
+            section TEXT,
+            tds_rate DOUBLE PRECISION NOT NULL DEFAULT 10,
+            gross_amount DOUBLE PRECISION NOT NULL,
+            tds_amount DOUBLE PRECISION NOT NULL,
+            net_amount DOUBLE PRECISION NOT NULL,
+            currency TEXT DEFAULT 'INR',
+            status TEXT DEFAULT 'PENDING',
+            deducted_at TIMESTAMP,
+            deposited_at TIMESTAMP,
+            certificate_number TEXT,
+            certificate_issued_at TIMESTAMP,
+            financial_year TEXT,
+            quarter TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 18. Legal Consent Tracking Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS legal_consents (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            user_id BIGINT,
+            entity_type TEXT,
+            entity_id TEXT,
+            entity_email TEXT NOT NULL,
+            entity_name TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            document_version TEXT NOT NULL,
+            document_hash TEXT,
+            document_url TEXT,
+            consent_method TEXT NOT NULL,
+            typed_name TEXT,
+            signature_url TEXT,
+            otp_verified BOOLEAN DEFAULT FALSE,
+            ip_address TEXT,
+            user_agent TEXT,
+            consent_given_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            is_revoked BOOLEAN DEFAULT FALSE,
+            revoked_at TIMESTAMP,
+            revocation_reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 19. Finance Audit Log Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS finance_audit_logs (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            action_type TEXT NOT NULL,
+            action_description TEXT,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT NOT NULL,
+            previous_state JSONB,
+            new_state JSONB,
+            amount DOUBLE PRECISION,
+            currency TEXT,
+            performed_by_user_id BIGINT,
+            performed_by_name TEXT,
+            performed_by_email TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            request_id TEXT,
+            external_reference TEXT,
+            webhook_event_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 20. Platform Commission Config Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS platform_commission_config (
+            id TEXT PRIMARY KEY,
+            commission_type TEXT NOT NULL,
+            rate_type TEXT NOT NULL,
+            percentage_rate DOUBLE PRECISION DEFAULT 0,
+            fixed_amount DOUBLE PRECISION DEFAULT 0,
+            tiered_rates JSONB,
+            currency TEXT DEFAULT 'USD',
+            min_commission DOUBLE PRECISION DEFAULT 0,
+            max_commission DOUBLE PRECISION,
+            country TEXT,
+            subscription_plan TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            effective_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            effective_until TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 21. Invoice Number Sequence Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS invoice_sequences (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL UNIQUE,
+            invoice_sequence INT DEFAULT 0,
+            receipt_sequence INT DEFAULT 0,
+            payout_sequence INT DEFAULT 0,
+            invoice_prefix TEXT DEFAULT 'INV',
+            receipt_prefix TEXT DEFAULT 'REC',
+            payout_prefix TEXT DEFAULT 'PAY',
+            year_format TEXT DEFAULT 'YYYY',
+            include_month BOOLEAN DEFAULT FALSE,
+            padding_length INT DEFAULT 4,
+            reset_yearly BOOLEAN DEFAULT TRUE,
+            last_reset_year INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 22. Country Tax Config Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS country_tax_config (
+            id TEXT PRIMARY KEY,
+            country_code TEXT NOT NULL,
+            country_name TEXT NOT NULL,
+            tax_type TEXT NOT NULL,
+            tax_name TEXT NOT NULL,
+            default_rate DOUBLE PRECISION NOT NULL,
+            category_rates JSONB,
+            registration_required BOOLEAN DEFAULT TRUE,
+            registration_label TEXT,
+            registration_format TEXT,
+            has_withholding_tax BOOLEAN DEFAULT FALSE,
+            withholding_rates JSONB,
+            has_reverse_charge BOOLEAN DEFAULT FALSE,
+            reverse_charge_threshold DOUBLE PRECISION,
+            has_state_taxes BOOLEAN DEFAULT FALSE,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 23. Payment Gateway Config Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS payment_gateway_config (
+            id TEXT PRIMARY KEY,
+            gateway_name TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            environment TEXT NOT NULL DEFAULT 'sandbox',
+            api_key TEXT,
+            secret_key TEXT,
+            webhook_secret TEXT,
+            supported_currencies JSONB,
+            supported_payment_methods JSONB,
+            supported_countries JSONB,
+            processing_fee_percentage DOUBLE PRECISION DEFAULT 0,
+            processing_fee_fixed DOUBLE PRECISION DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            is_default BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 24. Payment Webhook Logs Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS payment_webhook_logs (
+            id TEXT PRIMARY KEY,
+            gateway TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            payload JSONB NOT NULL,
+            headers JSONB,
+            processed BOOLEAN DEFAULT FALSE,
+            processed_at TIMESTAMP,
+            processing_error TEXT,
+            retry_count INT DEFAULT 0,
+            tenant_id TEXT,
+            invoice_id TEXT,
+            payment_id TEXT,
+            signature_valid BOOLEAN,
+            received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 25. Refund Requests Table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS refund_requests (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            payment_id TEXT NOT NULL,
+            invoice_id TEXT,
+            order_id TEXT,
+            requester_type TEXT NOT NULL,
+            requester_id TEXT,
+            requester_name TEXT NOT NULL,
+            requester_email TEXT NOT NULL,
+            original_amount DOUBLE PRECISION NOT NULL,
+            refund_amount DOUBLE PRECISION NOT NULL,
+            currency TEXT NOT NULL,
+            reason_category TEXT,
+            reason_description TEXT,
+            status TEXT DEFAULT 'PENDING',
+            approved_by_user_id BIGINT,
+            approved_at TIMESTAMP,
+            rejection_reason TEXT,
+            gateway_refund_id TEXT,
+            processed_at TIMESTAMP,
+            processing_error TEXT,
+            is_partial BOOLEAN DEFAULT FALSE,
+            partial_reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    console.log('📝 Step 26: Adding multi-currency columns to existing tables...')
+    
+    // Add multi-currency columns to invoices
+    await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS base_currency TEXT DEFAULT 'USD';
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS base_currency_amount DOUBLE PRECISION;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS platform_commission DOUBLE PRECISION DEFAULT 0;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS platform_commission_rate DOUBLE PRECISION DEFAULT 0;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS net_to_organizer DOUBLE PRECISION;
+        EXCEPTION WHEN undefined_table THEN NULL; END $$;
+    `)
+    
+    // Add multi-currency columns to payouts
+    await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS base_currency TEXT DEFAULT 'USD';
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS base_currency_amount DOUBLE PRECISION;
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS tds_rate DOUBLE PRECISION DEFAULT 0;
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS tds_amount DOUBLE PRECISION DEFAULT 0;
+            ALTER TABLE payouts ADD COLUMN IF NOT EXISTS gross_amount DOUBLE PRECISION;
+        EXCEPTION WHEN undefined_table THEN NULL; END $$;
+    `)
+    
+    // Add gateway columns to payment_records
+    await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+            ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+            ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
+            ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS gateway TEXT;
+            ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS gateway_transaction_id TEXT;
+            ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS gateway_fee DOUBLE PRECISION DEFAULT 0;
+        EXCEPTION WHEN undefined_table THEN NULL; END $$;
+    `)
+    
+    console.log('📝 Step 27: Creating indexes for finance tables...')
+    
+    // Create indexes
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);`)
+
     console.log('✅ Self-healing schema update complete (including finance tables and signatures).')
     return true
   } catch (error) {
