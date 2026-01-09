@@ -223,9 +223,11 @@ export async function POST(req: NextRequest) {
         }, { status: 201 });
     } catch (error: any) {
         console.error('Error creating signature request:', error);
+        console.error('Error stack:', error.stack);
         return NextResponse.json({ 
             error: 'Failed to create signature request',
-            details: error.message 
+            details: error.message,
+            stack: error.stack 
         }, { status: 500 });
     }
 }
