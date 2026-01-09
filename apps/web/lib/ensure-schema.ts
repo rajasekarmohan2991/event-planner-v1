@@ -3,32 +3,55 @@ import prisma from '@/lib/prisma'
 export async function ensureSchema() {
   console.log('🔧 Running self-healing schema update...')
   try {
-    // 0. Tenants Table - Add country column
+    // 0. Tenants Table - Add country column (wrapped in DO block to handle missing table)
     await prisma.$executeRawUnsafe(`
-      ALTER TABLE tenants
-      ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
+      DO $$ 
+      BEGIN 
+          BEGIN
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
+          EXCEPTION
+              WHEN undefined_table THEN
+                  RAISE NOTICE 'Table tenants does not exist yet';
+          END;
+      END $$;
     `)
 
     // 1. Sponsors Table Columns
     await prisma.$executeRawUnsafe(`
-      ALTER TABLE sponsors 
-      ADD COLUMN IF NOT EXISTS contact_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS payment_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS branding_online JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS branding_offline JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS event_presence JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS giveaway_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS legal_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS timeline_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS post_event_data JSONB DEFAULT '{}';
+      DO $$ 
+      BEGIN 
+          BEGIN
+              ALTER TABLE sponsors 
+              ADD COLUMN IF NOT EXISTS contact_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS payment_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS branding_online JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS branding_offline JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS event_presence JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS giveaway_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS legal_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS timeline_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS post_event_data JSONB DEFAULT '{}';
+          EXCEPTION
+              WHEN undefined_table THEN
+                  RAISE NOTICE 'Table sponsors does not exist yet';
+          END;
+      END $$;
     `)
 
     // 2. Events Table Columns
     await prisma.$executeRawUnsafe(`
-      ALTER TABLE events
-      ADD COLUMN IF NOT EXISTS promote_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS engagement_data JSONB DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
+      DO $$ 
+      BEGIN 
+          BEGIN
+              ALTER TABLE events
+              ADD COLUMN IF NOT EXISTS promote_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS engagement_data JSONB DEFAULT '{}',
+              ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';
+          EXCEPTION
+              WHEN undefined_table THEN
+                  RAISE NOTICE 'Table events does not exist yet';
+          END;
+      END $$;
     `)
 
     // 3. Event Vendors Table
