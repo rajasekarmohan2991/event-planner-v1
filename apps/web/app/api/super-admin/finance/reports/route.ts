@@ -47,15 +47,30 @@ export async function GET(req: NextRequest) {
             where.tenantId = companyFilter;
         }
 
-        const invoices = await prisma.invoice.findMany({
-            where,
-            include: {
-                tenant: { select: { name: true } },
-                event: { select: { name: true } },
-                payments: true,
-                items: true
-            }
-        });
+        // Build WHERE clause for raw SQL
+        let whereSQL = `WHERE i.created_at >= $1`;
+        const params: any[] = [startDate];
+        
+        if (companyFilter !== "ALL") {
+            whereSQL += ` AND i.tenant_id = $2`;
+            params.push(companyFilter);
+        }
+
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+                i.id, i.status, i.grand_total, i.due_date, i.created_at,
+                i.recipient_type, i.recipient_name, i.currency,
+                t.name as tenant_name,
+                e.name as event_name,
+                COALESCE(
+                    (SELECT SUM(amount) FROM payment_records WHERE invoice_id = i.id),
+                    0
+                ) as total_paid
+            FROM invoices i
+            LEFT JOIN tenants t ON i.tenant_id = t.id
+            LEFT JOIN events e ON i.event_id = e.id
+            ${whereSQL}
+        `, ...params);
 
         // Calculate revenue by month
         const revenueByMonth = calculateRevenueByMonth(invoices, startDate, now);
@@ -75,7 +90,7 @@ export async function GET(req: NextRequest) {
         // Calculate summary
         const totalRevenue = invoices
             .filter(inv => inv.status === "PAID")
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const totalInvoices = invoices.length;
         const paidInvoices = invoices.filter(inv => inv.status === "PAID").length;
@@ -83,14 +98,14 @@ export async function GET(req: NextRequest) {
 
         const pendingAmount = invoices
             .filter(inv => inv.status === "PENDING" || inv.status === "SENT")
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const overdueAmount = invoices
             .filter(inv => {
                 if (inv.status === "PAID") return false;
-                return new Date(inv.dueDate) < new Date();
+                return new Date(inv.due_date) < new Date();
             })
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         return NextResponse.json({
             revenueByMonth,
@@ -107,9 +122,13 @@ export async function GET(req: NextRequest) {
                 overdueAmount
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to generate reports:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Internal Server Error",
+            details: error.message,
+            stack: error.stack
+        }, { status: 500 });
     }
 }
 
@@ -127,10 +146,10 @@ function calculateRevenueByMonth(invoices: any[], startDate: Date, endDate: Date
     // Aggregate data
     invoices.forEach(inv => {
         if (inv.status === "PAID") {
-            const date = new Date(inv.createdAt);
+            const date = new Date(inv.created_at);
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             if (monthlyData[key]) {
-                monthlyData[key].revenue += inv.grandTotal;
+                monthlyData[key].revenue += parseFloat(inv.grand_total || 0);
                 monthlyData[key].invoices += 1;
             }
         }
@@ -149,9 +168,10 @@ function calculateRevenueByCompany(invoices: any[]) {
 
     invoices.forEach(inv => {
         if (inv.status === "PAID") {
-            const companyName = inv.tenant.name;
-            companyData[companyName] = (companyData[companyName] || 0) + inv.grandTotal;
-            totalRevenue += inv.grandTotal;
+            const companyName = inv.tenant_name || "Unknown";
+            const revenue = parseFloat(inv.grand_total || 0);
+            companyData[companyName] = (companyData[companyName] || 0) + revenue;
+            totalRevenue += revenue;
         }
     });
 
@@ -170,11 +190,11 @@ function calculateRevenueByType(invoices: any[]) {
 
     invoices.forEach(inv => {
         if (inv.status === "PAID") {
-            const type = inv.recipientType;
+            const type = inv.recipient_type || "OTHER";
             if (!typeData[type]) {
                 typeData[type] = { revenue: 0, count: 0 };
             }
-            typeData[type].revenue += inv.grandTotal;
+            typeData[type].revenue += parseFloat(inv.grand_total || 0);
             typeData[type].count += 1;
         }
     });
@@ -194,7 +214,7 @@ function calculateRevenueByStatus(invoices: any[]) {
         if (!statusData[status]) {
             statusData[status] = { amount: 0, count: 0 };
         }
-        statusData[status].amount += inv.grandTotal;
+        statusData[status].amount += parseFloat(inv.grand_total || 0);
         statusData[status].count += 1;
     });
 
@@ -210,11 +230,11 @@ function calculateTopVendors(invoices: any[]) {
 
     invoices.forEach(inv => {
         if (inv.status === "PAID") {
-            const name = inv.recipientName;
+            const name = inv.recipient_name || "Unknown";
             if (!vendorData[name]) {
                 vendorData[name] = { totalPaid: 0, invoiceCount: 0 };
             }
-            vendorData[name].totalPaid += inv.grandTotal;
+            vendorData[name].totalPaid += parseFloat(inv.grand_total || 0);
             vendorData[name].invoiceCount += 1;
         }
     });

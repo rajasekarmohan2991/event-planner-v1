@@ -16,35 +16,33 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        // Get all invoices
-        const invoices = await prisma.invoice.findMany({
-            include: {
-                tenant: {
-                    select: { name: true }
-                },
-                event: {
-                    select: { name: true }
-                },
-                payments: true
-            }
-        });
+        // Get all invoices using raw SQL
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+                i.id, i.status, i.grand_total, i.due_date, i.created_at,
+                t.name as tenant_name,
+                e.name as event_name
+            FROM invoices i
+            LEFT JOIN tenants t ON i.tenant_id = t.id
+            LEFT JOIN events e ON i.event_id = e.id
+        `);
 
         // Calculate summary
         const totalRevenue = invoices
             .filter(inv => inv.status === "PAID")
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const pendingPayments = invoices
             .filter(inv => inv.status === "PENDING" || inv.status === "SENT")
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const completedPayments = invoices
             .filter(inv => inv.status === "PAID")
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const overdueInvoices = invoices.filter(inv => {
             if (inv.status === "PAID") return false;
-            return new Date(inv.dueDate) < new Date();
+            return new Date(inv.due_date) < new Date();
         }).length;
 
         // Calculate monthly revenue (current month)
@@ -56,17 +54,17 @@ export async function GET(req: NextRequest) {
         const currentMonthRevenue = invoices
             .filter(inv =>
                 inv.status === "PAID" &&
-                new Date(inv.createdAt) >= currentMonthStart
+                new Date(inv.created_at) >= currentMonthStart
             )
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const lastMonthRevenue = invoices
             .filter(inv =>
                 inv.status === "PAID" &&
-                new Date(inv.createdAt) >= lastMonthStart &&
-                new Date(inv.createdAt) <= lastMonthEnd
+                new Date(inv.created_at) >= lastMonthStart &&
+                new Date(inv.created_at) <= lastMonthEnd
             )
-            .reduce((sum, inv) => sum + inv.grandTotal, 0);
+            .reduce((sum, inv) => sum + parseFloat(inv.grand_total || 0), 0);
 
         const monthlyGrowth = lastMonthRevenue > 0
             ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
@@ -82,8 +80,12 @@ export async function GET(req: NextRequest) {
                 monthlyGrowth: Math.round(monthlyGrowth * 10) / 10
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to fetch financial summary:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Internal Server Error",
+            details: error.message,
+            stack: error.stack
+        }, { status: 500 });
     }
 }

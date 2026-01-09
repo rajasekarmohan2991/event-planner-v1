@@ -16,42 +16,65 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const invoices = await prisma.invoice.findMany({
-            include: {
-                tenant: {
-                    select: { id: true, name: true }
-                },
-                event: {
-                    select: { id: true, name: true }
-                },
-                payments: true,
-                items: true
-            },
-            orderBy: { createdAt: "desc" }
-        });
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+                i.id, i.number, i.recipient_type, i.recipient_name, i.recipient_email,
+                i.grand_total, i.status, i.due_date, i.created_at, i.currency,
+                i.tenant_id, t.name as tenant_name,
+                i.event_id, e.name as event_name,
+                COALESCE(
+                    (SELECT SUM(amount) FROM payment_records WHERE invoice_id = i.id),
+                    0
+                ) as total_paid
+            FROM invoices i
+            LEFT JOIN tenants t ON i.tenant_id = t.id
+            LEFT JOIN events e ON i.event_id = e.id
+            ORDER BY i.created_at DESC
+        `);
 
         // Transform for frontend
-        const transformedInvoices = invoices.map(inv => ({
-            id: inv.id,
-            number: inv.number,
-            recipientType: inv.recipientType,
-            recipientName: inv.recipientName,
-            recipientEmail: inv.recipientEmail,
-            companyId: inv.tenant.id,
-            companyName: inv.tenant.name,
-            eventId: inv.event?.id?.toString() || null,
-            eventName: inv.event?.name || "No Event",
-            amount: inv.grandTotal,
-            status: determineStatus(inv),
-            dueDate: inv.dueDate.toISOString(),
-            createdAt: inv.createdAt.toISOString(),
-            currency: inv.currency
-        }));
+        const transformedInvoices = invoices.map(inv => {
+            const grandTotal = parseFloat(inv.grand_total || 0);
+            const totalPaid = parseFloat(inv.total_paid || 0);
+            
+            // Determine status
+            let status = inv.status;
+            if (status !== "PAID" && new Date(inv.due_date) < new Date()) {
+                status = "OVERDUE";
+            } else if (totalPaid >= grandTotal) {
+                status = "PAID";
+            } else if (totalPaid > 0) {
+                status = "PARTIAL";
+            } else if (status === "SENT") {
+                status = "PENDING";
+            }
+
+            return {
+                id: inv.id,
+                number: inv.number,
+                recipientType: inv.recipient_type,
+                recipientName: inv.recipient_name,
+                recipientEmail: inv.recipient_email,
+                companyId: inv.tenant_id,
+                companyName: inv.tenant_name || "Unknown",
+                eventId: inv.event_id?.toString() || null,
+                eventName: inv.event_name || "No Event",
+                amount: grandTotal,
+                status,
+                dueDate: new Date(inv.due_date).toISOString(),
+                createdAt: new Date(inv.created_at).toISOString(),
+                currency: inv.currency
+            };
+        });
 
         return NextResponse.json({ invoices: transformedInvoices });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to fetch invoices:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ 
+            error: "Internal Server Error",
+            details: error.message,
+            stack: error.stack
+        }, { status: 500 });
     }
 }
 
