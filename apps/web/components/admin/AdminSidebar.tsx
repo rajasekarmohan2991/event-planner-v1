@@ -147,8 +147,8 @@ export function AdminSidebar() {
       <div
         className={cn(
           'hidden lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:z-[40] lg:flex lg:flex-col',
-          'bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#1a1a2e]',
-          'border-r border-indigo-500/20 shadow-2xl',
+          'bg-[#1e293b]',
+          'border-r border-slate-600/30 shadow-xl',
           'transition-all duration-300 ease-in-out',
           isCollapsed ? 'lg:w-20' : 'lg:w-72'
         )}
@@ -177,9 +177,9 @@ export function AdminSidebar() {
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                      ? 'bg-[#0d9488] text-white shadow-md'
                       : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                    'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:scale-105',
+                    'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200',
                     isCollapsed && 'justify-center px-2'
                   )}
                 >
@@ -220,7 +220,7 @@ export function AdminSidebar() {
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-[60] w-72 bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#1a1a2e] border-r border-indigo-500/20 shadow-2xl',
+          'fixed inset-y-0 left-0 z-[60] w-72 bg-[#1e293b] border-r border-slate-600/30 shadow-xl',
           'transform transition-transform duration-300 ease-in-out lg:hidden',
           'flex flex-col',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
@@ -241,9 +241,9 @@ export function AdminSidebar() {
                   href={item.href}
                   className={cn(
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                      ? 'bg-[#0d9488] text-white shadow-md'
                       : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                    'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:scale-105'
+                    'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200'
                   )}
                 >
                   <item.icon

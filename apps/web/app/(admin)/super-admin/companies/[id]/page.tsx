@@ -442,45 +442,45 @@ export default function CompanyDetailsPage() {
 
           {/* Main Content */}
           <div className="space-y-8">
-          {/* Stats Cards - Modern Vibrant Gradients */}
+          {/* Stats Cards - Subtle Modern Style */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Total Events Card - Coral/Orange Gradient */}
-            <div className="bg-gradient-to-br from-[#FF6B6B] via-[#FF8E53] to-[#FFA726] p-6 rounded-2xl shadow-lg border border-orange-200/30 h-full transform hover:scale-105 transition-all duration-300">
+            {/* Total Events Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
               <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
-                  <Calendar className="h-8 w-8 text-white drop-shadow-md" />
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <Calendar className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-4xl font-bold text-white drop-shadow-sm">{company.events.length}</div>
-                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Total Events</div>
+                  <div className="text-3xl font-bold text-gray-900">{company.events.length}</div>
+                  <div className="text-gray-500 text-sm font-medium">Total Events</div>
                 </div>
               </div>
             </div>
 
-            {/* Team Members Card - Emerald/Teal Gradient */}
-            <div className="bg-gradient-to-br from-[#00D9A5] via-[#00C9B7] to-[#00B4D8] p-6 rounded-2xl shadow-lg border border-teal-200/30 h-full transform hover:scale-105 transition-all duration-300">
+            {/* Team Members Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
               <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
-                  <Users className="h-8 w-8 text-white drop-shadow-md" />
+                <div className="p-3 bg-teal-50 rounded-lg">
+                  <Users className="h-6 w-6 text-teal-600" />
                 </div>
                 <div>
-                  <div className="text-4xl font-bold text-white drop-shadow-sm">{company.members.length}</div>
-                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Team Members</div>
+                  <div className="text-3xl font-bold text-gray-900">{company.members.length}</div>
+                  <div className="text-gray-500 text-sm font-medium">Team Members</div>
                 </div>
               </div>
             </div>
 
-            {/* Total Registrations Card - Violet/Purple Gradient */}
-            <div className="bg-gradient-to-br from-[#A855F7] via-[#8B5CF6] to-[#6366F1] p-6 rounded-2xl shadow-lg border border-purple-200/30 h-full transform hover:scale-105 transition-all duration-300">
+            {/* Total Registrations Card */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
               <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/25 rounded-xl backdrop-blur-sm shadow-inner">
-                  <Ticket className="h-8 w-8 text-white drop-shadow-md" />
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <Ticket className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <div className="text-4xl font-bold text-white drop-shadow-sm">
+                  <div className="text-3xl font-bold text-gray-900">
                     {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
                   </div>
-                  <div className="text-white/90 font-semibold text-sm uppercase tracking-wide">Total Registrations</div>
+                  <div className="text-gray-500 text-sm font-medium">Total Registrations</div>
                 </div>
               </div>
             </div>

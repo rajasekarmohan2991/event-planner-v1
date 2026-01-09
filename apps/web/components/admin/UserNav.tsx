@@ -6,48 +6,35 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useRouter } from 'next/navigation'
 
-// Get initials from name - first two letters of first word, or first letter of first two words
-function getInitials(name: string | null | undefined): string {
+// Get first letter initial from name
+function getInitial(name: string | null | undefined): string {
   if (!name) return 'U'
-  const words = name.trim().split(' ').filter(w => w.length > 0)
-  if (words.length >= 2) {
-    // First letter of first two words (e.g., "Fiserv Admin" -> "FA")
-    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
-  } else if (words.length === 1 && words[0].length >= 2) {
-    // First two letters of single word (e.g., "Admin" -> "AD")
-    return words[0].substring(0, 2).toUpperCase()
-  }
-  return words[0]?.charAt(0).toUpperCase() || 'U'
+  const trimmed = name.trim()
+  return trimmed.charAt(0).toUpperCase() || 'U'
 }
 
 export function UserNav() {
   const { data: session } = useSession()
-  const router = useRouter()
 
   if (!session?.user) {
     return null
   }
 
   const user = session.user
-  const userInitials = getInitials(user.name)
-  const role = String(user.role || '')
+  const userInitial = getInitial(user.name)
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-          <Avatar className="h-10 w-10 ring-2 ring-purple-400/50 ring-offset-2 ring-offset-background">
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+          <Avatar className="h-9 w-9">
             <AvatarImage src={user.image || ''} alt={user.name || ''} />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-semibold text-sm">
-              {userInitials}
+            <AvatarFallback className="bg-slate-700 text-white font-medium text-sm">
+              {userInitial}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -61,20 +48,6 @@ export function UserNav() {
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push('/profile')}>
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
-            Settings
-          </DropdownMenuItem>
-          {role === 'SUPER_ADMIN' && (
-            <DropdownMenuItem onClick={() => router.push('/settings/billing')}>
-              Billing
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )

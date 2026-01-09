@@ -18,10 +18,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Super Admin access required' }, { status: 403 })
     }
 
-    // Get global currency from super-admin tenant
-    const superAdminTenant = await prisma.tenant.findFirst({
-      where: { slug: 'super-admin' }
-    })
+    // Get global currency from super-admin tenant using raw SQL
+    const tenants: any[] = await prisma.$queryRawUnsafe(`
+      SELECT currency FROM tenants WHERE slug = 'super-admin' LIMIT 1
+    `);
+    
+    const superAdminTenant = tenants[0];
 
     const settings = {
       globalCurrency: superAdminTenant?.currency || 'USD',
@@ -60,22 +62,25 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid currency code' }, { status: 400 })
     }
 
-    // Update super-admin tenant currency as global default
-    const superAdminTenant = await prisma.tenant.upsert({
-      where: { slug: 'super-admin' },
-      update: { currency: globalCurrency },
-      create: {
-        slug: 'super-admin',
-        name: 'Super Admin',
-        subdomain: 'super-admin',
-        currency: globalCurrency,
-        plan: 'ENTERPRISE',
-        status: 'ACTIVE'
-      }
-    })
+    // Update super-admin tenant currency as global default using raw SQL
+    // First check if super-admin tenant exists
+    const existing: any[] = await prisma.$queryRawUnsafe(`
+      SELECT id FROM tenants WHERE slug = 'super-admin' LIMIT 1
+    `);
+    
+    if (existing.length > 0) {
+      await prisma.$executeRawUnsafe(`
+        UPDATE tenants SET currency = $1, updated_at = NOW() WHERE slug = 'super-admin'
+      `, globalCurrency);
+    } else {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO tenants (slug, name, subdomain, currency, plan, status, created_at, updated_at)
+        VALUES ('super-admin', 'Super Admin', 'super-admin', $1, 'ENTERPRISE', 'ACTIVE', NOW(), NOW())
+      `, globalCurrency);
+    }
 
     const updatedSettings = {
-      globalCurrency: superAdminTenant.currency,
+      globalCurrency: globalCurrency,
       allowedCurrencies: AVAILABLE_CURRENCIES.map(c => c.code),
       lastUpdated: new Date().toISOString()
     }

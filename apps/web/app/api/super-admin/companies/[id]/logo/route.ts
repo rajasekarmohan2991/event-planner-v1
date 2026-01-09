@@ -95,12 +95,17 @@ export async function DELETE(
     }
 
     try {
-        const company = await prisma.tenant.update({
-            where: { id: params.id },
-            data: { logo: null }
-        });
+        // Use raw SQL to avoid Prisma schema sync issues
+        await prisma.$executeRawUnsafe(`
+            UPDATE tenants SET logo = NULL, updated_at = NOW() WHERE id = $1
+        `, params.id);
 
-        return NextResponse.json({ success: true, company });
+        // Fetch the updated company
+        const companies: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, name, logo FROM tenants WHERE id = $1
+        `, params.id);
+
+        return NextResponse.json({ success: true, company: companies[0] || null });
     } catch (error: any) {
         console.error("Failed to remove logo:", error);
         return NextResponse.json({ 

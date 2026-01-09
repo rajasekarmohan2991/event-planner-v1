@@ -32,9 +32,16 @@ export async function PATCH(
             }, { status: 400 });
         }
 
+        // Ensure status column exists
+        try {
+            await prisma.$executeRawUnsafe(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ACTIVE'`);
+        } catch (e) {
+            // Column might already exist, ignore
+        }
+
         // Check if company exists
         const companies: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, name, slug FROM tenants WHERE id = $1
+            SELECT id, name, slug, status FROM tenants WHERE id = $1
         `, params.id);
 
         if (companies.length === 0) {
