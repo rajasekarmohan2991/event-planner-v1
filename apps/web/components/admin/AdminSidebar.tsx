@@ -51,8 +51,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
         { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
         { name: 'Users', href: `/super-admin/companies/${currentCompanyId}/users`, icon: Users },
-        { name: 'System Settings', href: `/super-admin/companies/${currentCompanyId}/settings`, icon: Settings },
-        { name: 'Tax Structures', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Database }
+        { name: 'Tax Settings', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Database },
+        { name: 'System Settings', href: `/super-admin/companies/${currentCompanyId}/settings`, icon: Settings }
       )
     } else if (isSuperAdminCompanyView) {
       // Inside Super Admin Company (Detailed View): Show full system modules
