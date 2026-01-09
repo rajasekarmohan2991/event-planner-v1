@@ -338,15 +338,7 @@ export default function CompanyDetailsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
-                <p className="text-gray-600 mt-1">{company.billingEmail}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
-                  {company.plan}
-                </span>
-                <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
-                  {company.status}
-                </span>
+                <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
               </div>
             </div>
           </div>
@@ -356,7 +348,7 @@ export default function CompanyDetailsPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Events Card - Blue Gradient */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-6 rounded-lg shadow-lg border border-blue-400/20 h-full">
+            <div className="bg-gradient-to-br from-blue-400 to-blue-500 p-6 rounded-lg shadow-md border border-blue-300/30 h-full">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
                   <Calendar className="h-8 w-8 text-white" />
@@ -369,7 +361,7 @@ export default function CompanyDetailsPage() {
             </div>
 
             {/* Team Members Card - Green Gradient */}
-            <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 p-6 rounded-lg shadow-lg border border-green-400/20 h-full">
+            <div className="bg-gradient-to-br from-green-400 to-green-500 p-6 rounded-lg shadow-md border border-green-300/30 h-full">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
                   <Users className="h-8 w-8 text-white" />
@@ -382,7 +374,7 @@ export default function CompanyDetailsPage() {
             </div>
 
             {/* Total Registrations Card - Purple Gradient */}
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 p-6 rounded-lg shadow-lg border border-purple-400/20 h-full">
+            <div className="bg-gradient-to-br from-purple-400 to-purple-500 p-6 rounded-lg shadow-md border border-purple-300/30 h-full">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
                   <Settings className="h-8 w-8 text-white" />
@@ -452,7 +444,7 @@ export default function CompanyDetailsPage() {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">Billing Email</span>
-                    <span className="font-medium">{company.billingEmail?.replace(/[<>]/g, '') || 'Not set'}</span>
+                    <span className="font-medium">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
                   </div>
                   {company.trialEndsAt && (
                     <div className="flex justify-between items-center text-sm">
@@ -473,7 +465,7 @@ export default function CompanyDetailsPage() {
 
           {/* Events List */}
           <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
               <h2 className="text-xl font-semibold">Events</h2>
               <Badge variant="secondary" className="ml-2">
                 {company.events.length} Total
