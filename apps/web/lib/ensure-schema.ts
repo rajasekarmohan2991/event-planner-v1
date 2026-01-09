@@ -3,6 +3,11 @@ import prisma from '@/lib/prisma'
 export async function ensureSchema() {
   console.log('🔧 Running self-healing schema update...')
   try {
+    // Test database connection first
+    await prisma.$queryRaw`SELECT 1 as test`
+    console.log('✅ Database connection successful')
+    
+    console.log('📝 Step 1: Updating tenants table...')
     // 0. Tenants Table - Add country column (wrapped in DO block to handle missing table)
     await prisma.$executeRawUnsafe(`
       DO $$ 
@@ -408,6 +413,7 @@ export async function ensureSchema() {
         END $$;
     `)
 
+    console.log('📝 Step 16: Creating signature_requests table...')
     // 16. Digital Signatures Table (DocuSign Integration)
     await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS signature_requests (
