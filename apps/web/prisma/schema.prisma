@@ -1886,3 +1886,58 @@ model FinanceSettings {
   @@map("finance_settings")
 }
 
+// ==============================
+// Digital Signatures Module (DocuSign Integration)
+// ==============================
+
+model SignatureRequest {
+  id              String   @id @default(cuid())
+  tenantId        String   @map("tenant_id")
+  eventId         BigInt?  @map("event_id")
+  
+  // Document Type
+  documentType    String   @map("document_type") // TERMS_AND_CONDITIONS, DISCLAIMER, EXHIBITOR_AGREEMENT, VENDOR_AGREEMENT, SPONSOR_AGREEMENT, SPEAKER_AGREEMENT, ATTENDEE_WAIVER
+  documentTitle   String   @map("document_title")
+  
+  // Signer Details
+  signerEmail     String   @map("signer_email")
+  signerName      String   @map("signer_name")
+  signerType      String   @map("signer_type") // EXHIBITOR, VENDOR, SPONSOR, SPEAKER, ATTENDEE
+  signerId        String?  @map("signer_id") // Reference to exhibitor/vendor/sponsor/speaker ID
+  
+  // DocuSign Integration
+  envelopeId      String?  @map("envelope_id") // DocuSign envelope ID
+  signingUrl      String?  @map("signing_url")
+  
+  // Status
+  status          String   @default("PENDING") // PENDING, SENT, VIEWED, SIGNED, COMPLETED, DECLINED, VOIDED, EXPIRED
+  sentAt          DateTime? @map("sent_at")
+  viewedAt        DateTime? @map("viewed_at")
+  signedAt        DateTime? @map("signed_at")
+  completedAt     DateTime? @map("completed_at")
+  
+  // Signed Document
+  signedDocumentUrl String? @map("signed_document_url")
+  signatureImageUrl String? @map("signature_image_url")
+  
+  // IP and Audit
+  signerIp        String?  @map("signer_ip")
+  userAgent       String?  @map("user_agent")
+  
+  // Custom Fields
+  customFields    Json?    @map("custom_fields")
+  
+  // Expiry
+  expiresAt       DateTime? @map("expires_at")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([signerEmail])
+  @@index([status])
+  @@index([documentType])
+  @@map("signature_requests")
+}
+

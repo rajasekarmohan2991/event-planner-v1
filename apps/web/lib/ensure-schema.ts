@@ -385,7 +385,48 @@ export async function ensureSchema() {
         END $$;
     `)
 
-    console.log('✅ Self-healing schema update complete (including finance tables).')
+    // 16. Digital Signatures Table (DocuSign Integration)
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS signature_requests (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            document_type TEXT NOT NULL,
+            document_title TEXT NOT NULL,
+            signer_email TEXT NOT NULL,
+            signer_name TEXT NOT NULL,
+            signer_type TEXT NOT NULL,
+            signer_id TEXT,
+            envelope_id TEXT,
+            signing_url TEXT,
+            status TEXT DEFAULT 'PENDING' NOT NULL,
+            sent_at TIMESTAMP,
+            viewed_at TIMESTAMP,
+            signed_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            signed_document_url TEXT,
+            signature_image_url TEXT,
+            signer_ip TEXT,
+            user_agent TEXT,
+            custom_fields JSONB,
+            expires_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+
+    // Create indexes for signature_requests
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_signature_requests_tenant ON signature_requests(tenant_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_signature_requests_event ON signature_requests(event_id);
+    `)
+    await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_signature_requests_status ON signature_requests(status);
+    `)
+
+    console.log('✅ Self-healing schema update complete (including finance tables and signatures).')
     return true
   } catch (error) {
     console.error('❌ Self-healing schema failed:', error)
