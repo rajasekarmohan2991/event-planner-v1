@@ -36,7 +36,26 @@ export async function POST(
         const body = await req.json();
         const { name, rate, description, isDefault } = body;
 
-        // If setting as default, unset others?
+        console.log('Creating tax structure:', { name, rate, description, isDefault, tenantId: params.id });
+
+        // Validate required fields
+        if (!name || rate === undefined || rate === null) {
+            return NextResponse.json({ 
+                message: 'Name and rate are required',
+                details: { name, rate }
+            }, { status: 400 });
+        }
+
+        // Validate rate is a valid number
+        const parsedRate = parseFloat(rate);
+        if (isNaN(parsedRate)) {
+            return NextResponse.json({ 
+                message: 'Rate must be a valid number',
+                details: { rate }
+            }, { status: 400 });
+        }
+
+        // If setting as default, unset others
         if (isDefault) {
             await prisma.taxStructure.updateMany({
                 where: { tenantId: params.id, isDefault: true },
@@ -47,16 +66,26 @@ export async function POST(
         const tax = await prisma.taxStructure.create({
             data: {
                 name,
-                rate: parseFloat(rate),
-                description,
+                rate: parsedRate,
+                description: description || '',
                 isDefault: isDefault || false,
                 tenantId: params.id
             }
         });
 
+        console.log('Tax structure created successfully:', tax);
         return NextResponse.json({ tax }, { status: 201 });
     } catch (error: any) {
-        console.error('Error creating tax:', error);
-        return NextResponse.json({ message: error.message || 'Failed to create tax structure' }, { status: 500 });
+        console.error('Error creating tax structure:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            meta: error.meta,
+            stack: error.stack
+        });
+        return NextResponse.json({ 
+            message: error.message || 'Failed to create tax structure',
+            details: error.meta || error.code || 'Unknown error'
+        }, { status: 500 });
     }
 }
