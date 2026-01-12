@@ -41,6 +41,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('Registration trend API error:', error)
+    
+    // If table doesn't exist, return empty trend data
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      const last14Days = Array.from({ length: 14 }, (_, i) => {
+        const date = new Date()
+        date.setDate(date.getDate() - (13 - i))
+        return { date: date.toISOString().split('T')[0], count: 0 }
+      })
+      return NextResponse.json(last14Days)
+    }
+    
     return NextResponse.json({
       error: 'Failed to fetch registration trend',
       details: error.message

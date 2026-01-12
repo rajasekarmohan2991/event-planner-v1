@@ -24,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       : null
 
     // Get counts using raw queries for better performance
+    // Each query has its own catch to handle missing tables gracefully
     const [
       registrations,
       sessions,
@@ -37,22 +38,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // Registrations count
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*) as count FROM registrations WHERE event_id = ${eventId.toString()}
-      `.then(r => Number(r[0]?.count || 0)),
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
 
       // Sessions count
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*) as count FROM sessions WHERE event_id = ${eventId}
-      `.then(r => Number(r[0]?.count || 0)),
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
 
       // Speakers count
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*) as count FROM speakers WHERE event_id = ${eventId}
-      `.then(r => Number(r[0]?.count || 0)),
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
 
       // Team members count
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*) as count FROM event_team_members WHERE event_id = ${eventId}
-      `.then(r => Number(r[0]?.count || 0)),
+      `.then(r => Number(r[0]?.count || 0)).catch(() => 0),
 
       // Sponsors count
       prisma.$queryRaw<[{ count: bigint }]>`
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         SELECT COALESCE(SUM(total_amount), 0) as total 
         FROM registrations 
         WHERE event_id = ${eventId.toString()} AND payment_status = 'PAID'
-      `.then(r => Number(r[0]?.total || 0))
+      `.then(r => Number(r[0]?.total || 0)).catch(() => 0)
     ])
 
     return NextResponse.json({
