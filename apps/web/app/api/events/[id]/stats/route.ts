@@ -12,16 +12,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const eventId = BigInt(params.id)
 
-    // Get event details for days calculation
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { starts_at: true }
-    })
-
-    // Calculate days to event
-    const daysToEvent = event?.starts_at
-      ? Math.ceil((new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-      : null
+    // Get event details for days calculation using raw SQL
+    let daysToEvent = null
+    try {
+      const eventResult = await prisma.$queryRaw<[{ starts_at: Date | null }]>`
+        SELECT start_date as starts_at FROM events WHERE id = ${eventId}
+      `
+      const event = eventResult[0]
+      daysToEvent = event?.starts_at
+        ? Math.ceil((new Date(event.starts_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : null
+    } catch (e) {
+      console.warn('Failed to fetch event start date:', e)
+    }
 
     // Get counts using raw queries for better performance
     // Each query has its own catch to handle missing tables gracefully

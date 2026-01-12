@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensureSchema } from "@/lib/ensure-schema";
 
 // GET /api/invoices/[id] - Get single invoice
 export async function GET(
@@ -17,34 +18,65 @@ export async function GET(
     const { id } = params;
 
     try {
-        const invoice = await prisma.invoice.findUnique({
-            where: { id },
-            include: {
-                items: true,
-                payments: {
-                    include: { receipt: true },
-                    orderBy: { createdAt: "desc" }
-                },
-                receipts: true,
-                event: true,
-                tenant: {
-                    select: {
-                        name: true,
-                        digitalSignatureUrl: true,
-                        logo: true
-                    }
-                }
-            }
-        });
+        // Fetch invoice using raw SQL
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT 
+                i.*,
+                t.name as tenant_name,
+                t.logo as tenant_logo,
+                e.name as event_name
+            FROM invoices i
+            LEFT JOIN tenants t ON i.tenant_id = t.id
+            LEFT JOIN events e ON i.event_id = e.id
+            WHERE i.id = $1
+        `, id);
 
-        if (!invoice) {
+        if (invoices.length === 0) {
             return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
         }
 
-        return NextResponse.json({ invoice });
-    } catch (error) {
+        const invoice = invoices[0];
+
+        // Fetch line items
+        const items = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM invoice_line_items WHERE invoice_id = $1 ORDER BY id
+        `, id);
+
+        // Fetch payments
+        const payments = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM payment_records WHERE invoice_id = $1 ORDER BY created_at DESC
+        `, id);
+
+        // Fetch receipts
+        const receipts = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM receipts WHERE invoice_id = $1
+        `, id);
+
+        return NextResponse.json({ 
+            invoice: {
+                ...invoice,
+                items,
+                payments,
+                receipts
+            }
+        });
+    } catch (error: any) {
         console.error("Failed to fetch invoice:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        
+        // If table doesn't exist, create it
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            try {
+                await ensureSchema();
+                return NextResponse.json({ 
+                    error: "Database tables created. Please refresh.",
+                    needsRetry: true
+                }, { status: 503 });
+            } catch (schemaError) {
+                console.error("Schema healing failed:", schemaError);
+            }
+        }
+        
+        return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
     }
 }
 
@@ -65,23 +97,50 @@ export async function PATCH(
         const body = await req.json();
         const { status, notes, terms } = body;
 
-        const updated = await prisma.invoice.update({
-            where: { id },
-            data: {
-                status,
-                notes,
-                terms
-            },
-            include: {
-                items: true,
-                payments: true
+        // Update using raw SQL
+        await prisma.$executeRawUnsafe(`
+            UPDATE invoices 
+            SET status = $1, notes = $2, terms = $3, updated_at = NOW()
+            WHERE id = $4
+        `, status, notes, terms, id);
+
+        // Fetch updated invoice
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM invoices WHERE id = $1
+        `, id);
+
+        const items = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM invoice_line_items WHERE invoice_id = $1
+        `, id);
+
+        const payments = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT * FROM payment_records WHERE invoice_id = $1
+        `, id);
+
+        return NextResponse.json({ 
+            success: true, 
+            invoice: {
+                ...invoices[0],
+                items,
+                payments
             }
         });
-
-        return NextResponse.json({ success: true, invoice: updated });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update invoice:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            try {
+                await ensureSchema();
+                return NextResponse.json({ 
+                    error: "Database tables created. Please try again.",
+                    needsRetry: true
+                }, { status: 503 });
+            } catch (schemaError) {
+                console.error("Schema healing failed:", schemaError);
+            }
+        }
+        
+        return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
     }
 }
 
@@ -99,23 +158,43 @@ export async function DELETE(
     const { id } = params;
 
     try {
-        const invoice = await prisma.invoice.findUnique({ where: { id } });
+        // Check invoice status using raw SQL
+        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+            SELECT status FROM invoices WHERE id = $1
+        `, id);
 
-        if (!invoice) {
+        if (invoices.length === 0) {
             return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
         }
 
-        if (invoice.status !== "DRAFT") {
+        if (invoices[0].status !== "DRAFT") {
             return NextResponse.json({
                 error: "Only draft invoices can be deleted"
             }, { status: 400 });
         }
 
-        await prisma.invoice.delete({ where: { id } });
+        // Delete invoice and related records using raw SQL
+        await prisma.$executeRawUnsafe(`DELETE FROM invoice_line_items WHERE invoice_id = $1`, id);
+        await prisma.$executeRawUnsafe(`DELETE FROM payment_records WHERE invoice_id = $1`, id);
+        await prisma.$executeRawUnsafe(`DELETE FROM receipts WHERE invoice_id = $1`, id);
+        await prisma.$executeRawUnsafe(`DELETE FROM invoices WHERE id = $1`, id);
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to delete invoice:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            try {
+                await ensureSchema();
+                return NextResponse.json({ 
+                    error: "Database tables created. Please try again.",
+                    needsRetry: true
+                }, { status: 503 });
+            } catch (schemaError) {
+                console.error("Schema healing failed:", schemaError);
+            }
+        }
+        
+        return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
     }
 }
