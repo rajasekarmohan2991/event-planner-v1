@@ -17,10 +17,13 @@ import {
     CheckCircle,
     Clock,
     XCircle,
-    AlertCircle
+    AlertCircle,
+    Send,
+    Bell
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import {
     Table,
     TableBody,
@@ -47,11 +50,14 @@ interface Invoice {
 
 export default function InvoicesPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [typeFilter, setTypeFilter] = useState<string>("ALL");
+    const [sendingLink, setSendingLink] = useState<string | null>(null);
+    const [sendingReminder, setSendingReminder] = useState<string | null>(null);
 
     useEffect(() => {
         loadInvoices();
@@ -116,6 +122,70 @@ export default function InvoicesPage() {
             month: 'short',
             day: 'numeric'
         });
+    }
+
+    async function sendPaymentLink(invoiceId: string) {
+        try {
+            setSendingLink(invoiceId);
+            const res = await fetch(`/api/invoices/${invoiceId}/send-payment-link`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                toast({
+                    title: "Payment Link Sent",
+                    description: `Payment link sent to ${data.sentTo}`,
+                });
+                loadInvoices();
+            } else {
+                toast({
+                    title: "Failed to Send",
+                    description: data.error || "Failed to send payment link",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to send payment link",
+                variant: "destructive"
+            });
+        } finally {
+            setSendingLink(null);
+        }
+    }
+
+    async function sendReminder(invoiceId: string) {
+        try {
+            setSendingReminder(invoiceId);
+            const res = await fetch(`/api/invoices/${invoiceId}/send-reminder`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                toast({
+                    title: "Reminder Sent",
+                    description: `Payment reminder sent to ${data.sentTo}${data.isOverdue ? ` (${data.daysOverdue} days overdue)` : ''}`,
+                });
+                loadInvoices();
+            } else {
+                toast({
+                    title: "Failed to Send",
+                    description: data.error || "Failed to send reminder",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to send reminder",
+                variant: "destructive"
+            });
+        } finally {
+            setSendingReminder(null);
+        }
     }
 
     if (loading) {
@@ -264,6 +334,36 @@ export default function InvoicesPage() {
                                     <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            {invoice.status !== 'PAID' && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => sendPaymentLink(invoice.id)}
+                                                        disabled={sendingLink === invoice.id}
+                                                        title="Send Payment Link"
+                                                    >
+                                                        {sendingLink === invoice.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Send className="w-4 h-4" />
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => sendReminder(invoice.id)}
+                                                        disabled={sendingReminder === invoice.id}
+                                                        title="Send Reminder"
+                                                    >
+                                                        {sendingReminder === invoice.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Bell className="w-4 h-4" />
+                                                        )}
+                                                    </Button>
+                                                </>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
