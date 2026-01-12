@@ -275,6 +275,120 @@ export async function ensureSchema() {
         );
     `)
 
+    // 10.1 Exhibitors Table
+    console.log('📝 Step 10.1: Creating exhibitors table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS exhibitors (
+            id TEXT PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            tenant_id TEXT,
+            name TEXT NOT NULL,
+            company TEXT,
+            contact_name TEXT,
+            contact_email TEXT,
+            contact_phone TEXT,
+            website TEXT,
+            notes TEXT,
+            first_name TEXT,
+            last_name TEXT,
+            job_title TEXT,
+            business_address TEXT,
+            company_description TEXT,
+            products_services TEXT,
+            booth_type TEXT,
+            booth_option TEXT,
+            booth_area TEXT,
+            electrical_access BOOLEAN DEFAULT FALSE,
+            display_tables BOOLEAN DEFAULT FALSE,
+            status TEXT DEFAULT 'PENDING_CONFIRMATION',
+            email_confirmed BOOLEAN DEFAULT FALSE,
+            payment_amount DECIMAL(10,2) DEFAULT 0,
+            payment_status TEXT DEFAULT 'PENDING',
+            paid_at TIMESTAMP,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+    
+    // 10.2 Exhibitor Registrations Table (for invoices)
+    console.log('📝 Step 10.2: Creating exhibitor_registrations table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS exhibitor_registrations (
+            id TEXT PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            tenant_id TEXT,
+            name TEXT NOT NULL,
+            company_name TEXT,
+            contact_name TEXT,
+            contact_email TEXT,
+            contact_phone TEXT,
+            booth_number TEXT,
+            booth_type TEXT,
+            payment_amount DECIMAL(10,2) DEFAULT 0,
+            payment_status TEXT DEFAULT 'PENDING',
+            paid_at TIMESTAMP,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+    
+    // 10.3 Sponsor Registrations Table (for invoices)
+    console.log('📝 Step 10.3: Creating sponsor_registrations table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS sponsor_registrations (
+            id TEXT PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            name TEXT NOT NULL,
+            tier TEXT DEFAULT 'BRONZE',
+            contact_name TEXT,
+            contact_email TEXT,
+            contact_phone TEXT,
+            payment_amount DECIMAL(10,2) DEFAULT 0,
+            payment_status TEXT DEFAULT 'PENDING',
+            paid_at TIMESTAMP,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+    
+    // 10.4 Event Team Members Table
+    console.log('📝 Step 10.4: Creating event_team_members table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS event_team_members (
+            id TEXT PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            user_id BIGINT,
+            name TEXT NOT NULL,
+            email TEXT,
+            role TEXT DEFAULT 'MEMBER',
+            status TEXT DEFAULT 'ACTIVE',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+    
+    // 10.5 Promo Codes Table
+    console.log('📝 Step 10.5: Creating promo_codes table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            id BIGSERIAL PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            tenant_id TEXT,
+            code TEXT NOT NULL,
+            discount_type TEXT DEFAULT 'PERCENT',
+            discount_amount DECIMAL(10,2) DEFAULT 0,
+            max_uses INTEGER,
+            current_uses INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            valid_from TIMESTAMP,
+            valid_until TIMESTAMP,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+    `)
+
     // 11. Finance Tables - Payouts
     await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS payouts (
@@ -398,20 +512,114 @@ export async function ensureSchema() {
         );
     `)
 
-    // 15. Add payment_terms, sent_at, sent_to columns to invoices table if exists
+    // 15. Invoices Table
+    console.log('📝 Step 15: Creating invoices table...')
     await prisma.$executeRawUnsafe(`
-        DO $$ 
-        BEGIN 
-            BEGIN
-                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms INTEGER DEFAULT 30;
-                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP;
-                ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to TEXT;
-            EXCEPTION
-                WHEN undefined_table THEN
-                    RAISE NOTICE 'Table invoices does not exist yet';
-            END;
-        END $$;
+        CREATE TABLE IF NOT EXISTS invoices (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            event_id BIGINT,
+            number TEXT NOT NULL,
+            date TIMESTAMP NOT NULL,
+            due_date TIMESTAMP NOT NULL,
+            recipient_type TEXT NOT NULL,
+            recipient_id TEXT,
+            recipient_name TEXT NOT NULL,
+            recipient_email TEXT,
+            recipient_address TEXT,
+            recipient_tax_id TEXT,
+            status TEXT DEFAULT 'DRAFT' NOT NULL,
+            currency TEXT DEFAULT 'USD' NOT NULL,
+            subtotal DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            tax_total DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            discount_total DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            grand_total DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            notes TEXT,
+            terms TEXT,
+            is_signed BOOLEAN DEFAULT FALSE,
+            signature_url TEXT,
+            payment_terms INTEGER DEFAULT 30,
+            sent_at TIMESTAMP,
+            sent_to TEXT,
+            exchange_rate DOUBLE PRECISION DEFAULT 1,
+            base_currency TEXT DEFAULT 'USD',
+            base_currency_amount DOUBLE PRECISION,
+            platform_commission DOUBLE PRECISION DEFAULT 0,
+            platform_commission_rate DOUBLE PRECISION DEFAULT 0,
+            net_to_organizer DOUBLE PRECISION,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
     `)
+    
+    // Create unique index for invoice number per tenant
+    await prisma.$executeRawUnsafe(`
+        CREATE UNIQUE INDEX IF NOT EXISTS invoices_tenant_id_number_key ON invoices(tenant_id, number);
+    `)
+    
+    // 15.1 Invoice Line Items Table
+    console.log('📝 Step 15.1: Creating invoice_line_items table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS invoice_line_items (
+            id TEXT PRIMARY KEY,
+            invoice_id TEXT NOT NULL,
+            description TEXT NOT NULL,
+            quantity INTEGER DEFAULT 1 NOT NULL,
+            unit_price DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            tax_rate DOUBLE PRECISION DEFAULT 0,
+            tax_amount DOUBLE PRECISION DEFAULT 0,
+            discount DOUBLE PRECISION DEFAULT 0,
+            total DOUBLE PRECISION DEFAULT 0 NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 15.2 Payment Records Table
+    console.log('📝 Step 15.2: Creating payment_records table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS payment_records (
+            id TEXT PRIMARY KEY,
+            invoice_id TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
+            method TEXT NOT NULL,
+            reference TEXT,
+            status TEXT DEFAULT 'COMPLETED' NOT NULL,
+            paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            notes TEXT,
+            currency TEXT DEFAULT 'USD',
+            exchange_rate DOUBLE PRECISION DEFAULT 1,
+            gateway TEXT,
+            gateway_transaction_id TEXT,
+            gateway_fee DOUBLE PRECISION DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // 15.3 Receipts Table
+    console.log('📝 Step 15.3: Creating receipts table...')
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS receipts (
+            id TEXT PRIMARY KEY,
+            invoice_id TEXT NOT NULL,
+            payment_id TEXT NOT NULL,
+            number TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
+            issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    `)
+    
+    // Add indexes for invoices
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_event ON invoices(event_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoice_line_items_invoice ON invoice_line_items(invoice_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_receipts_invoice ON receipts(invoice_id);`)
 
     console.log('📝 Step 16: Creating signature_requests table...')
     // 16. Digital Signatures Table (DocuSign Integration)

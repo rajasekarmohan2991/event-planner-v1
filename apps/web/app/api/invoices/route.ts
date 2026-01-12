@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensureSchema } from "@/lib/ensure-schema";
 
 // GET /api/invoices - List all invoices for current tenant
 export async function GET(req: NextRequest) {
@@ -69,10 +70,16 @@ export async function GET(req: NextRequest) {
         console.error("❌ [INVOICES] Failed to fetch invoices:", error);
         console.error("❌ [INVOICES] Error details:", error.message);
         
-        // If table doesn't exist, return empty array
-        if (error.message?.includes('relation "invoices" does not exist')) {
-            console.warn("⚠️ [INVOICES] Invoices table does not exist, returning empty array");
-            return NextResponse.json({ invoices: [] });
+        // If table doesn't exist, create it and return empty array
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            console.warn("⚠️ [INVOICES] Table does not exist, running schema healing...");
+            try {
+                await ensureSchema();
+                return NextResponse.json({ invoices: [] });
+            } catch (schemaError) {
+                console.error("❌ Schema healing failed:", schemaError);
+                return NextResponse.json({ invoices: [] });
+            }
         }
         
         return NextResponse.json({ 
@@ -195,12 +202,18 @@ export async function POST(req: NextRequest) {
         console.error("❌ [INVOICES] Failed to create invoice:", error);
         console.error("❌ [INVOICES] Error details:", error.message);
         
-        // If table doesn't exist, return helpful error
-        if (error.message?.includes('relation "invoices" does not exist')) {
-            return NextResponse.json({ 
-                error: "Invoices feature not yet configured. Please contact administrator.",
-                details: "Database tables need to be created"
-            }, { status: 503 });
+        // If table doesn't exist, create it and retry
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            console.warn("⚠️ [INVOICES] Table does not exist, running schema healing...");
+            try {
+                await ensureSchema();
+                return NextResponse.json({ 
+                    error: "Database tables created. Please try again.",
+                    needsRetry: true
+                }, { status: 503 });
+            } catch (schemaError) {
+                console.error("❌ Schema healing failed:", schemaError);
+            }
         }
         
         return NextResponse.json({ 

@@ -1,9 +1,9 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { randomUUID } from 'crypto'
+import { ensureSchema } from '@/lib/ensure-schema'
 export const dynamic = 'force-dynamic'
 
 // List exhibitors for an event
@@ -72,6 +72,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(items)
   } catch (error: any) {
     console.error('Exhibitors fetch error:', error)
+    
+    // If table doesn't exist, create it and return empty array
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      console.warn('⚠️ Exhibitors table does not exist, running schema healing...')
+      try {
+        await ensureSchema()
+        return NextResponse.json([])
+      } catch (schemaError) {
+        console.error('Schema healing failed:', schemaError)
+        return NextResponse.json([])
+      }
+    }
+    
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -304,6 +317,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(result, { status: 201 })
   } catch (error: any) {
     console.error('Exhibitor creation error:', error)
+    
+    // If table doesn't exist, create it and retry
+    if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      console.warn('⚠️ Exhibitors table does not exist, running schema healing...')
+      try {
+        await ensureSchema()
+        return NextResponse.json({ 
+          error: 'Database tables created. Please try again.',
+          needsRetry: true
+        }, { status: 503 })
+      } catch (schemaError) {
+        console.error('Schema healing failed:', schemaError)
+      }
+    }
+    
     return NextResponse.json({ error: error.message || 'Failed to create exhibitor' }, { status: 500 })
   }
 }
