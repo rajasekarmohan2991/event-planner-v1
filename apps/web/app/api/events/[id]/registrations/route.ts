@@ -244,22 +244,17 @@ export async function POST(
       const regType = parsed?.type || 'GENERAL'
       const regStatus = 'APPROVED'
 
-      await prisma.$executeRawUnsafe(`
+      const registrationDataJson = JSON.stringify(registrationData)
+      const eventIdStr = eventIdBigInt.toString()
+      const ticketIdStr = ticketId ? String(ticketId) : null
+      
+      await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                $1, $2, $3, $4::jsonb, $5, $6, NOW(), NOW(), $7, $8
+                ${newRegId}, ${eventIdStr}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
             )
-        `,
-        newRegId,
-        eventIdBigInt.toString(),
-        tenantId,
-        JSON.stringify(registrationData),
-        regType,
-        formData.email,
-        regStatus,
-        ticketId ? String(ticketId) : null
-      )
+        `
       console.log('✅ Registration inserted')
 
       // 2. Insert Order ('"Order"')
@@ -328,13 +323,14 @@ export async function POST(
     // 6. Log Promo Redemption (Non-critical)
     if (promoCodeId && userId) {
       try {
-        await prisma.$executeRawUnsafe(`
+        const userIdStr = String(userId)
+        await prisma.$executeRaw`
             INSERT INTO promo_redemptions (
                 promo_code_id, user_id, order_amount, discount_amount, redeemed_at
             ) VALUES (
-                $1, $2, $3, $4, NOW()
+                ${promoCodeId}, ${userIdStr}, ${totalPrice}, ${discountAmount}, NOW()
             )
-        `, BigInt(promoCodeId), String(userId), totalPrice, discountAmount)
+        `
       } catch (e: any) {
         console.warn('⚠️ Failed to log promo redemption (table might be missing):', e.message)
       }

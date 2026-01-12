@@ -95,37 +95,48 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       sectionsCount: plan.sections?.length || 0
     })
 
-    // Delete existing seats for this event
-    await prisma.seatInventory.deleteMany({
-      where: { eventId: BigInt(eventId) }
-    })
+    // Delete existing seats for this event using raw SQL
+    await prisma.$executeRaw`
+      DELETE FROM seat_inventory WHERE event_id = ${eventId}
+    `
 
     // Get tenant_id from event
     const tenantId = getTenantId() || null
 
-    // Save floor plan configuration
-    await prisma.floorPlanConfig.upsert({
-      where: {
-        eventId_planName: {
-          eventId: BigInt(eventId),
-          planName: plan.name || 'Default Floor Plan'
-        }
-      },
-      update: {
-        layoutData: plan,
-        totalSeats: plan.totalSeats || 0,
-        sections: plan.sections || [],
-        tenantId: tenantId,
-      },
-      create: {
-        eventId: BigInt(eventId),
-        planName: plan.name || 'Default Floor Plan',
-        layoutData: plan,
-        totalSeats: plan.totalSeats || 0,
-        sections: plan.sections || [],
-        tenantId: tenantId,
-      }
-    })
+    // Save floor plan configuration using raw SQL
+    const planName = plan.name || 'Default Floor Plan'
+    const layoutDataJson = JSON.stringify(plan)
+    const sectionsJson = JSON.stringify(plan.sections || [])
+    const totalSeats = plan.totalSeats || 0
+    
+    // Check if floor plan exists
+    const existingPlan = await prisma.$queryRaw<any[]>`
+      SELECT id FROM floor_plan_configs 
+      WHERE event_id = ${eventId} AND plan_name = ${planName}
+      LIMIT 1
+    `
+    
+    if (existingPlan.length > 0) {
+      // Update existing
+      await prisma.$executeRaw`
+        UPDATE floor_plan_configs
+        SET layout_data = ${layoutDataJson}::jsonb,
+            total_seats = ${totalSeats},
+            sections = ${sectionsJson}::jsonb,
+            tenant_id = ${tenantId},
+            updated_at = NOW()
+        WHERE event_id = ${eventId} AND plan_name = ${planName}
+      `
+    } else {
+      // Create new
+      await prisma.$executeRaw`
+        INSERT INTO floor_plan_configs (
+          event_id, plan_name, layout_data, total_seats, sections, tenant_id, created_at, updated_at
+        ) VALUES (
+          ${eventId}, ${planName}, ${layoutDataJson}::jsonb, ${totalSeats}, ${sectionsJson}::jsonb, ${tenantId}, NOW(), NOW()
+        )
+      `
+    }
 
     // Generate seats from floor plan
     let totalSeatsGenerated = 0
@@ -133,20 +144,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const seats: any[] = []
 
     const insertSeat = async (sectionName: string, rowLabel: string, seatNum: number, seatType: string, basePrice: number, xCoord: number, yCoord: number) => {
-      await prisma.seatInventory.create({
-        data: {
-          eventId: BigInt(eventId),
-          section: sectionName,
-          rowNumber: String(rowLabel),
-          seatNumber: String(seatNum),
-          seatType: seatType,
-          basePrice: basePrice,
-          xCoordinate: xCoord,
-          yCoordinate: yCoord,
-          isAvailable: true,
-          tenantId: tenantId
-        }
-      })
+      await prisma.$executeRaw`
+        INSERT INTO seat_inventory (
+          event_id, section, row_number, seat_number, seat_type, 
+          base_price, x_coordinate, y_coordinate, is_available, tenant_id, created_at, updated_at
+        ) VALUES (
+          ${eventId}, ${sectionName}, ${String(rowLabel)}, ${String(seatNum)}, ${seatType},
+          ${basePrice}, ${xCoord}, ${yCoord}, true, ${tenantId}, NOW(), NOW()
+        )
+      `
       totalSeatsGenerated++
       seats.push({ section: sectionName, row: rowLabel, seat: seatNum, price: basePrice })
       globalSeatNumber++
@@ -311,37 +317,31 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const tenantId = getTenantId()
 
 
-    const floorPlan = await prisma.floorPlanConfig.findUnique({
-      where: {
-        eventId_planName: {
-          eventId: BigInt(eventId),
-          planName: 'Default Floor Plan' // Default to this name or findFirst
-        }
-      }
-    })
+    // Fetch floor plan using raw SQL
+    const floorPlans = await prisma.$queryRaw<any[]>`
+      SELECT id, plan_name, layout_data, total_seats, sections, created_at
+      FROM floor_plan_configs
+      WHERE event_id = ${eventId}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `
+    
+    const planData = floorPlans.length > 0 ? floorPlans[0] : null
 
-    // Fallback if not found by specific name, try finding any for event (legacy support)
-    let planData = floorPlan
-    if (!planData) {
-      const anyPlan = await prisma.floorPlanConfig.findFirst({
-        where: { eventId: BigInt(eventId) },
-        orderBy: { createdAt: 'desc' }
-      })
-      planData = anyPlan
-    }
-
-    const seatCount = await prisma.seatInventory.count({
-      where: { eventId: BigInt(eventId) }
-    })
+    // Count seats using raw SQL
+    const seatCountResult = await prisma.$queryRaw<any[]>`
+      SELECT COUNT(*)::int as count FROM seat_inventory WHERE event_id = ${eventId}
+    `
+    const seatCount = seatCountResult[0]?.count || 0
 
     return NextResponse.json({
       floorPlan: planData ? {
         id: String(planData.id),
-        planName: planData.planName,
-        layoutData: planData.layoutData,
-        totalSeats: planData.totalSeats,
+        planName: planData.plan_name,
+        layoutData: planData.layout_data,
+        totalSeats: planData.total_seats,
         sections: planData.sections,
-        createdAt: planData.createdAt
+        createdAt: planData.created_at
       } : null,
       totalSeats: seatCount
     })
