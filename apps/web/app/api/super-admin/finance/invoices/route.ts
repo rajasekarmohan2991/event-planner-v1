@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensureSchema } from "@/lib/ensure-schema";
 
 // GET /api/super-admin/finance/invoices - Get all invoices across all companies
 export async function GET(req: NextRequest) {
@@ -70,10 +71,23 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ invoices: transformedInvoices });
     } catch (error: any) {
         console.error("Failed to fetch invoices:", error);
+        
+        // If table doesn't exist, create it and return empty array
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+            console.warn('⚠️ Invoices table does not exist, running schema healing...');
+            try {
+                await ensureSchema();
+                return NextResponse.json({ invoices: [] });
+            } catch (schemaError) {
+                console.error('Schema healing failed:', schemaError);
+                return NextResponse.json({ invoices: [] });
+            }
+        }
+        
         return NextResponse.json({ 
             error: "Internal Server Error",
             details: error.message,
-            stack: error.stack
+            invoices: []
         }, { status: 500 });
     }
 }
