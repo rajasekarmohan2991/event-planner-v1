@@ -27,12 +27,32 @@ export default function CreateInvoicePage() {
     const [recipientAddress, setRecipientAddress] = useState("");
     const [recipientTaxId, setRecipientTaxId] = useState("");
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [dueDate, setDueDate] = useState(
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    );
+    const [paymentTerms, setPaymentTerms] = useState("NET_30");
     const [currency, setCurrency] = useState("USD");
     const [notes, setNotes] = useState("");
     const [terms, setTerms] = useState("Payment due within 30 days");
+
+    // Payment terms options
+    const paymentTermsOptions = [
+        { value: "DUE_ON_RECEIPT", label: "Due on Receipt", days: 0 },
+        { value: "NET_7", label: "Net 7", days: 7 },
+        { value: "NET_15", label: "Net 15", days: 15 },
+        { value: "NET_30", label: "Net 30", days: 30 },
+        { value: "NET_45", label: "Net 45", days: 45 },
+        { value: "NET_60", label: "Net 60", days: 60 },
+        { value: "NET_90", label: "Net 90", days: 90 },
+    ];
+
+    // Calculate due date based on invoice date and payment terms
+    function calculateDueDate(invoiceDate: string, terms: string): string {
+        const termOption = paymentTermsOptions.find(t => t.value === terms);
+        const days = termOption?.days || 30;
+        const date = new Date(invoiceDate);
+        date.setDate(date.getDate() + days);
+        return date.toISOString().split('T')[0];
+    }
+
+    const dueDate = calculateDueDate(date, paymentTerms);
 
     const [items, setItems] = useState<LineItem[]>([
         { description: "", quantity: 1, unitPrice: 0, taxRate: 0, discount: 0 }
@@ -112,9 +132,10 @@ export default function CreateInvoicePage() {
 
             if (res.ok) {
                 const data = await res.json();
-                router.push(`/admin/invoices/${data.invoice.id}`);
+                router.push(`/admin/invoices/${data.invoiceId}`);
             } else {
-                alert("Failed to create invoice");
+                const errorData = await res.json();
+                alert(errorData.error || "Failed to create invoice");
             }
         } catch (error) {
             console.error("Error creating invoice:", error);
@@ -246,15 +267,23 @@ export default function CreateInvoicePage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Due Date *
+                                Payment Terms *
                             </label>
-                            <input
-                                type="date"
-                                value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
+                            <select
+                                value={paymentTerms}
+                                onChange={(e) => setPaymentTerms(e.target.value)}
                                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 required
-                            />
+                            >
+                                {paymentTermsOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Due Date: {new Date(dueDate).toLocaleDateString()}
+                            </p>
                         </div>
 
                         <div>
