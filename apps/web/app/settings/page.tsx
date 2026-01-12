@@ -9,19 +9,9 @@ import { User, Bell, Shield, Palette, Globe, Save, CreditCard } from 'lucide-rea
 export default function SettingsPage() {
   const { status, data: session } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('profile')
+  const [activeTab, setActiveTab] = useState('notifications')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-
-  // Profile settings
-  const [profile, setProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-    jobTitle: '',
-    bio: ''
-  })
 
   // Notification settings
   const [notifications, setNotifications] = useState({
@@ -41,17 +31,8 @@ export default function SettingsPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
-    } else if (session?.user) {
-      setProfile({
-        name: session.user.name || '',
-        email: session.user.email || '',
-        phone: '',
-        company: '',
-        jobTitle: '',
-        bio: ''
-      })
     }
-  }, [status, router, session])
+  }, [status, router])
 
   const handleSave = async () => {
     setSaving(true)
@@ -76,7 +57,6 @@ export default function SettingsPage() {
   }
 
   const tabs = [
-    { id: 'profile', name: 'Profile', icon: User },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'privacy', name: 'Privacy', icon: Shield },
     { id: 'subscription', name: 'Subscription', icon: CreditCard },
@@ -122,70 +102,6 @@ export default function SettingsPage() {
 
             {/* Tab Content */}
             <div className="p-6">
-              {activeTab === 'profile' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Profile Information</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Full Name</label>
-                      <input
-                        type="text"
-                        value={profile.name}
-                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Email</label>
-                      <input
-                        type="email"
-                        value={profile.email}
-                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                        disabled
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Phone</label>
-                      <input
-                        type="tel"
-                        value={profile.phone}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Company</label>
-                      <input
-                        type="text"
-                        value={profile.company}
-                        onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-2">Job Title</label>
-                      <input
-                        type="text"
-                        value={profile.jobTitle}
-                        onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-2">Bio</label>
-                      <textarea
-                        value={profile.bio}
-                        onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                        rows={4}
-                        className="w-full border rounded-md px-3 py-2 text-sm"
-                        placeholder="Tell us about yourself..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'notifications' && (
                 <div className="space-y-6">
                   <div>

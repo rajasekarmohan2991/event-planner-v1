@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { Building2, Palette, Upload, Save } from 'lucide-react'
+import { Building2, Palette, Upload, Save, User } from 'lucide-react'
 
 export default function TenantSettingsPage() {
   const { data: session } = useSession()
@@ -18,8 +18,18 @@ export default function TenantSettingsPage() {
     dateFormat: 'MM/DD/YYYY'
   })
 
+  const [profile, setProfile] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    company: '',
+    jobTitle: '',
+    bio: ''
+  })
+
   useEffect(() => {
     loadSettings()
+    loadProfile()
   }, [])
 
   const loadSettings = async () => {
@@ -39,13 +49,29 @@ export default function TenantSettingsPage() {
     }
   }
 
+  const loadProfile = async () => {
+    try {
+      if (!session?.user) return
+      setProfile({
+        fullName: (session.user as any).name || '',
+        email: (session.user as any).email || '',
+        phone: '',
+        company: '',
+        jobTitle: '',
+        bio: ''
+      })
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+    }
+  }
+
   const saveSettings = async () => {
     setSaving(true)
     try {
       const res = await fetch('/api/tenant/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({ settings, profile })
       })
       if (res.ok) {
         alert('Settings saved successfully!')
@@ -64,6 +90,72 @@ export default function TenantSettingsPage() {
       <h1 className="text-3xl font-bold mb-8">Tenant Settings</h1>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        {/* Profile Information */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Profile Information
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Full Name</label>
+              <input
+                type="text"
+                value={profile.fullName}
+                onChange={e => setProfile({...profile, fullName: e.target.value})}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                type="email"
+                value={profile.email}
+                onChange={e => setProfile({...profile, email: e.target.value})}
+                className="w-full px-4 py-2 border rounded bg-gray-50"
+                disabled
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone</label>
+              <input
+                type="tel"
+                value={profile.phone}
+                onChange={e => setProfile({...profile, phone: e.target.value})}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Company</label>
+              <input
+                type="text"
+                value={profile.company}
+                onChange={e => setProfile({...profile, company: e.target.value})}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Job Title</label>
+              <input
+                type="text"
+                value={profile.jobTitle}
+                onChange={e => setProfile({...profile, jobTitle: e.target.value})}
+                className="w-full px-4 py-2 border rounded"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">Bio</label>
+              <textarea
+                value={profile.bio}
+                onChange={e => setProfile({...profile, bio: e.target.value})}
+                rows={4}
+                className="w-full px-4 py-2 border rounded"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Basic Info */}
         <div>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
