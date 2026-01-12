@@ -34,18 +34,18 @@ export default function Header() {
   const displayLocation = location?.city || 'Detecting...'
 
   return (
-    <header className="sticky top-0 z-[100] w-full border-b shadow-md" style={{ backgroundColor: '#ffffff', isolation: 'isolate' }}>
+    <header className="sticky top-0 z-[100] w-full border-b border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900" style={{ isolation: 'isolate' }}>
       {/* Top bar */}
-      <div className="border-b">
+      <div className="border-b border-slate-100 dark:border-slate-800">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Link href={status === 'authenticated' ? '/dashboard' : '/'} className="flex items-center gap-2">
-              <BrandLogo variant="dark" />
+              <BrandLogo variant="light" />
             </Link>
 
             {/* Location chip (desktop) */}
             <button
-              className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 shadow-sm transition hover:bg-gray-50 md:flex"
+              className="hidden items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 md:flex"
               aria-label="Change location"
               title={location ? `${location.city}, ${location.state}` : 'Detecting location...'}
             >
@@ -73,10 +73,10 @@ export default function Header() {
 
           {/* Search pill (desktop) */}
           <div className="flex-1 px-4 md:px-6">
-            <div className="mx-auto hidden max-w-xl items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-black/5 transition focus-within:border-slate-300 focus-within:ring-blue-100 md:flex">
-              <MagnifyingGlassIcon />
+            <div className="mx-auto hidden max-w-xl items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition focus-within:border-violet-300 dark:focus-within:border-violet-600 focus-within:ring-2 focus-within:ring-violet-100 dark:focus-within:ring-violet-900/50 md:flex">
+              <MagnifyingGlassIcon className="text-slate-400" />
               <input
-                className="w-full bg-transparent outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 placeholder="Search for events, movies and restaurants"
                 aria-label="Search"
               />
@@ -161,22 +161,22 @@ export default function Header() {
       </div>
 
       {/* Tab bar */}
-      <div className="border-b">
+      <div className="border-b border-slate-100 dark:border-slate-800">
         <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 text-sm">
-          <div className="relative flex items-center gap-1 rounded-full bg-gray-100 p-1">
+          <div className="relative flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 p-1">
             {tabs.map((t) => {
               const active = pathname ? (t.href === '/' ? pathname === '/' : pathname.startsWith(t.href)) : false
               return (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className={`relative z-10 rounded-full px-3 py-1.5 ${active ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+                  className={`relative z-10 rounded-full px-4 py-1.5 font-medium transition-colors ${active ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                 >
                   {t.label}
                   {active && (
                     <motion.span
                       layoutId="tab-pill"
-                      className="absolute inset-0 -z-10 rounded-full bg-white shadow"
+                      className="absolute inset-0 -z-10 rounded-full bg-white dark:bg-slate-700 shadow-sm"
                       transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                     />
                   )}
@@ -188,16 +188,16 @@ export default function Header() {
       </div>
 
       {/* Mobile search and location */}
-      <div className="border-b bg-white p-2 md:hidden">
-        <div className="mb-2 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-          <MagnifyingGlassIcon />
-          <input className="w-full bg-transparent outline-none" placeholder="Search for events" aria-label="Search" />
+      <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:hidden">
+        <div className="mb-2 flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm">
+          <MagnifyingGlassIcon className="text-slate-400" />
+          <input className="w-full bg-transparent outline-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400" placeholder="Search for events" aria-label="Search" />
         </div>
-        <button className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-blue-600">
+        <button className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-violet-600">
             <path d="M12 2.25c-4.28 0-7.75 3.47-7.75 7.75 0 5.81 7.02 11.22 7.32 11.45.26.19.6.19.86 0 .3-.23 7.32-5.64 7.32-11.45 0-4.28-3.47-7.75-7.75-7.75Zm0 10.25a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
           </svg>
-          <span className="whitespace-nowrap">Kodandaram Nagar</span>
+          <span className="whitespace-nowrap">{displayLocation}</span>
         </button>
       </div>
     </header>
