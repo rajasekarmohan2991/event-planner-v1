@@ -147,16 +147,16 @@ export function AdminSidebar() {
       <div
         className={cn(
           'hidden lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:z-[40] lg:flex lg:flex-col',
-          'bg-[#1e293b]',
-          'border-r border-slate-600/30 shadow-xl',
+          'bg-white dark:bg-slate-900',
+          'border-r border-slate-200 dark:border-slate-800',
           'transition-all duration-300 ease-in-out',
-          isCollapsed ? 'lg:w-20' : 'lg:w-72'
+          isCollapsed ? 'lg:w-20' : 'lg:w-64'
         )}
       >
         {/* Desktop Collapse Toggle */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-8 z-50 hidden lg:flex items-center justify-center w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400 rounded-full shadow-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+          className="absolute -right-3 top-8 z-50 hidden lg:flex items-center justify-center w-6 h-6 bg-violet-600 hover:bg-violet-700 rounded-full shadow-lg shadow-violet-500/30 transition-all"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4 text-white" />
@@ -167,26 +167,26 @@ export function AdminSidebar() {
         <div className="flex flex-col flex-grow pt-6 pb-4 overflow-y-auto">
           {/* Logo removed from Desktop Sidebar as it is now in Header */}
 
-          <nav className="mt-4 flex-1 px-3 space-y-2">
+          <nav className="mt-2 flex-1 px-3 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
-                  key={item.href} // Use href as key since name might duplicate across context
+                  key={item.href}
                   href={item.href}
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
                     isActive
-                      ? 'bg-[#3b82f6] text-white shadow-md'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                    'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200',
-                    isCollapsed && 'justify-center px-2'
+                      ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300',
+                    'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
+                    isCollapsed && 'justify-center px-3'
                   )}
                 >
                   <item.icon
                     className={cn(
-                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-white',
-                      'flex-shrink-0 h-6 w-6 transition-all',
+                      isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-violet-600 dark:group-hover:text-violet-400',
+                      'flex-shrink-0 h-5 w-5 transition-all',
                       !isCollapsed && 'mr-3'
                     )}
                     aria-hidden="true"
@@ -198,18 +198,18 @@ export function AdminSidebar() {
           </nav>
         </div>
         {/* Logout at bottom */}
-        <div className="mt-auto p-4 border-t border-slate-700 bg-slate-900/50">
+        <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-800">
           <Button
             variant="ghost"
             title={isCollapsed ? 'Sign out' : undefined}
             className={cn(
-              "w-full text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition-all rounded-lg",
-              isCollapsed ? 'justify-center px-2' : 'justify-start'
+              "w-full text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-all rounded-xl",
+              isCollapsed ? 'justify-center px-3' : 'justify-start'
             )}
             onClick={() => signOut({ callbackUrl: '/' })}
           >
             <LogOut className={cn(
-              "h-5 w-5 text-slate-400",
+              "h-5 w-5",
               !isCollapsed && "mr-3"
             )} />
             {!isCollapsed && <span>Sign out</span>}
@@ -220,7 +220,7 @@ export function AdminSidebar() {
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-[60] w-72 bg-[#1e293b] border-r border-slate-600/30 shadow-xl',
+          'fixed inset-y-0 left-0 z-[60] w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-xl',
           'transform transition-transform duration-300 ease-in-out lg:hidden',
           'flex flex-col',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
@@ -229,10 +229,10 @@ export function AdminSidebar() {
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           <div className="flex items-center justify-start flex-shrink-0 px-4 mb-6">
             <Link href="/admin" className="flex items-center gap-2">
-              <BrandLogo variant="dark" />
+              <BrandLogo variant="light" />
             </Link>
           </div>
-          <nav className="mt-2 flex-1 px-2 space-y-1">
+          <nav className="mt-2 flex-1 px-3 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
@@ -241,15 +241,15 @@ export function AdminSidebar() {
                   href={item.href}
                   className={cn(
                     isActive
-                      ? 'bg-[#3b82f6] text-white shadow-md'
-                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white',
-                    'group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200'
+                      ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300',
+                    'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200'
                   )}
                 >
                   <item.icon
                     className={cn(
-                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-white',
-                      'mr-3 flex-shrink-0 h-6 w-6'
+                      isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-violet-600',
+                      'mr-3 flex-shrink-0 h-5 w-5'
                     )}
                     aria-hidden="true"
                   />
@@ -260,13 +260,13 @@ export function AdminSidebar() {
           </nav>
         </div>
         {/* Logout at bottom - Mobile */}
-        <div className="mt-auto p-4 border-t border-slate-700 bg-slate-900/50">
+        <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-800">
           <Button
             variant="ghost"
-            className="w-full justify-start text-slate-300 hover:bg-red-600/20 hover:text-red-400 transition-all rounded-lg"
+            className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-all rounded-xl"
             onClick={() => signOut({ callbackUrl: '/' })}
           >
-            <LogOut className="mr-3 h-5 w-5 text-slate-400" />
+            <LogOut className="mr-3 h-5 w-5" />
             Sign out
           </Button>
         </div>

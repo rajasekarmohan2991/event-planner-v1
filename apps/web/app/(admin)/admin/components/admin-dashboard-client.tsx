@@ -154,15 +154,15 @@ export function AdminDashboardClient() {
   return (
     <div className="space-y-6">
       {/* Real-time Status Bar */}
-      <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-            <span className="text-sm text-muted-foreground">
+            <div className={`w-2.5 h-2.5 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
               {autoRefresh ? 'Live Updates' : 'Manual Mode'}
             </span>
           </div>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-slate-500 dark:text-slate-500">
             Last updated: {lastUpdated.toLocaleTimeString()}
           </span>
         </div>
@@ -170,6 +170,7 @@ export function AdminDashboardClient() {
           <Button
             variant="outline"
             size="sm"
+            className="rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
             onClick={() => setAutoRefresh(!autoRefresh)}
           >
             {autoRefresh ? 'Disable Auto-refresh' : 'Enable Auto-refresh'}
@@ -177,6 +178,7 @@ export function AdminDashboardClient() {
           <Button
             variant="outline"
             size="sm"
+            className="rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
             onClick={manualRefresh}
             disabled={isLoading}
           >
@@ -228,45 +230,45 @@ export function AdminDashboardClient() {
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2 bg-gradient-to-br from-white to-slate-50 border shadow-md">
+        <Card className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-indigo-600" />
+            <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-violet-600" />
               Platform Insights
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-6 mb-6">
-              <div className="bg-white rounded-xl p-4 border border-violet-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-violet-100 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
-                <div className="text-3xl font-bold text-violet-700">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-950/40 dark:to-purple-900/30 rounded-2xl p-5 border border-violet-200/50 dark:border-violet-800/50 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-violet-200/50 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
+                <div className="text-3xl font-bold text-violet-700 dark:text-violet-300">
                   ₹{analytics?.overview?.totalRevenue?.toLocaleString('en-IN') || '0'}
                 </div>
-                <div className="text-sm text-gray-600 font-medium flex items-center gap-1">
+                <div className="text-sm text-violet-600/80 dark:text-violet-400/80 font-medium flex items-center gap-1 mt-1">
                   💰 Total Revenue
                 </div>
-                <div className="text-xs text-violet-500 mt-1 font-medium">
+                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-semibold">
                   +{analytics?.trends?.revenueGrowth || 0}% growth
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-fuchsia-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-fuchsia-100 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
-                <div className="text-3xl font-bold text-fuchsia-600">
+              <div className="bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-950/40 dark:to-pink-900/30 rounded-2xl p-5 border border-rose-200/50 dark:border-rose-800/50 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-rose-200/50 to-transparent rounded-bl-full opacity-50 transition-opacity group-hover:opacity-100" />
+                <div className="text-3xl font-bold text-rose-700 dark:text-rose-300">
                   {analytics?.overview?.totalRegistrations || '0'}
                 </div>
-                <div className="text-sm text-gray-600 font-medium flex items-center gap-1">
+                <div className="text-sm text-rose-600/80 dark:text-rose-400/80 font-medium flex items-center gap-1 mt-1">
                   👥 Total Registrations
                 </div>
-                <div className="text-xs text-fuchsia-500 mt-1 font-medium">
+                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-semibold">
                   +{analytics?.trends?.registrationsGrowth || 0}% growth
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Chart 1: Activity Area Chart */}
-              <div className="bg-white/50 rounded-xl p-4 border border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                   <Activity className="w-4 h-4 text-violet-500" />
                   Activity Growth
                 </h4>
@@ -313,8 +315,8 @@ export function AdminDashboardClient() {
               </div>
 
               {/* Chart 2: Top Events Bar Chart */}
-              <div className="bg-white/50 rounded-xl p-4 border border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-500" />
                   Top Events
                 </h4>
@@ -360,9 +362,9 @@ export function AdminDashboardClient() {
         </Card>
 
         {/* Ticket Sales Pie Chart */}
-        <Card className="lg:col-span-1 bg-gradient-to-br from-purple-50 to-pink-100 border-0 shadow-lg">
+        <Card className="lg:col-span-1 bg-gradient-to-br from-violet-50 to-fuchsia-100 dark:from-violet-950/40 dark:to-fuchsia-900/30 border border-violet-200/50 dark:border-violet-800/50 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold text-gray-900">🎫 Ticket Sales</CardTitle>
+            <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-200">🎫 Ticket Sales</CardTitle>
           </CardHeader>
           <CardContent>
             {analytics?.overview && (
@@ -390,17 +392,17 @@ export function AdminDashboardClient() {
                   </ResponsiveContainer>
                 </div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-gray-900">{analytics.overview.totalRegistrations || 0}</div>
-                  <div className="text-sm text-gray-600">Tickets Sold</div>
+                  <div className="text-4xl font-bold text-slate-800 dark:text-slate-200">{analytics.overview.totalRegistrations || 0}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">Tickets Sold</div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="bg-white/70 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-blue-600">{Math.round((analytics.overview.totalRegistrations / (analytics.overview.totalEvents * 100)) * 660) || 0}</div>
-                    <div className="text-xs text-gray-600">Male</div>
+                  <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Math.round((analytics.overview.totalRegistrations / (analytics.overview.totalEvents * 100)) * 660) || 0}</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Male</div>
                   </div>
-                  <div className="bg-white/70 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-pink-600">{Math.round((analytics.overview.totalRegistrations / (analytics.overview.totalEvents * 100)) * 220) || 0}</div>
-                    <div className="text-xs text-gray-600">Female</div>
+                  <div className="bg-white/70 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{Math.round((analytics.overview.totalRegistrations / (analytics.overview.totalEvents * 100)) * 220) || 0}</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Female</div>
                   </div>
                 </div>
               </div>
@@ -411,10 +413,10 @@ export function AdminDashboardClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Recent Activity Feed */}
-        <Card className="lg:col-span-2 border shadow-sm h-full">
+        <Card className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl h-full">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Activity className="w-5 h-5 text-indigo-500" />
+            <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-200">
+              <Activity className="w-5 h-5 text-violet-500" />
               Recent System Activity
             </CardTitle>
           </CardHeader>
@@ -427,51 +429,51 @@ export function AdminDashboardClient() {
         <div className="lg:col-span-1 space-y-6">
 
           {/* Quick Actions Panel */}
-          <Card className="border shadow-sm h-fit">
+          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl h-fit">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
+              <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-200">
                 <Zap className="w-5 h-5 text-amber-500" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors" variant="outline" onClick={() => router.push('/events/create')}>
-                <div className="bg-green-100 p-2 rounded-full mr-3">
-                  <Plus className="h-4 w-4 text-green-600" />
+              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors" variant="outline" onClick={() => router.push('/events/create')}>
+                <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2.5 rounded-xl mr-3">
+                  <Plus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-semibold">Create New Event</span>
-                  <span className="text-xs text-muted-foreground">Launch a new event page</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Create New Event</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Launch a new event page</span>
                 </div>
               </Button>
 
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors" variant="outline" onClick={() => router.push('/admin/users')}>
-                <div className="bg-blue-100 p-2 rounded-full mr-3">
-                  <Users className="h-4 w-4 text-blue-600" />
+              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-300 hover:border-blue-200 dark:hover:border-blue-800 transition-colors" variant="outline" onClick={() => router.push('/admin/users')}>
+                <div className="bg-blue-100 dark:bg-blue-900/50 p-2.5 rounded-xl mr-3">
+                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-semibold">Manage Users</span>
-                  <span className="text-xs text-muted-foreground">View and edit user roles</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Manage Users</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">View and edit user roles</span>
                 </div>
               </Button>
 
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors" variant="outline" onClick={() => router.push('/admin/analytics')}>
-                <div className="bg-purple-100 p-2 rounded-full mr-3">
-                  <BarChart3 className="h-4 w-4 text-purple-600" />
+              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300 hover:border-violet-200 dark:hover:border-violet-800 transition-colors" variant="outline" onClick={() => router.push('/admin/analytics')}>
+                <div className="bg-violet-100 dark:bg-violet-900/50 p-2.5 rounded-xl mr-3">
+                  <BarChart3 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-semibold">View Analytics</span>
-                  <span className="text-xs text-muted-foreground">Deep dive into data</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">View Analytics</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Deep dive into data</span>
                 </div>
               </Button>
 
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-gray-50 hover:text-gray-900 transition-colors" variant="outline" onClick={() => router.push('/admin/settings')}>
-                <div className="bg-gray-100 p-2 rounded-full mr-3">
-                  <Settings className="h-4 w-4 text-gray-600" />
+              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" variant="outline" onClick={() => router.push('/admin/settings')}>
+                <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl mr-3">
+                  <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-semibold">System Settings</span>
-                  <span className="text-xs text-muted-foreground">Configure platform</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">System Settings</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Configure platform</span>
                 </div>
               </Button>
             </CardContent>
@@ -484,23 +486,23 @@ export function AdminDashboardClient() {
         analytics?.topEvents?.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Your Events</h2>
-              <Button variant="outline" size="sm" onClick={() => router.push('/events')}>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-200">Your Events</h2>
+              <Button variant="outline" size="sm" className="rounded-xl border-slate-200 dark:border-slate-700" onClick={() => router.push('/events')}>
                 View All
               </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {analytics.topEvents.map((event: any) => (
-                <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow border-l-4 border-l-indigo-500">
-                  <CardHeader className="pb-3 bg-gray-50/50">
+                <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border-l-4 border-l-violet-500">
+                  <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex justify-between items-start gap-2">
-                      <CardTitle className="text-lg font-semibold line-clamp-1" title={event.name}>
+                      <CardTitle className="text-lg font-semibold line-clamp-1 text-slate-800 dark:text-slate-200" title={event.name}>
                         {event.name}
                       </CardTitle>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${event.status === 'LIVE' ? 'bg-green-50 text-green-700 border-green-200' :
-                        event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                          'bg-blue-50 text-blue-700 border-blue-200'
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${event.status === 'LIVE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' :
+                        event.status === 'DRAFT' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' :
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                         }`}>
                         {event.status || 'DRAFT'}
                       </span>

@@ -12,39 +12,43 @@ interface StatsCardProps {
   href?: string;
 }
 
-// Color schemes for different card types - Light, subtle pastels (NO YELLOW)
+// Modern color schemes - Light pastel backgrounds with vibrant accents
 const cardStyles = [
   {
-    // Soft Lavender - light purple
-    bg: 'bg-gradient-to-br from-purple-50 via-purple-100 to-indigo-100 dark:from-purple-100 dark:via-purple-200 dark:to-indigo-200',
-    iconBg: 'bg-purple-200/40 group-hover:bg-purple-200/60',
-    textColor: 'text-purple-900',
-    iconColor: 'text-purple-600',
-    descColor: 'text-purple-700',
+    // Violet/Purple - Primary brand color
+    bg: 'bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-950/40 dark:to-purple-900/30',
+    iconBg: 'bg-violet-100 dark:bg-violet-900/50',
+    textColor: 'text-violet-700 dark:text-violet-300',
+    iconColor: 'text-violet-600 dark:text-violet-400',
+    descColor: 'text-violet-600/80 dark:text-violet-400/80',
+    border: 'border-violet-200/50 dark:border-violet-800/50',
   },
   {
-    // Soft Mint - light green
-    bg: 'bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 dark:from-emerald-100 dark:via-teal-100 dark:to-green-200',
-    iconBg: 'bg-emerald-200/40 group-hover:bg-emerald-200/60',
-    textColor: 'text-emerald-900',
-    iconColor: 'text-emerald-600',
-    descColor: 'text-emerald-700',
+    // Cyan/Teal - Fresh and modern
+    bg: 'bg-gradient-to-br from-cyan-50 to-teal-100 dark:from-cyan-950/40 dark:to-teal-900/30',
+    iconBg: 'bg-cyan-100 dark:bg-cyan-900/50',
+    textColor: 'text-cyan-700 dark:text-cyan-300',
+    iconColor: 'text-cyan-600 dark:text-cyan-400',
+    descColor: 'text-cyan-600/80 dark:text-cyan-400/80',
+    border: 'border-cyan-200/50 dark:border-cyan-800/50',
   },
   {
-    // Soft Sky Blue - light blue
-    bg: 'bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 dark:from-blue-100 dark:via-sky-100 dark:to-cyan-200',
-    iconBg: 'bg-blue-200/40 group-hover:bg-blue-200/60',
-    textColor: 'text-blue-900',
-    iconColor: 'text-blue-600',
-    descColor: 'text-blue-700',
+    // Rose/Pink - Warm accent
+    bg: 'bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-950/40 dark:to-pink-900/30',
+    iconBg: 'bg-rose-100 dark:bg-rose-900/50',
+    textColor: 'text-rose-700 dark:text-rose-300',
+    iconColor: 'text-rose-600 dark:text-rose-400',
+    descColor: 'text-rose-600/80 dark:text-rose-400/80',
+    border: 'border-rose-200/50 dark:border-rose-800/50',
   },
   {
-    // Soft Rose - light pink (NO YELLOW!)
-    bg: 'bg-gradient-to-br from-rose-50 via-pink-50 to-rose-100 dark:from-rose-100 dark:via-pink-100 dark:to-rose-200',
-    iconBg: 'bg-rose-200/40 group-hover:bg-rose-200/60',
-    textColor: 'text-rose-900',
-    iconColor: 'text-rose-600',
-    descColor: 'text-rose-700',
+    // Amber/Orange - Energetic
+    bg: 'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/40 dark:to-orange-900/30',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/50',
+    textColor: 'text-amber-700 dark:text-amber-300',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+    descColor: 'text-amber-600/80 dark:text-amber-400/80',
+    border: 'border-amber-200/50 dark:border-amber-800/50',
   },
 ];
 
@@ -52,7 +56,7 @@ const cardStyles = [
 function getCardStyle(title: string) {
   if (title.includes('Total Events') || title.includes('Event')) return cardStyles[0];
   if (title.includes('Upcoming') || title.includes('Team') || title.includes('User')) return cardStyles[1];
-  if (title.includes('Total Users') || title.includes('Registration')) return cardStyles[2];
+  if (title.includes('RSVP') || title.includes('Registration')) return cardStyles[2];
   return cardStyles[3]; // Default for Company/Others
 }
 
@@ -77,23 +81,24 @@ export function StatsCard({
     <Card
       className={cn(
         style.bg,
-        'rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200/50 group',
+        style.border,
+        'rounded-2xl border shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group overflow-hidden',
         href && 'cursor-pointer',
         className
       )}
       onClick={handleClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-4">
-        <CardTitle className={cn('text-sm font-medium', style.descColor)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5 px-5">
+        <CardTitle className={cn('text-sm font-semibold tracking-wide uppercase', style.descColor)}>
           {title}
         </CardTitle>
-        <div className={cn('p-2 rounded-lg transition-all', style.iconBg)}>
-          <Icon className={cn('h-4 w-4', style.iconColor)} />
+        <div className={cn('p-2.5 rounded-xl transition-all shadow-sm', style.iconBg)}>
+          <Icon className={cn('h-5 w-5', style.iconColor)} />
         </div>
       </CardHeader>
-      <CardContent className="pb-4">
-        <div className={cn('text-2xl font-bold mb-1', style.textColor)}>{value}</div>
-        <p className={cn('text-xs', style.descColor)}>
+      <CardContent className="pb-5 px-5">
+        <div className={cn('text-3xl font-bold mb-1 tracking-tight', style.textColor)}>{value}</div>
+        <p className={cn('text-sm font-medium', style.descColor)}>
           {description}
         </p>
       </CardContent>

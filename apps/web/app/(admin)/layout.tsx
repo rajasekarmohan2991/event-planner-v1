@@ -47,16 +47,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebar()
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20">
+    <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
       {/* Sidebar - fixed positioning */}
       <AdminSidebar />
 
       {/* Main Content - dynamically adjusts to sidebar width */}
-      <main className={`flex-1 transition-all duration-300 min-h-[calc(100vh-4rem)] ${isCollapsed ? 'lg:ml-20' : 'lg:ml-72'
+      <main className={`flex-1 transition-all duration-300 min-h-[calc(100vh-4rem)] ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}>
-        <div className="min-h-[calc(100vh-4rem)] bg-white/60 backdrop-blur-sm">
+        <div className="min-h-[calc(100vh-4rem)]">
           <PageTransition>
-            <div className="p-3 lg:p-4 xl:p-6 max-w-full">
+            <div className="p-4 lg:p-6 xl:p-8 max-w-full">
               {children}
             </div>
           </PageTransition>
