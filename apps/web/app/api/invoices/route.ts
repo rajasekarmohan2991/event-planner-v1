@@ -161,6 +161,9 @@ export async function POST(req: NextRequest) {
         // Create invoice using raw SQL
         const invoiceId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
+        // Convert eventId to BigInt if provided
+        const eventIdBigInt = eventId ? BigInt(eventId) : null;
+        
         await prisma.$executeRawUnsafe(`
             INSERT INTO invoices (
                 id, tenant_id, event_id, number, date, due_date,
@@ -175,12 +178,12 @@ export async function POST(req: NextRequest) {
                 $19, $20, $21, $22, NOW(), NOW()
             )
         `,
-            invoiceId, tenantId, eventId || null, invoiceNumber,
+            invoiceId, tenantId, eventIdBigInt, invoiceNumber,
             new Date(date), new Date(dueDate),
-            recipientType, recipientId, recipientName, recipientEmail,
+            recipientType, recipientId || null, recipientName, recipientEmail,
             recipientAddress, recipientTaxId, currency || "USD", "DRAFT",
             subtotal, taxTotal, discountTotal, grandTotal,
-            notes, terms, isSigned || false, signatureUrl
+            notes || null, terms || null, isSigned || false, signatureUrl || null
         );
 
         // Insert line items
@@ -197,7 +200,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        return NextResponse.json({ success: true, invoiceId, invoiceNumber });
+        // Generate PDF URL
+        const baseUrl = process.env.NEXTAUTH_URL || 'https://aypheneventplanner.vercel.app';
+        const pdfUrl = `${baseUrl}/api/finance/invoices/${invoiceId}/pdf`;
+
+        return NextResponse.json({ 
+            success: true, 
+            invoiceId, 
+            invoiceNumber,
+            pdfUrl,
+            message: 'Invoice created successfully'
+        });
     } catch (error: any) {
         console.error("❌ [INVOICES] Failed to create invoice:", error);
         console.error("❌ [INVOICES] Error details:", error.message);
