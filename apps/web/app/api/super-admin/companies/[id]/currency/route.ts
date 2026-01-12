@@ -35,18 +35,34 @@ export async function PATCH(
             );
         }
 
-        // Update tenant currency
-        const updatedTenant = await prisma.tenant.update({
-            where: { id: companyId },
-            data: { currency },
-        });
+        // Update tenant currency using raw SQL
+        await prisma.$executeRaw`
+            UPDATE tenants 
+            SET currency = ${currency}, updated_at = NOW()
+            WHERE id = ${companyId}
+        `;
+
+        // Fetch updated tenant
+        const updatedTenant = await prisma.$queryRaw<any[]>`
+            SELECT id, name, currency
+            FROM tenants
+            WHERE id = ${companyId}
+            LIMIT 1
+        `;
+
+        if (!updatedTenant || updatedTenant.length === 0) {
+            return NextResponse.json(
+                { error: 'Company not found' },
+                { status: 404 }
+            );
+        }
 
         return NextResponse.json({
             success: true,
             tenant: {
-                id: updatedTenant.id,
-                name: updatedTenant.name,
-                currency: updatedTenant.currency,
+                id: updatedTenant[0].id,
+                name: updatedTenant[0].name,
+                currency: updatedTenant[0].currency,
             },
         });
     } catch (error: any) {

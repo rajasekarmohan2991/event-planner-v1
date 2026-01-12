@@ -64,19 +64,19 @@ export async function PATCH(req: NextRequest) {
 
     // Update super-admin tenant currency as global default using raw SQL
     // First check if super-admin tenant exists
-    const existing: any[] = await prisma.$queryRawUnsafe(`
+    const existing: any[] = await prisma.$queryRaw`
       SELECT id FROM tenants WHERE slug = 'super-admin' LIMIT 1
-    `);
+    `;
     
     if (existing.length > 0) {
-      await prisma.$executeRawUnsafe(`
-        UPDATE tenants SET currency = $1, updated_at = NOW() WHERE slug = 'super-admin'
-      `, globalCurrency);
+      await prisma.$executeRaw`
+        UPDATE tenants SET currency = ${globalCurrency}, updated_at = NOW() WHERE slug = 'super-admin'
+      `;
     } else {
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw`
         INSERT INTO tenants (slug, name, subdomain, currency, plan, status, created_at, updated_at)
-        VALUES ('super-admin', 'Super Admin', 'super-admin', $1, 'ENTERPRISE', 'ACTIVE', NOW(), NOW())
-      `, globalCurrency);
+        VALUES ('super-admin', 'Super Admin', 'super-admin', ${globalCurrency}, 'ENTERPRISE', 'ACTIVE', NOW(), NOW())
+      `;
     }
 
     const updatedSettings = {

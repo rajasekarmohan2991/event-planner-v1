@@ -19,60 +19,25 @@ export async function POST(
     const params = 'then' in context.params ? await context.params : context.params
     const invoiceId = params.id
 
-    // Get invoice details using raw SQL
-    const invoices = await prisma.$queryRawUnsafe<any[]>(`
+    // Get invoice details using raw SQL with new schema
+    const invoices = await prisma.$queryRaw<any[]>`
       SELECT 
-        i.id, i.invoice_number, i.entity_type, i.entity_id, i.event_id,
-        i.amount, i.tax, i.total, i.status, i.invoice_date, i.due_date,
+        i.id, i.number, i.recipient_type, i.recipient_name, i.recipient_email,
+        i.grand_total, i.status, i.date, i.due_date, i.event_id,
         e.name as event_name
       FROM invoices i
-      LEFT JOIN events e ON i.event_id = e.id::text
-      WHERE i.id = $1
+      LEFT JOIN events e ON i.event_id = e.id
+      WHERE i.id = ${invoiceId}
       LIMIT 1
-    `, invoiceId)
+    `;
 
     if (invoices.length === 0) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
     const invoice = invoices[0]
-
-    // Get recipient details based on entity type
-    let recipientEmail = ''
-    let recipientName = ''
-    let entityDetails: any = null
-
-    if (invoice.entity_type === 'VENDOR') {
-      const vendors = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT contact_email, contact_name, name
-        FROM event_vendors
-        WHERE id = $1
-        LIMIT 1
-      `, invoice.entity_id)
-      entityDetails = vendors[0]
-      recipientEmail = entityDetails?.contact_email
-      recipientName = entityDetails?.contact_name || entityDetails?.name
-    } else if (invoice.entity_type === 'SPONSOR') {
-      const sponsors = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT contact_email, contact_name, name
-        FROM sponsors
-        WHERE id = $1
-        LIMIT 1
-      `, invoice.entity_id)
-      entityDetails = sponsors[0]
-      recipientEmail = entityDetails?.contact_email
-      recipientName = entityDetails?.contact_name || entityDetails?.name
-    } else if (invoice.entity_type === 'EXHIBITOR') {
-      const exhibitors = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT contact_email, contact_name, name
-        FROM exhibitor_registrations
-        WHERE id = $1
-        LIMIT 1
-      `, invoice.entity_id)
-      entityDetails = exhibitors[0]
-      recipientEmail = entityDetails?.contact_email
-      recipientName = entityDetails?.contact_name || entityDetails?.name
-    }
+    const recipientEmail = invoice.recipient_email
+    const recipientName = invoice.recipient_name
 
     if (!recipientEmail) {
       return NextResponse.json({ error: 'Recipient email not found' }, { status: 400 })
@@ -82,7 +47,7 @@ export async function POST(
     const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoiceId}`
 
     // Send email with payment link
-    const emailSubject = `Payment Request - Invoice ${invoice.invoice_number}`
+    const emailSubject = `Payment Request - Invoice ${invoice.number}`
     const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a1a1a;">Payment Request</h2>
@@ -91,8 +56,8 @@ export async function POST(
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Invoice Details</h3>
-          <p><strong>Invoice Number:</strong> ${invoice.invoice_number}</p>
-          <p><strong>Amount:</strong> ₹${Number(invoice.total).toLocaleString()}</p>
+          <p><strong>Invoice Number:</strong> ${invoice.number}</p>
+          <p><strong>Amount:</strong> ₹${Number(invoice.grand_total).toLocaleString()}</p>
           <p><strong>Due Date:</strong> ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</p>
           <p><strong>Status:</strong> ${invoice.status}</p>
         </div>
@@ -123,23 +88,25 @@ export async function POST(
 
     // Update invoice status to SENT if it was DRAFT
     if (invoice.status === 'DRAFT' || invoice.status === 'PENDING') {
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw`
         UPDATE invoices 
         SET status = 'SENT', updated_at = NOW()
-        WHERE id = $1
-      `, invoiceId)
+        WHERE id = ${invoiceId}
+      `
     }
 
-    // Log the payment link send
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO invoice_activity_log (
-        id, invoice_id, action, details, created_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'PAYMENT_LINK_SENT', $2, NOW()
-      )
-    `, invoiceId, JSON.stringify({ email: recipientEmail, link: paymentLink })).catch(() => {
-      console.log('Activity log table may not exist')
-    })
+    // Log the payment link send (optional - table may not exist)
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO invoice_activity_log (
+          id, invoice_id, action, details, created_at
+        ) VALUES (
+          gen_random_uuid(), ${invoiceId}, 'PAYMENT_LINK_SENT', ${JSON.stringify({ email: recipientEmail, link: paymentLink })}, NOW()
+        )
+      `
+    } catch (logError) {
+      console.log('Activity log table may not exist, skipping log')
+    }
 
     return NextResponse.json({
       success: true,

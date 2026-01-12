@@ -4,8 +4,11 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ensureSchema } from "@/lib/ensure-schema";
 
-// GET /api/super-admin/finance/invoices - Get all invoices across all companies
-export async function GET(req: NextRequest) {
+// GET /api/super-admin/companies/[id]/invoices - Get all invoices for a specific company
+export async function GET(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,18 +20,10 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        // Get super-admin tenant ID
-        const superAdminTenant = await prisma.$queryRaw<any[]>`
-            SELECT id FROM tenants WHERE slug = 'super-admin' LIMIT 1
-        `;
-        
-        const superAdminTenantId = superAdminTenant[0]?.id;
-        
-        if (!superAdminTenantId) {
-            return NextResponse.json({ invoices: [] });
-        }
+        const params = 'then' in context.params ? await context.params : context.params;
+        const companyId = params.id;
 
-        // Only fetch invoices created by super-admin tenant
+        // Fetch invoices for this specific company
         const invoices = await prisma.$queryRawUnsafe<any[]>(`
             SELECT 
                 i.id, i.number, i.recipient_type, i.recipient_name, i.recipient_email,
@@ -42,7 +37,7 @@ export async function GET(req: NextRequest) {
             FROM invoices i
             LEFT JOIN tenants t ON i.tenant_id = t.id
             LEFT JOIN events e ON i.event_id = e.id
-            WHERE i.tenant_id = '${superAdminTenantId}'
+            WHERE i.tenant_id = '${companyId}'
             ORDER BY i.created_at DESC
         `);
 
@@ -83,7 +78,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ invoices: transformedInvoices });
     } catch (error: any) {
-        console.error("Failed to fetch invoices:", error);
+        console.error("Failed to fetch company invoices:", error);
         
         // If table doesn't exist, create it and return empty array
         if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
@@ -103,24 +98,4 @@ export async function GET(req: NextRequest) {
             invoices: []
         }, { status: 500 });
     }
-}
-
-function determineStatus(invoice: any): string {
-    // Check if overdue
-    if (invoice.status !== "PAID" && new Date(invoice.dueDate) < new Date()) {
-        return "OVERDUE";
-    }
-
-    // Check payment status
-    const totalPaid = invoice.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
-
-    if (totalPaid >= invoice.grandTotal) {
-        return "PAID";
-    } else if (totalPaid > 0) {
-        return "PARTIAL";
-    } else if (invoice.status === "SENT") {
-        return "PENDING";
-    }
-
-    return invoice.status;
 }
