@@ -97,8 +97,22 @@ export default function InvoiceDetailPage() {
     }
 
     async function handleSendEmail() {
-        // TODO: Implement email sending
-        alert("Email functionality coming soon!");
+        try {
+            const res = await fetch(`/api/invoices/${invoiceId}/send-payment-link`, {
+                method: 'POST'
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                alert(`✅ Payment link sent successfully to ${data.sentTo}`);
+            } else {
+                const error = await res.json();
+                alert(`❌ Failed to send email: ${error.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Failed to send email:', error);
+            alert('❌ Failed to send email. Please try again.');
+        }
     }
 
     function formatCurrency(amount: number) {

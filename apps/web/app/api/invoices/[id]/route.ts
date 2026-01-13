@@ -18,8 +18,8 @@ export async function GET(
     const { id } = params;
 
     try {
-        // Fetch invoice using raw SQL
-        const invoices = await prisma.$queryRawUnsafe<any[]>(`
+        // Fetch invoice using raw SQL with template literals
+        const invoices = await prisma.$queryRaw<any[]>`
             SELECT 
                 i.*,
                 t.name as tenant_name,
@@ -28,8 +28,8 @@ export async function GET(
             FROM invoices i
             LEFT JOIN tenants t ON i.tenant_id = t.id
             LEFT JOIN events e ON i.event_id = e.id
-            WHERE i.id = $1
-        `, id);
+            WHERE i.id = ${id}
+        `;
 
         if (invoices.length === 0) {
             return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
@@ -38,28 +38,64 @@ export async function GET(
         const invoice = invoices[0];
 
         // Fetch line items
-        const items = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT * FROM invoice_line_items WHERE invoice_id = $1 ORDER BY id
-        `, id);
+        const items = await prisma.$queryRaw<any[]>`
+            SELECT * FROM invoice_line_items WHERE invoice_id = ${id} ORDER BY id
+        `;
 
         // Fetch payments
-        const payments = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT * FROM payment_records WHERE invoice_id = $1 ORDER BY created_at DESC
-        `, id);
+        const payments = await prisma.$queryRaw<any[]>`
+            SELECT * FROM payment_records WHERE invoice_id = ${id} ORDER BY created_at DESC
+        `;
 
         // Fetch receipts
-        const receipts = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT * FROM receipts WHERE invoice_id = $1
-        `, id);
+        const receipts = await prisma.$queryRaw<any[]>`
+            SELECT * FROM receipts WHERE invoice_id = ${id}
+        `;
 
-        return NextResponse.json({ 
-            invoice: {
-                ...invoice,
-                items,
-                payments,
-                receipts
-            }
-        });
+        // Map snake_case to camelCase for frontend
+        const mappedInvoice = {
+            id: invoice.id,
+            number: invoice.number,
+            date: invoice.date,
+            dueDate: invoice.due_date,
+            recipientType: invoice.recipient_type,
+            recipientName: invoice.recipient_name,
+            recipientEmail: invoice.recipient_email,
+            recipientAddress: invoice.recipient_address,
+            recipientTaxId: invoice.recipient_tax_id,
+            status: invoice.status,
+            currency: invoice.currency || 'USD',
+            subtotal: parseFloat(invoice.subtotal || 0),
+            taxTotal: parseFloat(invoice.tax_total || 0),
+            discountTotal: parseFloat(invoice.discount_total || 0),
+            grandTotal: parseFloat(invoice.grand_total || 0),
+            notes: invoice.notes,
+            terms: invoice.terms,
+            isSigned: invoice.is_signed,
+            signatureUrl: invoice.signature_url,
+            tenantId: invoice.tenant_id,
+            eventId: invoice.event_id,
+            event: invoice.event_name ? { id: invoice.event_id, name: invoice.event_name } : null,
+            tenant: invoice.tenant_name ? { name: invoice.tenant_name, logo: invoice.tenant_logo } : null,
+            items: items.map((item: any) => ({
+                id: item.id,
+                description: item.description,
+                quantity: parseFloat(item.quantity || 0),
+                unitPrice: parseFloat(item.unit_price || 0),
+                taxRate: parseFloat(item.tax_rate || 0),
+                total: parseFloat(item.total || 0)
+            })),
+            payments: payments.map((p: any) => ({
+                id: p.id,
+                amount: parseFloat(p.amount || 0),
+                method: p.method,
+                date: p.created_at,
+                receipt: p.receipt_number ? { number: p.receipt_number } : null
+            })),
+            receipts: receipts
+        };
+
+        return NextResponse.json({ invoice: mappedInvoice });
     } catch (error: any) {
         console.error("Failed to fetch invoice:", error);
         
@@ -97,12 +133,12 @@ export async function PATCH(
         const body = await req.json();
         const { status, notes, terms } = body;
 
-        // Update using raw SQL
-        await prisma.$executeRawUnsafe(`
+        // Update using raw SQL with template literals
+        await prisma.$executeRaw`
             UPDATE invoices 
-            SET status = $1, notes = $2, terms = $3, updated_at = NOW()
-            WHERE id = $4
-        `, status, notes, terms, id);
+            SET status = ${status}, notes = ${notes}, terms = ${terms}, updated_at = NOW()
+            WHERE id = ${id}
+        `;
 
         // Fetch updated invoice
         const invoices = await prisma.$queryRawUnsafe<any[]>(`

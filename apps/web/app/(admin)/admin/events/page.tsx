@@ -260,7 +260,7 @@ export default function EventsPage() {
                             {/* Card Header */}
                             <div className="p-6 flex-1">
                                 <div className="flex items-start justify-between mb-3">
-                                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                                    <h3 className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
                                         {event.name}
                                     </h3>
                                     <span className={`ml-2 px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700' :
