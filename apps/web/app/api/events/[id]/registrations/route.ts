@@ -209,7 +209,7 @@ export async function POST(
 
     // Calculate complete pricing with tax and convenience fees
     const { calculateCompletePricing } = await import('@/lib/convenience-fee-calculator')
-    
+
     let pricingBreakdown
     let taxAmount = 0
     let convenienceFee = 0
@@ -222,11 +222,11 @@ export async function POST(
         itemType: 'TICKET',
         quantity: quantity
       })
-      
+
       taxAmount = pricingBreakdown.tax
       convenienceFee = pricingBreakdown.convenienceFee
       finalAmount = pricingBreakdown.total
-      
+
       console.log('💰 Pricing breakdown:', {
         basePrice,
         discount: discountAmount,
@@ -253,9 +253,12 @@ export async function POST(
       userId: userId ? String(userId) : null,
       registeredAt: new Date().toISOString(),
       status: 'CONFIRMED',
-      totalPrice,
+      totalPrice: basePrice,
       finalAmount,
-      promoCode
+      promoCode,
+      discountAmount,
+      taxAmount,
+      convenienceFee
     }
 
     console.log('💾 Starting registration (simplified):', {
@@ -282,7 +285,7 @@ export async function POST(
       const registrationDataJson = JSON.stringify(registrationData)
       const eventIdStr = eventIdBigInt.toString()
       const ticketIdStr = ticketId ? String(ticketId) : null
-      
+
       await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
@@ -363,7 +366,7 @@ export async function POST(
             INSERT INTO promo_redemptions (
                 promo_code_id, user_id, order_amount, discount_amount, redeemed_at
             ) VALUES (
-                ${promoCodeId}, ${userIdStr}, ${totalPrice}, ${discountAmount}, NOW()
+                ${promoCodeId}, ${userIdStr}, ${basePrice}, ${discountAmount}, NOW()
             )
         `
       } catch (e: any) {
