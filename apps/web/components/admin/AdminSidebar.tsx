@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity, CreditCard, Wallet } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity, CreditCard, Wallet, Receipt, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -81,6 +81,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // This is the "Landing" view requested by the user
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
+        { name: 'Tax Templates', href: '/super-admin/tax-templates', icon: Globe },
         { name: 'Settings', href: '/super-admin/settings', icon: Settings }
       )
     }
@@ -100,6 +101,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     baseNavigation.push({ name: 'Users', href: '/admin/users', icon: Users })
     // Add Finance for company admins
     baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
+    // Add Tax Settings for company admins
+    baseNavigation.push({ name: 'Tax Settings', href: '/admin/settings/tax', icon: Receipt })
   }
 
   baseNavigation.push({ name: 'Settings', href: '/admin/settings', icon: Settings })

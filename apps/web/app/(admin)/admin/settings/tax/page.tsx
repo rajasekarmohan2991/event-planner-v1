@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
     Plus,
     Trash2,
@@ -11,9 +11,10 @@ import {
     Save,
     X,
     Globe,
-    ArrowRight,
-    Link2,
-    Sparkles
+    Sparkles,
+    Receipt,
+    Settings,
+    Link2
 } from "lucide-react";
 import BackButton from "@/components/ui/back-button";
 
@@ -44,9 +45,8 @@ interface GlobalTaxTemplate {
     isActive: boolean;
 }
 
-export default function TaxStructuresPage() {
-    const params = useParams();
-    const router = useRouter();
+export default function CompanyTaxSettingsPage() {
+    const { data: session, status } = useSession();
     const [taxes, setTaxes] = useState<TaxStructure[]>([]);
     const [globalTemplates, setGlobalTemplates] = useState<GlobalTaxTemplate[]>([]);
     const [loading, setLoading] = useState(true);
@@ -63,19 +63,19 @@ export default function TaxStructuresPage() {
         globalTemplateId: ""
     });
 
-    // Handle both array and string params
-    const companyId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+    const tenantId = (session?.user as any)?.tenantId;
 
     useEffect(() => {
-        if (companyId) {
+        if (tenantId) {
             fetchTaxes();
             fetchGlobalTemplates();
         }
-    }, [companyId]);
+    }, [tenantId]);
 
     async function fetchTaxes() {
+        if (!tenantId) return;
         try {
-            const res = await fetch(`/api/super-admin/companies/${companyId}/tax-structures`);
+            const res = await fetch(`/api/company/tax-structures`);
             if (res.ok) {
                 const data = await res.json();
                 setTaxes(data.taxes || []);
@@ -89,7 +89,7 @@ export default function TaxStructuresPage() {
 
     async function fetchGlobalTemplates() {
         try {
-            const res = await fetch("/api/super-admin/tax-templates");
+            const res = await fetch("/api/company/global-tax-templates");
             if (res.ok) {
                 const data = await res.json();
                 setGlobalTemplates(data.templates || []);
@@ -105,7 +105,6 @@ export default function TaxStructuresPage() {
             let payload: any;
 
             if (mode === "template" && formData.globalTemplateId) {
-                // Using a global template
                 const template = globalTemplates.find((t) => t.id === formData.globalTemplateId);
                 payload = {
                     name: template?.name || formData.name,
@@ -116,7 +115,6 @@ export default function TaxStructuresPage() {
                     isCustom: false
                 };
             } else {
-                // Custom tax structure
                 payload = {
                     name: formData.name,
                     rate: parseFloat(formData.rate),
@@ -128,20 +126,20 @@ export default function TaxStructuresPage() {
             }
 
             if (editingId) {
-                const res = await fetch(
-                    `/api/super-admin/companies/${companyId}/tax-structures/${editingId}`,
-                    {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    }
-                );
+                const res = await fetch(`/api/company/tax-structures/${editingId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
                 if (res.ok) {
                     resetForm();
                     fetchTaxes();
+                } else {
+                    const err = await res.json();
+                    alert(err.message || "Failed to update tax");
                 }
             } else {
-                const res = await fetch(`/api/super-admin/companies/${companyId}/tax-structures`, {
+                const res = await fetch(`/api/company/tax-structures`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -149,6 +147,9 @@ export default function TaxStructuresPage() {
                 if (res.ok) {
                     resetForm();
                     fetchTaxes();
+                } else {
+                    const err = await res.json();
+                    alert(err.message || "Failed to create tax");
                 }
             }
         } catch (error) {
@@ -159,7 +160,7 @@ export default function TaxStructuresPage() {
     async function handleDelete(id: string) {
         if (!confirm("Delete this tax structure?")) return;
         try {
-            await fetch(`/api/super-admin/companies/${companyId}/tax-structures/${id}`, {
+            await fetch(`/api/company/tax-structures/${id}`, {
                 method: "DELETE"
             });
             fetchTaxes();
@@ -223,16 +224,30 @@ export default function TaxStructuresPage() {
         return code ? flags[code] || "🌍" : "🌍";
     };
 
+    if (status === "loading" || loading) {
+        return (
+            <div className="p-6 flex justify-center items-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 max-w-5xl mx-auto">
             <div className="mb-6">
-                <BackButton fallbackUrl={`/super-admin/companies/${companyId}`} />
+                <BackButton fallbackUrl="/admin/settings" />
             </div>
 
-            <div className="flex justify-between items-center mb-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Tax Structures</h1>
-                    <p className="text-gray-500">Manage tax rates and structures for this company</p>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <Receipt className="w-7 h-7 text-indigo-600" />
+                        Tax Settings
+                    </h1>
+                    <p className="text-gray-500 mt-1">
+                        Configure tax structures for your company. Apply to invoices, registrations, and payments.
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -240,7 +255,7 @@ export default function TaxStructuresPage() {
                         setEditingId(null);
                         resetForm();
                     }}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
                 >
                     <Plus className="w-4 h-4" />
                     Add Tax Structure
@@ -293,38 +308,43 @@ export default function TaxStructuresPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Select Global Template
                                     </label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {globalTemplates.map((template) => (
-                                            <div
-                                                key={template.id}
-                                                onClick={() => handleTemplateSelect(template.id)}
-                                                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.globalTemplateId === template.id
-                                                        ? "border-indigo-500 bg-indigo-50"
-                                                        : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium text-gray-900">{template.name}</span>
-                                                    <span className="text-lg">
-                                                        {getCountryFlag(template.countryCode)}
-                                                    </span>
-                                                </div>
-                                                <div className="text-sm text-gray-500 mt-1">{template.taxType}</div>
-                                                <div className="text-lg font-bold text-indigo-600 mt-2">
-                                                    {template.rate}%
-                                                </div>
-                                                {formData.globalTemplateId === template.id && (
-                                                    <div className="flex items-center gap-1 text-indigo-600 text-sm mt-2">
-                                                        <Check className="w-4 h-4" /> Selected
+                                    {globalTemplates.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {globalTemplates.map((template) => (
+                                                <div
+                                                    key={template.id}
+                                                    onClick={() => handleTemplateSelect(template.id)}
+                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.globalTemplateId === template.id
+                                                            ? "border-indigo-500 bg-indigo-50"
+                                                            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-medium text-gray-900">{template.name}</span>
+                                                        <span className="text-lg">
+                                                            {getCountryFlag(template.countryCode)}
+                                                        </span>
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {globalTemplates.length === 0 && (
-                                        <p className="text-gray-500 text-center py-4">
-                                            No global templates available. Ask Super Admin to create some.
-                                        </p>
+                                                    <div className="text-sm text-gray-500 mt-1">{template.taxType}</div>
+                                                    <div className="text-lg font-bold text-indigo-600 mt-2">
+                                                        {template.rate}%
+                                                    </div>
+                                                    {formData.globalTemplateId === template.id && (
+                                                        <div className="flex items-center gap-1 text-indigo-600 text-sm mt-2">
+                                                            <Check className="w-4 h-4" /> Selected
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                                            <Globe className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                            <p className="text-gray-500">No global templates available.</p>
+                                            <p className="text-sm text-gray-400 mt-1">
+                                                Contact your administrator to add global tax templates.
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             </>
@@ -334,7 +354,7 @@ export default function TaxStructuresPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Tax Name
+                                            Tax Name *
                                         </label>
                                         <input
                                             required
@@ -347,12 +367,14 @@ export default function TaxStructuresPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Rate (%)
+                                            Rate (%) *
                                         </label>
                                         <input
                                             required
                                             type="number"
                                             step="0.01"
+                                            min="0"
+                                            max="100"
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                             placeholder="18.0"
                                             value={formData.rate}
@@ -386,11 +408,11 @@ export default function TaxStructuresPage() {
                                 className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                             />
                             <label htmlFor="isDefault" className="text-sm text-gray-700">
-                                Set as default tax structure
+                                Set as default tax structure (applied automatically to new invoices)
                             </label>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-2">
+                        <div className="flex justify-end gap-3 pt-4 border-t">
                             <button
                                 type="button"
                                 onClick={resetForm}
@@ -401,7 +423,7 @@ export default function TaxStructuresPage() {
                             <button
                                 type="submit"
                                 disabled={mode === "template" && !formData.globalTemplateId}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Save className="w-4 h-4" />
                                 {editingId ? "Update Tax" : "Create Tax"}
@@ -413,13 +435,21 @@ export default function TaxStructuresPage() {
 
             {/* List Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {loading ? (
-                    <div className="p-12 flex justify-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-                    </div>
-                ) : taxes.length === 0 ? (
+                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                    <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-gray-500" />
+                        Your Tax Structures
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                        These taxes will be available for selection in invoices and registrations.
+                    </p>
+                </div>
+
+                {taxes.length === 0 ? (
                     <div className="p-12 text-center text-gray-500">
-                        <p>No tax structures defined yet.</p>
+                        <Receipt className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                        <p className="font-medium">No tax structures configured</p>
+                        <p className="text-sm mt-1">Add a tax structure to get started</p>
                     </div>
                 ) : (
                     <table className="w-full text-left">
@@ -491,6 +521,32 @@ export default function TaxStructuresPage() {
                         </tbody>
                     </table>
                 )}
+            </div>
+
+            {/* Info Panel */}
+            <div className="mt-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                <h3 className="font-semibold text-gray-900 mb-3">💡 Tax Settings Tips</h3>
+                <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start gap-2">
+                        <span className="text-indigo-600">•</span>
+                        <span>
+                            <strong>Global Templates</strong> are pre-configured by system administrators and automatically
+                            update when tax rates change.
+                        </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-purple-600">•</span>
+                        <span>
+                            <strong>Custom Taxes</strong> give you full control over the tax name, rate, and description.
+                        </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                        <span className="text-green-600">•</span>
+                        <span>
+                            Set one tax as <strong>Default</strong> to automatically apply it to new invoices.
+                        </span>
+                    </li>
+                </ul>
             </div>
         </div>
     );

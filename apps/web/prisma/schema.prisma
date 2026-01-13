@@ -1596,20 +1596,65 @@ model ExchangeRate {
   @@map("exchange_rates")
 }
 
+// ==============================
+// Global Tax Templates (Super Admin)
+// ==============================
+
+model GlobalTaxTemplate {
+  id              String    @id @default(cuid())
+  name            String                              // e.g., "GST 18%", "VAT 20%"
+  rate            Float                               // Tax percentage (e.g., 18.0)
+  description     String?
+  taxType         String    @default("GST") @map("tax_type")  // GST, VAT, SALES_TAX, SERVICE_TAX
+  countryCode     String?   @map("country_code")      // ISO 2-letter code (e.g., "IN", "US")
+  
+  // Status & Availability
+  isActive        Boolean   @default(true) @map("is_active")
+  
+  // Effective Date Range (configurable dates)
+  effectiveFrom   DateTime? @map("effective_from")
+  effectiveUntil  DateTime? @map("effective_until")
+  
+  // Application Rules
+  appliesTo       String    @default("ALL") @map("applies_to") // ALL, TICKETS, SPONSORS, EXHIBITORS, VENDORS
+  isCompound      Boolean   @default(false) @map("is_compound") // Compound tax calculation
+  
+  // Audit
+  createdBy       BigInt?   @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  taxStructures   TaxStructure[] // Companies using this template
+  
+  @@index([countryCode])
+  @@index([isActive])
+  @@index([effectiveFrom])
+  @@map("global_tax_templates")
+}
+
 model TaxStructure {
-  id          String   @id @default(cuid())
-  name        String
-  rate        Float
-  description String?
-  isDefault   Boolean  @default(false) @map("is_default")
+  id              String   @id @default(cuid())
+  name            String
+  rate            Float
+  description     String?
+  isDefault       Boolean  @default(false) @map("is_default")
   
-  tenantId    String?  @map("tenant_id")
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Link to global template (optional - if using a global template)
+  globalTemplateId String?  @map("global_template_id")
+  globalTemplate   GlobalTaxTemplate? @relation(fields: [globalTemplateId], references: [id], onDelete: SetNull)
   
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  // Company-specific settings
+  isCustom        Boolean  @default(false) @map("is_custom") // true = custom rate, false = using template
+  
+  tenantId        String?  @map("tenant_id")
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@index([tenantId])
+  @@index([globalTemplateId])
   @@map("tax_structures")
 }
 

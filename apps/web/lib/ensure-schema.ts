@@ -939,7 +939,38 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);`)
 
-    console.log('📝 Step 28: Enhancing tax_structures table...')
+    console.log('📝 Step 28: Creating global_tax_templates table...')
+    
+    // Create global tax templates table for super admin
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS global_tax_templates (
+            id VARCHAR(255) PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            rate DOUBLE PRECISION NOT NULL,
+            description TEXT,
+            tax_type VARCHAR(50) DEFAULT 'GST',
+            country_code VARCHAR(2),
+            
+            is_active BOOLEAN DEFAULT true,
+            
+            effective_from TIMESTAMP,
+            effective_until TIMESTAMP,
+            
+            applies_to VARCHAR(50) DEFAULT 'ALL',
+            is_compound BOOLEAN DEFAULT false,
+            
+            created_by BIGINT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `)
+
+    // Create indexes for global_tax_templates
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_country ON global_tax_templates(country_code);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_active ON global_tax_templates(is_active);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_effective ON global_tax_templates(effective_from);`)
+
+    console.log('📝 Step 29: Enhancing tax_structures table...')
     
     // Add enhanced columns to tax_structures
     await prisma.$executeRawUnsafe(`
@@ -951,10 +982,15 @@ export async function ensureSchema() {
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_from DATE;
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_until DATE;
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS tax_registration_number VARCHAR(100);
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS global_template_id VARCHAR(255);
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
+    
+    // Create index for global template linking
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tax_structures_global_template ON tax_structures(global_template_id);`)
 
-    console.log('📝 Step 29: Creating event_tax_settings table...')
+    console.log('📝 Step 30: Creating event_tax_settings table...')
     
     // Create event tax settings table
     await prisma.$executeRawUnsafe(`
@@ -984,7 +1020,7 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_event ON event_tax_settings(event_id);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_tenant ON event_tax_settings(tenant_id);`)
 
-    console.log('📝 Step 30: Creating convenience_fee_config table...')
+    console.log('📝 Step 31: Creating convenience_fee_config table...')
     
     // Create convenience fee configuration table
     await prisma.$executeRawUnsafe(`

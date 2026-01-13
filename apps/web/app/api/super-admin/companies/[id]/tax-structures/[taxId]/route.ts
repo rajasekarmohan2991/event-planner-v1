@@ -14,7 +14,7 @@ export async function PUT(
 
     try {
         const body = await req.json();
-        const { name, rate, description, isDefault } = body;
+        const { name, rate, description, isDefault, globalTemplateId, isCustom } = body;
 
         // Handle isDefault logic: update others to false
         if (isDefault) {
@@ -24,13 +24,31 @@ export async function PUT(
             });
         }
 
+        // If using a global template, verify it exists
+        if (globalTemplateId) {
+            const template = await prisma.globalTaxTemplate.findUnique({
+                where: { id: globalTemplateId }
+            });
+            if (!template) {
+                return NextResponse.json({
+                    message: 'Global tax template not found',
+                    details: { globalTemplateId }
+                }, { status: 400 });
+            }
+        }
+
         const tax = await prisma.taxStructure.update({
             where: { id: params.taxId },
             data: {
                 name,
                 rate: parseFloat(rate),
                 description,
-                isDefault: isDefault || false
+                isDefault: isDefault || false,
+                globalTemplateId: globalTemplateId || null,
+                isCustom: isCustom === true || !globalTemplateId
+            },
+            include: {
+                globalTemplate: true
             }
         });
 
