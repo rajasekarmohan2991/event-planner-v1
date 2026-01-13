@@ -89,13 +89,23 @@ export default function CompanyTaxSettingsPage() {
 
     async function fetchGlobalTemplates() {
         try {
+            console.log('Fetching global tax templates...');
             const res = await fetch("/api/company/global-tax-templates");
+            console.log('Global templates response status:', res.status);
+
             if (res.ok) {
                 const data = await res.json();
+                console.log('Global templates data:', data);
                 setGlobalTemplates(data.templates || []);
+            } else {
+                console.error('Failed to fetch global templates:', res.status, res.statusText);
+                const errorData = await res.json().catch(() => ({}));
+                console.error('Error details:', errorData);
+                setGlobalTemplates([]);
             }
         } catch (error) {
-            console.error(error);
+            console.error('Error fetching global templates:', error);
+            setGlobalTemplates([]);
         }
     }
 
@@ -280,8 +290,8 @@ export default function CompanyTaxSettingsPage() {
                             type="button"
                             onClick={() => setMode("template")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${mode === "template"
-                                    ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
-                                    : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
+                                ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
+                                : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
                                 }`}
                         >
                             <Globe className="w-4 h-4" />
@@ -291,8 +301,8 @@ export default function CompanyTaxSettingsPage() {
                             type="button"
                             onClick={() => setMode("custom")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${mode === "custom"
-                                    ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
-                                    : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
+                                ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
+                                : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
                                 }`}
                         >
                             <Sparkles className="w-4 h-4" />
@@ -315,8 +325,8 @@ export default function CompanyTaxSettingsPage() {
                                                     key={template.id}
                                                     onClick={() => handleTemplateSelect(template.id)}
                                                     className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.globalTemplateId === template.id
-                                                            ? "border-indigo-500 bg-indigo-50"
-                                                            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                                                        ? "border-indigo-500 bg-indigo-50"
+                                                        : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-between">
