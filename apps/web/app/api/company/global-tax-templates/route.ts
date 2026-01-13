@@ -32,37 +32,51 @@ export async function GET(request: NextRequest) {
 
         const now = new Date();
 
-        // Get active templates, optionally filtered by country
-        const templates = await prisma.globalTaxTemplate.findMany({
-            where: {
-                isActive: true,
-                OR: [
-                    { effectiveFrom: null },
-                    { effectiveFrom: { lte: now } }
-                ],
-                AND: [
-                    {
-                        OR: [
-                            { effectiveUntil: null },
-                            { effectiveUntil: { gte: now } }
-                        ]
-                    }
-                ],
-                // Include both country-specific and global templates
-                ...(countryCode ? {
-                    OR: [
-                        { countryCode },
-                        { countryCode: null }
-                    ]
-                } : {})
-            },
-            orderBy: [
-                { countryCode: "asc" },
-                { name: "asc" }
-            ]
+        // Try to get templates using raw SQL for reliability
+        let templates: any[] = [];
+
+        try {
+            templates = await prisma.$queryRaw`
+                SELECT 
+                    id, name, rate, description, tax_type as "taxType", 
+                    country_code as "countryCode", is_active as "isActive",
+                    effective_from as "effectiveFrom", effective_until as "effectiveUntil",
+                    applies_to as "appliesTo", is_compound as "isCompound"
+                FROM global_tax_templates
+                WHERE is_active = true
+                ORDER BY country_code ASC NULLS LAST, name ASC
+            `;
+        } catch (dbError: any) {
+            console.error("Error querying global_tax_templates:", dbError);
+
+            // If table doesn't exist, return empty array
+            if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+                console.warn("global_tax_templates table does not exist yet");
+                return NextResponse.json({ templates: [] });
+            }
+
+            throw dbError;
+        }
+
+        // Filter by effective dates and country in JavaScript
+        const filteredTemplates = templates.filter((template: any) => {
+            // Check effective dates
+            const effectiveFrom = template.effectiveFrom ? new Date(template.effectiveFrom) : null;
+            const effectiveUntil = template.effectiveUntil ? new Date(template.effectiveUntil) : null;
+
+            const isEffective =
+                (!effectiveFrom || effectiveFrom <= now) &&
+                (!effectiveUntil || effectiveUntil >= now);
+
+            // Check country match (include global templates with null country)
+            const matchesCountry = !countryCode ||
+                !template.countryCode ||
+                template.countryCode === countryCode;
+
+            return isEffective && matchesCountry;
         });
 
-        return NextResponse.json({ templates });
+        return NextResponse.json({ templates: filteredTemplates });
     } catch (error) {
         console.error("Error fetching global tax templates:", error);
         return NextResponse.json(
