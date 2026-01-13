@@ -984,7 +984,38 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_event ON event_tax_settings(event_id);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_tenant ON event_tax_settings(tenant_id);`)
 
-    console.log('✅ Self-healing schema update complete (including finance tables, signatures, and enhanced tax system).')
+    console.log('📝 Step 30: Creating convenience_fee_config table...')
+    
+    // Create convenience fee configuration table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS convenience_fee_config (
+            id VARCHAR(255) PRIMARY KEY,
+            tenant_id VARCHAR(255) NOT NULL,
+            event_id BIGINT,
+            
+            fee_type VARCHAR(20) DEFAULT 'PERCENTAGE',
+            percentage_fee DOUBLE PRECISION DEFAULT 0,
+            fixed_fee DOUBLE PRECISION DEFAULT 0,
+            
+            applies_to VARCHAR(50) DEFAULT 'ALL',
+            pass_fee_to_customer BOOLEAN DEFAULT true,
+            
+            minimum_fee DOUBLE PRECISION,
+            maximum_fee DOUBLE PRECISION,
+            
+            display_name VARCHAR(100) NOT NULL,
+            description TEXT,
+            
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `)
+
+    // Create indexes for convenience_fee_config
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_tenant ON convenience_fee_config(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_event ON convenience_fee_config(event_id);`)
+
+    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, and convenience fees).')
     return true
   } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)

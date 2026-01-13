@@ -47,14 +47,14 @@ export async function PATCH(
         }
 
         // Use raw SQL to avoid any Prisma schema sync issues
-        await prisma.$executeRawUnsafe(`
-            UPDATE tenants SET logo = $1, updated_at = NOW() WHERE id = $2
-        `, logoUrl, params.id);
+        await prisma.$executeRaw`
+            UPDATE tenants SET logo = ${logoUrl}, updated_at = NOW() WHERE id = ${params.id}
+        `;
 
         // Fetch the updated company
-        const companies: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, name, logo FROM tenants WHERE id = $1
-        `, params.id);
+        const companies: any[] = await prisma.$queryRaw`
+            SELECT id, name, logo FROM tenants WHERE id = ${params.id}
+        `;
 
         if (companies.length === 0) {
             return NextResponse.json({ error: "Company not found" }, { status: 404 });
@@ -96,14 +96,14 @@ export async function DELETE(
 
     try {
         // Use raw SQL to avoid Prisma schema sync issues
-        await prisma.$executeRawUnsafe(`
-            UPDATE tenants SET logo = NULL, updated_at = NOW() WHERE id = $1
-        `, params.id);
+        await prisma.$executeRaw`
+            UPDATE tenants SET logo = NULL, updated_at = NOW() WHERE id = ${params.id}
+        `;
 
         // Fetch the updated company
-        const companies: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, name, logo FROM tenants WHERE id = $1
-        `, params.id);
+        const companies: any[] = await prisma.$queryRaw`
+            SELECT id, name, logo FROM tenants WHERE id = ${params.id}
+        `;
 
         return NextResponse.json({ success: true, company: companies[0] || null });
     } catch (error: any) {
