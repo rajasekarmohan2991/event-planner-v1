@@ -939,7 +939,52 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);`)
 
-    console.log('✅ Self-healing schema update complete (including finance tables and signatures).')
+    console.log('📝 Step 28: Enhancing tax_structures table...')
+    
+    // Add enhanced columns to tax_structures
+    await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS country_code VARCHAR(2);
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS tax_type VARCHAR(50) DEFAULT 'STANDARD';
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS is_compound BOOLEAN DEFAULT false;
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS applies_to VARCHAR(50) DEFAULT 'ALL';
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_from DATE;
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS effective_until DATE;
+            ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS tax_registration_number VARCHAR(100);
+        EXCEPTION WHEN undefined_table THEN NULL; END $$;
+    `)
+
+    console.log('📝 Step 29: Creating event_tax_settings table...')
+    
+    // Create event tax settings table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS event_tax_settings (
+            id VARCHAR(255) PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id VARCHAR(255) NOT NULL,
+            
+            use_custom_tax BOOLEAN DEFAULT false,
+            tax_structure_id VARCHAR(255),
+            custom_tax_rate DOUBLE PRECISION,
+            custom_tax_name VARCHAR(100),
+            
+            is_tax_exempt BOOLEAN DEFAULT false,
+            exemption_reason TEXT,
+            exemption_certificate_url VARCHAR(500),
+            
+            tax_invoice_prefix VARCHAR(20),
+            include_tax_breakdown BOOLEAN DEFAULT true,
+            
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `)
+
+    // Create indexes for event_tax_settings
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_event ON event_tax_settings(event_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_tenant ON event_tax_settings(tenant_id);`)
+
+    console.log('✅ Self-healing schema update complete (including finance tables, signatures, and enhanced tax system).')
     return true
   } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)
