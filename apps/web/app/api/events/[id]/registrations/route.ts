@@ -178,14 +178,15 @@ export async function POST(
     }
 
     // ============================================
-    // PHASE 3: CALCULAIONS
+    // PHASE 3: CALCULATIONS (WITH TAX & CONVENIENCE FEES)
     // ============================================
-    const totalPrice = formData.totalPrice || parsed.totalPrice || 0
+    const basePrice = formData.totalPrice || parsed.totalPrice || 0
     const promoCode = formData.promoCode
-    let finalAmount = totalPrice
     let discountAmount = 0
     let promoCodeId: bigint | null = null
 
+    // Apply promo code discount first
+    let priceAfterDiscount = basePrice
     if (promoCode) {
       const promos = await prisma.$queryRaw`
             SELECT id, discount_type as type, discount_amount as amount
@@ -197,13 +198,47 @@ export async function POST(
       if (promos.length > 0) {
         const promo = promos[0]
         if (promo.type === 'PERCENT' || promo.type === 'PERCENTAGE') {
-          discountAmount = (totalPrice * Number(promo.amount)) / 100
+          discountAmount = (basePrice * Number(promo.amount)) / 100
         } else {
           discountAmount = Number(promo.amount)
         }
-        finalAmount = Math.max(0, totalPrice - discountAmount)
+        priceAfterDiscount = Math.max(0, basePrice - discountAmount)
         promoCodeId = promo.id
       }
+    }
+
+    // Calculate complete pricing with tax and convenience fees
+    const { calculateCompletePricing } = await import('@/lib/convenience-fee-calculator')
+    
+    let pricingBreakdown
+    let taxAmount = 0
+    let convenienceFee = 0
+    let finalAmount = priceAfterDiscount
+
+    try {
+      pricingBreakdown = await calculateCompletePricing(priceAfterDiscount, {
+        tenantId,
+        eventId: eventId,
+        itemType: 'TICKET',
+        quantity: quantity
+      })
+      
+      taxAmount = pricingBreakdown.tax
+      convenienceFee = pricingBreakdown.convenienceFee
+      finalAmount = pricingBreakdown.total
+      
+      console.log('💰 Pricing breakdown:', {
+        basePrice,
+        discount: discountAmount,
+        priceAfterDiscount,
+        tax: taxAmount,
+        convenienceFee,
+        finalAmount
+      })
+    } catch (pricingError) {
+      console.warn('⚠️ Pricing calculation failed, using base price:', pricingError)
+      // Fallback to simple calculation if pricing service fails
+      finalAmount = priceAfterDiscount
     }
 
     // ============================================
