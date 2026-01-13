@@ -288,8 +288,18 @@ export default function GlobalTaxTemplatesPage() {
                     onClick={() => {
                         setIsCreating(true);
                         setEditingId(null);
-                        resetForm();
-                        setFormData((prev) => ({ ...prev }));
+                        setFormData({
+                            name: "",
+                            rate: "",
+                            description: "",
+                            taxType: "GST",
+                            countryCode: "",
+                            effectiveFrom: "",
+                            effectiveUntil: "",
+                            appliesTo: "ALL",
+                            isCompound: false,
+                            isActive: true
+                        });
                     }}
                     className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
                 >
