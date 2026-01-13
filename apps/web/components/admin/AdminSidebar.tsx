@@ -72,7 +72,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
         { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
-        { name: 'Tax Templates', href: '/super-admin/tax-templates', icon: Globe },
+        { name: 'Tax Settings', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Globe },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
         { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
