@@ -1,12 +1,11 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import { Settings, Database, Mail, Shield, Globe, Bell, Users, Lock, CreditCard, Edit2 } from 'lucide-react'
+import { Settings, Database, Mail, Shield, Globe, Bell, Users, Lock, CreditCard, Edit2, Image } from 'lucide-react'
 import Link from 'next/link'
 import { EditModal, ToggleModal } from '@/components/admin/EditModal'
+import { CompanyLogoUploadSelf } from '@/components/admin/CompanyLogoUploadSelf'
 
 
 export default function SettingsPage() {
@@ -115,6 +114,20 @@ export default function SettingsPage() {
               <span className="text-sm text-gray-500">English</span>
             </div>
           </div>
+        </div>
+
+        {/* Company Logo */}
+        <div className="bg-gradient-to-br from-white to-indigo-50/30 rounded-lg border border-indigo-100/50 shadow-sm p-6 hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Image className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Company Logo</h3>
+              <p className="text-sm text-gray-600">Upload organization photo</p>
+            </div>
+          </div>
+          <CompanyLogoUploadSelf />
         </div>
 
         {/* Database Settings */}
