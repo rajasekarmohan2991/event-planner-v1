@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -100,7 +98,7 @@ export default function CompanySettingsPage() {
     if (toggling) return
     setToggling(true)
     const newStatus = companyStatus === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'
-    
+
     try {
       const response = await fetch(`/api/super-admin/companies/${companyId}/status`, {
         method: 'PATCH',
@@ -127,7 +125,7 @@ export default function CompanySettingsPage() {
   const handleDeleteCompany = async () => {
     if (deleting) return
     setDeleting(true)
-    
+
     try {
       const response = await fetch(`/api/super-admin/companies/${companyId}/delete`, {
         method: 'DELETE',
@@ -332,14 +330,13 @@ export default function CompanySettingsPage() {
                 {companyStatus === 'ACTIVE' ? 'Disable Company' : 'Enable Company'}
               </h4>
               <p className="text-sm text-gray-500">
-                {companyStatus === 'ACTIVE' 
+                {companyStatus === 'ACTIVE'
                   ? 'Disabled companies cannot create events or access their dashboard.'
                   : 'Enable this company to restore full access.'}
               </p>
               <div className="mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  companyStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${companyStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
                   Current Status: {companyStatus}
                 </span>
               </div>
@@ -347,11 +344,10 @@ export default function CompanySettingsPage() {
             <button
               onClick={handleToggleStatus}
               disabled={toggling}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-                companyStatus === 'ACTIVE'
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${companyStatus === 'ACTIVE'
                   ? 'bg-amber-500 hover:bg-amber-600 text-white'
                   : 'bg-green-500 hover:bg-green-600 text-white'
-              }`}
+                }`}
             >
               {toggling ? (
                 <>
@@ -401,11 +397,11 @@ export default function CompanySettingsPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
             </div>
-            
+
             <p className="text-gray-600 mb-4">
               Are you sure you want to permanently delete <strong>{companyName}</strong>?
             </p>
-            
+
             <p className="text-sm text-gray-500 mb-4">This will delete:</p>
             <ul className="text-sm text-gray-600 mb-4 list-disc list-inside space-y-1">
               <li>All events and registrations</li>
@@ -413,11 +409,11 @@ export default function CompanySettingsPage() {
               <li>All invoices and financial data</li>
               <li>All settings and configurations</li>
             </ul>
-            
+
             <p className="text-red-600 font-semibold mb-6">
               This action cannot be undone!
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
