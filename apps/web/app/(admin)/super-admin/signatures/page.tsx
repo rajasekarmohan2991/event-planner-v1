@@ -2,56 +2,60 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  FileText, 
-  Plus, 
-  CheckCircle, 
-  Clock, 
+import {
+  FileText,
+  CheckCircle,
   XCircle,
-  Send,
-  Eye,
-  Download,
-  Trash2,
+  Settings,
+  Building2,
+  Shield,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Search
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface SignatureRequest {
+interface CompanySignatureConfig {
   id: string;
-  documentType: string;
-  documentTitle: string;
-  signerEmail: string;
-  signerName: string;
-  signerType: string;
+  name: string;
+  docuSignEnabled: boolean;
+  signatureQuota: number;
+  signaturesUsed: number;
+  subscriptionPlan: string;
   status: string;
-  sentAt: string;
-  signedAt: string;
-  expiresAt: string;
-  createdAt: string;
 }
 
-export default function SignaturesPage() {
+export default function SuperAdminSignaturesPage() {
   const router = useRouter();
-  const [signatures, setSignatures] = useState<SignatureRequest[]>([]);
+  const [companies, setCompanies] = useState<CompanySignatureConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [testingDocuSign, setTestingDocuSign] = useState(false);
   const [docuSignStatus, setDocuSignStatus] = useState<any>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchSignatures();
+    fetchCompanies();
   }, []);
 
-  async function fetchSignatures() {
+  async function fetchCompanies() {
     try {
-      const res = await fetch('/api/signatures');
+      const res = await fetch('/api/super-admin/companies');
       if (res.ok) {
         const data = await res.json();
-        setSignatures(data.signatures || []);
+        // Map companies to signature config format
+        const configs = (data.companies || []).map((company: any) => ({
+          id: company.id,
+          name: company.name,
+          docuSignEnabled: company.docuSignEnabled || false,
+          signatureQuota: company.signatureQuota || 0,
+          signaturesUsed: company.signaturesUsed || 0,
+          subscriptionPlan: company.subscriptionPlan || 'FREE',
+          status: company.status || 'ACTIVE'
+        }));
+        setCompanies(configs);
       }
     } catch (error) {
-      console.error('Error fetching signatures:', error);
+      console.error('Error fetching companies:', error);
     } finally {
       setLoading(false);
     }
@@ -72,42 +76,25 @@ export default function SignaturesPage() {
     }
   }
 
-  function getStatusIcon(status: string) {
-    switch (status) {
-      case 'COMPLETED':
-      case 'SIGNED':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'SENT':
-      case 'VIEWED':
-        return <Clock className="h-5 w-5 text-blue-600" />;
-      case 'PENDING':
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'DECLINED':
-      case 'VOIDED':
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <FileText className="h-5 w-5 text-gray-600" />;
+  async function toggleDocuSign(companyId: string, enabled: boolean) {
+    try {
+      const res = await fetch(`/api/super-admin/companies/${companyId}/docusign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+
+      if (res.ok) {
+        fetchCompanies();
+      }
+    } catch (error) {
+      console.error('Error toggling DocuSign:', error);
     }
   }
 
-  function getStatusColor(status: string) {
-    switch (status) {
-      case 'COMPLETED':
-      case 'SIGNED':
-        return 'bg-green-100 text-green-800';
-      case 'SENT':
-        return 'bg-blue-100 text-blue-800';
-      case 'VIEWED':
-        return 'bg-purple-100 text-purple-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'DECLINED':
-      case 'VOIDED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  }
+  const filteredCompanies = companies.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -123,43 +110,32 @@ export default function SignaturesPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Digital Signatures</h1>
-            <p className="text-gray-600 mt-1">Manage signature requests for agreements and contracts</p>
+            <h1 className="text-3xl font-bold text-gray-900">Digital Signatures Configuration</h1>
+            <p className="text-gray-600 mt-1">Manage DocuSign access and signature quotas for companies</p>
           </div>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={testDocuSign}
-              disabled={testingDocuSign}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-            >
-              {testingDocuSign ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-              Test DocuSign
-            </button>
-            
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Create Signature Request
-            </button>
-          </div>
+
+          <button
+            onClick={testDocuSign}
+            disabled={testingDocuSign}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          >
+            {testingDocuSign ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            Test DocuSign Connection
+          </button>
         </div>
 
         {/* DocuSign Status */}
         {docuSignStatus && (
-          <div className={`p-4 rounded-lg mb-4 ${
-            docuSignStatus.connection === 'success' 
-              ? 'bg-green-50 border border-green-200' 
-              : docuSignStatus.configured 
+          <div className={`p-4 rounded-lg mb-4 ${docuSignStatus.connection === 'success'
+              ? 'bg-green-50 border border-green-200'
+              : docuSignStatus.configured
                 ? 'bg-red-50 border border-red-200'
                 : 'bg-yellow-50 border border-yellow-200'
-          }`}>
+            }`}>
             <div className="flex items-start gap-3">
               {docuSignStatus.connection === 'success' ? (
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
@@ -175,139 +151,142 @@ export default function SignaturesPage() {
                     Missing: {docuSignStatus.details.missing.join(', ')}
                   </p>
                 )}
-                {docuSignStatus.details.error && (
-                  <p className="text-sm text-red-600 mt-1">
-                    Error: {docuSignStatus.details.error.message}
-                  </p>
-                )}
               </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search companies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center gap-3 mb-2">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <span className="text-gray-600 text-sm">Total Requests</span>
+            <Building2 className="h-5 w-5 text-blue-600" />
+            <span className="text-gray-600 text-sm">Total Companies</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{signatures.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{companies.length}</p>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center gap-3 mb-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="text-gray-600 text-sm">Completed</span>
+            <span className="text-gray-600 text-sm">DocuSign Enabled</span>
           </div>
           <p className="text-2xl font-bold text-green-600">
-            {signatures.filter(s => ['COMPLETED', 'SIGNED'].includes(s.status)).length}
+            {companies.filter(c => c.docuSignEnabled).length}
           </p>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center gap-3 mb-2">
-            <Clock className="h-5 w-5 text-yellow-600" />
-            <span className="text-gray-600 text-sm">Pending</span>
+            <Shield className="h-5 w-5 text-purple-600" />
+            <span className="text-gray-600 text-sm">Enterprise Plans</span>
           </div>
-          <p className="text-2xl font-bold text-yellow-600">
-            {signatures.filter(s => ['PENDING', 'SENT', 'VIEWED'].includes(s.status)).length}
+          <p className="text-2xl font-bold text-purple-600">
+            {companies.filter(c => c.subscriptionPlan === 'ENTERPRISE').length}
           </p>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center gap-3 mb-2">
-            <XCircle className="h-5 w-5 text-red-600" />
-            <span className="text-gray-600 text-sm">Declined/Voided</span>
+            <FileText className="h-5 w-5 text-orange-600" />
+            <span className="text-gray-600 text-sm">Total Signatures</span>
           </div>
-          <p className="text-2xl font-bold text-red-600">
-            {signatures.filter(s => ['DECLINED', 'VOIDED'].includes(s.status)).length}
+          <p className="text-2xl font-bold text-orange-600">
+            {companies.reduce((sum, c) => sum + c.signaturesUsed, 0)}
           </p>
         </div>
       </div>
 
-      {/* Signatures Table */}
+      {/* Companies Table */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Signature Requests</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Company Signature Access</h2>
         </div>
-        
-        {signatures.length === 0 ? (
+
+        {filteredCompanies.length === 0 ? (
           <div className="p-8 text-center">
-            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">No signature requests yet</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Create your first signature request
-            </button>
+            <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 mb-4">No companies found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Document</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Signer</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Company</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Plan</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">DocuSign</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Quota</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Used</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Created</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Signed</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {signatures.map((sig) => (
-                  <tr key={sig.id} className="hover:bg-gray-50">
+                {filteredCompanies.map((company) => (
+                  <tr key={company.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(sig.status)}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{sig.documentTitle}</p>
-                          <p className="text-xs text-gray-500">{sig.documentType.replace(/_/g, ' ')}</p>
-                        </div>
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">{company.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{sig.signerName}</p>
-                        <p className="text-xs text-gray-500">{sig.signerEmail}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">{sig.signerType}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge className={getStatusColor(sig.status)}>
-                        {sig.status}
+                      <Badge className={
+                        company.subscriptionPlan === 'ENTERPRISE' ? 'bg-purple-100 text-purple-800' :
+                          company.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                      }>
+                        {company.subscriptionPlan}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(sig.createdAt).toLocaleDateString()}
+                    <td className="px-4 py-3">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={company.docuSignEnabled}
+                          onChange={(e) => toggleDocuSign(company.id, e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {sig.signedAt ? new Date(sig.signedAt).toLocaleDateString() : '-'}
+                      {company.signatureQuota === 0 ? 'Unlimited' : company.signatureQuota}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {company.signaturesUsed}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => router.push(`/signature/sign/${sig.id}`)}
-                          className="text-blue-600 hover:text-blue-700 text-sm"
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        {sig.status === 'COMPLETED' && (
-                          <button
-                            className="text-green-600 hover:text-green-700 text-sm"
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
+                      <Badge className={
+                        company.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }>
+                        {company.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => router.push(`/super-admin/companies/${company.id}/settings`)}
+                        className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Configure
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -317,149 +296,20 @@ export default function SignaturesPage() {
         )}
       </div>
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <CreateSignatureModal
-          onClose={() => setShowCreateModal(false)}
-          onCreated={() => {
-            setShowCreateModal(false);
-            fetchSignatures();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function CreateSignatureModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [formData, setFormData] = useState({
-    documentType: 'TERMS_AND_CONDITIONS',
-    signerEmail: '',
-    signerName: '',
-    signerType: 'ATTENDEE',
-    useDocuSign: false
-  });
-  const [creating, setCreating] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-
-    try {
-      const res = await fetch('/api/signatures', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        alert(`Signature request created!\n\nSigning URL:\n${data.signature.signingUrl}\n\nShare this link with the signer.`);
-        onCreated();
-      } else {
-        const error = await res.json();
-        alert(`Error: ${error.error || 'Failed to create signature request'}`);
-      }
-    } catch (error) {
-      alert('Failed to create signature request');
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-4">Create Signature Request</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Info Card */}
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
-            <select
-              value={formData.documentType}
-              onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
-              required
-            >
-              <option value="TERMS_AND_CONDITIONS">Terms & Conditions</option>
-              <option value="DISCLAIMER">Disclaimer/Waiver</option>
-              <option value="EXHIBITOR_AGREEMENT">Exhibitor Agreement</option>
-              <option value="VENDOR_AGREEMENT">Vendor Agreement</option>
-              <option value="SPONSOR_AGREEMENT">Sponsor Agreement</option>
-              <option value="SPEAKER_AGREEMENT">Speaker Agreement</option>
-              <option value="ATTENDEE_WAIVER">Attendee Waiver</option>
-            </select>
+            <h3 className="font-semibold text-blue-900 mb-2">About Digital Signatures</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• DocuSign integration is available for PRO and ENTERPRISE plans</li>
+              <li>• Companies without DocuSign can still use internal signature system</li>
+              <li>• Signature quotas are reset monthly based on subscription plan</li>
+              <li>• Configure DocuSign API keys in Settings → Integrations</li>
+            </ul>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Signer Name</label>
-            <input
-              type="text"
-              value={formData.signerName}
-              onChange={(e) => setFormData({ ...formData, signerName: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
-              placeholder="John Smith"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Signer Email</label>
-            <input
-              type="email"
-              value={formData.signerEmail}
-              onChange={(e) => setFormData({ ...formData, signerEmail: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
-              placeholder="john@example.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Signer Type</label>
-            <select
-              value={formData.signerType}
-              onChange={(e) => setFormData({ ...formData, signerType: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
-              required
-            >
-              <option value="ATTENDEE">Attendee</option>
-              <option value="EXHIBITOR">Exhibitor</option>
-              <option value="VENDOR">Vendor</option>
-              <option value="SPONSOR">Sponsor</option>
-              <option value="SPEAKER">Speaker</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.useDocuSign}
-                onChange={(e) => setFormData({ ...formData, useDocuSign: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-sm text-gray-700">Use DocuSign (if configured)</span>
-            </label>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={creating}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {creating ? 'Creating...' : 'Create Request'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );
