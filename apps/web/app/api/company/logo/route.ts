@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest) {
         console.log('💾 Updating logo...');
         await prisma.$executeRaw`
             UPDATE tenants 
-            SET logo = ${logoUrl}, updated_at = NOW() 
+            SET logo = ${logoUrl}
             WHERE id = ${tenantId}
         `;
 
@@ -112,7 +112,7 @@ export async function DELETE(req: NextRequest) {
     try {
         await prisma.$executeRaw`
             UPDATE tenants 
-            SET logo = NULL, updated_at = NOW() 
+            SET logo = NULL
             WHERE id = ${tenantId}
         `;
 
