@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { autoPopulateTaxes, getDefaultTaxesForCountry } from "@/lib/default-taxes";
 import {
     Plus,
     Trash2,
