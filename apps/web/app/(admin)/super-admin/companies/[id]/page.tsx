@@ -98,10 +98,10 @@ export default function CompanyDetailsPage() {
 
   async function handleToggleStatus() {
     if (!company || toggling) return;
-    
+
     setToggling(true);
     const newStatus = company.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
-    
+
     try {
       const response = await fetch(`/api/super-admin/companies/${params?.id}/status`, {
         method: 'PATCH',
@@ -129,7 +129,7 @@ export default function CompanyDetailsPage() {
 
   async function handleDeleteCompany() {
     if (!company || deleting) return;
-    
+
     setDeleting(true);
     try {
       const response = await fetch(`/api/super-admin/companies/${params.id}/delete`, {
@@ -396,28 +396,338 @@ export default function CompanyDetailsPage() {
   // For other companies, show original view without duplicate sidebar
   return (
     <div className="p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
-                  <Badge variant={company.status === 'ACTIVE' ? 'default' : 'destructive'} className={company.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}>
-                    {company.status || 'ACTIVE'}
-                  </Badge>
-                </div>
-                <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
+              <Badge variant={company.status === 'ACTIVE' ? 'default' : 'destructive'} className={company.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}>
+                {company.status || 'ACTIVE'}
+              </Badge>
+            </div>
+            <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="space-y-8">
+        {/* Stats Cards - Subtle Modern Style */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Total Events Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <Calendar className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-3">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{company.events.length}</div>
+                <div className="text-gray-500 text-sm font-medium">Total Events</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Team Members Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-teal-50 rounded-lg">
+                <Users className="h-6 w-6 text-teal-600" />
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{company.members.length}</div>
+                <div className="text-gray-500 text-sm font-medium">Team Members</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Registrations Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <Ticket className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-900">
+                  {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
+                </div>
+                <div className="text-gray-500 text-sm font-medium">Total Registrations</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Subscription & Billing Details */}
+        <div className="bg-white rounded-lg shadow border overflow-hidden mb-8">
+          <div className="p-6 border-b flex justify-between items-center bg-green-50/50">
+            <div className="flex items-center gap-2">
+              <Ticket className="h-5 w-5 text-green-600" />
+              <h2 className="text-xl font-semibold text-gray-900">Subscription & Limits</h2>
+            </div>
+            <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
+              {company.plan} Plan
+            </Badge>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-4">Plan Usage Limits</h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Events Created</span>
+                    <span className="text-gray-500">{company.events.length} / {company.maxEvents}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Team Members</span>
+                    <span className="text-gray-500">{company.members.length} / {company.maxUsers}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium">Storage (MB)</span>
+                    <span className="text-gray-500">0 / {company.maxStorage}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gray-400 rounded-full" style={{ width: `0%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Billing Information</h3>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Status</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {company.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Billing Email</span>
+                  <span className="font-medium">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
+                </div>
+                {company.trialEndsAt && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Trial Ends</span>
+                    <span className="font-medium">{new Date(company.trialEndsAt).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {company.subscriptionEndsAt && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Renews On</span>
+                    <span className="font-medium">{new Date(company.subscriptionEndsAt).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Events List */}
+        <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
+          <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+            <h2 className="text-xl font-semibold">Events</h2>
+            <Badge variant="secondary" className="ml-2">
+              {company.events.length} Total
+            </Badge>
+          </div>
+          <div className="p-0">
+            {company.events.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No events created yet</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event Name</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Registrations</TableHead>
+                    <TableHead>Tickets Remaining</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {company.events.map((event) => {
+                    const capacity = event.capacity || 0;
+                    const registrations = event._count?.registrations || 0;
+                    const ticketsRemaining = Math.max(0, capacity - registrations);
+
+                    return (
+                      <TableRow key={event.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          {event.name}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col text-sm">
+                            <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                            {event.end_date && (
+                              <span className="text-gray-500 text-xs">
+                                to {new Date(event.end_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{event.location || 'Online'}</TableCell>
+                        <TableCell>
+                          {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
+                            {capacity > 0 ? ticketsRemaining : 'Unlimited'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={
+                            event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' :
+                              event.status === 'DRAFT' ? 'secondary' : 'outline'
+                          }>
+                            {event.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <strong>{company.name}</strong>?
+                This will permanently delete:
+              </p>
+
+              <ul className="mb-6 space-y-2 text-sm text-gray-700">
+                <li className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-red-500" />
+                  {company.events.length} event{company.events.length !== 1 ? 's' : ''}
+                </li>
+                <li className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-red-500" />
+                  {company.members.length} team member{company.members.length !== 1 ? 's' : ''}
+                </li>
+                <li className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-red-500" />
+                  All associated data and settings
+                </li>
+              </ul>
+
+              <p className="text-red-600 font-semibold mb-6">
+                This action cannot be undone!
+              </p>
+
+              <div className="flex gap-3">
                 <button
-                  onClick={() => setShowDisableConfirm(true)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    company.status === 'ACTIVE' 
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                      : 'bg-green-500 hover:bg-green-600 text-white'
-                  }`}
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
                 >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteCompany}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete Company
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Disable/Enable Confirmation Modal */}
+        {showDisableConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-3 rounded-full ${company.status === 'ACTIVE' ? 'bg-amber-100' : 'bg-green-100'}`}>
                   {company.status === 'ACTIVE' ? (
+                    <Ban className="h-6 w-6 text-amber-600" />
+                  ) : (
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  )}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {company.status === 'ACTIVE' ? 'Disable' : 'Enable'} Company
+                </h3>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to {company.status === 'ACTIVE' ? 'disable' : 'enable'} <strong>{company.name}</strong>?
+                {company.status === 'ACTIVE' ? (
+                  <span className="block mt-2 text-amber-600">
+                    Disabled companies cannot create events or access their dashboard.
+                  </span>
+                ) : (
+                  <span className="block mt-2 text-green-600">
+                    This will restore full access to the company dashboard and features.
+                  </span>
+                )}
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDisableConfirm(false)}
+                  disabled={toggling}
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleToggleStatus}
+                  disabled={toggling}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${company.status === 'ACTIVE'
+                      ? 'bg-amber-500 hover:bg-amber-600'
+                      : 'bg-green-500 hover:bg-green-600'
+                    }`}
+                >
+                  {toggling ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : company.status === 'ACTIVE' ? (
                     <>
                       <Ban className="h-4 w-4" />
                       Disable Company
@@ -429,351 +739,11 @@ export default function CompanyDetailsPage() {
                     </>
                   )}
                 </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Company
-                </button>
               </div>
             </div>
           </div>
-
-          {/* Main Content */}
-          <div className="space-y-8">
-          {/* Stats Cards - Subtle Modern Style */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Total Events Card */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">{company.events.length}</div>
-                  <div className="text-gray-500 text-sm font-medium">Total Events</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Team Members Card */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-teal-50 rounded-lg">
-                  <Users className="h-6 w-6 text-teal-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">{company.members.length}</div>
-                  <div className="text-gray-500 text-sm font-medium">Team Members</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Registrations Card */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <Ticket className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">
-                    {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
-                  </div>
-                  <div className="text-gray-500 text-sm font-medium">Total Registrations</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Subscription & Billing Details */}
-          <div className="bg-white rounded-lg shadow border overflow-hidden mb-8">
-            <div className="p-6 border-b flex justify-between items-center bg-green-50/50">
-              <div className="flex items-center gap-2">
-                <Ticket className="h-5 w-5 text-green-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Subscription & Limits</h2>
-              </div>
-              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
-                {company.plan} Plan
-              </Badge>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-4">Plan Usage Limits</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">Events Created</span>
-                      <span className="text-gray-500">{company.events.length} / {company.maxEvents}</span>
-                    </div>
-                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">Team Members</span>
-                      <span className="text-gray-500">{company.members.length} / {company.maxUsers}</span>
-                    </div>
-                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">Storage (MB)</span>
-                      <span className="text-gray-500">0 / {company.maxStorage}</span>
-                    </div>
-                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gray-400 rounded-full" style={{ width: `0%` }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Billing Information</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Status</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {company.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Billing Email</span>
-                    <span className="font-medium">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
-                  </div>
-                  {company.trialEndsAt && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Trial Ends</span>
-                      <span className="font-medium">{new Date(company.trialEndsAt).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  {company.subscriptionEndsAt && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Renews On</span>
-                      <span className="font-medium">{new Date(company.subscriptionEndsAt).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Events List */}
-          <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-              <h2 className="text-xl font-semibold">Events</h2>
-              <Badge variant="secondary" className="ml-2">
-                {company.events.length} Total
-              </Badge>
-            </div>
-            <div className="p-0">
-              {company.events.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No events created yet</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Event Name</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Registrations</TableHead>
-                      <TableHead>Tickets Remaining</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {company.events.map((event) => {
-                      const capacity = event.capacity || 0;
-                      const registrations = event._count?.registrations || 0;
-                      const ticketsRemaining = Math.max(0, capacity - registrations);
-
-                      return (
-                        <TableRow key={event.id} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">
-                            {event.name}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col text-sm">
-                              <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                              {event.end_date && (
-                                <span className="text-gray-500 text-xs">
-                                  to {new Date(event.end_date).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{event.location || 'Online'}</TableCell>
-                          <TableCell>
-                            {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-gray-400" />
-                              <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
-                              {capacity > 0 ? ticketsRemaining : 'Unlimited'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={
-                              event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' :
-                                event.status === 'DRAFT' ? 'secondary' : 'outline'
-                            }>
-                              {event.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </div>
-
-          {/* Delete Confirmation Modal */}
-          {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <Trash2 className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
-            </div>
-            
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{company.name}</strong>? 
-              This will permanently delete:
-            </p>
-            
-            <ul className="mb-6 space-y-2 text-sm text-gray-700">
-              <li className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-red-500" />
-                {company.events.length} event{company.events.length !== 1 ? 's' : ''}
-              </li>
-              <li className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-red-500" />
-                {company.members.length} team member{company.members.length !== 1 ? 's' : ''}
-              </li>
-              <li className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-red-500" />
-                All associated data and settings
-              </li>
-            </ul>
-            
-            <p className="text-red-600 font-semibold mb-6">
-              This action cannot be undone!
-            </p>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteCompany}
-                disabled={deleting}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {deleting ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Delete Company
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-          {/* Disable/Enable Confirmation Modal */}
-          {showDisableConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`p-3 rounded-full ${company.status === 'ACTIVE' ? 'bg-amber-100' : 'bg-green-100'}`}>
-                {company.status === 'ACTIVE' ? (
-                  <Ban className="h-6 w-6 text-amber-600" />
-                ) : (
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                )}
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">
-                {company.status === 'ACTIVE' ? 'Disable' : 'Enable'} Company
-              </h3>
-            </div>
-            
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to {company.status === 'ACTIVE' ? 'disable' : 'enable'} <strong>{company.name}</strong>?
-              {company.status === 'ACTIVE' ? (
-                <span className="block mt-2 text-amber-600">
-                  Disabled companies cannot create events or access their dashboard.
-                </span>
-              ) : (
-                <span className="block mt-2 text-green-600">
-                  This will restore full access to the company dashboard and features.
-                </span>
-              )}
-            </p>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDisableConfirm(false)}
-                disabled={toggling}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleToggleStatus}
-                disabled={toggling}
-                className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
-                  company.status === 'ACTIVE' 
-                    ? 'bg-amber-500 hover:bg-amber-600' 
-                    : 'bg-green-500 hover:bg-green-600'
-                }`}
-              >
-                {toggling ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : company.status === 'ACTIVE' ? (
-                  <>
-                    <Ban className="h-4 w-4" />
-                    Disable Company
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    Enable Company
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-        </div>
+        )}
       </div>
+    </div>
   );
 }
