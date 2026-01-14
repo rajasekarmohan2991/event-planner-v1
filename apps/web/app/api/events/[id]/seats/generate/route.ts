@@ -27,16 +27,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     console.log('[API] User:', session.user.email)
 
-    const eventId = parseInt(params.id)
-    console.log('[API] Parsed event ID:', eventId)
+    const eventId = BigInt(params.id) // Use BigInt for database compatibility
+    const eventIdParam = params.id
+    console.log('[API] Parsed event ID:', eventId.toString())
 
     // Ensure tables exist
     try {
-      // Tables should already exist from migrations, skip creation to avoid schema conflicts
-      // await prisma.$executeRawUnsafe(`...`)
-    } catch (e) {
-      // Tables likely exist
-    }
+      // Tables should already exist from migrations
+    } catch (e) { }
 
     const body = await req.json().catch(() => ({}))
     console.log('[API] Request body keys:', Object.keys(body))
@@ -72,20 +70,66 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (!plan) {
       console.log('[API] No floor plan in request, checking database...')
-      // Try loading the latest saved plan for this event
-      const rows = await prisma.$queryRaw`
-        SELECT layout_data
-        FROM floor_plan_configs
-        WHERE event_id = ${eventId}
-        ORDER BY created_at DESC
-        LIMIT 1
-      ` as any[]
-      if (rows.length > 0 && rows[0]?.layout_data) {
-        plan = rows[0].layout_data as any
-        console.log('[API] Loaded plan from database')
-      } else {
-        console.log('[API] ❌ No floor plan found')
-        return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
+
+      // 1. Try old config table
+      try {
+        const rows = await prisma.$queryRaw`
+          SELECT layout_data
+          FROM floor_plan_configs
+          WHERE event_id = ${eventId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        ` as any[]
+        if (rows.length > 0 && rows[0]?.layout_data) {
+          plan = typeof rows[0].layout_data === 'string'
+            ? JSON.parse(rows[0].layout_data)
+            : rows[0].layout_data
+          console.log('[API] Loaded plan from floor_plan_configs')
+        }
+      } catch (e) {
+        console.warn('Failed to query floor_plan_configs:', e)
+      }
+
+      // 2. Try new floor_plans table if still not found
+      if (!plan) {
+        try {
+          const rows = await prisma.$queryRaw`
+            SELECT "layoutData"
+            FROM floor_plans
+            WHERE "eventId" = ${eventId}
+            ORDER BY created_at DESC
+            LIMIT 1
+          ` as any[]
+          if (rows.length > 0 && rows[0]?.layoutData) {
+            plan = typeof rows[0].layoutData === 'string'
+              ? JSON.parse(rows[0].layoutData)
+              : rows[0].layoutData
+            console.log('[API] Loaded plan from floor_plans table')
+          }
+        } catch (e) {
+          console.warn('Failed to query floor_plans:', e)
+        }
+      }
+
+      // 3. Fallback to Default Plan if nothing exists
+      if (!plan) {
+        console.log('[API] ⚠️ No floor plan found in DB. Generating DEFAULT plan.')
+        plan = {
+          name: 'Default General Seating',
+          totalSeats: 100,
+          sections: [
+            {
+              name: 'General Admission',
+              basePrice: 0,
+              rows: Array.from({ length: 10 }).map((_, r) => ({
+                number: String(r + 1),
+                seats: 10,
+                xOffset: 0,
+                yOffset: r * 50
+              }))
+            }
+          ]
+        }
       }
     }
 
@@ -108,14 +152,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const layoutDataJson = JSON.stringify(plan)
     const sectionsJson = JSON.stringify(plan.sections || [])
     const totalSeats = plan.totalSeats || 0
-    
+
     // Check if floor plan exists
     const existingPlan = await prisma.$queryRaw<any[]>`
       SELECT id FROM floor_plan_configs 
       WHERE event_id = ${eventId} AND plan_name = ${planName}
       LIMIT 1
     `
-    
+
     if (existingPlan.length > 0) {
       // Update existing
       await prisma.$executeRaw`
@@ -313,7 +357,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = parseInt(params.id)
+    const eventId = BigInt(params.id)
     const tenantId = getTenantId()
 
 
@@ -325,7 +369,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ORDER BY created_at DESC
       LIMIT 1
     `
-    
+
     const planData = floorPlans.length > 0 ? floorPlans[0] : null
 
     // Count seats using raw SQL
