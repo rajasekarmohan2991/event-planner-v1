@@ -104,6 +104,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
     // Add Tax Settings for company admins
     baseNavigation.push({ name: 'Tax Settings', href: '/admin/settings/tax', icon: Receipt })
+    // Add Digital Signatures for company admins
+    baseNavigation.push({ name: 'Digital Signatures', href: '/admin/signatures', icon: FileText })
   }
 
   baseNavigation.push({ name: 'Settings', href: '/admin/settings', icon: Settings })
