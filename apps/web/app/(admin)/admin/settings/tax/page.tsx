@@ -69,19 +69,41 @@ export default function CompanyTaxSettingsPage() {
         if (tenantId) {
             fetchTaxes();
             fetchGlobalTemplates();
+        } else {
+            // No tenantId, stop loading
+            setLoading(false);
         }
+
+        // Safety timeout - ensure loading stops after 10 seconds
+        const timeout = setTimeout(() => {
+            console.warn('Tax settings loading timeout - forcing stop');
+            setLoading(false);
+        }, 10000);
+
+        return () => clearTimeout(timeout);
     }, [tenantId]);
 
     async function fetchTaxes() {
-        if (!tenantId) return;
+        if (!tenantId) {
+            setLoading(false);
+            return;
+        }
         try {
+            console.log('Fetching company tax structures...');
             const res = await fetch(`/api/company/tax-structures`);
+            console.log('Tax structures response status:', res.status);
+
             if (res.ok) {
                 const data = await res.json();
+                console.log('Tax structures data:', data);
                 setTaxes(data.taxes || []);
+            } else {
+                console.error('Failed to fetch tax structures:', res.status);
+                setTaxes([]);
             }
         } catch (error) {
-            console.error(error);
+            console.error('Error fetching tax structures:', error);
+            setTaxes([]);
         } finally {
             setLoading(false);
         }
