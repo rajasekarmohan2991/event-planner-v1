@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Settings, Globe, Bell, Lock, ArrowLeft, CreditCard, Mail, Trash2, Ban, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react'
-import { CompanyLogoUpload } from '@/components/admin/CompanyLogoUpload'
 
 export default function CompanySettingsPage() {
   const { data: session } = useSession()
@@ -216,20 +215,6 @@ export default function CompanySettingsPage() {
           </div>
         </div>
 
-        {/* Logo Upload */}
-        <div className="bg-white rounded-lg border shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Settings className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Company Logo</h3>
-              <p className="text-sm text-gray-600">Upload organization photo</p>
-            </div>
-          </div>
-          <CompanyLogoUpload companyId={companyId} />
-        </div>
-
         {/* Email Settings */}
         <div className="bg-white rounded-lg border shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -345,8 +330,8 @@ export default function CompanySettingsPage() {
               onClick={handleToggleStatus}
               disabled={toggling}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${companyStatus === 'ACTIVE'
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                  : 'bg-green-500 hover:bg-green-600 text-white'
+                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
                 }`}
             >
               {toggling ? (
