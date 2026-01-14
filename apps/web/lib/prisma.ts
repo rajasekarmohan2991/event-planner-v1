@@ -39,7 +39,7 @@ function buildSafeDatabaseUrl() {
 const databaseUrl = buildSafeDatabaseUrl()
 
 const prisma = globalThis.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query', 'error', 'warn'],
+  log: ['error'], // Reduced logging for performance
   datasources: databaseUrl ? { db: { url: databaseUrl } } : undefined,
 })
 

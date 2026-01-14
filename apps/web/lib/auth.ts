@@ -119,7 +119,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         console.log('🔐 [AUTH] Starting authorization...')
-        
+
         if (!credentials?.email || !credentials?.password) {
           console.error('❌ [AUTH] Missing credentials')
           return null
@@ -127,12 +127,12 @@ export const authOptions: NextAuthOptions = {
 
         try {
           console.log('🔍 [AUTH] Attempting login for:', credentials.email)
-          
+
           const devEnabled = String(process.env.ENABLE_DEV_LOGIN || '').toLowerCase() === 'true'
             || String(process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN || '').toLowerCase() === 'true'
           const devEmail = process.env.DEV_LOGIN_EMAIL
           const devPassword = process.env.DEV_LOGIN_PASSWORD
-          
+
           if (
             devEnabled && devEmail && devPassword &&
             credentials.email.toLowerCase() === devEmail.toLowerCase() &&
@@ -192,7 +192,7 @@ export const authOptions: NextAuthOptions = {
           `
 
           console.log('👤 [AUTH] User query result:', users.length > 0 ? 'Found' : 'Not found')
-          
+
           if (users.length === 0) {
             console.error('❌ [AUTH] User not found in database')
             console.error('❌ [AUTH] Attempted email:', credentials.email)
@@ -200,7 +200,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           let user = users[0]
-          
+
           console.log('🔑 [AUTH] User has password:', user?.password ? 'Yes' : 'No')
           console.log('📧 [AUTH] User email verified:', user?.emailVerified ? 'Yes' : 'No')
           console.log('👥 [AUTH] User role:', user?.role)
@@ -569,18 +569,18 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true,
-  logger: {
-    error(code, metadata) {
-      console.error('❌ [NEXTAUTH ERROR]', code, metadata)
-    },
-    warn(code) {
-      console.warn('⚠️ [NEXTAUTH WARN]', code)
-    },
-    debug(code, metadata) {
-      console.log('🔍 [NEXTAUTH DEBUG]', code, metadata)
-    }
-  },
+  debug: false,
+  // logger: {
+  //   error(code, metadata) {
+  //     console.error('❌ [NEXTAUTH ERROR]', code, metadata)
+  //   },
+  //   warn(code) {
+  //     console.warn('⚠️ [NEXTAUTH WARN]', code)
+  //   },
+  //   debug(code, metadata) {
+  //     console.log('🔍 [NEXTAUTH DEBUG]', code, metadata)
+  //   }
+  // },
 } as NextAuthOptions
 
 export const getAuthSession = () => getServerSession(authOptions)
