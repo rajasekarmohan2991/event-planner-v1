@@ -1,52 +1,109 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
-
-// GET /api/company/info - Get current company information
-export async function GET(req: NextRequest) {
-    console.log('📋 Company info request');
-
-    const session = await getServerSession(authOptions as any);
-    if (!session?.user) {
-        console.log('❌ Unauthorized');
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = session.user as any;
-    const tenantId = user.tenantId || user.currentTenantId;
-
-    if (!tenantId) {
-        console.log('❌ No tenant context');
-        return NextResponse.json({ error: "No company context" }, { status: 400 });
-    }
-
-    console.log('👤 User:', user.email, 'Tenant:', tenantId);
-
+// GET /api/company/info - Get current company information including logo
+export async function GET(request: NextRequest) {
     try {
-        // Fetch company info
-        const companies: any[] = await prisma.$queryRaw`
-            SELECT id, name, logo, status, created_at as "createdAt"
-            FROM tenants 
-            WHERE id = ${tenantId}
-        `;
+        const session = await getServerSession(authOptions);
 
-        if (companies.length === 0) {
-            console.log('❌ Company not found');
-            return NextResponse.json({ error: "Company not found" }, { status: 404 });
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('✅ Company info retrieved:', companies[0].name);
-        return NextResponse.json({
-            company: companies[0]
+        const tenantId = (session.user as any)?.tenantId || (session.user as any)?.currentTenantId;
+
+        if (!tenantId) {
+            return NextResponse.json({ error: 'No company context' }, { status: 400 });
+        }
+
+        // Fetch company information
+        const company = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                subdomain: true,
+                plan: true,
+                status: true,
+                billingEmail: true,
+                currency: true,
+                country: true,
+                timezone: true,
+                createdAt: true,
+                updatedAt: true
+            }
         });
-    } catch (error: any) {
-        console.error("❌ Failed to get company info:", error);
-        return NextResponse.json({
-            error: "Failed to get company info",
-            details: error.message
-        }, { status: 500 });
+
+        if (!company) {
+            return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ company }, { status: 200 });
+    } catch (error) {
+        console.error('Error fetching company info:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch company information' },
+            { status: 500 }
+        );
+    }
+}
+
+// PUT /api/company/info - Update company information including logo
+export async function PUT(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const tenantId = (session.user as any)?.tenantId || (session.user as any)?.currentTenantId;
+
+        if (!tenantId) {
+            return NextResponse.json({ error: 'No company context' }, { status: 400 });
+        }
+
+        const body = await request.json();
+        const { logo, name, billingEmail, currency, country, timezone } = body;
+
+        // Update company information
+        const updatedCompany = await prisma.tenant.update({
+            where: { id: tenantId },
+            data: {
+                ...(logo !== undefined && { logo }),
+                ...(name && { name }),
+                ...(billingEmail && { billingEmail }),
+                ...(currency && { currency }),
+                ...(country && { country }),
+                ...(timezone && { timezone }),
+                updatedAt: new Date()
+            },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true,
+                subdomain: true,
+                plan: true,
+                status: true,
+                billingEmail: true,
+                currency: true,
+                country: true,
+                timezone: true,
+                updatedAt: true
+            }
+        });
+
+        return NextResponse.json({ company: updatedCompany }, { status: 200 });
+    } catch (error) {
+        console.error('Error updating company info:', error);
+        return NextResponse.json(
+            { error: 'Failed to update company information' },
+            { status: 500 }
+        );
     }
 }

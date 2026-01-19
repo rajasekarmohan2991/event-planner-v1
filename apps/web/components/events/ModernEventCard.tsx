@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, MapPin, Users, Edit, Trash2, Clock, Ticket, Heart } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/use-toast'
+import { getEventIcon } from '@/lib/event-icons'
 
 interface EventCardProps {
   event: {
@@ -15,6 +16,7 @@ interface EventCardProps {
     eventMode?: "IN_PERSON" | "VIRTUAL" | "HYBRID" | string
     priceInr?: number
     bannerUrl?: string
+    category?: string
     registrationCount?: number
     capacity?: number
   }
@@ -199,29 +201,28 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center relative">
-            {/* Event Planning Timeline Animation */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* Timeline dots representing event stages */}
-              <div className="flex items-center gap-4">
-                <div className={`w-3 h-3 rounded-full transition-all duration-500 ${event.status === 'DRAFT' ? 'bg-gray-400 animate-pulse' : 'bg-indigo-400'
-                  }`} />
-                <div className={`w-1 h-8 transition-all duration-700 ${['LIVE', 'COMPLETED', 'UPCOMING', 'PUBLISHED'].includes(event.status || '') ? 'bg-indigo-300' : 'bg-gray-200'
-                  }`} />
-                <div className={`w-4 h-4 rounded-full transition-all duration-900 ${event.status === 'LIVE' ? 'bg-green-500 animate-pulse shadow-lg shadow-green-200' :
-                  event.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-gray-300'
-                  }`} />
-                <div className={`w-1 h-8 transition-all duration-1100 ${event.status === 'COMPLETED' ? 'bg-blue-300' : 'bg-gray-200'
-                  }`} />
-                <div className={`w-3 h-3 rounded-full transition-all duration-1300 ${event.status === 'COMPLETED' ? 'bg-blue-400' : 'bg-gray-300'
-                  }`} />
-              </div>
-            </div>
+            {/* AI-Generated Icon based on Event Category */}
+            {(() => {
+              const iconConfig = getEventIcon(event.category);
+              const IconComponent = iconConfig.icon;
 
-            {/* Central Event Icon */}
-            <div className={`w-16 h-16 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg transition-all duration-300 ${isHovered ? 'scale-110 rotate-3' : 'scale-100'
-              }`}>
-              <Calendar className="w-8 h-8 text-indigo-600" />
-            </div>
+              return (
+                <>
+                  {/* Background gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${iconConfig.gradient} opacity-10`} />
+
+                  {/* Central Event Icon */}
+                  <div className={`relative w-20 h-20 ${iconConfig.bgColor} backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${isHovered ? 'scale-110 rotate-3' : 'scale-100'}`}>
+                    <IconComponent className={`w-10 h-10 ${iconConfig.iconColor}`} />
+                  </div>
+
+                  {/* Decorative elements */}
+                  <div className="absolute top-4 left-4 w-2 h-2 bg-white/40 rounded-full animate-pulse" />
+                  <div className="absolute bottom-6 right-6 w-3 h-3 bg-white/30 rounded-full animate-pulse delay-150" />
+                  <div className="absolute top-1/2 right-8 w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse delay-300" />
+                </>
+              );
+            })()}
           </div>
         )}
 
