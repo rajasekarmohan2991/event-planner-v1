@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         option_label = COALESCE(${optionLabel}, option_label),
         display_order = COALESCE(${displayOrder}, display_order),
         is_active = COALESCE(${isActive}, is_active),
-        metadata = COALESCE(${metadata ? JSON.stringify(metadata) : null}::jsonb, metadata),
+        metadata = COALESCE(${metadata ? JSON.stringify(metadata) : null}, metadata),
         updated_at = NOW()
       WHERE id = ${BigInt(params.id)}
     `
@@ -55,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(updated[0])
   } catch (error: any) {
     console.error('Error updating lookup option:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to update lookup option',
       message: error.message
     }, { status: 500 })
@@ -83,7 +83,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error deleting lookup option:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to delete lookup option',
       message: error.message
     }, { status: 500 })

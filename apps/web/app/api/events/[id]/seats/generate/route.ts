@@ -27,14 +27,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     console.log('[API] User:', session.user.email)
 
-    const eventId = BigInt(params.id) // Use BigInt for database compatibility
-    const eventIdParam = params.id
-    console.log('[API] Parsed event ID:', eventId.toString())
+    const eventId = parseInt(params.id)
+    console.log('[API] Parsed event ID:', eventId)
 
     // Ensure tables exist
     try {
-      // Tables should already exist from migrations
-    } catch (e) { }
+      // Tables should already exist from migrations, skip creation to avoid schema conflicts
+      // await prisma.$executeRawUnsafe(`...`)
+    } catch (e) {
+      // Tables likely exist
+    }
 
     const body = await req.json().catch(() => ({}))
     console.log('[API] Request body keys:', Object.keys(body))
@@ -70,66 +72,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (!plan) {
       console.log('[API] No floor plan in request, checking database...')
-
-      // 1. Try old config table
-      try {
-        const rows = await prisma.$queryRaw`
-          SELECT layout_data
-          FROM floor_plan_configs
-          WHERE event_id = ${eventId}
-          ORDER BY created_at DESC
-          LIMIT 1
-        ` as any[]
-        if (rows.length > 0 && rows[0]?.layout_data) {
-          plan = typeof rows[0].layout_data === 'string'
-            ? JSON.parse(rows[0].layout_data)
-            : rows[0].layout_data
-          console.log('[API] Loaded plan from floor_plan_configs')
-        }
-      } catch (e) {
-        console.warn('Failed to query floor_plan_configs:', e)
-      }
-
-      // 2. Try new floor_plans table if still not found
-      if (!plan) {
-        try {
-          const rows = await prisma.$queryRaw`
-            SELECT "layoutData"
-            FROM floor_plans
-            WHERE "eventId" = ${eventId}
-            ORDER BY created_at DESC
-            LIMIT 1
-          ` as any[]
-          if (rows.length > 0 && rows[0]?.layoutData) {
-            plan = typeof rows[0].layoutData === 'string'
-              ? JSON.parse(rows[0].layoutData)
-              : rows[0].layoutData
-            console.log('[API] Loaded plan from floor_plans table')
-          }
-        } catch (e) {
-          console.warn('Failed to query floor_plans:', e)
-        }
-      }
-
-      // 3. Fallback to Default Plan if nothing exists
-      if (!plan) {
-        console.log('[API] ⚠️ No floor plan found in DB. Generating DEFAULT plan.')
-        plan = {
-          name: 'Default General Seating',
-          totalSeats: 100,
-          sections: [
-            {
-              name: 'General Admission',
-              basePrice: 0,
-              rows: Array.from({ length: 10 }).map((_, r) => ({
-                number: String(r + 1),
-                seats: 10,
-                xOffset: 0,
-                yOffset: r * 50
-              }))
-            }
-          ]
-        }
+      // Try loading the latest saved plan for this event
+      const rows = await prisma.$queryRaw`
+        SELECT layout_data
+        FROM floor_plan_configs
+        WHERE event_id = ${eventId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      ` as any[]
+      if (rows.length > 0 && rows[0]?.layout_data) {
+        plan = rows[0].layout_data as any
+        console.log('[API] Loaded plan from database')
+      } else {
+        console.log('[API] ❌ No floor plan found')
+        return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
       }
     }
 
@@ -164,9 +120,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // Update existing
       await prisma.$executeRaw`
         UPDATE floor_plan_configs
-        SET layout_data = ${layoutDataJson}::jsonb,
+        SET layout_data = ${layoutDataJson},
             total_seats = ${totalSeats},
-            sections = ${sectionsJson}::jsonb,
+            sections = ${sectionsJson},
             tenant_id = ${tenantId},
             updated_at = NOW()
         WHERE event_id = ${eventId} AND plan_name = ${planName}
@@ -177,7 +133,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         INSERT INTO floor_plan_configs (
           event_id, plan_name, layout_data, total_seats, sections, tenant_id, created_at, updated_at
         ) VALUES (
-          ${eventId}, ${planName}, ${layoutDataJson}::jsonb, ${totalSeats}, ${sectionsJson}::jsonb, ${tenantId}, NOW(), NOW()
+          ${eventId}, ${planName}, ${layoutDataJson}, ${totalSeats}, ${sectionsJson}, ${tenantId}, NOW(), NOW()
         )
       `
     }
@@ -357,7 +313,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = BigInt(params.id)
+    const eventId = parseInt(params.id)
     const tenantId = getTenantId()
 
 

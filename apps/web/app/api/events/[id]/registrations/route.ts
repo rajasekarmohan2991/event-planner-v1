@@ -281,23 +281,22 @@ export async function POST(
       console.log('📝 Inserting registration into database...')
       const regType = parsed?.type || 'GENERAL'
       const regStatus = 'APPROVED'
+
       const registrationDataJson = JSON.stringify(registrationData)
+      const eventIdStr = eventIdBigInt.toString()
       const ticketIdStr = ticketId ? String(ticketId) : null
 
-      // Use explicit casting for proper type handling
       await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId}, ${eventIdBigInt}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
+                ${newRegId}, ${eventIdStr}, ${tenantId}, ${registrationDataJson}, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
             )
         `
       console.log('✅ Registration inserted')
 
       // 2. Insert Order ('"Order"')
       const orderEventId = String(eventId)
-      const orderMeta = JSON.stringify({ registrationId: newRegId, discountAmount, promoCode })
-
       await prisma.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
@@ -311,7 +310,7 @@ export async function POST(
                 ${finalAmount > 0 ? 'PAID' : 'CREATED'},
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
-                ${orderMeta}::jsonb,
+                ${JSON.stringify({ registrationId: newRegId, discountAmount, promoCode })},
                 NOW(),
                 NOW()
             )

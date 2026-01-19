@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     const eventId = parseInt(params.id)
     const registrationId = params.registrationId
     const { notes } = await req.json().catch(() => ({}))
-    
+
     console.log(`✅ Approving registration ${registrationId} for event ${eventId}`)
 
     // Get current registration data - handle both string and numeric IDs
@@ -65,9 +65,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
 
     // Check if already approved
     if (currentData.status === 'APPROVED') {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Registration already approved',
-        approvedAt: currentData.approvedAt 
+        approvedAt: currentData.approvedAt
       })
     }
 
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     try {
       await prisma.$executeRaw`
         UPDATE registrations 
-        SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
+        SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
         WHERE id::text = ${registrationId} AND event_id = ${eventId}
       `
     } catch (e) {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
       const numericId = BigInt(registrationId)
       await prisma.$executeRaw`
         UPDATE registrations 
-        SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
+        SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
         WHERE id = ${numericId} AND event_id = ${eventId}
       `
     }
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     // Send approval email
     if (currentData.email) {
       const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode)}`
-      
+
       sendEmail({
         to: currentData.email,
         subject: '🎉 Registration Approved - Your Event Ticket',
@@ -226,7 +226,7 @@ EventPlanner © 2025
 
   } catch (error: any) {
     console.error('❌ Registration approval error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: error?.message || 'Approval failed',
       error: error.code || 'UNKNOWN_ERROR'
     }, { status: 500 })

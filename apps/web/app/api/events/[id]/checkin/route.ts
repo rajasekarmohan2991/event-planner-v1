@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getServerSession(authOptions as any)
   if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
   const eventId = params.id
-  const allowed = await requireEventRole(eventId, ['STAFF','ORGANIZER','OWNER'])
+  const allowed = await requireEventRole(eventId, ['STAFF', 'ORGANIZER', 'OWNER'])
   if (!allowed) return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
 
   try {
@@ -46,12 +46,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // If already checked-in with same or earlier record, return 200 idempotent
     const existing = await prisma.keyValue.findFirst({
-      where: { 
-        namespace: 'checkin', 
-        key: kvKey 
+      where: {
+        namespace: 'checkin',
+        key: kvKey
       },
       select: { value: true }
-    }).catch(()=>null)
+    }).catch(() => null)
 
     const checkinRecord = {
       t: new Date().toISOString(),
@@ -70,19 +70,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let saved
     try {
       saved = await prisma.keyValue.upsert({
-        where: { 
-          namespace_key: { 
-            namespace: 'checkin', 
-            key: kvKey 
-          } 
+        where: {
+          namespace_key: {
+            namespace: 'checkin',
+            key: kvKey
+          }
         },
-        create: { 
-          namespace: 'checkin', 
-          key: kvKey, 
-          value: checkinRecord 
+        create: {
+          namespace: 'checkin',
+          key: kvKey,
+          value: checkinRecord
         },
-        update: { 
-          value: checkinRecord 
+        update: {
+          value: checkinRecord
         },
         select: { value: true }
       })
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         await prisma.$executeRaw`
           UPDATE registrations
           SET 
-            data_json = ${JSON.stringify(updated)}::jsonb,
+            data_json = ${JSON.stringify(updated)},
             check_in_status = 'CHECKED_IN',
             check_in_time = NOW(),
             updated_at = NOW()
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         await prisma.$executeRaw`
           UPDATE registrations
           SET 
-            data_json = ${JSON.stringify(updated)}::jsonb,
+            data_json = ${JSON.stringify(updated)},
             updated_at = NOW()
           WHERE id = ${regId} AND event_id = ${evtIdNum}
         `

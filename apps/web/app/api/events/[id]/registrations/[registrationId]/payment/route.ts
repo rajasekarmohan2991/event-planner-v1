@@ -75,7 +75,7 @@ export async function POST(
           'INR',
           ${status || 'COMPLETED'},
           ${paymentMethod || 'UNKNOWN'},
-          ${JSON.stringify({ amount, status, paymentMethod })}::jsonb,
+          ${JSON.stringify({ amount, status, paymentMethod })},
           NOW(),
           NOW()
         )

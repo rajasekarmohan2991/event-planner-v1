@@ -40,11 +40,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Update both column status and JSON flag; fallback if columns don't exist
-    const updatedJson = { 
-      ...dataJson, 
-      checkedIn: true, 
-      checkedInAt: new Date().toISOString(), 
-      checkedInBy: (session as any)?.user?.id || null 
+    const updatedJson = {
+      ...dataJson,
+      checkedIn: true,
+      checkedInAt: new Date().toISOString(),
+      checkedInBy: (session as any)?.user?.id || null
     }
 
     try {
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         SET 
           check_in_status = 'CHECKED_IN',
           check_in_time = CURRENT_TIMESTAMP,
-          data_json = ${JSON.stringify(updatedJson)}::jsonb,
+          data_json = ${JSON.stringify(updatedJson)},
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ${BigInt(registrationId)}
           AND event_id = ${eventId}
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await prisma.$executeRaw`
         UPDATE registrations
         SET 
-          data_json = ${JSON.stringify(updatedJson)}::jsonb,
+          data_json = ${JSON.stringify(updatedJson)},
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ${BigInt(registrationId)}
           AND event_id = ${eventId}

@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         // Using simple substitution for safety if parameters supported, else use literal with care
         // Prisma $executeRaw supports parameters:
 
-        await prisma.$executeRaw`UPDATE events SET promote_data = ${JSON.stringify(body)}::jsonb WHERE id = ${eventId}`
+        await prisma.$executeRaw`UPDATE events SET promote_data = ${JSON.stringify(body)} WHERE id = ${eventId}`
 
         return NextResponse.json({ success: true })
     } catch (e: any) {

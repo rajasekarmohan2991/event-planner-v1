@@ -95,12 +95,12 @@ export async function GET(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = (session.user as any).role
     if (userRole !== 'SUPER_ADMIN') {
-      return NextResponse.json({ 
-        error: 'Access denied', 
-        message: 'Only SUPER_ADMIN can view permissions matrix' 
+      return NextResponse.json({
+        error: 'Access denied',
+        message: 'Only SUPER_ADMIN can view permissions matrix'
       }, { status: 403 })
     }
 
@@ -111,9 +111,9 @@ export async function GET(req: NextRequest) {
         FROM system_permissions 
         WHERE id = 'module_access_matrix'
       `
-      
+
       const permissions = (permissionsRecord as any[])[0]?.permissions_data || DEFAULT_PERMISSIONS
-      
+
       return NextResponse.json({
         success: true,
         permissions
@@ -128,9 +128,9 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error fetching permissions matrix:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch permissions', 
-      details: error.message 
+    return NextResponse.json({
+      error: 'Failed to fetch permissions',
+      details: error.message
     }, { status: 500 })
   }
 }
@@ -142,20 +142,20 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    
+
     const userRole = (session.user as any).role
     if (userRole !== 'SUPER_ADMIN') {
-      return NextResponse.json({ 
-        error: 'Access denied', 
-        message: 'Only SUPER_ADMIN can modify permissions matrix' 
+      return NextResponse.json({
+        error: 'Access denied',
+        message: 'Only SUPER_ADMIN can modify permissions matrix'
       }, { status: 403 })
     }
 
     const { permissions } = await req.json()
-    
+
     if (!permissions || !Array.isArray(permissions)) {
-      return NextResponse.json({ 
-        error: 'Invalid permissions data' 
+      return NextResponse.json({
+        error: 'Invalid permissions data'
       }, { status: 400 })
     }
 
@@ -182,13 +182,13 @@ export async function POST(req: NextRequest) {
       `
 
       const permissionsJson = JSON.stringify(sanitizedPermissions)
-      
+
       await prisma.$executeRaw`
         INSERT INTO system_permissions (id, permissions_data, updated_by)
-        VALUES ('module_access_matrix', ${permissionsJson}::jsonb, ${BigInt(userId)})
+        VALUES ('module_access_matrix', ${permissionsJson}, ${BigInt(userId)})
         ON CONFLICT (id) 
         DO UPDATE SET 
-          permissions_data = ${permissionsJson}::jsonb,
+          permissions_data = ${permissionsJson},
           updated_at = NOW(),
           updated_by = ${BigInt(userId)}
       `
@@ -200,17 +200,17 @@ export async function POST(req: NextRequest) {
       })
     } catch (dbError: any) {
       console.error('Database error:', dbError)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to save permissions to database',
-        details: dbError.message 
+        details: dbError.message
       }, { status: 500 })
     }
 
   } catch (error: any) {
     console.error('Error saving permissions matrix:', error)
-    return NextResponse.json({ 
-      error: 'Failed to save permissions', 
-      details: error.message 
+    return NextResponse.json({
+      error: 'Failed to save permissions',
+      details: error.message
     }, { status: 500 })
   }
 }

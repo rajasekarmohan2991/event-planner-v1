@@ -25,7 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const body = await req.json()
         const eventId = BigInt(params.id)
 
-        await prisma.$executeRaw`UPDATE events SET engagement_data = ${JSON.stringify(body)}::jsonb WHERE id = ${eventId}`
+        await prisma.$executeRaw`UPDATE events SET engagement_data = ${JSON.stringify(body)} WHERE id = ${eventId}`
 
         return NextResponse.json({ success: true })
     } catch (e: any) {

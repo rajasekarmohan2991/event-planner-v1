@@ -23,7 +23,7 @@ async function ensureSubscriptionTables() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_links_tenant ON subscription_links(tenant_id)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_links_code ON subscription_links(code)`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_links_status ON subscription_links(status)`)
-  } catch {}
+  } catch { }
 }
 
 export const dynamic = 'force-dynamic'
@@ -56,7 +56,7 @@ export async function GET(_req: NextRequest, { params }: { params: { code: strin
       createdAt: r.created_at,
       paidAt: r.paid_at,
     })
-  } catch (e:any) {
+  } catch (e: any) {
     console.error('Fetch subscription link error:', e)
     return NextResponse.json({ message: 'Failed to load link' }, { status: 500 })
   }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     // Mark link as paid
     await prisma.$executeRaw`
       UPDATE subscription_links
-      SET status = 'PAID', paid_at = ${now}, metadata = COALESCE(metadata,'{}'::jsonb) || ${JSON.stringify({ payerEmail })}::jsonb
+      SET status = 'PAID', paid_at = ${now}, metadata = COALESCE(metadata,'{}'::jsonb) || ${JSON.stringify({ payerEmail })}
       WHERE id = ${link.id}
     `
 
@@ -122,10 +122,10 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
           html: `<p>Your subscription is now active.</p><p>Plan: <b>${plan}</b> (${period})</p><p>Valid till: <b>${ends.toDateString()}</b></p>`
         })
       }
-    } catch {}
+    } catch { }
 
     return NextResponse.json({ success: true, plan, period, subscriptionEndsAt: ends })
-  } catch (e:any) {
+  } catch (e: any) {
     console.error('Activate subscription error:', e)
     return NextResponse.json({ message: 'Failed to activate subscription' }, { status: 500 })
   }

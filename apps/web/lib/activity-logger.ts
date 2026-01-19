@@ -17,7 +17,7 @@ export type ActivityAction =
   | 'SPONSOR_CREATED'
   | 'SESSION_CREATED'
 
-export type EntityType = 
+export type EntityType =
   | 'EVENT'
   | 'USER'
   | 'REGISTRATION'
@@ -83,7 +83,7 @@ export async function logActivity(params: LogActivityParams) {
         ${entityType || null},
         ${entityId ? BigInt(entityId as any) : null},
         ${entityName || null},
-        ${metadata ? JSON.stringify(metadata) : null}::jsonb,
+        ${metadata ? JSON.stringify(metadata) : null},
         ${ipAddress || null},
         ${userAgent || null},
         NOW()
