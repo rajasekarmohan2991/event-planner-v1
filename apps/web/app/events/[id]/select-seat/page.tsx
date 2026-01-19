@@ -53,7 +53,7 @@ export default function SeatSelectionPage() {
       setInviteData(invite)
 
       // Fetch available seats
-      const seatsRes = await fetch(`/api/events/${params.id}/seats/available`)
+      const seatsRes = await fetch(`/api/events/${params.id}/seats/availability`)
       if (!seatsRes.ok) throw new Error('Failed to load seats')
       const seatsData = await seatsRes.json()
       

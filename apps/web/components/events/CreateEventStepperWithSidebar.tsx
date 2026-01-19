@@ -274,13 +274,6 @@ export function CreateEventStepperWithSidebar() {
                     alt="Event banner preview"
                     className="w-full h-full object-cover"
                   />
-                ) : eventType ? (
-                  <div className="flex items-center justify-center h-full p-4">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">{getEventEmoji(eventType)}</div>
-                      <p className="text-xs font-medium text-muted-foreground">{eventType}</p>
-                    </div>
-                  </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <ImageIcon className="h-12 w-12 text-muted-foreground/30" />

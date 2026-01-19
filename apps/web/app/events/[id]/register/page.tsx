@@ -447,15 +447,11 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
       credentials: 'include',
       body: JSON.stringify({
         type: 'GENERAL',
-        email: formData.email,
-        phone: formData.phone,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        ticketId: 'general',
-        totalPrice: ticketPrice,
-        priceInr: finalAmount,
-        promoCode: promoDiscount?.code,
-        data: formData
+        data: {
+          ...formData,
+          totalPrice: ticketPrice,
+          promoCode: promoDiscount?.code
+        }
       })
     })
 
