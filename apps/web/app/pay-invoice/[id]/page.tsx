@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, XCircle, Download, CreditCard } from 'lucide-rea
 export default function InvoicePaymentPage() {
     const params = useParams()
     const searchParams = useSearchParams()
-    const invoiceId = params?.invoiceId as string
+    const invoiceId = params?.id as string
     const token = searchParams?.get('token')
 
     const [loading, setLoading] = useState(true)
@@ -27,7 +27,7 @@ export default function InvoicePaymentPage() {
     const loadInvoice = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`/api/invoices/${invoiceId}?token=${token || ''}`)
+            const response = await fetch(`/api/public/invoices/${invoiceId}?token=${token || ''}`)
 
             if (!response.ok) {
                 const errorData = await response.json()
@@ -48,7 +48,7 @@ export default function InvoicePaymentPage() {
             setProcessing(true)
 
             // Create payment session
-            const response = await fetch(`/api/invoices/${invoiceId}/pay`, {
+            const response = await fetch(`/api/public/invoices/${invoiceId}/pay`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ method, token })

@@ -3,13 +3,13 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/invoices/[invoiceId] - Get invoice details (public with token)
+// GET /api/public/invoices/[id] - Get invoice details (public with token)
 export async function GET(
     req: NextRequest,
-    { params }: { params: { invoiceId: string } }
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { invoiceId } = params
+        const invoiceId = params.id
         const { searchParams } = new URL(req.url)
         const token = searchParams.get('token')
 
