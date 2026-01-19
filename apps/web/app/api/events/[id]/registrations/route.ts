@@ -380,12 +380,8 @@ export async function POST(
       initialStatus
     })
 
-    // Ensure schema exists before attempting insert
-    try {
-      await ensureSchema()
-    } catch (schemaError) {
-      console.warn('⚠️ Schema check failed, continuing anyway:', schemaError)
-    }
+    // Schema check removed - it's too slow to run on every registration
+    // Schema should be ensured at deployment time, not runtime
 
     // Use individual queries instead of transaction for better connection pool handling
     try {
@@ -402,7 +398,7 @@ export async function POST(
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId}, ${eventIdStr}, ${tenantId}, ${registrationDataJson}, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
+                ${newRegId}, ${eventIdStr}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
             )
         `
       console.log('✅ Registration inserted')
@@ -494,7 +490,7 @@ export async function POST(
     console.log('✅ Registration ID:', newRegId)
 
     // ============================================
-    // PHASE 5: QR Code & Response
+    // PHASE 5: QR Code & Response (Async - Don't Block)
     // ============================================
     const qrData = {
       type: 'EVENT_REGISTRATION',
@@ -503,22 +499,23 @@ export async function POST(
       checkInCode: `REG-${eventId}-${newRegId.substring(0, 8)}`
     }
 
-    let qrCodeDataURL = ''
-    try {
-      qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData))
-    } catch (e) {
-      console.error('QR Gen failed', e)
-    }
-
-    // Async Email
-    if (formData.email && qrCodeDataURL) {
-      sendEmail({
-        to: formData.email,
-        subject: `Registration Confirmed - ${event.name}`,
-        text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
-        html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
-      }).catch(console.error)
-    }
+    // Generate QR code and send email asynchronously (don't wait)
+    // This prevents blocking the response
+    Promise.all([
+      QRCode.toDataURL(JSON.stringify(qrData)).catch(e => {
+        console.error('QR Gen failed', e)
+        return ''
+      })
+    ]).then(([qrCodeDataURL]) => {
+      if (formData.email && qrCodeDataURL) {
+        sendEmail({
+          to: formData.email,
+          subject: `Registration Confirmed - ${event.name}`,
+          text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
+          html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
+        }).catch(console.error)
+      }
+    }).catch(console.error)
 
     // Send SMS notification
     if (formData.phone) {
@@ -551,8 +548,7 @@ export async function POST(
       eventId: Number(eventId),
       dataJson: registrationData,
       checkInCode: qrData.checkInCode,
-      qrCode: qrCodeDataURL,
-      message: 'Registration successful'
+      message: 'Registration successful. QR code will be sent to your email.'
     }, { status: 201 })
 
   } catch (error: any) {
