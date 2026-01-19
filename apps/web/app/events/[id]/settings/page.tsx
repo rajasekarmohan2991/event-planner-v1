@@ -28,7 +28,7 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
   const [registration, setRegistration] = useState<any>({ capacity: '', approvalRequired: false })
   const [payments, setPayments] = useState<any>({ currency: 'INR', enableOnline: true })
   const [notifications, setNotifications] = useState<any>({ rsvpReminders: true, checkinNotice: true, senderName: '' })
-  const [integrations, setIntegrations] = useState<any>({ webhookUrl: '', mapKey: '' })
+  const [integrations, setIntegrations] = useState<any>({ webhookUrl: '', mapKey: '', streamUrl: '', streamEnabled: false })
   const [promote, setPromote] = useState<any>({ emailCampaigns: false, socialMedia: false })
   const [engagement, setEngagement] = useState<any>({ polls: false, qna: false })
 
@@ -249,14 +249,28 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
           )}
 
           {active === 'integrations' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm">Webhook URL</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.webhookUrl || ''} onChange={e => setIntegrations({ ...integrations, webhookUrl: e.target.value })} placeholder="https://example.com/webhook" />
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm">Webhook URL</label>
+                  <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.webhookUrl || ''} onChange={e => setIntegrations({ ...integrations, webhookUrl: e.target.value })} placeholder="https://example.com/webhook" />
+                </div>
+                <div>
+                  <label className="text-sm">Map Key</label>
+                  <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.mapKey || ''} onChange={e => setIntegrations({ ...integrations, mapKey: e.target.value })} placeholder="MapTiler/Google key" />
+                </div>
               </div>
-              <div>
-                <label className="text-sm">Map Key</label>
-                <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.mapKey || ''} onChange={e => setIntegrations({ ...integrations, mapKey: e.target.value })} placeholder="MapTiler/Google key" />
+              <div className="border-t pt-4">
+                <div className="text-sm font-medium text-slate-700 mb-3">Live Streaming</div>
+                <div className="flex items-center gap-2 mb-3">
+                  <input id="streamEnabled" type="checkbox" checked={!!integrations.streamEnabled} onChange={e => setIntegrations({ ...integrations, streamEnabled: e.target.checked })} />
+                  <label htmlFor="streamEnabled" className="text-sm">Enable event-wide live streaming</label>
+                </div>
+                <div>
+                  <label className="text-sm">Stream URL</label>
+                  <input className="mt-1 w-full rounded border px-3 py-2 text-sm" value={integrations.streamUrl || ''} onChange={e => setIntegrations({ ...integrations, streamUrl: e.target.value })} placeholder="https://youtube.com/live/... or RTMP URL" />
+                  <p className="text-xs text-slate-500 mt-1">Event-wide stream link for attendees. Session-specific streams can be configured separately.</p>
+                </div>
               </div>
             </div>
           )}
