@@ -20,13 +20,21 @@ export async function GET(
 
         try {
             taxes = await prisma.$queryRawUnsafe(`
-                SELECT id, name, rate, description, is_default as "isDefault", tenant_id as "tenantId", created_at as "createdAt", updated_at as "updatedAt"
+                SELECT 
+                    id, name, rate, description, 
+                    is_default as "isDefault", 
+                    COALESCE(is_custom, true) as "isCustom",
+                    global_template_id as "globalTemplateId",
+                    tenant_id as "tenantId", 
+                    created_at as "createdAt", 
+                    updated_at as "updatedAt"
                 FROM tax_structures 
                 WHERE tenant_id = $1 
                 ORDER BY created_at DESC
             `, params.id) as any[];
+            console.log(`Found ${taxes.length} existing tax structures for tenant ${params.id}`);
         } catch (tableError: any) {
-            console.log('Tax structures table may not exist, running schema update...');
+            console.log('Tax structures table may not exist, running schema update...', tableError.message);
             await ensureSchema();
             taxes = [];
         }
@@ -75,7 +83,14 @@ export async function GET(
 
             // Fetch the newly created taxes
             taxes = await prisma.$queryRawUnsafe(`
-                SELECT id, name, rate, description, is_default as "isDefault", tenant_id as "tenantId", created_at as "createdAt", updated_at as "updatedAt"
+                SELECT 
+                    id, name, rate, description, 
+                    is_default as "isDefault", 
+                    COALESCE(is_custom, true) as "isCustom",
+                    global_template_id as "globalTemplateId",
+                    tenant_id as "tenantId", 
+                    created_at as "createdAt", 
+                    updated_at as "updatedAt"
                 FROM tax_structures 
                 WHERE tenant_id = $1 
                 ORDER BY created_at DESC
