@@ -67,8 +67,17 @@ export async function PATCH(
         });
     } catch (error: any) {
         console.error('Error updating company currency:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
         return NextResponse.json(
-            { error: 'Failed to update company currency: ' + error.message },
+            { 
+                error: 'Failed to update company currency',
+                details: error.message,
+                code: error.code
+            },
             { status: 500 }
         );
     }

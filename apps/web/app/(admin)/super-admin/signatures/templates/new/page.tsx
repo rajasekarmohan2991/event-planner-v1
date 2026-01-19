@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Save, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -9,12 +9,39 @@ export default function NewTemplatePage() {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [templateForOptions, setTemplateForOptions] = useState<any[]>([]);
+    const [documentTypeOptions, setDocumentTypeOptions] = useState<any[]>([]);
     const [formData, setFormData] = useState({
         templateType: 'VENDOR',
         documentName: '',
         documentType: 'TERMS',
         content: ''
     });
+
+    useEffect(() => {
+        fetchLookupOptions();
+    }, []);
+
+    const fetchLookupOptions = async () => {
+        try {
+            const [templateForRes, documentTypeRes] = await Promise.all([
+                fetch('/api/admin/lookups?category=template_for'),
+                fetch('/api/admin/lookups?category=document_type')
+            ]);
+
+            if (templateForRes.ok) {
+                const data = await templateForRes.json();
+                setTemplateForOptions(data.values || []);
+            }
+
+            if (documentTypeRes.ok) {
+                const data = await documentTypeRes.json();
+                setDocumentTypeOptions(data.values || []);
+            }
+        } catch (error) {
+            console.error('Error fetching lookup options:', error);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,9 +100,19 @@ export default function NewTemplatePage() {
                                     onChange={(e) => setFormData({ ...formData, templateType: e.target.value })}
                                     className="w-full h-10 rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
-                                    <option value="VENDOR">Vendor</option>
-                                    <option value="SPONSOR">Sponsor</option>
-                                    <option value="EXHIBITOR">Exhibitor</option>
+                                    {templateForOptions.length > 0 ? (
+                                        templateForOptions.filter(opt => opt.is_active).map(option => (
+                                            <option key={option.id} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <option value="VENDOR">Vendor</option>
+                                            <option value="SPONSOR">Sponsor</option>
+                                            <option value="EXHIBITOR">Exhibitor</option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
 
@@ -88,9 +125,19 @@ export default function NewTemplatePage() {
                                     onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
                                     className="w-full h-10 rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
-                                    <option value="TERMS">Terms & Conditions</option>
-                                    <option value="DISCLAIMER">Liability Disclaimer</option>
-                                    <option value="CONTRACT">Contract Agreement</option>
+                                    {documentTypeOptions.length > 0 ? (
+                                        documentTypeOptions.filter(opt => opt.is_active).map(option => (
+                                            <option key={option.id} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <option value="TERMS">Terms & Conditions</option>
+                                            <option value="DISCLAIMER">Liability Disclaimer</option>
+                                            <option value="CONTRACT">Contract Agreement</option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
                         </div>

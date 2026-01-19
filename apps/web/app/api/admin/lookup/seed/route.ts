@@ -130,6 +130,18 @@ const SYSTEM_LOOKUPS = [
         label: 'Lookup Category',
         description: 'Meta-category for lookup classifications',
         options: ['EVENT_TYPE', 'EVENT_CATEGORY', 'EVENT_MODE', 'TIMEZONE', 'USER_ROLE']
+    },
+    {
+        name: 'template_for',
+        label: 'Template For',
+        description: 'Entity types for document templates',
+        options: ['VENDOR', 'SPONSOR', 'EXHIBITOR', 'SPEAKER', 'ATTENDEE', 'STAFF']
+    },
+    {
+        name: 'document_type',
+        label: 'Document Type',
+        description: 'Types of legal documents',
+        options: ['TERMS', 'DISCLAIMER', 'CONTRACT', 'AGREEMENT', 'NDA', 'WAIVER']
     }
 ]
 
