@@ -479,6 +479,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
       ) : viewMode === 'calendar' ? (
         <SessionCalendarView
           sessions={items}
+          eventId={params.id}
           onSessionClick={(sessionId) => {
             handleSessionSelect(String(sessionId))
             window.scrollTo({ top: 0, behavior: 'smooth' })

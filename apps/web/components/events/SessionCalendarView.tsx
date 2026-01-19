@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from 'react'
-import { Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Radio } from 'lucide-react'
 
 interface Session {
   id: number
@@ -17,9 +17,10 @@ interface Session {
 interface SessionCalendarViewProps {
   sessions: Session[]
   onSessionClick?: (sessionId: number) => void
+  eventId?: string
 }
 
-export default function SessionCalendarView({ sessions, onSessionClick }: SessionCalendarViewProps) {
+export default function SessionCalendarView({ sessions, onSessionClick, eventId }: SessionCalendarViewProps) {
   // Group sessions by date
   const sessionsByDate = useMemo(() => {
     const grouped: Record<string, Session[]> = {}
@@ -158,6 +159,16 @@ export default function SessionCalendarView({ sessions, onSessionClick }: Sessio
                         <div className="text-xs text-gray-400">
                           Ends: {formatTime(session.endTime)}
                         </div>
+                        {eventId && (
+                          <a 
+                            href={`/events/${eventId}/sessions/${session.id}/stream`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors"
+                          >
+                            <Radio className="h-3 w-3" />
+                            Stream
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
