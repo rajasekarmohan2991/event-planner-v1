@@ -905,6 +905,8 @@ export async function ensureSchema() {
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS platform_commission_rate DOUBLE PRECISION DEFAULT 0;
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS net_to_organizer DOUBLE PRECISION;
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(50) DEFAULT 'NET_30';
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to TEXT;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
     

@@ -201,7 +201,7 @@ export default function CompanyFinancePage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <button
-          onClick={() => router.push(`/super-admin/companies/${params.id}/tax-settings`)}
+          onClick={() => router.push(`/super-admin/companies/${params.id}/tax-structures`)}
           className="flex items-center gap-3 p-4 bg-white rounded-lg shadow-sm border hover:border-blue-300 transition-colors"
         >
           <Building2 className="h-5 w-5 text-purple-600" />
