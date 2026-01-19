@@ -464,9 +464,17 @@ export default function CompanyDetailsPage() {
               <Ticket className="h-5 w-5 text-green-600" />
               <h2 className="text-xl font-semibold text-gray-900">Subscription & Limits</h2>
             </div>
-            <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
-              {company.plan} Plan
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
+                {company.plan} Plan
+              </Badge>
+              <button
+                onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
+                className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Change Plan
+              </button>
+            </div>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

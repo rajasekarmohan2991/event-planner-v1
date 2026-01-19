@@ -1081,7 +1081,34 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_type ON document_templates(template_type);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_active ON document_templates(is_active);`)
 
-    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, convenience fees, and document templates).')
+    console.log('📝 Step 33: Creating subscription_plans table...')
+    
+    // Create subscription plans table for managing pricing tiers
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS subscription_plans (
+            id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            name VARCHAR(255) NOT NULL,
+            slug VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            price DOUBLE PRECISION NOT NULL DEFAULT 0,
+            currency VARCHAR(10) DEFAULT 'USD',
+            billing_period VARCHAR(50) DEFAULT 'MONTHLY',
+            max_events INTEGER,
+            max_users INTEGER,
+            max_attendees INTEGER,
+            features JSONB DEFAULT '[]'::jsonb,
+            is_active BOOLEAN DEFAULT true,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `)
+
+    // Create indexes for subscription_plans
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_slug ON subscription_plans(slug);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_active ON subscription_plans(is_active);`)
+
+    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, convenience fees, document templates, and subscription plans).')
     return true
   } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)

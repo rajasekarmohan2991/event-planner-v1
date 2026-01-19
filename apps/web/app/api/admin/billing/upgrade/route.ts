@@ -19,20 +19,28 @@ export async function POST(req: NextRequest) {
 
         // Update the tenant's plan
         // In a real scenario, this would interact with Stripe/Razorpay using paymentMethodId
-        const updatedTenant = await prisma.tenant.update({
-            where: { id: tenantId },
-            data: {
-                plan: plan,
-                status: 'ACTIVE', // Ensure active if upgraded
-                subscriptionStartedAt: new Date(),
-                // Mock subscription end date (1 year)
-                subscriptionEndsAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-            }
-        })
+        const subscriptionStartedAt = new Date();
+        const subscriptionEndsAt = new Date();
+        subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
+
+        await prisma.$executeRaw`
+            UPDATE tenants 
+            SET 
+                plan = ${plan},
+                status = 'ACTIVE',
+                subscription_started_at = ${subscriptionStartedAt},
+                subscription_ends_at = ${subscriptionEndsAt},
+                updated_at = NOW()
+            WHERE id = ${tenantId}
+        `;
+
+        const updatedTenant = await prisma.$queryRaw<any[]>`
+            SELECT * FROM tenants WHERE id = ${tenantId}
+        `;
 
         return NextResponse.json({
             message: 'Plan upgraded successfully',
-            tenant: updatedTenant
+            tenant: updatedTenant[0]
         })
 
     } catch (error: any) {
