@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { put } from "@vercel/blob";
+import { supabase } from "@/lib/supabase";
 
-// POST /api/uploads - Upload file to Vercel Blob
+// POST /api/uploads - Upload file to Supabase Storage
 export async function POST(req: NextRequest) {
   console.log('📤 Upload API called');
 
@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if BLOB_READ_WRITE_TOKEN is configured
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.warn("⚠️ BLOB_READ_WRITE_TOKEN not configured - using data URL fallback");
+    // Check if Supabase is configured
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn("⚠️ Supabase not configured - using data URL fallback");
 
       // For small files, use data URL
       if (file.size < 100 * 1024) { // Less than 100KB
@@ -61,25 +61,49 @@ export async function POST(req: NextRequest) {
           message: "File uploaded (development mode - using data URL)"
         });
       } else {
-        console.error('❌ File too large for data URL and no blob storage configured');
+        console.error('❌ File too large for data URL and Supabase not configured');
         return NextResponse.json(
-          { error: "Blob storage not configured. Please set BLOB_READ_WRITE_TOKEN environment variable." },
+          { error: "Supabase storage not configured. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables." },
           { status: 500 }
         );
       }
     }
 
-    // Upload to Vercel Blob
-    console.log('☁️ Uploading to Vercel Blob...');
-    const blob = await put(file.name, file, {
-      access: "public",
-      addRandomSuffix: true,
-    });
+    // Generate unique filename
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${timestamp}-${randomString}.${fileExt}`;
 
-    console.log(`✅ Upload successful: ${blob.url}`);
+    console.log(`☁️ Uploading to Supabase Storage: ${fileName}`);
+
+    // Convert File to ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('❌ Supabase upload error:', error);
+      throw new Error(error.message);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(fileName);
+
+    console.log(`✅ Upload successful: ${publicUrl}`);
     return NextResponse.json({
-      url: blob.url,
-      message: "File uploaded successfully"
+      url: publicUrl,
+      message: "File uploaded successfully to Supabase"
     });
   } catch (error: any) {
     console.error("❌ Upload error:", error);
@@ -89,18 +113,18 @@ export async function POST(req: NextRequest) {
       stack: error?.stack,
       toString: error?.toString()
     });
-    
+
     // Provide more detailed error message
     const errorMessage = error?.message || error?.toString() || 'Unknown upload error';
-    
+
     return NextResponse.json(
       {
         error: "Failed to upload file",
         message: errorMessage,
         details: error?.code || error?.name || 'UPLOAD_ERROR',
-        hint: !process.env.BLOB_READ_WRITE_TOKEN 
-          ? "Blob storage not configured. Set BLOB_READ_WRITE_TOKEN in environment variables."
-          : "Check server logs for more details."
+        hint: (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)
+          ? "Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in environment variables."
+          : "Check server logs for more details. Ensure the 'uploads' bucket exists in Supabase Storage."
       },
       { status: 500 }
     );
