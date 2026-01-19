@@ -410,6 +410,8 @@ export async function POST(
       // 2. Insert Order ('"Order"')
       const orderEventId = String(eventId)
       const userIdStr = userId ? String(userId) : null
+      const metaJson = JSON.stringify({ registrationId: newRegId, totalDiscount, offerDiscount, promoDiscount, promoCode })
+
       await prisma.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
@@ -423,7 +425,7 @@ export async function POST(
                 ${finalAmount > 0 ? 'PAID' : 'CREATED'},
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
-                ${JSON.stringify({ registrationId: newRegId, totalDiscount, offerDiscount, promoDiscount, promoCode })},
+                ${metaJson}::jsonb,
                 NOW(),
                 NOW()
             )
