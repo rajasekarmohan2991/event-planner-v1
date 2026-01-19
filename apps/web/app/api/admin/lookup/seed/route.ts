@@ -142,6 +142,114 @@ const SYSTEM_LOOKUPS = [
         label: 'Document Type',
         description: 'Types of legal documents',
         options: ['TERMS', 'DISCLAIMER', 'CONTRACT', 'AGREEMENT', 'NDA', 'WAIVER']
+    },
+    {
+        name: 'event_type',
+        label: 'Event Type',
+        description: 'Categories of events',
+        options: ['CONFERENCE', 'SEMINAR', 'WORKSHOP', 'WEBINAR', 'MEETUP', 'EXHIBITION', 'TRADE_SHOW', 'CONCERT', 'FESTIVAL', 'SPORTS', 'NETWORKING', 'TRAINING', 'HACKATHON', 'COMPETITION', 'GALA', 'FUNDRAISER', 'OTHER']
+    },
+    {
+        name: 'event_category',
+        label: 'Event Category',
+        description: 'Industry categories for events',
+        options: ['TECHNOLOGY', 'BUSINESS', 'EDUCATION', 'HEALTHCARE', 'FINANCE', 'MARKETING', 'ENTERTAINMENT', 'SPORTS', 'ARTS', 'SCIENCE', 'SOCIAL', 'CHARITY', 'GOVERNMENT', 'OTHER']
+    },
+    {
+        name: 'event_mode',
+        label: 'Event Mode',
+        description: 'Delivery format of events',
+        options: ['IN_PERSON', 'VIRTUAL', 'HYBRID']
+    },
+    {
+        name: 'ticket_type',
+        label: 'Ticket Type',
+        description: 'Categories of event tickets',
+        options: ['GENERAL', 'VIP', 'EARLY_BIRD', 'STUDENT', 'GROUP', 'CORPORATE', 'COMPLIMENTARY', 'PRESS', 'SPEAKER', 'SPONSOR']
+    },
+    {
+        name: 'payment_method',
+        label: 'Payment Method',
+        description: 'Supported payment options',
+        options: ['CREDIT_CARD', 'DEBIT_CARD', 'UPI', 'NET_BANKING', 'WALLET', 'BANK_TRANSFER', 'CASH', 'CHEQUE']
+    },
+    {
+        name: 'payment_status',
+        label: 'Payment Status',
+        description: 'Status of payment transactions',
+        options: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED']
+    },
+    {
+        name: 'currency',
+        label: 'Currency',
+        description: 'Supported currencies',
+        options: ['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED']
+    },
+    {
+        name: 'country',
+        label: 'Country',
+        description: 'Countries for events and organizations',
+        options: ['IN', 'US', 'GB', 'CA', 'AU', 'SG', 'AE', 'DE', 'FR', 'JP', 'CN', 'BR', 'MX', 'ES', 'IT', 'NL', 'SE', 'NO', 'DK', 'FI']
+    },
+    {
+        name: 'timezone',
+        label: 'Timezone',
+        description: 'Timezones for event scheduling',
+        options: ['Asia/Kolkata', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Singapore', 'Asia/Dubai', 'Australia/Sydney', 'Pacific/Auckland']
+    },
+    {
+        name: 'sponsor_tier',
+        label: 'Sponsor Tier',
+        description: 'Sponsorship levels',
+        options: ['PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'ASSOCIATE', 'PARTNER', 'MEDIA_PARTNER', 'COMMUNITY_PARTNER']
+    },
+    {
+        name: 'speaker_type',
+        label: 'Speaker Type',
+        description: 'Types of event speakers',
+        options: ['KEYNOTE', 'PANELIST', 'MODERATOR', 'WORKSHOP_LEADER', 'PRESENTER', 'MC', 'GUEST']
+    },
+    {
+        name: 'session_type',
+        label: 'Session Type',
+        description: 'Types of event sessions',
+        options: ['KEYNOTE', 'PANEL', 'WORKSHOP', 'BREAKOUT', 'NETWORKING', 'DEMO', 'Q&A', 'LIGHTNING_TALK', 'FIRESIDE_CHAT']
+    },
+    {
+        name: 'venue_type',
+        label: 'Venue Type',
+        description: 'Categories of event venues',
+        options: ['CONFERENCE_CENTER', 'HOTEL', 'AUDITORIUM', 'OUTDOOR', 'STADIUM', 'EXHIBITION_HALL', 'BANQUET_HALL', 'RESTAURANT', 'OFFICE', 'VIRTUAL', 'OTHER']
+    },
+    {
+        name: 'tax_type',
+        label: 'Tax Type',
+        description: 'Types of taxes applicable',
+        options: ['GST', 'VAT', 'SALES_TAX', 'SERVICE_TAX', 'NONE']
+    },
+    {
+        name: 'discount_type',
+        label: 'Discount Type',
+        description: 'Types of discounts',
+        options: ['PERCENTAGE', 'FIXED', 'BUY_X_GET_Y']
+    },
+    {
+        name: 'refund_policy',
+        label: 'Refund Policy',
+        description: 'Refund policy options',
+        options: ['FULL_REFUND', 'PARTIAL_REFUND', 'NO_REFUND', 'CREDIT_NOTE']
+    },
+    {
+        name: 'visibility',
+        label: 'Visibility',
+        description: 'Event visibility settings',
+        options: ['PUBLIC', 'PRIVATE', 'UNLISTED']
+    },
+    {
+        name: 'approval_status',
+        label: 'Approval Status',
+        description: 'General approval workflow status',
+        options: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']
     }
 ]
 
