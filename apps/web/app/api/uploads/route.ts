@@ -84,13 +84,23 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("❌ Upload error:", error);
     console.error("Error details:", {
-      message: error.message,
-      stack: error.stack
+      message: error?.message || 'Unknown error',
+      name: error?.name,
+      stack: error?.stack,
+      toString: error?.toString()
     });
+    
+    // Provide more detailed error message
+    const errorMessage = error?.message || error?.toString() || 'Unknown upload error';
+    
     return NextResponse.json(
       {
         error: "Failed to upload file",
-        details: error.message
+        message: errorMessage,
+        details: error?.code || error?.name || 'UPLOAD_ERROR',
+        hint: !process.env.BLOB_READ_WRITE_TOKEN 
+          ? "Blob storage not configured. Set BLOB_READ_WRITE_TOKEN in environment variables."
+          : "Check server logs for more details."
       },
       { status: 500 }
     );
