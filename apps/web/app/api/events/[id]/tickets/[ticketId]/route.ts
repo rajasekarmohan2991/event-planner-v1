@@ -1,67 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import prisma, { safeJson } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string, ticketId: string } }) {
-  const session = await getServerSession(authOptions as any)
-  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-
+// GET /api/events/[id]/tickets/[ticketId] - Get single ticket class details
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string, ticketId: string }> | { id: string, ticketId: string } }
+) {
   try {
-    const body = await req.json()
+    // Await params if it's a Promise (Next.js 15+)
+    const params = 'then' in context.params ? await context.params : context.params
+    const eventId = BigInt(params.id)
     const ticketId = BigInt(params.ticketId)
 
-    // Mapping fields
-    const priceInMinor = body.price !== undefined ? Math.round(Number(body.price) * 100) : (body.priceInMinor !== undefined ? body.priceInMinor : undefined)
-    const quantity = body.quantity !== undefined ? Number(body.quantity) : (body.capacity !== undefined ? body.capacity : undefined)
+    // Fetch ticket class details
+    const tickets = await prisma.$queryRaw`
+      SELECT 
+        id::text,
+        event_id::text as "eventId",
+        name,
+        description,
+        price_in_minor as "priceInMinor",
+        quantity,
+        sold,
+        status,
+        min_purchase as "minPurchase",
+        max_purchase as "maxPurchase",
+        sales_start_date as "salesStartDate",
+        sales_end_date as "salesEndDate",
+        requires_approval as "requiresApproval"
+      FROM tickets
+      WHERE id = ${ticketId}
+        AND event_id = ${eventId}
+      LIMIT 1
+    ` as any[]
 
-    const ticket = await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        name: body.name,
-        description: body.description,
-        groupId: body.groupId,
-        ...(priceInMinor !== undefined && { priceInMinor: Number(priceInMinor) }),
-        ...(quantity !== undefined && { quantity: Number(quantity) }),
-        ...(body.status && { status: body.status === 'Closed' ? 'INACTIVE' : 'ACTIVE' }),
-        ...(body.requiresApproval !== undefined && { requiresApproval: !!body.requiresApproval }),
-        ...(body.salesStartDate && {
-          salesStartAt: new Date(body.salesStartDate + (body.salesStartTime ? 'T' + body.salesStartTime : ''))
-        }),
-        ...(body.salesEndDate && {
-          salesEndAt: new Date(body.salesEndDate + (body.salesEndTime ? 'T' + body.salesEndTime : ''))
-        }),
-      }
-    })
+    if (tickets.length === 0) {
+      return NextResponse.json(
+        { error: 'Ticket class not found' },
+        { status: 404 }
+      )
+    }
 
-    return NextResponse.json({
+    const ticket = tickets[0]
+
+    // Add computed fields
+    const ticketWithDetails = {
       ...ticket,
-      id: ticket.id.toString(),
-      eventId: ticket.eventId.toString(),
-      priceInMinor: Number(ticket.priceInMinor),
-      quantity: Number(ticket.quantity)
-    })
-  } catch (e: any) {
-    console.error('❌ [Ticket Update Error]:', e)
-    return NextResponse.json({ message: e?.message || 'Update failed' }, { status: 500 })
-  }
-}
+      available: Number(ticket.quantity) - Number(ticket.sold),
+      priceInRupees: Number(ticket.priceInMinor) / 100,
+      isSoldOut: Number(ticket.sold) >= Number(ticket.quantity),
+      isActive: ticket.status === 'ACTIVE'
+    }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string, ticketId: string } }) {
-  const session = await getServerSession(authOptions as any)
-  if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
-
-  try {
-    const ticketId = BigInt(params.ticketId)
-    await prisma.ticket.delete({
-      where: { id: ticketId }
-    })
-
-    return NextResponse.json({ ok: true })
-  } catch (e: any) {
-    console.error('Delete ticket error:', e)
-    return NextResponse.json({ message: e?.message || 'Delete failed' }, { status: 500 })
+    return NextResponse.json(ticketWithDetails)
+  } catch (error: any) {
+    console.error('Error fetching ticket class:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch ticket class', details: error.message },
+      { status: 500 }
+    )
   }
 }
