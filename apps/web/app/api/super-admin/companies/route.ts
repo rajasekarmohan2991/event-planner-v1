@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         status: true,
         billingEmail: true,
         emailFromAddress: true,
+        logo: true,
         createdAt: true,
         _count: {
           select: {
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
         slug: c.slug,
         plan: c.plan,
         status: c.status,
+        logo: c.logo,
         createdAt: c.createdAt,
         billingEmail: fallbackEmail,
         _count: c._count,

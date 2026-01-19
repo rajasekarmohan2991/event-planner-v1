@@ -12,6 +12,7 @@ interface Tenant {
   status: string;
   billingEmail: string;
   createdAt: string;
+  logo?: string | null;
   _count: { members: number };
   eventCount?: number;
 }
@@ -167,9 +168,17 @@ export default function SuperAdminCompaniesPage() {
                 {/* Avatar overlapping banner */}
                 <div className="flex justify-between items-end mb-3 -mt-8 px-2">
                   <div className="w-16 h-16 bg-white rounded-xl shadow-md p-0.5">
-                    <div className={`w-full h-full rounded-lg bg-gradient-to-br ${getGradient(company.name)} flex items-center justify-center text-white text-xl font-semibold`}>
-                      {company.name.charAt(0)}
-                    </div>
+                    {company.logo ? (
+                      <img 
+                        src={company.logo} 
+                        alt={company.name}
+                        className="w-full h-full rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className={`w-full h-full rounded-lg bg-gradient-to-br ${getGradient(company.name)} flex items-center justify-center text-white text-xl font-semibold`}>
+                        {company.name.charAt(0)}
+                      </div>
+                    )}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(company.status)} shadow-sm`}>
                     {company.status}
