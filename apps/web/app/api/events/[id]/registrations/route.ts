@@ -297,6 +297,7 @@ export async function POST(
 
       // 2. Insert Order ('"Order"')
       const orderEventId = String(eventId)
+      const userIdStr = userId ? String(userId) : null
       await prisma.$executeRaw`
             INSERT INTO "Order" (
                 "id", "eventId", "tenantId", "userId", "email", "status", 
@@ -305,7 +306,7 @@ export async function POST(
                 ${newOrderId},
                 ${orderEventId},
                 ${tenantId},
-                ${userId},
+                ${userIdStr},
                 ${formData.email},
                 ${finalAmount > 0 ? 'PAID' : 'CREATED'},
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
