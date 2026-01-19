@@ -146,7 +146,14 @@ export async function POST(
       }
 
       const tickets = await prisma.$queryRaw`
-        SELECT id, name, quantity as capacity, sold, status, price_in_minor as "priceInMinor"
+        SELECT 
+          id, name, quantity as capacity, sold, status, 
+          price_in_minor as "priceInMinor",
+          min_purchase as "minPurchase",
+          max_purchase as "maxPurchase",
+          sales_start_date as "salesStartDate",
+          sales_end_date as "salesEndDate",
+          requires_approval as "requiresApproval"
         FROM tickets
         WHERE id = ${ticketIdBigInt}
         LIMIT 1
@@ -165,10 +172,51 @@ export async function POST(
         return NextResponse.json({ message: 'Ticket not available' }, { status: 400 })
       }
 
+      // Validate min/max purchase limits
+      const minPurchase = Number(ticket.minPurchase) || 1
+      const maxPurchase = Number(ticket.maxPurchase) || null
+
+      if (quantity < minPurchase) {
+        console.log('❌ Below minimum purchase:', { quantity, minPurchase })
+        return NextResponse.json({ 
+          message: `Minimum purchase quantity is ${minPurchase} ticket(s)` 
+        }, { status: 400 })
+      }
+
+      if (maxPurchase && quantity > maxPurchase) {
+        console.log('❌ Exceeds maximum purchase:', { quantity, maxPurchase })
+        return NextResponse.json({ 
+          message: `Maximum purchase quantity is ${maxPurchase} ticket(s)` 
+        }, { status: 400 })
+      }
+
+      // Validate sales date range
+      const now = new Date()
+      if (ticket.salesStartDate) {
+        const salesStart = new Date(ticket.salesStartDate)
+        if (now < salesStart) {
+          console.log('❌ Sales not started:', { now, salesStart })
+          return NextResponse.json({ 
+            message: `Ticket sales start on ${salesStart.toLocaleDateString()}` 
+          }, { status: 400 })
+        }
+      }
+
+      if (ticket.salesEndDate) {
+        const salesEnd = new Date(ticket.salesEndDate)
+        if (now > salesEnd) {
+          console.log('❌ Sales ended:', { now, salesEnd })
+          return NextResponse.json({ 
+            message: `Ticket sales ended on ${salesEnd.toLocaleDateString()}` 
+          }, { status: 400 })
+        }
+      }
+
+      // Check availability
       const sold = Number(ticket.sold) || 0
       const capacity = Number(ticket.capacity) || 0
 
-      console.log('🎫 Ticket availability:', { sold, capacity, quantity })
+      console.log('🎫 Ticket availability:', { sold, capacity, quantity, minPurchase, maxPurchase })
 
       if (capacity > 0 && (capacity - sold) < quantity) {
         return NextResponse.json({ message: 'Tickets sold out or not enough available' }, { status: 400 })
@@ -248,6 +296,10 @@ export async function POST(
     const newOrderId = crypto.randomUUID()
     const userId = (session as any)?.user?.id ? BigInt((session as any).user.id) : null
 
+    // Determine registration status based on approval requirement
+    const requiresApproval = ticket?.requiresApproval || false
+    const initialStatus = requiresApproval ? 'PENDING' : 'APPROVED'
+
     const registrationData = {
       ...formData,
       userId: userId ? String(userId) : null,
@@ -258,14 +310,17 @@ export async function POST(
       promoCode,
       discountAmount,
       taxAmount,
-      convenienceFee
+      convenienceFee,
+      requiresApproval
     }
 
-    console.log('💾 Starting registration (simplified):', {
+    console.log('💾 Starting registration:', {
       regId: newRegId,
       eventId,
       email: formData.email,
-      ticketId: ticketId || 'none'
+      ticketId: ticketId || 'none',
+      requiresApproval,
+      initialStatus
     })
 
     // Ensure schema exists before attempting insert
@@ -280,7 +335,7 @@ export async function POST(
       // 1. Insert Registration ('registrations')
       console.log('📝 Inserting registration into database...')
       const regType = parsed?.type || 'GENERAL'
-      const regStatus = 'APPROVED'
+      const regStatus = initialStatus
 
       const registrationDataJson = JSON.stringify(registrationData)
       const eventIdStr = eventIdBigInt.toString()
@@ -346,15 +401,16 @@ export async function POST(
       }, { status: 500 });
     }
 
-    // 5. Approval (registration_approvals) - OPTIONAL, outside transaction
+    // 5. Approval (registration_approvals) - Create approval record
     try {
       await prisma.$executeRaw`
             INSERT INTO registration_approvals (
                 registration_id, event_id, status, created_at
             ) VALUES (
-                ${newRegId}, ${eventIdBigInt}, 'APPROVED', NOW()
+                ${newRegId}, ${eventIdBigInt}, ${initialStatus}, NOW()
             )
         `
+      console.log(`✅ Registration approval record created with status: ${initialStatus}`)
     } catch (e: any) {
       console.log('⚠️ registration_approvals insert skipped:', e.message?.substring(0, 100))
     }
