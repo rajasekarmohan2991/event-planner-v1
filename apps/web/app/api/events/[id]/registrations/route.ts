@@ -178,15 +178,15 @@ export async function POST(
 
       if (quantity < minPurchase) {
         console.log('❌ Below minimum purchase:', { quantity, minPurchase })
-        return NextResponse.json({ 
-          message: `Minimum purchase quantity is ${minPurchase} ticket(s)` 
+        return NextResponse.json({
+          message: `Minimum purchase quantity is ${minPurchase} ticket(s)`
         }, { status: 400 })
       }
 
       if (maxPurchase && quantity > maxPurchase) {
         console.log('❌ Exceeds maximum purchase:', { quantity, maxPurchase })
-        return NextResponse.json({ 
-          message: `Maximum purchase quantity is ${maxPurchase} ticket(s)` 
+        return NextResponse.json({
+          message: `Maximum purchase quantity is ${maxPurchase} ticket(s)`
         }, { status: 400 })
       }
 
@@ -196,8 +196,8 @@ export async function POST(
         const salesStart = new Date(ticket.salesStartDate)
         if (now < salesStart) {
           console.log('❌ Sales not started:', { now, salesStart })
-          return NextResponse.json({ 
-            message: `Ticket sales start on ${salesStart.toLocaleDateString()}` 
+          return NextResponse.json({
+            message: `Ticket sales start on ${salesStart.toLocaleDateString()}`
           }, { status: 400 })
         }
       }
@@ -206,8 +206,8 @@ export async function POST(
         const salesEnd = new Date(ticket.salesEndDate)
         if (now > salesEnd) {
           console.log('❌ Sales ended:', { now, salesEnd })
-          return NextResponse.json({ 
-            message: `Ticket sales ended on ${salesEnd.toLocaleDateString()}` 
+          return NextResponse.json({
+            message: `Ticket sales ended on ${salesEnd.toLocaleDateString()}`
           }, { status: 400 })
         }
       }
@@ -255,7 +255,7 @@ export async function POST(
 
       if (offers.length > 0) {
         const offer = offers[0]
-        
+
         // Validate offer conditions
         let offerValid = true
 
@@ -423,7 +423,7 @@ export async function POST(
                 ${finalAmount > 0 ? 'PAID' : 'CREATED'},
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
-                ${JSON.stringify({ registrationId: newRegId, discountAmount, promoCode })},
+                ${JSON.stringify({ registrationId: newRegId, totalDiscount, offerDiscount, promoDiscount, promoCode })},
                 NOW(),
                 NOW()
             )
@@ -480,7 +480,7 @@ export async function POST(
             INSERT INTO promo_redemptions (
                 promo_code_id, user_id, order_amount, discount_amount, redeemed_at
             ) VALUES (
-                ${promoCodeId}, ${userIdStr}, ${basePrice}, ${discountAmount}, NOW()
+                ${promoCodeId}, ${userIdStr}, ${basePrice}, ${promoDiscount}, NOW()
             )
         `
       } catch (e: any) {
