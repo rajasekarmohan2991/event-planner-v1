@@ -82,7 +82,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // This is the "Landing" view requested by the user
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
-        { name: 'Digital Signatures', href: '/super-admin/signatures', icon: FileText },
+        { name: 'Digital Signatures', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Settings', href: '/super-admin/settings', icon: Settings }
       )
     }
