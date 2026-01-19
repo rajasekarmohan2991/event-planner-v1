@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+
+// Render backend URL - set in Vercel environment variables
+const RENDER_BACKEND_URL = process.env.RENDER_BACKEND_URL || process.env.NEXT_PUBLIC_RENDER_BACKEND_URL || 'https://event-planner-api.onrender.com'
+
 const nextConfig = {
   experimental: {
     optimizeCss: true,
@@ -7,6 +11,21 @@ const nextConfig = {
     },
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
     isrMemoryCacheSize: 0, // Disable ISR to prevent build timeouts
+  },
+  // Proxy specific API routes to Render backend
+  async rewrites() {
+    return [
+      // Proxy Java backend specific endpoints to Render
+      {
+        source: '/api/backend/:path*',
+        destination: `${RENDER_BACKEND_URL}/api/:path*`,
+      },
+      // Health check endpoint
+      {
+        source: '/api/health',
+        destination: `${RENDER_BACKEND_URL}/api/health`,
+      },
+    ]
   },
   eslint: {
     ignoreDuringBuilds: true,

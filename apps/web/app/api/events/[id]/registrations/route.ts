@@ -226,34 +226,87 @@ export async function POST(
     }
 
     // ============================================
-    // PHASE 3: CALCULATIONS (WITH TAX & CONVENIENCE FEES)
+    // PHASE 3: CALCULATIONS (WITH OFFERS, PROMO CODES, TAX & CONVENIENCE FEES)
     // ============================================
     const basePrice = formData.totalPrice || parsed.totalPrice || 0
-    const promoCode = formData.promoCode
-    let discountAmount = 0
+    let currentPrice = basePrice
+    let offerDiscount = 0
+    let promoDiscount = 0
     let promoCodeId: bigint | null = null
 
-    // Apply promo code discount first
-    let priceAfterDiscount = basePrice
+    // Step 1: Apply ticket class offers first (if applicable)
+    if (ticketId) {
+      const ticketIdBigInt = BigInt(ticketId)
+      const now = new Date()
+
+      const offers = await prisma.$queryRaw`
+        SELECT 
+          offer_type as "offerType", offer_amount as "offerAmount",
+          min_quantity as "minQuantity", max_quantity as "maxQuantity",
+          valid_from as "validFrom", valid_until as "validUntil",
+          usage_count as "usageCount", max_usage as "maxUsage"
+        FROM ticket_class_offers
+        WHERE ticket_id = ${ticketIdBigInt} 
+          AND event_id = ${eventIdBigInt}
+          AND is_active = true
+        ORDER BY offer_amount DESC
+        LIMIT 1
+      ` as any[]
+
+      if (offers.length > 0) {
+        const offer = offers[0]
+        
+        // Validate offer conditions
+        let offerValid = true
+
+        // Check quantity limits
+        if (offer.minQuantity && quantity < Number(offer.minQuantity)) offerValid = false
+        if (offer.maxQuantity && quantity > Number(offer.maxQuantity)) offerValid = false
+
+        // Check date validity
+        if (offer.validFrom && now < new Date(offer.validFrom)) offerValid = false
+        if (offer.validUntil && now > new Date(offer.validUntil)) offerValid = false
+
+        // Check usage limit
+        if (offer.maxUsage && Number(offer.usageCount) >= Number(offer.maxUsage)) offerValid = false
+
+        if (offerValid) {
+          if (offer.offerType === 'PERCENTAGE') {
+            offerDiscount = (currentPrice * Number(offer.offerAmount)) / 100
+          } else {
+            offerDiscount = Number(offer.offerAmount) * quantity
+          }
+          currentPrice = Math.max(0, currentPrice - offerDiscount)
+          console.log('🎁 Ticket offer applied:', { offerDiscount, currentPrice })
+        }
+      }
+    }
+
+    // Step 2: Apply promo code discount on top of offer discount
+    const promoCode = formData.promoCode
     if (promoCode) {
       const promos = await prisma.$queryRaw`
-            SELECT id, discount_type as type, discount_amount as amount
-            FROM promo_codes
-            WHERE code = ${promoCode} AND event_id = ${eventIdBigInt} AND is_active = true
-            LIMIT 1
-        ` as any[]
+        SELECT id, discount_type as type, discount_amount as amount
+        FROM promo_codes
+        WHERE code = ${promoCode} AND event_id = ${eventIdBigInt} AND is_active = true
+        LIMIT 1
+      ` as any[]
 
       if (promos.length > 0) {
         const promo = promos[0]
         if (promo.type === 'PERCENT' || promo.type === 'PERCENTAGE') {
-          discountAmount = (basePrice * Number(promo.amount)) / 100
+          promoDiscount = (currentPrice * Number(promo.amount)) / 100
         } else {
-          discountAmount = Number(promo.amount)
+          promoDiscount = Number(promo.amount)
         }
-        priceAfterDiscount = Math.max(0, basePrice - discountAmount)
+        currentPrice = Math.max(0, currentPrice - promoDiscount)
         promoCodeId = promo.id
+        console.log('🎟️ Promo code applied:', { promoDiscount, currentPrice })
       }
     }
+
+    const totalDiscount = offerDiscount + promoDiscount
+    let priceAfterDiscount = currentPrice
 
     // Calculate complete pricing with tax and convenience fees
     const { calculateCompletePricing } = await import('@/lib/convenience-fee-calculator')
@@ -277,7 +330,9 @@ export async function POST(
 
       console.log('💰 Pricing breakdown:', {
         basePrice,
-        discount: discountAmount,
+        offerDiscount,
+        promoDiscount,
+        totalDiscount,
         priceAfterDiscount,
         tax: taxAmount,
         convenienceFee,
@@ -308,7 +363,9 @@ export async function POST(
       totalPrice: basePrice,
       finalAmount,
       promoCode,
-      discountAmount,
+      offerDiscount,
+      promoDiscount,
+      totalDiscount,
       taxAmount,
       convenienceFee,
       requiresApproval
