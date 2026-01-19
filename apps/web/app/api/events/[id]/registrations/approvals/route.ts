@@ -5,7 +5,9 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
+  const params = 'then' in context.params ? await context.params : context.params
+
   try {
     const session = await getServerSession(authOptions as any)
     if (!session) {
@@ -14,11 +16,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     const eventId = BigInt(params.id)
 
-    // Get real pending registration approvals from database
+    // Get pending registrations from both tables (registration_approvals and registrations with PENDING status)
     const approvals = await prisma.$queryRaw<any[]>`
       SELECT 
-        r.id::text as "registrationId",
-        r.id::text as id,
+        r.id as "registrationId",
+        r.id as id,
         COALESCE(
           CONCAT(
             COALESCE((r.data_json::jsonb)->>'firstName', ''),
@@ -30,27 +32,31 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         r.email,
         COALESCE((r.data_json::jsonb)->>'phone', '') as phone,
         r.type as "ticketType",
-        COALESCE(((r.data_json::jsonb)->>'priceInr')::numeric, 0) as "ticketPrice",
+        COALESCE(((r.data_json::jsonb)->>'finalAmount')::numeric, 0) as "ticketPrice",
         r.created_at as "requestedAt",
-        COALESCE(r.review_status, 'PENDING') as status,
-        COALESCE(r.admin_notes, '') as notes
+        COALESCE(r.status, 'PENDING') as status,
+        COALESCE((r.data_json::jsonb)->>'notes', '') as notes,
+        t.name as "ticketName"
       FROM registrations r
-      WHERE r.event_id = ${eventId}
-        AND COALESCE(r.review_status, 'PENDING') = 'PENDING'
+      LEFT JOIN tickets t ON r.ticket_id::bigint = t.id
+      WHERE r.event_id::bigint = ${eventId}
+        AND r.status = 'PENDING'
       ORDER BY r.created_at DESC
-      LIMIT 50
+      LIMIT 100
     `
 
     console.log('📋 Registration approvals fetched:', { eventId: params.id, count: approvals.length })
 
-    return NextResponse.json(approvals)
+    return NextResponse.json({ approvals, total: approvals.length })
   } catch (e: any) {
     console.error('❌ Failed to load approvals:', e)
-    return NextResponse.json({ message: e?.message || 'Failed to load approvals' }, { status: 500 })
+    return NextResponse.json({ message: e?.message || 'Failed to load approvals', approvals: [] }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> | { id: string } }) {
+  const params = 'then' in context.params ? await context.params : context.params
+
   try {
     const session = await getServerSession(authOptions as any)
     if (!session) {
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const { registrationIds, action, notes } = await req.json()
-    const eventId = BigInt(params.id)
+    const eventId = params.id
 
     if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
       return NextResponse.json({ message: 'No registrations selected' }, { status: 400 })
@@ -68,40 +74,41 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Invalid action' }, { status: 400 })
     }
 
-    // Update registration status based on action
-    const status = action === 'approve' ? 'APPROVED' : 'REJECTED'
-    const approvedBy = (session as any).user.email || (session as any).user.id
+    const newStatus = action === 'approve' ? 'APPROVED' : 'REJECTED'
+    const reviewedBy = (session as any).user?.id || (session as any).user?.email
+    const reviewedAt = new Date().toISOString()
     
-    // Update registrations in database with proper error handling
     let updatedCount = 0
     for (const regId of registrationIds) {
       try {
-        const result = await prisma.$executeRawUnsafe(`
+        // Update registration status
+        await prisma.$executeRaw`
           UPDATE registrations 
-          SET review_status = $1, 
-              updated_at = CURRENT_TIMESTAMP,
-              admin_notes = $2,
-              data_json = jsonb_set(
-                COALESCE(data_json, '{}'::jsonb),
-                '{approvedBy}',
-                to_jsonb($3::text)
-              ),
-              data_json = jsonb_set(
-                data_json,
-                '{approvedAt}',
-                to_jsonb(CURRENT_TIMESTAMP::text)
-              )
-          WHERE id = $4::bigint AND event_id = $5::bigint
-        `, status, notes || '', approvedBy, BigInt(regId), eventId)
+          SET status = ${newStatus}, 
+              updated_at = NOW()
+          WHERE id = ${regId} AND event_id = ${eventId}
+        `
+
+        // Update registration_approvals table
+        await prisma.$executeRaw`
+          UPDATE registration_approvals 
+          SET status = ${newStatus},
+              reviewed_by = ${reviewedBy ? BigInt(reviewedBy) : null},
+              reviewed_at = NOW(),
+              review_notes = ${notes || null}
+          WHERE registration_id = ${regId}
+        `
+
         updatedCount++
-      } catch (err) {
-        console.error(`Failed to update registration ${regId}:`, err)
+        console.log(`✅ Registration ${regId} ${action}d`)
+      } catch (err: any) {
+        console.error(`Failed to update registration ${regId}:`, err.message)
       }
     }
 
     if (updatedCount === 0) {
       return NextResponse.json({ 
-        message: 'No registrations were updated. Please check if they exist.',
+        message: 'No registrations were updated.',
         success: false 
       }, { status: 404 })
     }

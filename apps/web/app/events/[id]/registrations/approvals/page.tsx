@@ -31,10 +31,10 @@ export default function RegistrationApprovalsPage() {
     try {
       setLoading(true)
       setError(null)
-      const res = await fetch(`/api/events/${eventId}/approvals/registrations`, { cache: 'no-store' })
+      const res = await fetch(`/api/events/${eventId}/registrations/approvals`, { cache: 'no-store' })
       if (!res.ok) throw new Error(`Failed to load (${res.status})`)
       const data = await res.json()
-      setItems(Array.isArray(data) ? data : data.items || [])
+      setItems(Array.isArray(data) ? data : data.approvals || [])
       setLastUpdated(new Date())
     } catch (e: any) {
       setError(e?.message || 'Failed to load')
@@ -65,12 +65,12 @@ export default function RegistrationApprovalsPage() {
   const act = async (registrationId: string, action: 'approve'|'deny') => {
     try {
       setActingId(registrationId)
-      const res = await fetch(`/api/events/${eventId}/approvals/registrations`, {
+      const res = await fetch(`/api/events/${eventId}/registrations/approvals`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          registrationId: registrationId, 
-          action: action === 'approve' ? 'approve' : 'deny',
-          reason: action === 'deny' ? 'Registration denied by admin' : null
+          registrationIds: [registrationId], 
+          action: action === 'approve' ? 'approve' : 'reject',
+          notes: action === 'deny' ? 'Registration denied by admin' : null
         })
       })
       if (!res.ok) {
