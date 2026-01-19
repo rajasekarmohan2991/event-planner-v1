@@ -1051,7 +1051,36 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_tenant ON convenience_fee_config(tenant_id);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_event ON convenience_fee_config(event_id);`)
 
-    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, and convenience fees).')
+    console.log('📝 Step 32: Creating document_templates table...')
+    
+    // Create document templates table for digital signatures
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS document_templates (
+            id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            tenant_id VARCHAR(255) NOT NULL,
+            
+            template_type VARCHAR(50) NOT NULL,
+            document_name VARCHAR(255) NOT NULL,
+            document_type VARCHAR(50) NOT NULL,
+            
+            content TEXT NOT NULL,
+            version INTEGER DEFAULT 1,
+            is_active BOOLEAN DEFAULT true,
+            
+            created_by BIGINT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            
+            CONSTRAINT fk_document_templates_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+        );
+    `)
+
+    // Create indexes for document_templates
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_tenant ON document_templates(tenant_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_type ON document_templates(template_type);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_active ON document_templates(is_active);`)
+
+    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, convenience fees, and document templates).')
     return true
   } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)

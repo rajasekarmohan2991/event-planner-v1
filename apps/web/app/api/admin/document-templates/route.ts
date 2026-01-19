@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { ensureSchema } from '@/lib/ensure-schema';
 
 // GET /api/admin/document-templates - List all templates
 export async function GET(request: NextRequest) {
@@ -35,10 +36,33 @@ export async function GET(request: NextRequest) {
     `;
 
         return NextResponse.json({ templates }, { status: 200 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching document templates:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+
+        // If table doesn't exist, trigger schema healing
+        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+            console.log('🔧 Document templates table missing, triggering schema healing...');
+            try {
+                await ensureSchema();
+                return NextResponse.json(
+                    { error: 'Schema updated. Please retry your request.' },
+                    { status: 503 }
+                );
+            } catch (healError) {
+                console.error('Schema healing failed:', healError);
+            }
+        }
+
         return NextResponse.json(
-            { error: 'Failed to fetch document templates' },
+            { 
+                error: 'Failed to fetch document templates',
+                details: error.message 
+            },
             { status: 500 }
         );
     }
@@ -90,8 +114,15 @@ export async function POST(request: NextRequest) {
         const tenantId = (session.user as any)?.currentTenantId;
         const userId = (session.user as any)?.id;
 
+        if (!tenantId) {
+            return NextResponse.json(
+                { error: 'Tenant ID not found in session' },
+                { status: 400 }
+            );
+        }
+
         // Create template
-        const result = await prisma.$executeRaw`
+        const result: any = await prisma.$queryRaw`
       INSERT INTO document_templates (
         template_type,
         document_name,
@@ -111,17 +142,43 @@ export async function POST(request: NextRequest) {
         1,
         true
       )
-      RETURNING id
+      RETURNING id, template_type as "templateType", document_name as "documentName"
     `;
 
         return NextResponse.json(
-            { message: 'Template created successfully' },
+            { 
+                message: 'Template created successfully',
+                template: result[0]
+            },
             { status: 201 }
         );
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating document template:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+
+        // If table doesn't exist, trigger schema healing
+        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+            console.log('🔧 Document templates table missing, triggering schema healing...');
+            try {
+                await ensureSchema();
+                return NextResponse.json(
+                    { error: 'Schema updated. Please retry creating the template.' },
+                    { status: 503 }
+                );
+            } catch (healError) {
+                console.error('Schema healing failed:', healError);
+            }
+        }
+
         return NextResponse.json(
-            { error: 'Failed to create document template' },
+            { 
+                error: 'Failed to create document template',
+                details: error.message 
+            },
             { status: 500 }
         );
     }
