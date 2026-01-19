@@ -1110,7 +1110,115 @@ export async function ensureSchema() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_slug ON subscription_plans(slug);`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_active ON subscription_plans(is_active);`)
 
-    console.log('✅ Self-healing schema update complete (including finance tables, signatures, enhanced tax system, convenience fees, document templates, and subscription plans).')
+    console.log('📝 Step 34: Creating ticket_class_offers table...')
+    
+    // Create ticket class offers table for special pricing
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS ticket_class_offers (
+            id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            ticket_id BIGINT NOT NULL,
+            event_id BIGINT NOT NULL,
+            tenant_id VARCHAR(255) NOT NULL,
+            
+            offer_name VARCHAR(255) NOT NULL,
+            offer_type VARCHAR(50) NOT NULL DEFAULT 'PERCENTAGE',
+            offer_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+            
+            min_quantity INTEGER DEFAULT 1,
+            max_quantity INTEGER,
+            
+            valid_from TIMESTAMP,
+            valid_until TIMESTAMP,
+            
+            is_active BOOLEAN DEFAULT true,
+            usage_count INTEGER DEFAULT 0,
+            max_usage INTEGER,
+            
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+    `)
+
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_ticket ON ticket_class_offers(ticket_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_event ON ticket_class_offers(event_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_active ON ticket_class_offers(is_active);`)
+
+    console.log('📝 Step 35: Enhancing tickets table with validation fields...')
+    
+    // Add validation fields to tickets table
+    await prisma.$executeRawUnsafe(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS min_purchase INTEGER DEFAULT 1;
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS max_purchase INTEGER;
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sales_start_date TIMESTAMP;
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sales_end_date TIMESTAMP;
+          ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requires_approval BOOLEAN DEFAULT false;
+        EXCEPTION
+          WHEN undefined_table THEN
+            RAISE NOTICE 'Table tickets does not exist yet';
+        END;
+      END $$;
+    `)
+
+    console.log('📝 Step 36: Creating registration_approvals table...')
+    
+    // Create registration approvals table
+    await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS registration_approvals (
+            id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            registration_id VARCHAR(255) NOT NULL,
+            event_id BIGINT NOT NULL,
+            
+            status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+            reviewed_by BIGINT,
+            reviewed_at TIMESTAMP,
+            review_notes TEXT,
+            
+            created_at TIMESTAMP DEFAULT NOW(),
+            
+            CONSTRAINT fk_registration_approvals_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+        );
+    `)
+
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_registration ON registration_approvals(registration_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_event ON registration_approvals(event_id);`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_status ON registration_approvals(status);`)
+
+    console.log('📝 Step 37: Adding stream_url to events table...')
+    
+    // Add stream URL field to events table
+    await prisma.$executeRawUnsafe(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE events ADD COLUMN IF NOT EXISTS stream_url TEXT;
+          ALTER TABLE events ADD COLUMN IF NOT EXISTS stream_enabled BOOLEAN DEFAULT false;
+        EXCEPTION
+          WHEN undefined_table THEN
+            RAISE NOTICE 'Table events does not exist yet';
+        END;
+      END $$;
+    `)
+
+    console.log('📝 Step 38: Adding template_for and document_type to document_templates...')
+    
+    // Add template_for and document_type fields to document_templates
+    await prisma.$executeRawUnsafe(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE document_templates ADD COLUMN IF NOT EXISTS template_for VARCHAR(100);
+          ALTER TABLE document_templates ADD COLUMN IF NOT EXISTS document_type_category VARCHAR(100);
+        EXCEPTION
+          WHEN undefined_table THEN
+            RAISE NOTICE 'Table document_templates does not exist yet';
+        END;
+      END $$;
+    `)
+
+    console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
     return true
   } catch (error: any) {
     console.error('❌ Self-healing schema failed:', error)
