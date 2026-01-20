@@ -15,105 +15,79 @@ export async function GET(request: NextRequest) {
 
         const tenantId = (session.user as any)?.tenantId || (session.user as any)?.currentTenantId;
 
-        console.log('Tax structures GET - Session user:', {
-            id: (session.user as any)?.id,
-            email: (session.user as any)?.email,
-            tenantId,
-            currentTenantId: (session.user as any)?.currentTenantId
-        });
-
         if (!tenantId) {
             return NextResponse.json({
                 error: "No company context",
                 taxes: []
-            }, { status: 200 }); // Return empty array instead of error
+            }, { status: 200 });
         }
 
-        // Use raw SQL for reliability
-        try {
-            let taxes: any = await prisma.$queryRaw`
-                SELECT 
-                    ts.id,
-                    ts.name,
-                    ts.rate,
-                    ts.description,
-                    ts.is_default as "isDefault",
-                    ts.is_custom as "isCustom",
-                    ts.global_template_id as "globalTemplateId",
-                    ts.created_at as "createdAt",
-                    ts.updated_at as "updatedAt"
-                FROM tax_structures ts
-                WHERE ts.tenant_id = ${tenantId}
-                ORDER BY ts.is_default DESC, ts.created_at DESC
-            `;
+        // Fetch taxes using Prisma Client
+        let taxes = await prisma.taxStructure.findMany({
+            where: { tenantId },
+            orderBy: [
+                { isDefault: 'desc' },
+                { createdAt: 'desc' }
+            ],
+            include: {
+                globalTemplate: true
+            }
+        });
 
-            // If no tax structures exist, auto-populate based on company country/currency
-            if (!taxes || taxes.length === 0) {
-                console.log('No tax structures found for company, auto-populating...');
+        // Auto-populate if empty
+        if (taxes.length === 0) {
+            console.log('No tax structures found, attempting auto-population...');
 
-                // Get company country/currency
-                const companyData: any = await prisma.$queryRaw`
-                    SELECT country, currency FROM tenants WHERE id = ${tenantId} LIMIT 1
-                `;
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: tenantId },
+                select: { country: true, currency: true }
+            });
 
-                if (companyData && companyData.length > 0) {
-                    const country = companyData[0].country || 'IN'; // Default to India
-                    const currency = companyData[0].currency || 'INR';
+            if (tenant) {
+                const country = tenant.country || 'IN';
 
-                    console.log(`Auto-creating tax structures for ${country} (${currency})`);
+                const defaultTaxes: Record<string, { name: string; rate: number; description: string }> = {
+                    'IN': { name: 'GST (18%)', rate: 18.0, description: 'Goods and Services Tax' },
+                    'US': { name: 'Sales Tax', rate: 8.5, description: 'State Sales Tax' },
+                    'GB': { name: 'VAT (20%)', rate: 20.0, description: 'Value Added Tax' },
+                    'AU': { name: 'GST (10%)', rate: 10.0, description: 'Goods and Services Tax' },
+                    'CA': { name: 'GST/HST', rate: 13.0, description: 'Goods and Services Tax' },
+                    'SG': { name: 'GST (9%)', rate: 9.0, description: 'Goods and Services Tax' },
+                    'AE': { name: 'VAT (5%)', rate: 5.0, description: 'Value Added Tax' }
+                };
 
-                    // Create default tax structure based on country
-                    const defaultTaxes: Record<string, { name: string; rate: number; description: string }> = {
-                        'IN': { name: 'GST (18%)', rate: 18, description: 'Goods and Services Tax' },
-                        'US': { name: 'Sales Tax', rate: 8.5, description: 'State Sales Tax' },
-                        'GB': { name: 'VAT (20%)', rate: 20, description: 'Value Added Tax' },
-                        'AU': { name: 'GST (10%)', rate: 10, description: 'Goods and Services Tax' },
-                        'CA': { name: 'GST/HST', rate: 13, description: 'Goods and Services Tax' },
-                        'SG': { name: 'GST (9%)', rate: 9, description: 'Goods and Services Tax' },
-                        'AE': { name: 'VAT (5%)', rate: 5, description: 'Value Added Tax' }
-                    };
+                const template = defaultTaxes[country] || defaultTaxes['IN'];
 
-                    const taxTemplate = defaultTaxes[country] || defaultTaxes['IN'];
-                    const taxId = `tax_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                try {
+                    await prisma.taxStructure.create({
+                        data: {
+                            name: template.name,
+                            rate: template.rate,
+                            description: template.description,
+                            isDefault: true,
+                            isCustom: false,
+                            tenantId: tenantId
+                        }
+                    });
 
-                    await prisma.$executeRaw`
-                        INSERT INTO tax_structures (id, name, rate, description, is_default, is_custom, tenant_id, created_at, updated_at)
-                        VALUES (${taxId}, ${taxTemplate.name}, ${taxTemplate.rate}, ${taxTemplate.description}, true, false, ${tenantId}, NOW(), NOW())
-                    `;
-
-                    console.log(`Created default tax structure: ${taxTemplate.name} (${taxTemplate.rate}%)`);
-
-                    // Fetch the newly created taxes
-                    taxes = await prisma.$queryRaw`
-                        SELECT 
-                            ts.id,
-                            ts.name,
-                            ts.rate,
-                            ts.description,
-                            ts.is_default as "isDefault",
-                            ts.is_custom as "isCustom",
-                            ts.global_template_id as "globalTemplateId",
-                            ts.created_at as "createdAt",
-                            ts.updated_at as "updatedAt"
-                        FROM tax_structures ts
-                        WHERE ts.tenant_id = ${tenantId}
-                        ORDER BY ts.is_default DESC, ts.created_at DESC
-                    `;
+                    // Fetch again
+                    taxes = await prisma.taxStructure.findMany({
+                        where: { tenantId },
+                        orderBy: [
+                            { isDefault: 'desc' },
+                            { createdAt: 'desc' }
+                        ],
+                        include: {
+                            globalTemplate: true
+                        }
+                    });
+                } catch (createError) {
+                    console.error('Failed to auto-create tax structure:', createError);
                 }
             }
-
-            return NextResponse.json({ taxes });
-        } catch (dbError: any) {
-            console.error("Database error fetching tax structures:", dbError);
-
-            // If table doesn't exist, return empty array
-            if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
-                console.warn("tax_structures table does not exist yet");
-                return NextResponse.json({ taxes: [] });
-            }
-
-            throw dbError;
         }
+
+        return NextResponse.json({ taxes });
     } catch (error) {
         console.error("Error fetching company tax structures:", error);
         return NextResponse.json(
