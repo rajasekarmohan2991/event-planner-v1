@@ -82,8 +82,8 @@ export default function UserDashboard() {
 
   const filteredEvents = upcomingEvents.filter(event => {
     const matchesSearch = !searchQuery ||
-      event.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      event.name && event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesCategory = !selectedCategory || selectedCategory === 'all' || event.category === selectedCategory
 
