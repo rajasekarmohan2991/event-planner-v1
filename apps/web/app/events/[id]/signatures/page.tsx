@@ -142,8 +142,8 @@ export default function SignaturesPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${sig.entityType === 'VENDOR' ? 'bg-blue-50 text-blue-700' :
-                                                sig.entityType === 'SPONSOR' ? 'bg-purple-50 text-purple-700' :
-                                                    'bg-orange-50 text-orange-700'
+                                            sig.entityType === 'SPONSOR' ? 'bg-purple-50 text-purple-700' :
+                                                'bg-orange-50 text-orange-700'
                                             }`}>
                                             {sig.entityType}
                                         </span>
@@ -158,6 +158,39 @@ export default function SignaturesPage() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            {/* Send Email Button */}
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const link = `${window.location.origin}/sign/${sig.signatureToken}`;
+                                                        const res = await fetch(`/api/events/${params.id}/signatures/${sig.id}/send-email`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ link })
+                                                        });
+
+                                                        if (res.ok) {
+                                                            toast({
+                                                                title: 'Email Sent',
+                                                                description: `Signature link sent to ${sig.signerEmail}`,
+                                                            });
+                                                        } else {
+                                                            throw new Error('Failed to send email');
+                                                        }
+                                                    } catch (error) {
+                                                        toast({
+                                                            title: 'Error',
+                                                            description: 'Failed to send email',
+                                                            variant: 'destructive',
+                                                        });
+                                                    }
+                                                }}
+                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"
+                                                title="Send Signature Link via Email"
+                                            >
+                                                <Mail className="w-4 h-4" />
+                                            </button>
+
                                             <button
                                                 onClick={() => copyLink(sig.signatureToken)}
                                                 className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"
