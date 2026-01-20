@@ -34,9 +34,9 @@ export default function Header() {
   const displayLocation = location?.city || 'Detecting...'
 
   return (
-    <header className="sticky top-0 z-[100] w-full border-b border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900" style={{ isolation: 'isolate' }}>
+    <header className="sticky top-0 z-[100] w-full border-b border-slate-200 dark:border-slate-800 shadow-md bg-white dark:bg-slate-900" style={{ isolation: 'isolate', backgroundColor: 'white' }}>
       {/* Top bar */}
-      <div className="border-b border-slate-100 dark:border-slate-800">
+      <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Link href={status === 'authenticated' ? '/dashboard' : '/'} className="flex items-center gap-2">
@@ -75,12 +75,12 @@ export default function Header() {
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>Choose Location</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault()
                     console.log('🗺️ [HEADER] Detecting location...')
                     detectLocation && detectLocation()
-                  }} 
+                  }}
                   className="gap-2 cursor-pointer text-blue-600 font-medium"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>
@@ -201,7 +201,7 @@ export default function Header() {
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-slate-100 dark:border-slate-800">
+      <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 text-sm">
           <div className="relative flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 p-1">
             {tabs.map((t) => {
