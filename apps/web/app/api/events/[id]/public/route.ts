@@ -34,7 +34,7 @@ export async function GET(
       FROM events e
       LEFT JOIN tenants t ON e.tenant_id = t.id
       WHERE e.id = ${eventIdBigInt}
-      AND e.status IN ('PUBLISHED', 'LIVE', 'UPCOMING')
+      AND e.status = 'PUBLISHED'
       LIMIT 1
     `
 
@@ -49,7 +49,7 @@ export async function GET(
       SELECT COUNT(*)::int as count
       FROM registrations
       WHERE event_id = ${eventIdBigInt}
-      AND status IN ('CONFIRMED', 'PENDING')
+      AND status IN ('APPROVED', 'PENDING')
     `
 
     event.registrationCount = registrationCount[0]?.count || 0
