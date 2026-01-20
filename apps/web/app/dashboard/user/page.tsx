@@ -85,7 +85,8 @@ export default function UserDashboard() {
       event.name && event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesCategory = !selectedCategory || selectedCategory === 'all' || event.category === selectedCategory
+    const matchesCategory = !selectedCategory || selectedCategory === 'all' ||
+      (event.category && event.category.toLowerCase() === selectedCategory.toLowerCase())
 
     const matchesCity = selectedCity === 'all' || event.city === selectedCity
 
@@ -150,7 +151,13 @@ export default function UserDashboard() {
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
-                <button className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white border-2 border-white/30 px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition-all">
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('events-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white border-2 border-white/30 px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition-all"
+                >
                   <TrendingUp className="w-5 h-5" />
                   Trending Now
                 </button>
@@ -256,15 +263,15 @@ export default function UserDashboard() {
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id === 'all' ? null : category.id)}
                   className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
-                      ? `bg-gradient-to-br ${category.color} shadow-xl scale-105`
-                      : 'bg-white hover:bg-gray-50 shadow-md hover:shadow-lg'
+                    ? `bg-gradient-to-br ${category.color} shadow-xl scale-105`
+                    : 'bg-white hover:bg-gray-50 shadow-md hover:shadow-lg'
                     }`}
                 >
                   <div className="text-center">
                     <div className="text-4xl mb-2">{category.icon}</div>
                     <p className={`text-xs font-semibold ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
-                        ? 'text-white'
-                        : 'text-gray-700'
+                      ? 'text-white'
+                      : 'text-gray-700'
                       }`}>
                       {category.name}
                     </p>
@@ -275,7 +282,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Events Grid */}
-          <div className="mb-12">
+          <div className="mb-12" id="events-section">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name} Events` : 'All Events'}
