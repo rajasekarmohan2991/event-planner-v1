@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
+import { sendMail } from '@/lib/email/mailer';
 
 // GET /api/events/[id]/signatures - List signature requests for an event
 export async function GET(
@@ -179,9 +180,37 @@ export async function POST(
       )
     `;
 
-        // TODO: Send email with signature link
+
+
+        // Send email with signature link
         const signatureLink = `${process.env.NEXT_PUBLIC_APP_URL}/sign/${signatureToken}`;
         console.log(`📧 Signature link: ${signatureLink}`);
+
+        try {
+            await sendMail({
+                to: signerEmail,
+                subject: `Action Required: Please sign ${documentType} for ${eventName}`,
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #4f46e5;">Signature Request</h2>
+                        <p>Hello ${signerName},</p>
+                        <p>You have been requested to sign <strong>${documentType}</strong> for the event <strong>${eventName}</strong>.</p>
+                        <p>Please click the button below to review and sign the document:</p>
+                        <div style="margin: 30px 0;">
+                            <a href="${signatureLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Review and Sign</a>
+                        </div>
+                        <p>Or copy this link to your browser:</p>
+                        <p><a href="${signatureLink}" style="color: #4f46e5;">${signatureLink}</a></p>
+                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+                        <p style="color: #6b7280; font-size: 14px;">This link expires in 7 days.</p>
+                    </div>
+                `
+            });
+            console.log(`✅ Sent signature request email to ${signerEmail}`);
+        } catch (emailError) {
+            console.error('❌ Failed to send signature email:', emailError);
+            // We don't block the response, but we log the error
+        }
 
         return NextResponse.json(
             {
