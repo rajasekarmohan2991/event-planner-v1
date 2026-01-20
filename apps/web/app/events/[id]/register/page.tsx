@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { VirtualRegistrationForm } from "./forms"
-import { Armchair, CheckCircle, XCircle, AlertCircle, Clock } from "lucide-react"
+import { Armchair, CheckCircle, XCircle, AlertCircle, Clock, MapPin } from "lucide-react"
+import { useLocationDetection } from "@/hooks/useLocationDetection"
 
 type RegistrationType = "general" | "vip" | "virtual"
 
@@ -21,6 +22,7 @@ interface InviteData {
 export default function RegisterPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { location, updateLocation } = useLocationDetection()
   const [type, setType] = useState<RegistrationType>("general")
   const [step, setStep] = useState<1 | 2>(1)
   const [hasSeats, setHasSeats] = useState(false)
@@ -32,6 +34,7 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
   const [ticketClasses, setTicketClasses] = useState<any[]>([])
   const [selectedTicketClass, setSelectedTicketClass] = useState<any | null>(null)
   const [loadingTickets, setLoadingTickets] = useState(false)
+  const [showLocationSelector, setShowLocationSelector] = useState(false)
 
   // Load dietary restrictions from lookup API
   useEffect(() => {
@@ -209,6 +212,55 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         )}
+
+        {/* Location Selector - For booking for friends in different cities */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Booking for someone in: <span className="text-blue-600">{location?.city || 'Detecting...'}</span>
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Change location if booking for a friend in a different city
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowLocationSelector(!showLocationSelector)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {showLocationSelector ? 'Close' : 'Change Location'}
+            </button>
+          </div>
+
+          {showLocationSelector && (
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <p className="text-sm font-medium text-gray-700 mb-3">Select City:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad'].map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => {
+                      updateLocation({ city, state: '', country: 'India', latitude: 0, longitude: 0 })
+                      setShowLocationSelector(false)
+                    }}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+                      location?.city === city
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Ticket Class Selection (for events with seats) */}
         {!checkingSeats && hasSeats && ticketClasses.length > 0 && (

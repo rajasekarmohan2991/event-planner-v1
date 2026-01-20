@@ -8,46 +8,46 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const limitParam = searchParams.get('limit') || '10'
     const limit = parseInt(limitParam)
-    console.log('[public events] limit =', limit)
+    console.log('🎫 [PUBLIC EVENTS] Fetching with limit:', limit)
 
-    // DEBUG: Check total count in DB
-    const totalInDb = await prisma.event.count()
-    console.log('[public events] Total events in DB:', totalInDb)
+    // Use raw SQL to avoid Prisma relation issues
+    const events = await prisma.$queryRaw`
+      SELECT 
+        e.id::text,
+        e.name,
+        e.description,
+        e.starts_at as "startsAt",
+        e.ends_at as "endsAt",
+        e.venue,
+        e.city,
+        e.status,
+        e.category,
+        e.event_mode as "eventMode",
+        e.expected_attendees as "expectedAttendees",
+        e.price_inr as "priceInr",
+        e.banner_url as "bannerUrl",
+        e.created_at as "createdAt",
+        e.tenant_id as "tenantId",
+        t.name as "organizerName",
+        t.logo as "organizerLogo",
+        COALESCE(
+          (SELECT COUNT(*)::int 
+           FROM registrations r 
+           WHERE r.event_id = e.id::text 
+           AND r.status IN ('CONFIRMED', 'PENDING')),
+          0
+        ) as "registrationCount"
+      FROM events e
+      LEFT JOIN tenants t ON e.tenant_id = t.id
+      WHERE e.status NOT IN ('TRASHED', 'CANCELLED', 'ARCHIVED')
+      ORDER BY e.created_at DESC
+      LIMIT ${limit}
+    ` as any[]
 
-    // Fetch public events using Prisma Client (safer than raw SQL)
-    const events = await prisma.event.findMany({
-      // Temporarily remove ALL status filters to see if ANYTHING exists
-      // where: {
-      //   status: {
-      //     notIn: ['TRASHED', 'CANCELLED', 'ARCHIVED']
-      //   }
-      // },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            logo: true
-          }
-        },
-        _count: {
-          select: {
-            registrations: {
-              where: { status: { in: ['CONFIRMED', 'PENDING'] } }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: limit
-    })
-
-    console.log('[public events] count =', events.length)
+    console.log('✅ [PUBLIC EVENTS] Fetched count:', events.length)
 
     const formattedEvents = events.map((event: any) => ({
-      id: event.id.toString(),
+      id: event.id,
       name: event.name,
       description: event.description,
       startsAt: event.startsAt,
@@ -61,28 +61,34 @@ export async function GET(req: NextRequest) {
       priceInr: event.priceInr || 0,
       bannerUrl: event.bannerUrl,
       createdAt: event.createdAt,
-      tenantId: event.tenant?.id,
-      organizerName: event.tenant?.name || 'Event Organizer',
-      organizerLogo: event.tenant?.logo,
-      // Calculate organizer events count separately if needed, or default it to 0 for now to save performance
+      tenantId: event.tenantId,
+      organizerName: event.organizerName || 'Event Organizer',
+      organizerLogo: event.organizerLogo,
       organizerEventsCount: 0,
-      registrationCount: event._count?.registrations || 0
+      registrationCount: event.registrationCount || 0
     }))
 
     return NextResponse.json({
       events: formattedEvents,
       debug: {
-        totalInDb,
         fetchedCount: events.length,
-        dbStatus: totalInDb > 0 ? 'Data Exists' : 'Database Empty',
         firstEventStatus: events[0]?.status,
       }
     })
   } catch (error: any) {
-    console.error('Error fetching public events:', error)
+    console.error('❌ [PUBLIC EVENTS] Error:', error)
+    console.error('❌ [PUBLIC EVENTS] Error name:', error?.name)
+    console.error('❌ [PUBLIC EVENTS] Error message:', error?.message)
+    console.error('❌ [PUBLIC EVENTS] Error stack:', error?.stack)
+    
     return NextResponse.json({
       error: 'Failed to fetch public events',
-      message: error.message
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: error?.name,
+        code: error?.code,
+        meta: error?.meta
+      } : undefined
     }, { status: 500 })
   }
 }
