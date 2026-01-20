@@ -73,6 +73,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
         { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
         { name: 'Tax Settings', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Globe },
+        { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
         { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
@@ -82,7 +83,6 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       // This is the "Landing" view requested by the user
       baseNavigation.push(
         { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
-        { name: 'Digital Signatures', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Settings', href: '/super-admin/settings', icon: Settings }
       )
     }
