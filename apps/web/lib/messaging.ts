@@ -25,7 +25,7 @@ function getSMSProvider(): SMSProvider {
     console.log(`📱 Using forced SMS provider: ${forcedProvider}`)
     return forcedProvider
   }
-  
+
   // Check which provider is configured
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_SMS_FROM) {
     return 'twilio'
@@ -41,7 +41,7 @@ async function sendWithTextBelt(to: string, body: string): Promise<SMSResult> {
   try {
     const toNormalized = normalizePhone(to)
     console.log('📱 TextBelt - Sending SMS to:', toNormalized)
-    
+
     const response = await fetch('https://textbelt.com/text', {
       method: 'POST',
       headers: {
@@ -55,9 +55,9 @@ async function sendWithTextBelt(to: string, body: string): Promise<SMSResult> {
     })
 
     const result = await response.json()
-    
+
     console.log('📱 TextBelt response:', result)
-    
+
     if (result.success) {
       console.log('✅ SMS sent successfully via TextBelt')
       return { success: true, messageId: result.textId || 'textbelt-sent' }
@@ -85,17 +85,17 @@ async function sendWithTwilio(to: string, body: string): Promise<SMSResult> {
       console.error('❌ TWILIO_SMS_FROM not configured')
       return { success: false, error: 'TWILIO_SMS_FROM not configured' }
     }
-    
+
     // Dynamic import to avoid build errors if twilio not installed
     const twilio = await import('twilio')
     const client = twilio.default(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
-    
+
     const message = await client.messages.create({
       to: toNormalized,
       from: process.env.TWILIO_SMS_FROM!,
       body
     })
-    
+
     console.log('✅ Twilio - SMS sent successfully:', message.sid)
     return { success: true, messageId: message.sid }
   } catch (error: any) {
@@ -105,13 +105,13 @@ async function sendWithTwilio(to: string, body: string): Promise<SMSResult> {
       message: error.message,
       moreInfo: error.moreInfo
     })
-    
+
     // If trial account restriction, try TextBelt fallback
     if (error.message && error.message.includes('free SMS are disabled')) {
       console.log('⚠️ Twilio trial restriction detected, falling back to TextBelt...')
       return await sendWithTextBelt(to, body)
     }
-    
+
     return { success: false, error: error.message || error }
   }
 }
@@ -120,10 +120,10 @@ async function sendWithSMSMode(to: string, body: string): Promise<SMSResult> {
   try {
     const apiKey = process.env.SMSMODE_API_KEY!
     const sender = process.env.SMSMODE_SENDER!
-    
+
     const cleanTo = normalizePhone(to)
     const url = 'https://api.smsmode.com/http/1.6/'
-    
+
     const params = new URLSearchParams({
       accessToken: apiKey,
       message: body,
@@ -141,7 +141,7 @@ async function sendWithSMSMode(to: string, body: string): Promise<SMSResult> {
     })
 
     const responseText = await response.text()
-    
+
     if (response.ok && responseText.includes('0')) {
       const parts = responseText.split(' ')
       const messageId = parts.length > 1 ? parts[1] : responseText
@@ -159,6 +159,16 @@ async function sendWithSMSMode(to: string, body: string): Promise<SMSResult> {
 async function sendWhatsAppWithTwilio(to: string, body: string): Promise<WAResult> {
   try {
     console.log('📱 Twilio WhatsApp - Attempting to send message')
+
+    // Check credentials first
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      console.error('❌ Twilio credentials not configured')
+      return {
+        success: false,
+        error: 'Twilio credentials missing. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN'
+      }
+    }
+
     const toNormalized = normalizePhone(to)
     // Twilio WhatsApp requires 'whatsapp:' prefix
     const toWhatsApp = `whatsapp:${toNormalized}`
@@ -181,15 +191,32 @@ async function sendWhatsAppWithTwilio(to: string, body: string): Promise<WAResul
     return { success: true, id: message.sid }
   } catch (error: any) {
     console.error('❌ Twilio WhatsApp error:', error)
-    return { success: false, error: error.message || error }
+    console.error('❌ Error details:', {
+      code: error.code,
+      message: error.message,
+      moreInfo: error.moreInfo,
+      status: error.status
+    })
+
+    // Provide helpful error messages
+    let errorMessage = error.message || 'Unknown error'
+    if (error.code === 21211) {
+      errorMessage = 'Invalid phone number. Please check the format.'
+    } else if (error.code === 21408) {
+      errorMessage = 'Permission denied. Check your Twilio account permissions.'
+    } else if (error.code === 63007) {
+      errorMessage = 'Recipient has not joined the WhatsApp Sandbox. They must send "join <keyword>" to your sandbox number first.'
+    }
+
+    return { success: false, error: errorMessage }
   }
 }
 
 export async function sendSMS(to: string, body: string): Promise<SMSResult> {
   const provider = getSMSProvider()
-  
+
   console.log(`📱 Sending SMS via ${provider.toUpperCase()}...`)
-  
+
   switch (provider) {
     case 'twilio':
       return sendWithTwilio(to, body)
@@ -209,9 +236,9 @@ export async function sendWhatsApp(to: string, body: string): Promise<WAResult> 
 
   // Fallback / Error
   console.warn('WhatsApp sending not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM.')
-  return { 
-    success: false, 
-    error: 'WhatsApp not configured. Please set Twilio credentials.' 
+  return {
+    success: false,
+    error: 'WhatsApp not configured. Please set Twilio credentials.'
   }
 }
 

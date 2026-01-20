@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Save, X, Search, Filter } from 'lucide-react'
+import { Plus, Edit2, Trash2, Save, X, Search, Filter, Power, PowerOff } from 'lucide-react'
 
 interface LookupCategory {
   id: string
@@ -35,7 +35,7 @@ export default function LookupManagementPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   const [formData, setFormData] = useState({
     value: '',
     label: '',
@@ -102,6 +102,7 @@ export default function LookupManagementPage() {
         setShowAddForm(false)
         resetForm()
         fetchValues(selectedCategory)
+        alert('Value added successfully!')
       } else {
         const error = await res.json()
         alert(error.error || 'Failed to add value')
@@ -114,7 +115,7 @@ export default function LookupManagementPage() {
 
   const handleUpdateValue = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/lookups/${id}`, {
+      const res = await fetch(`/api/admin/lookups/values/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -124,6 +125,7 @@ export default function LookupManagementPage() {
         setEditingId(null)
         resetForm()
         if (selectedCategory) fetchValues(selectedCategory)
+        alert('Value updated successfully!')
       } else {
         const error = await res.json()
         alert(error.error || 'Failed to update value')
@@ -134,19 +136,40 @@ export default function LookupManagementPage() {
     }
   }
 
-  const handleDeleteValue = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this lookup value?')) return
+  const handleToggleActive = async (id: string, currentLabel: string) => {
+    try {
+      const res = await fetch(`/api/admin/lookups/values/${id}/toggle`, {
+        method: 'PATCH'
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (selectedCategory) fetchValues(selectedCategory)
+        alert(data.message)
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Failed to toggle value')
+      }
+    } catch (error) {
+      console.error('Error toggling value:', error)
+      alert('Failed to toggle value')
+    }
+  }
+
+  const handleDeleteValue = async (id: string, label: string) => {
+    if (!confirm(`Are you sure you want to delete "${label}"?`)) return
 
     try {
-      const res = await fetch(`/api/admin/lookups/${id}`, {
+      const res = await fetch(`/api/admin/lookups/values/${id}`, {
         method: 'DELETE'
       })
 
       if (res.ok) {
         if (selectedCategory) fetchValues(selectedCategory)
+        alert('Value deleted successfully!')
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to delete value')
+        alert(error.error || error.message || 'Failed to delete value')
       }
     } catch (error) {
       console.error('Error deleting value:', error)
@@ -181,7 +204,7 @@ export default function LookupManagementPage() {
     })
   }
 
-  const filteredValues = values.filter(v => 
+  const filteredValues = values.filter(v =>
     v.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     v.value.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -208,11 +231,10 @@ export default function LookupManagementPage() {
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.code)}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                      selectedCategory === cat.code
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${selectedCategory === cat.code
                         ? 'bg-blue-50 border-2 border-blue-500 text-blue-700'
                         : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -244,10 +266,10 @@ export default function LookupManagementPage() {
               <div className="p-4 border-b flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-semibold">
-                    {categories.find(c => c.code === selectedCategory)?.name} Values
+                    {categories.find(c => c.code === selectedCategory)?.name}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Manage dropdown options for this category
+                    {categories.find(c => c.code === selectedCategory)?.description}
                   </p>
                 </div>
                 <button
@@ -255,7 +277,7 @@ export default function LookupManagementPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   <Plus size={16} />
-                  Add Value
+                  Add Option
                 </button>
               </div>
 
@@ -297,14 +319,7 @@ export default function LookupManagementPage() {
                       placeholder="Description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Color Code (e.g., #3B82F6)"
-                      value={formData.colorCode}
-                      onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })}
-                      className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                      className="col-span-2 px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
                     />
                     <input
                       type="number"
@@ -356,143 +371,173 @@ export default function LookupManagementPage() {
                 </div>
               )}
 
-              {/* Values List */}
-              <div className="p-4">
-                {loading ? (
-                  <div className="text-center py-8 text-gray-500">Loading values...</div>
-                ) : filteredValues.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No values found. Click "Add Value" to create one.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filteredValues.map(value => (
-                      <div
-                        key={value.id}
-                        className={`p-4 border rounded-lg ${
-                          !value.is_active ? 'bg-gray-50 opacity-60' : 'bg-white'
-                        }`}
-                      >
-                        {editingId === value.id ? (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              <input
-                                type="text"
-                                value={formData.label}
-                                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                                className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                placeholder="Label"
-                              />
-                              <input
-                                type="text"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                placeholder="Description"
-                              />
-                              <input
-                                type="text"
-                                value={formData.colorCode}
-                                onChange={(e) => setFormData({ ...formData, colorCode: e.target.value })}
-                                className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                placeholder="Color Code"
-                              />
-                              <input
-                                type="number"
-                                value={formData.sortOrder}
-                                onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
-                                className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                placeholder="Sort Order"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleUpdateValue(value.id)}
-                                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-1"
-                              >
-                                <Save size={14} />
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(null)
-                                  resetForm()
-                                }}
-                                className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm flex items-center gap-1"
-                              >
-                                <X size={14} />
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3">
-                                {value.color_code && (
-                                  <div
-                                    className="w-4 h-4 rounded"
-                                    style={{ backgroundColor: value.color_code }}
-                                  />
-                                )}
-                                <div>
-                                  <div className="font-medium">{value.label}</div>
-                                  <div className="text-sm text-gray-500">
-                                    Value: <code className="bg-gray-100 px-1 rounded">{value.value}</code>
-                                  </div>
-                                  {value.description && (
-                                    <div className="text-sm text-gray-600 mt-1">{value.description}</div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-2 mt-2">
-                                {value.is_default && (
-                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
-                                    Default
-                                  </span>
-                                )}
-                                {value.is_system && (
-                                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
-                                    System
-                                  </span>
-                                )}
-                                {!value.is_active && (
-                                  <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded">
-                                    Inactive
-                                  </span>
-                                )}
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                                  Order: {value.sort_order}
+              {/* Values Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Label</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-500">Loading values...</td>
+                      </tr>
+                    ) : filteredValues.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-500">
+                          No values found. Click "Add Option" to create one.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredValues.map(value => (
+                        <tr key={value.id} className={!value.is_active ? 'bg-gray-50 opacity-60' : ''}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${value.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                              {value.is_system && (
+                                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
+                                  System
                                 </span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {!value.is_system && (
-                                <>
-                                  <button
-                                    onClick={() => startEdit(value)}
-                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                    title="Edit"
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteValue(value.id)}
-                                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </>
                               )}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-900">{value.label}</td>
+                          <td className="px-6 py-4">
+                            <code className="bg-gray-100 px-2 py-1 rounded text-sm">{value.value}</code>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{value.description || '-'}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex justify-end gap-2">
+                              {/* Toggle Button - Available for ALL values */}
+                              <button
+                                onClick={() => handleToggleActive(value.id, value.label)}
+                                className={`p-2 rounded ${value.is_active
+                                    ? 'text-green-600 hover:bg-green-50'
+                                    : 'text-gray-400 hover:bg-gray-100'
+                                  }`}
+                                title={value.is_active ? 'Deactivate' : 'Activate'}
+                              >
+                                {value.is_active ? <Power size={16} /> : <PowerOff size={16} />}
+                              </button>
+
+                              {/* Edit Button - Available for ALL values */}
+                              <button
+                                onClick={() => startEdit(value)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+
+                              {/* Delete Button - Only for custom values */}
+                              {!value.is_system ? (
+                                <button
+                                  onClick={() => handleDeleteValue(value.id, value.label)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="p-2 text-gray-300 cursor-not-allowed rounded"
+                                  title="System values cannot be deleted (use deactivate instead)"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
+
+              {/* Edit Modal */}
+              {editingId && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <h3 className="text-lg font-semibold mb-4">Edit Value</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Label*</label>
+                        <input
+                          type="text"
+                          value={formData.label}
+                          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Description</label>
+                        <input
+                          type="text"
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Sort Order</label>
+                        <input
+                          type="number"
+                          value={formData.sortOrder}
+                          onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.isActive}
+                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                            className="rounded"
+                          />
+                          <span className="text-sm">Active</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.isDefault}
+                            onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                            className="rounded"
+                          />
+                          <span className="text-sm">Default</span>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-6">
+                      <button
+                        onClick={() => handleUpdateValue(editingId)}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <Save size={16} />
+                        Save Changes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(null)
+                          resetForm()
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center gap-2"
+                      >
+                        <X size={16} />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
