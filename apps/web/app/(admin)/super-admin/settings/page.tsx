@@ -4,21 +4,62 @@ export const dynamic = 'force-dynamic'
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Settings, Globe, Database, Mail, Server, Lock, Coins
+  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AVAILABLE_CURRENCIES, getCurrencyByCode } from '@/lib/currency'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function SuperAdminSettingsPage() {
-  // Fix for ReferenceError: Define globalCurrency early
-  const globalCurrency = {
-    code: 'USD',
-    symbol: '$'
-  }
-
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { toast } = useToast()
+
+  const [currencySettings, setCurrencySettings] = useState({ globalCurrency: 'USD' })
+  const [isEditingCurrency, setIsEditingCurrency] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState('USD')
+  const [savingCurrency, setSavingCurrency] = useState(false)
+
+  useEffect(() => {
+    // Fetch currency settings
+    fetch('/api/super-admin/settings/currency')
+      .then(res => res.json())
+      .then(data => {
+        if (data.globalCurrency) {
+          setCurrencySettings(data)
+          setSelectedCurrency(data.globalCurrency)
+        }
+      })
+      .catch(err => console.error('Failed to fetch currency settings', err))
+  }, [])
+
+  const handleSaveCurrency = async () => {
+    setSavingCurrency(true)
+    try {
+      const res = await fetch('/api/super-admin/settings/currency', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ globalCurrency: selectedCurrency })
+      })
+
+      if (res.ok) {
+        setCurrencySettings(prev => ({ ...prev, globalCurrency: selectedCurrency }))
+        setIsEditingCurrency(false)
+        toast({ title: "Currency updated", description: `Global currency set to ${selectedCurrency}` })
+      } else {
+        throw new Error('Failed to update')
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update currency", variant: "destructive" })
+    } finally {
+      setSavingCurrency(false)
+    }
+  }
 
   useEffect(() => {
     if (status === 'loading') return
@@ -36,6 +77,8 @@ export default function SuperAdminSettingsPage() {
     environment: process.env.NODE_ENV || 'Development',
     uptime: '2h 15m'
   }
+
+  const displayCurrency = getCurrencyByCode(currencySettings.globalCurrency)
 
   return (
     <div className="p-6 space-y-6">
@@ -117,7 +160,12 @@ export default function SuperAdminSettingsPage() {
             </div>
 
             {/* Currency Summary Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full relative group">
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" onClick={() => setIsEditingCurrency(true)}>
+                  <Edit2 className="h-4 w-4 text-gray-500" />
+                </Button>
+              </div>
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-yellow-50 text-yellow-600 rounded-lg">
@@ -132,7 +180,7 @@ export default function SuperAdminSettingsPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Base Currency</span>
-                  <span className="font-medium text-gray-900">{globalCurrency.code} ({globalCurrency.symbol})</span>
+                  <span className="font-medium text-gray-900">{displayCurrency.code} ({displayCurrency.symbol})</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">Multi-currency</span>
@@ -235,6 +283,37 @@ export default function SuperAdminSettingsPage() {
         </TabsContent>
 
       </Tabs>
+
+      <Dialog open={isEditingCurrency} onOpenChange={setIsEditingCurrency}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Global Currency</DialogTitle>
+            <DialogDescription>
+              This will update the base currency for the entire system and the super admin tenant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABLE_CURRENCIES.map(c => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.code} - {c.name} ({c.symbol})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditingCurrency(false)}>Cancel</Button>
+            <Button onClick={handleSaveCurrency} disabled={savingCurrency}>
+              {savingCurrency ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
