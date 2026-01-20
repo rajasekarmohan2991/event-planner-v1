@@ -59,8 +59,6 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'privacy', name: 'Privacy', icon: Shield },
-    { id: 'subscription', name: 'Subscription', icon: CreditCard },
-    { id: 'appearance', name: 'Appearance', icon: Palette },
     { id: 'language', name: 'Language', icon: Globe },
   ]
 
@@ -326,174 +324,6 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'subscription' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Subscription & Billing</h2>
-
-                  {/* Current Plan */}
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-indigo-900">Free Plan</h3>
-                        <p className="text-sm text-indigo-700">Perfect for getting started</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-bold text-indigo-900">$0</div>
-                        <div className="text-sm text-indigo-700">per month</div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm text-indigo-800">
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600">✓</span>
-                        <span>Up to 3 events per month</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600">✓</span>
-                        <span>100 registrations per event</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600">✓</span>
-                        <span>Basic analytics</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600">✓</span>
-                        <span>Email support</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Upgrade Options */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Upgrade Your Plan</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {/* Pro Plan */}
-                      <div className="border-2 border-indigo-200 rounded-lg p-6 hover:border-indigo-400 transition-all">
-                        <div className="mb-4">
-                          <h4 className="text-lg font-bold">Pro Plan</h4>
-                          <div className="text-2xl font-bold text-indigo-600 mt-2">₹4,999<span className="text-sm font-normal text-gray-600">/month</span></div>
-                        </div>
-                        <div className="space-y-2 text-sm mb-6">
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Unlimited events</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Unlimited registrations</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Advanced analytics</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Custom branding</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Priority support</span>
-                          </div>
-                        </div>
-                        <button className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700">
-                          Upgrade to Pro
-                        </button>
-                      </div>
-
-                      {/* Enterprise Plan */}
-                      <div className="border-2 border-purple-200 rounded-lg p-6 hover:border-purple-400 transition-all">
-                        <div className="mb-4">
-                          <h4 className="text-lg font-bold">Enterprise Plan</h4>
-                          <div className="text-2xl font-bold text-purple-600 mt-2">₹14,999<span className="text-sm font-normal text-gray-600">/month</span></div>
-                        </div>
-                        <div className="space-y-2 text-sm mb-6">
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Everything in Pro</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Dedicated account manager</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Custom integrations</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>White-label solution</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>24/7 phone support</span>
-                          </div>
-                        </div>
-                        <button className="w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700">
-                          Upgrade to Enterprise
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Billing History */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Billing History</h3>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b">
-                          <tr>
-                            <th className="text-left p-3 font-medium">Date</th>
-                            <th className="text-left p-3 font-medium">Description</th>
-                            <th className="text-left p-3 font-medium">Amount</th>
-                            <th className="text-left p-3 font-medium">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b">
-                            <td className="p-3 text-gray-500" colSpan={4}>No billing history yet</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div>
-                    <h3 className="font-semibold mb-4">Payment Method</h3>
-                    <div className="border rounded-lg p-4">
-                      <p className="text-sm text-gray-600">No payment method added</p>
-                      <button className="mt-3 text-indigo-600 text-sm font-medium hover:underline">
-                        + Add Payment Method
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'appearance' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Appearance</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Theme</label>
-                      <div className="grid grid-cols-3 gap-4">
-                        <button className="p-4 border rounded-lg text-center hover:bg-gray-50">
-                          <div className="w-full h-8 bg-white border rounded mb-2"></div>
-                          <div className="text-sm">Light</div>
-                        </button>
-                        <button className="p-4 border rounded-lg text-center hover:bg-gray-50">
-                          <div className="w-full h-8 bg-gray-800 rounded mb-2"></div>
-                          <div className="text-sm">Dark</div>
-                        </button>
-                        <button className="p-4 border rounded-lg text-center hover:bg-gray-50">
-                          <div className="w-full h-8 bg-gradient-to-r from-white to-gray-800 rounded mb-2"></div>
-                          <div className="text-sm">Auto</div>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'language' && (
                 <div className="space-y-6">
                   <div>
@@ -546,18 +376,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
-
-              {/* Save Button */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
             </div>
           </div>
         </div>
