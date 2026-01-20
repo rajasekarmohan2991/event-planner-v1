@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     let events: any[]
     try {
       if (city && city !== 'all') {
-        console.log('🌍 [PUBLIC EVENTS] Filtering by city:', city)
+        console.log('🌍 [PUBLIC EVENTS] Filtering by city:', city, '- PUBLISHED events only')
         events = await prisma.$queryRaw`
           SELECT 
             e.id::text,
@@ -56,12 +56,12 @@ export async function GET(req: NextRequest) {
           FROM events e
           LEFT JOIN tenants t ON e.tenant_id = t.id
           WHERE LOWER(e.city) = LOWER(${city})
-          AND e.ends_at > NOW()
+          AND e.status = 'PUBLISHED'
           ORDER BY e.starts_at ASC
           LIMIT ${limit}
         ` as any[]
       } else {
-        console.log('🌍 [PUBLIC EVENTS] Fetching all cities')
+        console.log('🌍 [PUBLIC EVENTS] Fetching all cities - PUBLISHED events only')
         events = await prisma.$queryRaw`
           SELECT 
             e.id::text,
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
             ) as "registrationCount"
           FROM events e
           LEFT JOIN tenants t ON e.tenant_id = t.id
-          WHERE e.ends_at > NOW()
+          WHERE e.status = 'PUBLISHED'
           ORDER BY e.starts_at ASC
           LIMIT ${limit}
         ` as any[]

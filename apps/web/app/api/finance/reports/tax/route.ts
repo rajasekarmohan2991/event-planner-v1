@@ -125,8 +125,7 @@ export async function GET(req: NextRequest) {
                 fs.default_tax_rate,
                 fs.tax_registration_number,
                 t.name as company_name,
-                t.billing_email,
-                t.country
+                t.currency
             FROM finance_settings fs
             INNER JOIN tenants t ON fs.tenant_id = t.id
             WHERE fs.tenant_id = $1
