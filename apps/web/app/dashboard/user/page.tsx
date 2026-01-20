@@ -57,11 +57,11 @@ export default function UserDashboard() {
 
     const fetchEvents = async () => {
       try {
-        // Use location from hook for city-based filtering (like Swiggy/Zomato)
-        const cityParam = location?.city ? `&city=${encodeURIComponent(location.city)}` : ''
-        const apiUrl = `/api/events/public?limit=12${cityParam}`
+        // Show ALL events by default - no automatic city filtering
+        // Only filter by city if user explicitly selects one in the filter dropdown
+        const apiUrl = '/api/events/public?limit=50'
         
-        console.log('🎫 [USER DASHBOARD] Fetching events for city:', location?.city || 'all')
+        console.log('🎫 [USER DASHBOARD] Fetching all events (no city filter)')
         console.log('🎫 [USER DASHBOARD] API URL:', apiUrl)
         
         const res = await fetch(apiUrl, { credentials: 'include' })
@@ -70,7 +70,7 @@ export default function UserDashboard() {
           console.log('🎫 [USER DASHBOARD] API Response:', data)
           const events = data.events || []
           console.log('🎫 [USER DASHBOARD] Events count:', events.length)
-          console.log('🎫 [USER DASHBOARD] City filter:', data.debug?.cityFilter)
+          console.log('🎫 [USER DASHBOARD] Total in DB:', data.debug?.totalInDb)
           setUpcomingEvents(events)
           // Simulate trending events (top 4 by registration count)
           setTrendingEvents(events.slice(0, 4))
@@ -85,7 +85,7 @@ export default function UserDashboard() {
     }
 
     fetchEvents()
-  }, [status, location?.city])
+  }, [status])
 
   const filteredEvents = upcomingEvents.filter(event => {
     if (selectedCategory && event.category !== selectedCategory) return false
