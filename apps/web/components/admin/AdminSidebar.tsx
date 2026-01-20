@@ -43,7 +43,9 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/system-settings') ||
       pathname?.startsWith('/admin/billing-subscription') ||
       pathname?.startsWith('/super-admin/diagnostics') ||
-      pathname?.startsWith('/admin/currency');
+      pathname?.startsWith('/admin/currency') ||
+      pathname?.startsWith('/admin/signatures') ||
+      pathname?.startsWith('/super-admin/signatures');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show company modules in left sidebar
