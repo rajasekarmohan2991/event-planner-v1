@@ -16,7 +16,21 @@ export function useLocationDetection() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        detectLocation()
+        // Try to load saved location first
+        const saved = localStorage.getItem('userLocation')
+        if (saved) {
+            try {
+                const savedLocation = JSON.parse(saved)
+                console.log('📍 [LOCATION] Loaded saved location:', savedLocation)
+                setLocation(savedLocation)
+                setLoading(false)
+            } catch (e) {
+                console.error('❌ [LOCATION] Failed to parse saved location:', e)
+                detectLocation()
+            }
+        } else {
+            detectLocation()
+        }
     }, [])
 
     const detectLocation = async () => {
@@ -100,8 +114,10 @@ export function useLocationDetection() {
     }
 
     const updateLocation = (newLocation: LocationData) => {
+        console.log('📍 [LOCATION] Manually updating location to:', newLocation)
         setLocation(newLocation)
         localStorage.setItem('userLocation', JSON.stringify(newLocation))
+        console.log('✅ [LOCATION] Location updated and saved')
     }
 
     return {

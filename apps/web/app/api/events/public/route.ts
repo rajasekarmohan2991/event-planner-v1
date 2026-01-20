@@ -10,13 +10,18 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(limitParam)
     console.log('[public events] limit =', limit)
 
+    // DEBUG: Check total count in DB
+    const totalInDb = await prisma.event.count()
+    console.log('[public events] Total events in DB:', totalInDb)
+
     // Fetch public events using Prisma Client (safer than raw SQL)
     const events = await prisma.event.findMany({
-      where: {
-        status: {
-          notIn: ['TRASHED', 'CANCELLED', 'ARCHIVED']
-        }
-      },
+      // Temporarily remove ALL status filters to see if ANYTHING exists
+      // where: {
+      //   status: {
+      //     notIn: ['TRASHED', 'CANCELLED', 'ARCHIVED']
+      //   }
+      // },
       include: {
         tenant: {
           select: {
@@ -64,7 +69,15 @@ export async function GET(req: NextRequest) {
       registrationCount: event._count?.registrations || 0
     }))
 
-    return NextResponse.json({ events: formattedEvents })
+    return NextResponse.json({
+      events: formattedEvents,
+      debug: {
+        totalInDb,
+        fetchedCount: events.length,
+        dbStatus: totalInDb > 0 ? 'Data Exists' : 'Database Empty',
+        firstEventStatus: events[0]?.status,
+      }
+    })
   } catch (error: any) {
     console.error('Error fetching public events:', error)
     return NextResponse.json({

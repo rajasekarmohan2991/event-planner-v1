@@ -55,16 +55,21 @@ export default function UserDashboard() {
 
     const fetchEvents = async () => {
       try {
+        console.log('🎫 [USER DASHBOARD] Fetching public events...')
         const res = await fetch('/api/events/public?limit=12', { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
+          console.log('🎫 [USER DASHBOARD] API Response:', data)
           const events = data.events || []
+          console.log('🎫 [USER DASHBOARD] Events count:', events.length)
           setUpcomingEvents(events)
           // Simulate trending events (top 4 by registration count)
           setTrendingEvents(events.slice(0, 4))
+        } else {
+          console.error('🎫 [USER DASHBOARD] API error:', res.status, res.statusText)
         }
       } catch (error) {
-        console.error('Error fetching events:', error)
+        console.error('🎫 [USER DASHBOARD] Error fetching events:', error)
       } finally {
         setLoading(false)
       }
@@ -366,7 +371,28 @@ export default function UserDashboard() {
             {filteredEvents.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 text-lg">No events available in this category</p>
+                <p className="text-gray-600 text-lg mb-2">
+                  {upcomingEvents.length === 0 
+                    ? 'No events available yet' 
+                    : 'No events match your filters'}
+                </p>
+                {upcomingEvents.length === 0 && (
+                  <p className="text-gray-500 text-sm">
+                    Create your first event or check back later!
+                  </p>
+                )}
+                {upcomingEvents.length > 0 && filteredEvents.length === 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategory(null)
+                      setSearchQuery('')
+                      setSelectedCity('all')
+                    }}
+                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -525,6 +551,25 @@ export default function UserDashboard() {
                 selectedCity,
                 searchQuery
               }, null, 2)}</pre>
+
+              <div className="mt-4 border-t border-green-800 pt-4">
+                <p className="mb-2 font-bold text-yellow-400">⚠️ Database Tools</p>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Create sample event?')) return;
+                    try {
+                      const res = await fetch('/api/debug/seed');
+                      const data = await res.json();
+                      alert(JSON.stringify(data, null, 2));
+                      window.location.reload();
+                    } catch (e) { alert('Error: ' + typeof e === 'string' ? e : JSON.stringify(e)) }
+                  }}
+                  className="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold"
+                >
+                  🌱 SEED 1 EVENT
+                </button>
+                <p className="text-xs text-gray-400 mt-1">Click this if Database is empty</p>
+              </div>
             </div>
             <div>
               <p className="font-bold text-white mb-2">First 2 Raw Events:</p>
