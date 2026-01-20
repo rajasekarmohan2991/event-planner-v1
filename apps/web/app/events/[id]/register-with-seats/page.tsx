@@ -58,11 +58,42 @@ export default function RegisterWithSeatsPage() {
   const [loadingPromoCodes, setLoadingPromoCodes] = useState(false)
   const [inviteInfo, setInviteInfo] = useState<any | null>(null)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [ticketClass, setTicketClass] = useState<any | null>(null)
 
   // Track lifecycle for auto-extend and cleanup
   const lastExtendedAtRef = useRef<number>(0)
   const extendingRef = useRef<boolean>(false)
   const releaseScheduledRef = useRef<boolean>(false)
+
+  // Load ticket class from URL or localStorage
+  useEffect(() => {
+    const ticketClassId = searchParams?.get('ticketClass')
+
+    if (ticketClassId) {
+      // Fetch ticket class details from API
+      fetch(`/api/events/${eventId}/tickets/${ticketClassId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            setTicketClass(data)
+            console.log('🎫 Ticket class loaded from API:', data)
+          }
+        })
+        .catch(err => console.error('Failed to fetch ticket class:', err))
+    } else {
+      // Fallback to localStorage
+      const saved = localStorage.getItem(`registration:${eventId}:ticketClass`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setTicketClass(parsed)
+          console.log('🎫 Ticket class loaded from localStorage:', parsed)
+        } catch (e) {
+          console.error('Failed to parse saved ticket class:', e)
+        }
+      }
+    }
+  }, [eventId, searchParams])
 
   // Load saved form data from localStorage
   useEffect(() => {
@@ -352,6 +383,7 @@ export default function RegisterWithSeatsPage() {
             dietaryRestrictions: formData.dietaryRestrictions,
             activities: formData.activities,
             numberOfAttendees,
+            ticketId: ticketClass?.id, // NEW: Include ticket class ID
             seats: selectedSeats.map(s => ({
               id: s.id,
               section: s.section,
@@ -500,12 +532,34 @@ export default function RegisterWithSeatsPage() {
         {/* Step 1: Seat Selection */}
         {step === 1 && (
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h1 className="text-2xl font-bold mb-6">Select Your Seats</h1>
+            <h1 className="text-2xl font-bold mb-2">Select Your Seats</h1>
+
+            {/* Ticket Class Info */}
+            {ticketClass && (
+              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-indigo-700">Ticket Class:</p>
+                    <p className="text-lg font-bold text-indigo-900">{ticketClass.name}</p>
+                    <p className="text-sm text-indigo-600 mt-1">
+                      ₹{ticketClass.priceInRupees} per seat • {ticketClass.available} seats available
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/events/${eventId}/register`)}
+                    className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    Change Ticket Class
+                  </button>
+                </div>
+              </div>
+            )}
 
             <SeatSelector
               eventId={eventId}
+              ticketClassId={ticketClass?.id}
               onSeatSelect={handleSeatsSelected}
-              maxSeats={10}
+              maxSeats={ticketClass?.maxPurchase || 10}
             />
 
             {/* Price Breakdown */}

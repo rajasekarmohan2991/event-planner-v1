@@ -29,6 +29,9 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [dietaryOptions, setDietaryOptions] = useState<string[]>([])
+  const [ticketClasses, setTicketClasses] = useState<any[]>([])
+  const [selectedTicketClass, setSelectedTicketClass] = useState<any | null>(null)
+  const [loadingTickets, setLoadingTickets] = useState(false)
 
   // Load dietary restrictions from lookup API
   useEffect(() => {
@@ -47,6 +50,27 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
         setDietaryOptions(["None", "Vegetarian", "Glutten Allergy", "Lactose Allergy", "Nut Allergy", "Shellfish Allergy"])
       })
   }, [])
+
+  // Fetch ticket classes when event has seats
+  useEffect(() => {
+    if (hasSeats && !checkingSeats) {
+      setLoadingTickets(true)
+      fetch(`/api/events/${params.id}/tickets`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.tickets && data.tickets.length > 0) {
+            setTicketClasses(data.tickets)
+            // Auto-select first available ticket class
+            const firstAvailable = data.tickets.find((t: any) => !t.isSoldOut)
+            if (firstAvailable) {
+              setSelectedTicketClass(firstAvailable)
+            }
+          }
+        })
+        .catch(err => console.error('Failed to fetch ticket classes:', err))
+        .finally(() => setLoadingTickets(false))
+    }
+  }, [hasSeats, checkingSeats, params.id])
 
   // Check invite code if present in URL
   useEffect(() => {
@@ -186,15 +210,133 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Seat Selection Banner */}
-        {!checkingSeats && hasSeats && (
+        {/* Ticket Class Selection (for events with seats) */}
+        {!checkingSeats && hasSeats && ticketClasses.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg border-2 border-indigo-200 p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Armchair className="w-6 h-6 text-indigo-600" />
+              <h3 className="text-xl font-bold text-gray-900">Select Your Ticket Class</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              This event has reserved seating. Choose your ticket class to see available seats.
+            </p>
+
+            {loadingTickets ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Loading ticket options...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ticketClasses.map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    onClick={() => !ticket.isSoldOut && setSelectedTicketClass(ticket)}
+                    className={`
+                      relative border-2 rounded-lg p-4 cursor-pointer transition-all
+                      ${selectedTicketClass?.id === ticket.id
+                        ? 'border-indigo-600 bg-indigo-50 shadow-md'
+                        : ticket.isSoldOut
+                          ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                          : 'border-gray-300 hover:border-indigo-400 hover:shadow-sm'
+                      }
+                    `}
+                  >
+                    {ticket.isSoldOut && (
+                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                        SOLD OUT
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="radio"
+                        name="ticketClass"
+                        checked={selectedTicketClass?.id === ticket.id}
+                        onChange={() => !ticket.isSoldOut && setSelectedTicketClass(ticket)}
+                        disabled={ticket.isSoldOut}
+                        className="w-4 h-4 text-indigo-600"
+                      />
+                      <h4 className="font-bold text-lg text-gray-900">{ticket.name}</h4>
+                    </div>
+
+                    {ticket.description && (
+                      <p className="text-xs text-gray-600 mb-3">{ticket.description}</p>
+                    )}
+
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-indigo-600">
+                          ₹{ticket.priceInRupees}
+                        </span>
+                        <span className="text-sm text-gray-500">per seat</span>
+                      </div>
+
+                      <div className="text-xs text-gray-600">
+                        {ticket.available > 0 ? (
+                          <span className="text-green-600 font-medium">
+                            ✓ {ticket.available} seats available
+                          </span>
+                        ) : (
+                          <span className="text-red-600 font-medium">
+                            ✗ No seats available
+                          </span>
+                        )}
+                      </div>
+
+                      {ticket.minPurchase && ticket.minPurchase > 1 && (
+                        <div className="text-xs text-gray-500">
+                          Min: {ticket.minPurchase} seats
+                        </div>
+                      )}
+
+                      {ticket.maxPurchase && (
+                        <div className="text-xs text-gray-500">
+                          Max: {ticket.maxPurchase} seats
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedTicketClass && (
+              <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-indigo-900">
+                      Selected: <span className="font-bold">{selectedTicketClass.name}</span>
+                    </p>
+                    <p className="text-xs text-indigo-700 mt-1">
+                      ₹{selectedTicketClass.priceInRupees} per seat • {selectedTicketClass.available} available
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // Save ticket class and redirect to seat selection
+                      localStorage.setItem(`registration:${params.id}:ticketClass`, JSON.stringify(selectedTicketClass))
+                      router.push(`/events/${params.id}/register-with-seats?ticketClass=${selectedTicketClass.id}`)
+                    }}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                  >
+                    Continue to Seat Selection →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Fallback seat banner (if no ticket classes) */}
+        {!checkingSeats && hasSeats && ticketClasses.length === 0 && !loadingTickets && (
           <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg p-6 mb-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white/20 rounded-lg">
                 <Armchair className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold">Reserverd Seating Event</h3>
+                <h3 className="text-xl font-bold">Reserved Seating Event</h3>
                 <p className="text-indigo-100 mt-1">
                   Please fill in your registration details below. You will be able to select your seats in the next step.
                 </p>

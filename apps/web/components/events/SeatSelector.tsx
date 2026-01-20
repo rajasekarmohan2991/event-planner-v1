@@ -26,11 +26,12 @@ interface Seat {
 
 interface SeatSelectorProps {
   eventId: string
+  ticketClassId?: string  // NEW: Filter seats by ticket class ID
   onSeatSelect: (seats: Seat[], totalPrice: number) => void
   maxSeats?: number
 }
 
-export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelectorProps) {
+export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 4 }: SeatSelectorProps) {
   const [seats, setSeats] = useState<Seat[]>([])
   const [groupedSeats, setGroupedSeats] = useState<Record<string, Record<string, Seat[]>>>({})
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
@@ -77,7 +78,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
 
   useEffect(() => {
     fetchSeats()
-  }, [eventId, ticketClassFilter])
+  }, [eventId, ticketClassId, ticketClassFilter])
 
   useEffect(() => {
     try {
@@ -99,7 +100,7 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
       fetchSeats(true)
     }, 10000)
     return () => clearInterval(id)
-  }, [eventId, ticketClassFilter, autoRefresh])
+  }, [eventId, ticketClassId, ticketClassFilter, autoRefresh])
 
   useEffect(() => {
     const totalPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
@@ -112,7 +113,13 @@ export function SeatSelector({ eventId, onSeatSelect, maxSeats = 4 }: SeatSelect
       setError(null)
 
       const qs = new URLSearchParams()
-      if (ticketClassFilter) qs.set('ticketClass', ticketClassFilter)
+      // Use ticketClassId prop if provided, otherwise use filter
+      if (ticketClassId) {
+        qs.set('ticketClass', ticketClassId)
+      } else if (ticketClassFilter) {
+        qs.set('ticketClass', ticketClassFilter)
+      }
+
       const response = await fetch(`/api/events/${eventId}/seats/availability${qs.toString() ? `?${qs.toString()}` : ''}`)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
