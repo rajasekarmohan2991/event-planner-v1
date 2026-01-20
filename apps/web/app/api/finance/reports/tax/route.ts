@@ -51,9 +51,9 @@ export async function GET(req: NextRequest) {
                 i.sent_at,
                 i.sent_to,
                 e.name as event_name,
-                e.start_date as event_date
+                e.starts_at as event_date
             FROM invoices i
-            LEFT JOIN events e ON i.event_id = e.id
+            LEFT JOIN events e ON i.event_id::text = e.id::text
             WHERE i.tenant_id = $1
             ${startDate ? `AND i.date >= $2` : ''}
             ${endDate ? `AND i.date <= ${startDate ? '$3' : '$2'}` : ''}

@@ -68,9 +68,9 @@ export async function GET(req: NextRequest) {
                 i.created_at,
                 i.updated_at,
                 e.name as event_name,
-                e.start_date as event_date
+                e.starts_at as event_date
             FROM invoices i
-            LEFT JOIN events e ON i.event_id = e.id
+            LEFT JOIN events e ON i.event_id::text = e.id::text
             ${whereClause}
             ORDER BY i.date DESC, i.created_at DESC
             LIMIT $${paramIndex} OFFSET $${paramIndex + 1}

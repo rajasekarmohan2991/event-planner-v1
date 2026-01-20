@@ -147,10 +147,10 @@ export async function POST(
 
         // If using a global template, verify it exists
         if (globalTemplateId) {
-            const template = await prisma.globalTaxTemplate.findUnique({
-                where: { id: globalTemplateId }
-            });
-            if (!template) {
+            const template = await prisma.$queryRawUnsafe(`
+                SELECT id FROM global_tax_templates WHERE id = $1
+            `, globalTemplateId);
+            if ((template as any[]).length === 0) {
                 return NextResponse.json({
                     message: 'Global tax template not found',
                     details: { globalTemplateId }
@@ -160,29 +160,38 @@ export async function POST(
 
         // If setting as default, unset others
         if (isDefault) {
-            await prisma.taxStructure.updateMany({
-                where: { tenantId: params.id, isDefault: true },
-                data: { isDefault: false }
-            });
+            await prisma.$executeRawUnsafe(`
+                UPDATE tax_structures 
+                SET is_default = false 
+                WHERE tenant_id = $1 AND is_default = true
+            `, params.id);
         }
 
-        const tax = await prisma.taxStructure.create({
-            data: {
-                name,
-                rate: parsedRate,
-                description: description || '',
-                isDefault: isDefault || false,
-                tenantId: params.id,
-                globalTemplateId: globalTemplateId || null,
-                isCustom: isCustom === true || !globalTemplateId
-            },
-            include: {
-                globalTemplate: true
-            }
-        });
+        // Create tax structure using raw SQL
+        const taxId = `tax_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        await prisma.$executeRawUnsafe(`
+            INSERT INTO tax_structures (
+                id, name, rate, description, is_default, tenant_id, 
+                global_template_id, is_custom, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        `, taxId, name, parsedRate, description || '', isDefault || false, params.id, globalTemplateId || null, isCustom === true || !globalTemplateId);
 
-        console.log('Tax structure created successfully:', tax);
-        return NextResponse.json({ tax }, { status: 201 });
+        // Fetch the created tax structure
+        const tax = await prisma.$queryRawUnsafe(`
+            SELECT 
+                id, name, rate, description, 
+                is_default as "isDefault", 
+                COALESCE(is_custom, true) as "isCustom",
+                global_template_id as "globalTemplateId",
+                tenant_id as "tenantId", 
+                created_at as "createdAt", 
+                updated_at as "updatedAt"
+            FROM tax_structures 
+            WHERE id = $1
+        `, taxId);
+
+        console.log('Tax structure created successfully:', (tax as any[])[0]);
+        return NextResponse.json({ tax: (tax as any[])[0] }, { status: 201 });
     } catch (error: any) {
         console.error('Error creating tax structure:', error);
         console.error('Error details:', {
