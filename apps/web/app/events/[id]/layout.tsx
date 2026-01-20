@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma'
 import EventWorkspaceClient from './EventWorkspaceClient'
 import { authOptions } from '@/lib/auth'
 import { notFound, redirect } from 'next/navigation'
-import { headers } from 'next/headers'
 
 export default async function EventWorkspaceLayout({
   children,
@@ -12,19 +11,6 @@ export default async function EventWorkspaceLayout({
   children: React.ReactNode;
   params: { id: string }
 }) {
-  // Get the current pathname to check if it's a public route
-  const headersList = headers()
-  const pathname = headersList.get('x-pathname') || ''
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/register', '/public', '/attend']
-  const isPublicRoute = publicRoutes.some(route => pathname.includes(route))
-
-  // Skip authentication for public routes
-  if (isPublicRoute) {
-    return <>{children}</>
-  }
-
   const session = await getServerSession(authOptions)
 
   if (!session) {
