@@ -6,6 +6,7 @@ import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, 
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
+import { useLocationDetection } from '@/hooks/useLocationDetection'
 
 interface Event {
   id: string
@@ -39,6 +40,7 @@ const categories = [
 
 export default function UserDashboard() {
   const { data: session, status } = useSession()
+  const { location } = useLocationDetection()
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [trendingEvents, setTrendingEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,13 +57,20 @@ export default function UserDashboard() {
 
     const fetchEvents = async () => {
       try {
-        console.log('🎫 [USER DASHBOARD] Fetching public events...')
-        const res = await fetch('/api/events/public?limit=12', { credentials: 'include' })
+        // Use location from hook for city-based filtering (like Swiggy/Zomato)
+        const cityParam = location?.city ? `&city=${encodeURIComponent(location.city)}` : ''
+        const apiUrl = `/api/events/public?limit=12${cityParam}`
+        
+        console.log('🎫 [USER DASHBOARD] Fetching events for city:', location?.city || 'all')
+        console.log('🎫 [USER DASHBOARD] API URL:', apiUrl)
+        
+        const res = await fetch(apiUrl, { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           console.log('🎫 [USER DASHBOARD] API Response:', data)
           const events = data.events || []
           console.log('🎫 [USER DASHBOARD] Events count:', events.length)
+          console.log('🎫 [USER DASHBOARD] City filter:', data.debug?.cityFilter)
           setUpcomingEvents(events)
           // Simulate trending events (top 4 by registration count)
           setTrendingEvents(events.slice(0, 4))
@@ -76,7 +85,7 @@ export default function UserDashboard() {
     }
 
     fetchEvents()
-  }, [status])
+  }, [status, location?.city])
 
   const filteredEvents = upcomingEvents.filter(event => {
     if (selectedCategory && event.category !== selectedCategory) return false

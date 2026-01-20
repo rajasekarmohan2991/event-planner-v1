@@ -7,50 +7,99 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const limitParam = searchParams.get('limit') || '10'
+    const city = searchParams.get('city') // City filter for location-based events
     const limit = parseInt(limitParam)
-    console.log('🎫 [PUBLIC EVENTS] Fetching with limit:', limit)
-
-    // Use raw SQL to avoid Prisma relation issues
-    // First check if events table exists and has data
-    const totalEvents = await prisma.$queryRaw`
-      SELECT COUNT(*)::int as count FROM events
-    ` as any[]
     
-    console.log('🎫 [PUBLIC EVENTS] Total events in DB:', totalEvents[0]?.count || 0)
+    console.log('🎫 [PUBLIC EVENTS] Request params:', { limit, city })
 
-    const events = await prisma.$queryRaw`
-      SELECT 
-        e.id::text,
-        e.name,
-        e.description,
-        e.starts_at as "startsAt",
-        e.ends_at as "endsAt",
-        e.venue,
-        e.city,
-        e.status,
-        e.category,
-        e.event_mode as "eventMode",
-        e.expected_attendees as "expectedAttendees",
-        e.price_inr as "priceInr",
-        e.banner_url as "bannerUrl",
-        e.created_at as "createdAt",
-        e.tenant_id as "tenantId",
-        t.name as "organizerName",
-        t.logo as "organizerLogo",
-        COALESCE(
-          (SELECT COUNT(*)::int 
-           FROM registrations r 
-           WHERE r.event_id = e.id::text 
-           AND r.status IN ('CONFIRMED', 'PENDING')),
-          0
-        ) as "registrationCount"
-      FROM events e
-      LEFT JOIN tenants t ON e.tenant_id = t.id
-      ORDER BY e.created_at DESC
-      LIMIT ${limit}
-    ` as any[]
+    // Test database connection first
+    let totalEvents: any[]
+    try {
+      totalEvents = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events` as any[]
+      console.log('✅ [PUBLIC EVENTS] DB connected. Total events:', totalEvents[0]?.count || 0)
+    } catch (dbError: any) {
+      console.error('❌ [PUBLIC EVENTS] Database connection failed:', dbError.message)
+      throw new Error(`Database connection failed: ${dbError.message}`)
+    }
 
-    console.log('✅ [PUBLIC EVENTS] Fetched count:', events.length)
+    // Build query with optional city filter
+    let events: any[]
+    try {
+      if (city && city !== 'all') {
+        console.log('🌍 [PUBLIC EVENTS] Filtering by city:', city)
+        events = await prisma.$queryRaw`
+          SELECT 
+            e.id::text,
+            e.name,
+            e.description,
+            e.starts_at as "startsAt",
+            e.ends_at as "endsAt",
+            e.venue,
+            e.city,
+            e.status,
+            e.category,
+            e.event_mode as "eventMode",
+            e.expected_attendees as "expectedAttendees",
+            e.price_inr as "priceInr",
+            e.banner_url as "bannerUrl",
+            e.created_at as "createdAt",
+            e.tenant_id as "tenantId",
+            t.name as "organizerName",
+            t.logo as "organizerLogo",
+            COALESCE(
+              (SELECT COUNT(*)::int 
+               FROM registrations r 
+               WHERE r.event_id = e.id::text 
+               AND r.status IN ('CONFIRMED', 'PENDING')),
+              0
+            ) as "registrationCount"
+          FROM events e
+          LEFT JOIN tenants t ON e.tenant_id = t.id
+          WHERE LOWER(e.city) = LOWER(${city})
+          AND e.ends_at > NOW()
+          ORDER BY e.starts_at ASC
+          LIMIT ${limit}
+        ` as any[]
+      } else {
+        console.log('🌍 [PUBLIC EVENTS] Fetching all cities')
+        events = await prisma.$queryRaw`
+          SELECT 
+            e.id::text,
+            e.name,
+            e.description,
+            e.starts_at as "startsAt",
+            e.ends_at as "endsAt",
+            e.venue,
+            e.city,
+            e.status,
+            e.category,
+            e.event_mode as "eventMode",
+            e.expected_attendees as "expectedAttendees",
+            e.price_inr as "priceInr",
+            e.banner_url as "bannerUrl",
+            e.created_at as "createdAt",
+            e.tenant_id as "tenantId",
+            t.name as "organizerName",
+            t.logo as "organizerLogo",
+            COALESCE(
+              (SELECT COUNT(*)::int 
+               FROM registrations r 
+               WHERE r.event_id = e.id::text 
+               AND r.status IN ('CONFIRMED', 'PENDING')),
+              0
+            ) as "registrationCount"
+          FROM events e
+          LEFT JOIN tenants t ON e.tenant_id = t.id
+          WHERE e.ends_at > NOW()
+          ORDER BY e.starts_at ASC
+          LIMIT ${limit}
+        ` as any[]
+      }
+      console.log('✅ [PUBLIC EVENTS] Query successful. Fetched:', events.length)
+    } catch (queryError: any) {
+      console.error('❌ [PUBLIC EVENTS] Query failed:', queryError.message)
+      throw new Error(`Query failed: ${queryError.message}`)
+    }
 
     const formattedEvents = events.map((event: any) => ({
       id: event.id,
@@ -79,7 +128,8 @@ export async function GET(req: NextRequest) {
       debug: {
         totalInDb: totalEvents[0]?.count || 0,
         fetchedCount: events.length,
-        firstEventStatus: events[0]?.status,
+        cityFilter: city || 'all',
+        firstEventCity: events[0]?.city,
       }
     })
   } catch (error: any) {
