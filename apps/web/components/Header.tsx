@@ -29,7 +29,7 @@ const tabs = [
 export default function Header() {
   const pathname = usePathname()
   const { data: session, status } = useSession()
-  const { location, loading: locationLoading } = useLocationDetection()
+  const { location, loading: locationLoading, detectLocation, updateLocation } = useLocationDetection()
 
   const displayLocation = location?.city || 'Detecting...'
 
@@ -44,31 +44,55 @@ export default function Header() {
             </Link>
 
             {/* Location chip (desktop) */}
-            <button
-              className="hidden items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 md:flex"
-              aria-label="Change location"
-              title={location ? `${location.city}, ${location.state}` : 'Detecting location...'}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className={`h-4 w-4 ${locationLoading ? 'text-gray-400 animate-pulse' : 'text-blue-600'}`}
-                aria-hidden="true"
-              >
-                <path d="M12 2.25c-4.28 0-7.75 3.47-7.75 7.75 0 5.81 7.02 11.22 7.32 11.45.26.19.6.19.86 0 .3-.23 7.32-5.64 7.32-11.45 0-4.28-3.47-7.75-7.75-7.75Zm0 10.25a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
-              </svg>
-              <span className="whitespace-nowrap">{displayLocation}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-4 w-4 text-slate-500"
-                aria-hidden="true"
-              >
-                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="hidden items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 md:flex outline-none ring-offset-2 focus:ring-2 ring-violet-500"
+                  aria-label="Change location"
+                  title={location ? `${location.city}, ${location.state}` : 'Detecting location...'}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className={`h-4 w-4 ${locationLoading ? 'text-gray-400 animate-pulse' : 'text-blue-600'}`}
+                    aria-hidden="true"
+                  >
+                    <path d="M12 2.25c-4.28 0-7.75 3.47-7.75 7.75 0 5.81 7.02 11.22 7.32 11.45.26.19.6.19.86 0 .3-.23 7.32-5.64 7.32-11.45 0-4.28-3.47-7.75-7.75-7.75Zm0 10.25a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" />
+                  </svg>
+                  <span className="whitespace-nowrap max-w-[100px] truncate">{displayLocation}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-4 w-4 text-slate-500"
+                    aria-hidden="true"
+                  >
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Choose Location</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => detectLocation && detectLocation()} className="gap-2 cursor-pointer text-blue-600 font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>
+                  Detect My Location
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="max-h-64 overflow-y-auto">
+                  {['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'New York', 'London', 'Dubai'].map((city) => (
+                    <DropdownMenuItem
+                      key={city}
+                      onClick={() => updateLocation && updateLocation({ city, state: '', country: '', latitude: 0, longitude: 0 })}
+                      className="cursor-pointer"
+                    >
+                      {city}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Search pill (desktop) */}
