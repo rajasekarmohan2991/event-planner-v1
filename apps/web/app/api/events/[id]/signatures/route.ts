@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { sendMail } from '@/lib/email/mailer';
 
 // GET /api/events/[id]/signatures - List signature requests for an event
+// GET /api/events/[id]/signatures - List signature requests for an event
 export async function GET(
     request: NextRequest,
     context: { params: Promise<{ id: string }> | { id: string } }
@@ -20,43 +21,31 @@ export async function GET(
 
         const eventId = BigInt(params.id);
 
-        const signatures = await prisma.signatureRequest.findMany({
-            where: {
-                eventId: eventId
-            },
-            orderBy: {
-                createdAt: 'desc'
-            },
-            select: {
-                id: true,
-                signerType: true,
-                signerId: true,
-                signerName: true,
-                signerEmail: true,
-                documentType: true,
-                status: true,
-                expiresAt: true,
-                signedAt: true,
-                createdAt: true,
-                // documentTitle: true, // Optional: Include if needed by frontend
-                // signingUrl: true     // Optional: If this is used instead of token
-            }
-        });
+        // Usage of raw SQL to fetch 'signature_token' which is present in DB but missing in Prisma Schema
+        const signatures: any = await prisma.$queryRaw`
+      SELECT 
+        id,
+        entity_type as "entityType",
+        entity_id as "entityId",
+        signer_name as "signerName",
+        signer_email as "signerEmail",
+        document_type as "documentType",
+        status,
+        signature_token as "signatureToken",
+        token_expires_at as "tokenExpiresAt",
+        signed_at as "signedAt",
+        created_at as "createdAt"
+      FROM signature_requests
+      WHERE event_id = ${eventId}
+      ORDER BY created_at DESC
+    `;
 
-        // Map prisma result to expected frontend format if needed
-        const formattedSignatures = signatures.map(sig => ({
-            id: sig.id,
-            entityType: sig.signerType,
-            entityId: sig.signerId,
-            signerName: sig.signerName,
-            signerEmail: sig.signerEmail,
-            documentType: sig.documentType,
-            status: sig.status,
-            // signatureToken: ??? Schema has no token. We omit it or use ID?
-            tokenExpiresAt: sig.expiresAt,
-            signedAt: sig.signedAt,
-            createdAt: sig.createdAt
-        }));
+        // Serialize BigInts to string to prevent JSON serialization errors
+        const formattedSignatures = Array.isArray(signatures) ? signatures.map(sig => ({
+            ...sig,
+            entityId: typeof sig.entityId === 'bigint' ? sig.entityId.toString() : sig.entityId,
+            // Ensure other fields are strings if needed
+        })) : [];
 
         return NextResponse.json({ signatures: formattedSignatures }, { status: 200 });
     } catch (error) {
