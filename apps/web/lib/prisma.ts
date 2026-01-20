@@ -17,12 +17,13 @@ function buildSafeDatabaseUrl() {
     const u = new URL(raw)
     // Disable prepared statements in pooled environments (Supabase uses PgBouncer)
     if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true')
-    // Increase connection limit and pool timeout for serverless
-    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '10')
+    // CRITICAL: Set connection limit to 1 for serverless (Vercel/Supabase)
+    // Each serverless function should use only 1 connection to avoid pool exhaustion
+    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '1')
     // Add connection timeout (increased)
-    if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '30')
+    if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '15')
     // Add pool timeout
-    if (!u.searchParams.has('pool_timeout')) u.searchParams.set('pool_timeout', '30')
+    if (!u.searchParams.has('pool_timeout')) u.searchParams.set('pool_timeout', '20')
     // Force SSL in production if not explicitly set, but skip for localhost/IPs
     if (process.env.NODE_ENV === 'production' && !u.searchParams.has('sslmode')) {
       if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1' && !u.hostname.startsWith('192.168.')) {
