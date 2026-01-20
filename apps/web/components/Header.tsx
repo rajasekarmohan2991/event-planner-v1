@@ -75,20 +75,28 @@ export default function Header() {
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>Choose Location</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => detectLocation && detectLocation()} className="gap-2 cursor-pointer text-blue-600 font-medium">
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    console.log('🗺️ [HEADER] Detecting location...')
+                    detectLocation && detectLocation()
+                  }} 
+                  className="gap-2 cursor-pointer text-blue-600 font-medium"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>
                   Detect My Location
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <div className="max-h-64 overflow-y-auto">
-                  {['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'New York', 'London', 'Dubai'].map((city) => (
+                  {['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad'].map((city) => (
                     <DropdownMenuItem
                       key={city}
-                      onClick={() => {
+                      onSelect={(e) => {
+                        e.preventDefault()
                         console.log('🗺️ [HEADER] Changing location to:', city)
                         if (updateLocation) {
                           updateLocation({ city, state: '', country: 'India', latitude: 0, longitude: 0 })
-                          console.log('✅ [HEADER] Location change triggered')
+                          console.log('✅ [HEADER] Location updated to:', city)
                         } else {
                           console.error('❌ [HEADER] updateLocation function not available')
                         }
