@@ -91,23 +91,16 @@ export async function DELETE(
         const params = 'then' in context.params ? await context.params : context.params
         const valueId = params.id
 
-        // Check if system value
+        // Check if value exists
         const value = await prisma.$queryRaw<any[]>`
-      SELECT id, label, is_system FROM lookup_values WHERE id = ${valueId} LIMIT 1
+      SELECT id, label FROM lookup_values WHERE id = ${valueId} LIMIT 1
     `
 
         if (!value || value.length === 0) {
             return NextResponse.json({ error: 'Lookup value not found' }, { status: 404 })
         }
 
-        if (value[0].is_system) {
-            return NextResponse.json({
-                error: 'Cannot delete system values',
-                message: 'System values are protected. You can deactivate them instead.'
-            }, { status: 403 })
-        }
-
-        // Delete the value
+        // Delete the value (allow deleting any value including system values)
         await prisma.$executeRawUnsafe(`
       DELETE FROM lookup_values WHERE id = '${valueId}'
     `)

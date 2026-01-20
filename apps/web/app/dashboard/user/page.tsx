@@ -546,47 +546,6 @@ export default function UserDashboard() {
 
         </div>
 
-        {/* DEBUG SECTION - REMOVE AFTER FIXING */}
-        <div className="bg-black text-green-400 p-8 m-8 rounded-xl font-mono text-sm overflow-auto max-h-96">
-          <h3 className="font-bold text-xl mb-4 border-b border-green-800 pb-2">🔍 DEBUG PANEL</h3>
-          <div className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="font-bold text-white mb-2">Controls State:</p>
-              <pre>{JSON.stringify({
-                loading,
-                eventsCount: upcomingEvents.length,
-                filteredCount: filteredEvents.length,
-                selectedCategory,
-                selectedCity,
-                searchQuery
-              }, null, 2)}</pre>
-
-              <div className="mt-4 border-t border-green-800 pt-4">
-                <p className="mb-2 font-bold text-yellow-400">⚠️ Database Tools</p>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Create sample event?')) return;
-                    try {
-                      const res = await fetch('/api/debug/seed');
-                      const data = await res.json();
-                      alert(JSON.stringify(data, null, 2));
-                      window.location.reload();
-                    } catch (e) { alert('Error: ' + typeof e === 'string' ? e : JSON.stringify(e)) }
-                  }}
-                  className="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold"
-                >
-                  🌱 SEED 1 EVENT
-                </button>
-                <p className="text-xs text-gray-400 mt-1">Click this if Database is empty</p>
-              </div>
-            </div>
-            <div>
-              <p className="font-bold text-white mb-2">First 2 Raw Events:</p>
-              <pre>{JSON.stringify(upcomingEvents.slice(0, 2), null, 2)}</pre>
-            </div>
-          </div>
-        </div>
-
         {/* Bottom Padding */}
         <div className="h-20"></div>
 

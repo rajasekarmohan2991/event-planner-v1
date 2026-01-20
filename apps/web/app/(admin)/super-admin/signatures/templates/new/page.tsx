@@ -101,7 +101,7 @@ export default function NewTemplatePage() {
                                     className="w-full h-10 rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
                                     {templateForOptions.length > 0 ? (
-                                        templateForOptions.filter(opt => opt.is_active).map(option => (
+                                        templateForOptions.filter(opt => opt.is_active !== false).map(option => (
                                             <option key={option.id} value={option.value}>
                                                 {option.label}
                                             </option>
@@ -111,6 +111,9 @@ export default function NewTemplatePage() {
                                             <option value="VENDOR">Vendor</option>
                                             <option value="SPONSOR">Sponsor</option>
                                             <option value="EXHIBITOR">Exhibitor</option>
+                                            <option value="SPEAKER">Speaker</option>
+                                            <option value="ATTENDEE">Attendee</option>
+                                            <option value="STAFF">Staff</option>
                                         </>
                                     )}
                                 </select>

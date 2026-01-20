@@ -435,24 +435,14 @@ export default function LookupManagementPage() {
                                 <Edit2 size={16} />
                               </button>
 
-                              {/* Delete Button - Only for custom values */}
-                              {!value.is_system ? (
-                                <button
-                                  onClick={() => handleDeleteValue(value.id, value.label)}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              ) : (
-                                <button
-                                  disabled
-                                  className="p-2 text-gray-300 cursor-not-allowed rounded"
-                                  title="System values cannot be deleted (use deactivate instead)"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
+                              {/* Delete Button - Available for all values */}
+                              <button
+                                onClick={() => handleDeleteValue(value.id, value.label)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </td>
                         </tr>

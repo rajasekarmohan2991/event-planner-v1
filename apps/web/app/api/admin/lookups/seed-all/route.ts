@@ -116,10 +116,11 @@ export async function POST(req: NextRequest) {
         for (const val of templateForValues) {
             await prisma.$executeRawUnsafe(`
                 INSERT INTO lookup_values (category_id, value, label, sort_order, is_active, is_system)
-                VALUES ('cmkl3z1of005qd8yckzh5kpkh', $1, $2, $3, TRUE, TRUE)
+                VALUES ('cmkl3z1of005qd8yckzh5kpkh', $1, $2, $3, TRUE, FALSE)
                 ON CONFLICT (category_id, value, tenant_id) DO UPDATE SET
                     label = EXCLUDED.label,
                     sort_order = EXCLUDED.sort_order,
+                    is_system = FALSE,
                     updated_at = NOW()
             `, val.value, val.label, val.sortOrder)
             results.push(`  ✅ Template For: ${val.label}`)
@@ -137,10 +138,11 @@ export async function POST(req: NextRequest) {
         for (const val of documentTypeValues) {
             await prisma.$executeRawUnsafe(`
                 INSERT INTO lookup_values (category_id, value, label, sort_order, is_active, is_system)
-                VALUES ('cmkl3z1of005rd8yckzh5kpki', $1, $2, $3, TRUE, TRUE)
+                VALUES ('cmkl3z1of005rd8yckzh5kpki', $1, $2, $3, TRUE, FALSE)
                 ON CONFLICT (category_id, value, tenant_id) DO UPDATE SET
                     label = EXCLUDED.label,
                     sort_order = EXCLUDED.sort_order,
+                    is_system = FALSE,
                     updated_at = NOW()
             `, val.value, val.label, val.sortOrder)
             results.push(`  ✅ Document Type: ${val.label}`)
