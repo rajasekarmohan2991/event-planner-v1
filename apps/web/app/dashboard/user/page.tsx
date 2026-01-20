@@ -18,6 +18,10 @@ interface Event {
   category?: string
   imageUrl?: string
   bannerUrl?: string
+  organizerName?: string
+  organizerLogo?: string
+  organizerEventsCount?: number
+  tenantId?: string
 }
 
 const categories = [
@@ -549,8 +553,8 @@ export default function UserDashboard() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Organized by</p>
-                        <p className="font-bold text-gray-900">Event Masters Inc.</p>
-                        <p className="text-xs text-gray-500">24 events hosted</p>
+                        <p className="font-bold text-gray-900">{selectedEvent.organizerName || 'Event Organizer'}</p>
+                        <p className="text-xs text-gray-500">{selectedEvent.organizerEventsCount || 0} events hosted</p>
                       </div>
                     </div>
                     <button
