@@ -15,12 +15,16 @@ export default function EventWorkspaceClient({
     children,
     eventId,
     eventExists,
-    eventTitle
+    eventTitle,
+    canManage = true,
+    isReadOnly = false
 }: {
     children: React.ReactNode;
     eventId: string;
     eventExists: boolean;
     eventTitle: string;
+    canManage?: boolean;
+    isReadOnly?: boolean;
 }) {
     const pathname = usePathname()
     const router = useRouter()
