@@ -35,6 +35,23 @@ export async function PATCH(
             );
         }
 
+        // Check if company exists first
+        const existingTenant = await prisma.$queryRaw<any[]>`
+            SELECT id, name, currency
+            FROM tenants
+            WHERE id = ${companyId}
+            LIMIT 1
+        `;
+
+        if (!existingTenant || existingTenant.length === 0) {
+            return NextResponse.json(
+                { error: 'Company not found' },
+                { status: 404 }
+            );
+        }
+
+        console.log('📝 Updating currency for tenant:', companyId, 'to:', currency);
+
         // Update tenant currency using raw SQL
         await prisma.$executeRaw`
             UPDATE tenants 
@@ -42,7 +59,7 @@ export async function PATCH(
             WHERE id = ${companyId}
         `;
 
-        // Fetch updated tenant
+        // Fetch updated tenant to confirm
         const updatedTenant = await prisma.$queryRaw<any[]>`
             SELECT id, name, currency
             FROM tenants
@@ -50,12 +67,7 @@ export async function PATCH(
             LIMIT 1
         `;
 
-        if (!updatedTenant || updatedTenant.length === 0) {
-            return NextResponse.json(
-                { error: 'Company not found' },
-                { status: 404 }
-            );
-        }
+        console.log('✅ Currency updated successfully:', updatedTenant[0]);
 
         return NextResponse.json({
             success: true,
