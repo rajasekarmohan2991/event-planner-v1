@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         where: {
           eventId: event.id,
           status: {
-            in: ['CONFIRMED', 'PENDING']
+            in: ['APPROVED', 'PENDING'] // Correct enum values
           }
         }
       })
