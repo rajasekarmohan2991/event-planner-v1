@@ -19,25 +19,45 @@ export async function GET(
 
         const eventId = BigInt(params.id);
 
-        const signatures = await prisma.$queryRaw`
-      SELECT 
-        id,
-        entity_type as "entityType",
-        entity_id as "entityId",
-        signer_name as "signerName",
-        signer_email as "signerEmail",
-        document_type as "documentType",
-        status,
-        signature_token as "signatureToken",
-        token_expires_at as "tokenExpiresAt",
-        signed_at as "signedAt",
-        created_at as "createdAt"
-      FROM signature_requests
-      WHERE event_id = ${eventId}
-      ORDER BY created_at DESC
-    `;
+        const signatures = await prisma.signatureRequest.findMany({
+            where: {
+                eventId: eventId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            select: {
+                id: true,
+                signerType: true,
+                signerId: true,
+                signerName: true,
+                signerEmail: true,
+                documentType: true,
+                status: true,
+                expiresAt: true,
+                signedAt: true,
+                createdAt: true,
+                // documentTitle: true, // Optional: Include if needed by frontend
+                // signingUrl: true     // Optional: If this is used instead of token
+            }
+        });
 
-        return NextResponse.json({ signatures }, { status: 200 });
+        // Map prisma result to expected frontend format if needed
+        const formattedSignatures = signatures.map(sig => ({
+            id: sig.id,
+            entityType: sig.signerType,
+            entityId: sig.signerId,
+            signerName: sig.signerName,
+            signerEmail: sig.signerEmail,
+            documentType: sig.documentType,
+            status: sig.status,
+            // signatureToken: ??? Schema has no token. We omit it or use ID?
+            tokenExpiresAt: sig.expiresAt,
+            signedAt: sig.signedAt,
+            createdAt: sig.createdAt
+        }));
+
+        return NextResponse.json({ signatures: formattedSignatures }, { status: 200 });
     } catch (error) {
         console.error('Error fetching signature requests:', error);
         return NextResponse.json(
