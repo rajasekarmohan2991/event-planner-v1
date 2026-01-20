@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Ticket, TrendingUp, Star, ChevronRight, Play, X, Heart, UserPlus, Building2, Mic2, Palette, Music, Zap, Image as ImageIcon, Network, Users2, Search, Filter, IndianRupee, Briefcase, UtensilsCrossed, GraduationCap, MoreHorizontal } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Calendar, MapPin, Users, Ticket, Search, Filter, TrendingUp, Star, Clock, IndianRupee, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
@@ -23,19 +23,18 @@ interface Event {
   organizerLogo?: string
   organizerEventsCount?: number
   tenantId?: string
+  priceInr?: number
 }
 
 const categories = [
-  { name: 'All Events', IconComponent: Calendar, color: 'from-violet-600 to-purple-700' },
-  { name: 'Business', IconComponent: Briefcase, color: 'from-sky-600 to-blue-700' },
-  { name: 'Technology', IconComponent: Mic2, color: 'from-purple-600 to-violet-700' },
-  { name: 'Art', IconComponent: Palette, color: 'from-fuchsia-600 to-pink-700' },
-  { name: 'Music', IconComponent: Music, color: 'from-teal-600 to-emerald-700' },
-  { name: 'Food', IconComponent: UtensilsCrossed, color: 'from-orange-600 to-red-700' },
-  { name: 'Sports', IconComponent: Zap, color: 'from-indigo-600 to-blue-700' },
-  { name: 'Health', IconComponent: Heart, color: 'from-pink-600 to-rose-700' },
-  { name: 'Education', IconComponent: GraduationCap, color: 'from-green-600 to-emerald-700' },
-  { name: 'Other', IconComponent: MoreHorizontal, color: 'from-gray-600 to-slate-700' },
+  { id: 'all', name: 'All Events', icon: '🎯', color: 'from-purple-500 to-purple-600' },
+  { id: 'Technology', name: 'Technology', icon: '💻', color: 'from-blue-500 to-blue-600' },
+  { id: 'Business', name: 'Business', icon: '💼', color: 'from-gray-500 to-gray-600' },
+  { id: 'Art', name: 'Art & Culture', icon: '🎨', color: 'from-pink-500 to-pink-600' },
+  { id: 'Music', name: 'Music', icon: '🎵', color: 'from-green-500 to-green-600' },
+  { id: 'Food', name: 'Food & Drink', icon: '🍔', color: 'from-orange-500 to-orange-600' },
+  { id: 'Sports', name: 'Sports', icon: '⚽', color: 'from-indigo-500 to-indigo-600' },
+  { id: 'Education', name: 'Education', icon: '📚', color: 'from-teal-500 to-teal-600' },
 ]
 
 export default function UserDashboard() {
@@ -44,26 +43,21 @@ export default function UserDashboard() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [trendingEvents, setTrendingEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const [isInterested, setIsInterested] = useState(false)
-  const [isFollowing, setIsFollowing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedCity, setSelectedCity] = useState('all')
   const [priceFilter, setPriceFilter] = useState('all')
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (status === 'unauthenticated') return
 
     const fetchEvents = async () => {
       try {
-        // Show ALL events by default - no automatic city filtering
-        // Only filter by city if user explicitly selects one in the filter dropdown
         const apiUrl = '/api/events/public?limit=50'
-        
+
         console.log('🎫 [USER DASHBOARD] Fetching all events (no city filter)')
         console.log('🎫 [USER DASHBOARD] API URL:', apiUrl)
-        
+
         const res = await fetch(apiUrl, { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
@@ -72,7 +66,6 @@ export default function UserDashboard() {
           console.log('🎫 [USER DASHBOARD] Events count:', events.length)
           console.log('🎫 [USER DASHBOARD] Total in DB:', data.debug?.totalInDb)
           setUpcomingEvents(events)
-          // Simulate trending events (top 4 by registration count)
           setTrendingEvents(events.slice(0, 4))
         } else {
           console.error('🎫 [USER DASHBOARD] API error:', res.status, res.statusText)
@@ -88,146 +81,101 @@ export default function UserDashboard() {
   }, [status])
 
   const filteredEvents = upcomingEvents.filter(event => {
-    if (selectedCategory && event.category !== selectedCategory) return false
-    if (searchQuery && !event.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !event.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false
-    if (selectedCity !== 'all' && event.city !== selectedCity) return false
-    return true
+    const matchesSearch = !searchQuery ||
+      event.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesCategory = !selectedCategory || selectedCategory === 'all' || event.category === selectedCategory
+
+    const matchesCity = selectedCity === 'all' || event.city === selectedCity
+
+    const matchesPrice =
+      priceFilter === 'all' ||
+      (priceFilter === 'free' && (!event.priceInr || event.priceInr === 0)) ||
+      (priceFilter === 'paid' && event.priceInr && event.priceInr > 0)
+
+    return matchesSearch && matchesCategory && matchesCity && matchesPrice
   })
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <Image
-              src="/ayphen-logo.png"
-              alt="Ayphen"
-              width={96}
-              height={96}
-              className="animate-pulse"
-              priority
-            />
+      <RouteProtection allowedRoles={['USER', 'ADMIN', 'SUPER_ADMIN']}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
+          <div className="max-w-7xl mx-auto px-6 py-12">
+            <div className="animate-pulse space-y-8">
+              <div className="h-64 bg-gradient-to-r from-slate-200 to-slate-300 rounded-3xl"></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-48 bg-slate-200 rounded-2xl"></div>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading amazing events...</p>
         </div>
-      </div>
+      </RouteProtection>
     )
   }
 
   return (
-    <RouteProtection requiredRoles={['USER']}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Scrolling Ticker - Real-time Event Info */}
-        <div className="bg-white border-b border-gray-100 overflow-hidden">
-          <div className="animate-scroll-left flex items-center gap-8 py-3 px-4">
-            {[...Array(2)].map((_, index) => (
-              <div key={index} className="flex items-center gap-8 whitespace-nowrap">
-                {upcomingEvents[0] && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-red-500">🔥</span>
-                    <span className="font-semibold text-gray-800">Trending Now</span>
-                    <span className="text-gray-600">{upcomingEvents[0].name}</span>
-                    <span className="text-pink-500 text-xs">Popular choice</span>
-                  </div>
-                )}
-                {upcomingEvents[1] && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-amber-500">⚡</span>
-                    <span className="font-semibold text-gray-800">Almost Full</span>
-                    <span className="text-gray-600">{upcomingEvents[1].name}</span>
-                    <span className="text-amber-500 text-xs">Limited seats!</span>
-                  </div>
-                )}
-                {upcomingEvents[2] && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-green-500">⭐</span>
-                    <span className="font-semibold text-gray-800">Early Bird</span>
-                    <span className="text-gray-600">{upcomingEvents[2].name}</span>
-                    <span className="text-green-500 text-xs">Get 30% off!</span>
-                  </div>
-                )}
-                {upcomingEvents[3] && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-purple-500">💎</span>
-                    <span className="font-semibold text-gray-800">Featured</span>
-                    <span className="text-gray-600">{upcomingEvents[3].name}</span>
-                    <span className="text-purple-500 text-xs">in {upcomingEvents[3].city}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-blue-500">🎫</span>
-                  <span className="font-semibold text-gray-800">FREE Events</span>
-                  <span className="text-gray-600">Check out free events near you!</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pink-500">🎁</span>
-                  <span className="font-semibold text-gray-800">Promo Code</span>
-                  <span className="text-gray-600">Use SAVE20 for 20% off</span>
-                </div>
+    <RouteProtection allowedRoles={['USER', 'ADMIN', 'SUPER_ADMIN']}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
+
+        {/* Hero Section */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+
+          <div className="relative max-w-7xl mx-auto px-6 py-20">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-6 py-3 rounded-full mb-6">
+                <Sparkles className="w-5 h-5 text-yellow-300" />
+                <span className="text-white font-semibold">Welcome back, {session?.user?.name}!</span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Hero Banner - Light with Red Accent */}
-        <div className="relative h-[420px] bg-gradient-to-r from-rose-200 via-pink-200 to-orange-200 overflow-hidden">
-          <div className="absolute inset-0 bg-white/30"></div>
-
-          <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center">
-            <div className="max-w-2xl mt-8">
-
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6 animate-slide-up">
+              <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
                 Discover Amazing
                 <br />
-                <span className="text-red-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-200">
                   Events Near You
                 </span>
               </h1>
 
-              <p className="text-lg text-gray-700 mb-8 animate-slide-up animation-delay-100">
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
                 Book tickets for conferences, concerts, workshops, and more!
               </p>
 
-              <div className="flex gap-4 animate-slide-up animation-delay-200">
-                <Link
-                  href="/my-tickets"
-                  className="px-8 py-3 bg-red-500 text-white rounded-full font-semibold hover:bg-red-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-                >
+              <div className="flex flex-wrap gap-4 justify-center">
+                <Link href="/dashboard/user/tickets" className="inline-flex items-center gap-2 bg-white text-purple-600 px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105">
                   <Ticket className="w-5 h-5" />
                   My Tickets
                 </Link>
-
-                <div className="inline-flex items-center gap-2 bg-white/40 backdrop-blur-sm px-6 py-3 rounded-full border border-red-200">
-                  <TrendingUp className="w-5 h-5 text-red-600" />
-                  <span className="text-gray-800 font-semibold">Trending Now</span>
-                </div>
+                <button className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white border-2 border-white/30 px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition-all">
+                  <TrendingUp className="w-5 h-5" />
+                  Trending Now
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Decorative Elements */}
-          <div className="absolute top-10 right-10 w-64 h-64 bg-red-300/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-80 h-80 bg-orange-300/20 rounded-full blur-3xl"></div>
-
         </div>
 
         <div className="max-w-7xl mx-auto px-6 -mt-16 relative z-20">
-          {/* Filter Events Section */}
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl p-8 mb-8 animate-slide-up border border-gray-100 backdrop-blur-sm">
+
+          {/* Search and Filter Section */}
+          <div className="bg-white rounded-3xl shadow-2xl p-8 mb-12">
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-gradient-to-br from-pink-500 to-fuchsia-600 rounded-xl">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl">
                 <Filter className="w-6 h-6 text-white" />
               </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-fuchsia-600 bg-clip-text text-transparent">Filter Events</h2>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Filter Events
+              </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Search */}
               <div>
-                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
-                  <Search className="w-4 h-4 text-pink-500" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700">
                   Search Events
                 </label>
                 <div className="relative">
@@ -236,7 +184,7 @@ export default function UserDashboard() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or description..."
-                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-all bg-white shadow-sm hover:border-pink-300"
+                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all bg-white shadow-sm"
                   />
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
@@ -244,145 +192,110 @@ export default function UserDashboard() {
 
               {/* City Filter */}
               <div>
-                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-pink-500" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700">
                   City
                 </label>
-                <div className="relative">
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 bg-white transition-all appearance-none shadow-sm hover:border-pink-300 cursor-pointer"
-                  >
-                    <option value="all">All Cities</option>
-                    {[...new Set(upcomingEvents.map(e => e.city))].map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                  <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 rotate-90 pointer-events-none" />
-                </div>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white transition-all shadow-sm"
+                >
+                  <option value="all">All Cities</option>
+                  {[...new Set(upcomingEvents.map(e => e.city))].filter(Boolean).map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Price Filter */}
               <div>
-                <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
-                  <IndianRupee className="w-4 h-4 text-pink-500" />
+                <label className="block text-sm font-semibold mb-3 text-gray-700">
                   Price
                 </label>
-                <div className="relative">
-                  <select
-                    value={priceFilter}
-                    onChange={(e) => setPriceFilter(e.target.value)}
-                    className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:border-pink-400 bg-white transition-all appearance-none shadow-sm hover:border-pink-300 cursor-pointer"
-                  >
-                    <option value="all">All Events</option>
-                    <option value="free">Free Only</option>
-                    <option value="paid">Paid Only</option>
-                  </select>
-                  <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                  <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 rotate-90 pointer-events-none" />
-                </div>
+                <select
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white transition-all shadow-sm"
+                >
+                  <option value="all">All Events</option>
+                  <option value="free">Free Only</option>
+                  <option value="paid">Paid Only</option>
+                </select>
               </div>
             </div>
 
             {/* Results Count */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Showing <strong className="text-pink-600">{filteredEvents.length}</strong> of <strong className="text-gray-900">{upcomingEvents.length}</strong> events
-                </p>
-                {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedCity('all')
-                      setPriceFilter('all')
-                    }}
-                    className="text-sm text-pink-600 hover:text-pink-700 font-medium flex items-center gap-1 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                    Clear Filters
-                  </button>
-                )}
-              </div>
+            <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Showing <strong className="text-purple-600">{filteredEvents.length}</strong> of <strong className="text-gray-900">{upcomingEvents.length}</strong> events
+              </p>
+              {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedCity('all')
+                    setPriceFilter('all')
+                    setSelectedCategory(null)
+                  }}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-12 animate-slide-up">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
-            </div>
-
-            <div
-              className="flex flex-nowrap gap-4 overflow-x-auto pb-4 px-2 [&::-webkit-scrollbar]:hidden"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-            >
-              {categories.map((category, index) => {
-                const isSelected = (category.name === 'All Events' && selectedCategory === '') || selectedCategory === category.name;
-
-                return (
-                  <button
-                    key={category.name}
-                    onClick={() => setSelectedCategory(category.name === 'All Events' ? '' : category.name)}
-                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-xl flex-shrink-0 min-w-[160px] backdrop-blur-md bg-white/10 border border-white/20 ${isSelected
-                      ? 'ring-4 ring-orange-400 ring-offset-2 shadow-orange-300/50'
-                      : ''
-                      }`}
-                  >
-                    {/* Glassmorphism gradient background */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-80 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110`}></div>
-
-                    {/* Glass overlay */}
-                    <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-
-                    {/* Animated gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    {/* Shimmer effect */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                    </div>
-
-                    <div className="relative z-10 text-center">
-                      <div className="mb-4 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 animate-icon-float flex items-center justify-center">
-                        <category.IconComponent className="w-14 h-14 text-white drop-shadow-lg" strokeWidth={2.5} />
-                      </div>
-                      <p className="text-white font-bold text-base group-hover:text-lg transition-all duration-300 drop-shadow-md">{category.name}</p>
-                    </div>
-
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      <div className="absolute inset-0 bg-white/20 blur-2xl"></div>
-                    </div>
-                  </button>
-                );
-              })}
+          {/* Browse by Category */}
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Browse by Category
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id === 'all' ? null : category.id)}
+                  className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
+                      ? `bg-gradient-to-br ${category.color} shadow-xl scale-105`
+                      : 'bg-white hover:bg-gray-50 shadow-md hover:shadow-lg'
+                    }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">{category.icon}</div>
+                    <p className={`text-xs font-semibold ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
+                        ? 'text-white'
+                        : 'text-gray-700'
+                      }`}>
+                      {category.name}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Recommended Events */}
+          {/* Events Grid */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-gray-900">
-                {selectedCategory ? `${selectedCategory} Events` : 'Recommended Events'}
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name} Events` : 'All Events'}
               </h2>
-              <Link
-                href="/events/browse"
-                className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 group"
-              >
-                See All
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {filteredEvents.length > 0 && (
+                <Link href="/events" className="text-purple-600 hover:text-purple-700 font-semibold flex items-center gap-2">
+                  See All
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
             </div>
 
             {filteredEvents.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                 <p className="text-gray-600 text-lg mb-2">
-                  {upcomingEvents.length === 0 
-                    ? 'No events available yet' 
+                  {upcomingEvents.length === 0
+                    ? 'No events available yet'
                     : 'No events match your filters'}
                 </p>
                 {upcomingEvents.length === 0 && (
@@ -397,7 +310,7 @@ export default function UserDashboard() {
                       setSearchQuery('')
                       setSelectedCity('all')
                     }}
-                    className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                   >
                     Clear Filters
                   </button>
@@ -405,488 +318,93 @@ export default function UserDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {filteredEvents.slice(0, 8).map((event, index) => (
-                  <button
+                {filteredEvents.map(event => (
+                  <Link
                     key={event.id}
-                    onClick={() => setSelectedEvent(event)}
-                    className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-fade-in text-left"
-                    style={{ animationDelay: `${index * 100}ms` }}
+                    href={`/events/${event.id}/register`}
+                    className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-2"
                   >
-                    {/* Event Image */}
-                    <div className="relative h-48 overflow-hidden bg-gray-200">
+                    <div className="relative h-48 bg-gradient-to-br from-purple-400 to-pink-400 overflow-hidden">
                       {event.bannerUrl ? (
                         <Image
                           src={event.bannerUrl}
                           alt={event.name}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover group-hover:scale-110 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-blue-600" />
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Calendar className="w-16 h-16 text-white/50" />
+                        </div>
                       )}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                        <span className="text-xs font-bold text-indigo-600">
+                      <div className="absolute top-4 right-4">
+                        <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-purple-600">
                           {new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
+                        </div>
                       </div>
-                      {event.registrationCount && event.registrationCount > 10 && (
-                        <div className="absolute top-3 left-3 bg-yellow-400 px-3 py-1 rounded-full flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-yellow-700 text-yellow-700" />
-                          <span className="text-xs font-bold text-yellow-900">Trending</span>
+                      {event.category && (
+                        <div className="absolute bottom-4 left-4">
+                          <div className="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white">
+                            {event.category}
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Event Details */}
                     <div className="p-5">
-                      <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+                      <h3 className="font-bold text-lg mb-2 text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-2">
                         {event.name}
                       </h3>
 
-                      <div className="space-y-2 text-sm text-gray-600 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-indigo-500" />
-                          <span>{new Date(event.startsAt).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric'
-                          })}</span>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="w-4 h-4 mr-2 text-purple-500" />
+                          {new Date(event.startsAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-indigo-500" />
-                          <span className="line-clamp-1">{event.city}</span>
-                        </div>
-                        {event.registrationCount && (
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-indigo-500" />
-                            <span>{event.registrationCount} attending</span>
+
+                        {event.city && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <MapPin className="w-4 h-4 mr-2 text-pink-500" />
+                            {event.city}
+                          </div>
+                        )}
+
+                        {event.registrationCount !== undefined && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Users className="w-4 h-4 mr-2 text-blue-500" />
+                            {event.registrationCount} attending
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <span className="text-sm font-semibold text-gray-900">From ₹500</span>
-                        <span className="text-indigo-600 font-semibold text-sm group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                          View Details
-                          <ChevronRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Trending Events */}
-          {trendingEvents.length > 0 && (
-            <div className="mb-12">
-              <div className="flex items-center gap-3 mb-6">
-                <TrendingUp className="w-8 h-8 text-indigo-600" />
-                <h2 className="text-3xl font-bold text-gray-900">Trending This Week</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {trendingEvents.slice(0, 2).map((event) => (
-                  <Link
-                    key={event.id}
-                    href={`/events/${event.id}/register`}
-                    className="group relative bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="relative w-full md:w-1/2 h-64 bg-gradient-to-br from-rose-500 to-purple-600">
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
-                        <div className="absolute top-4 left-4 bg-amber-500 px-4 py-2 rounded-full flex items-center gap-2">
-                          <Star className="w-4 h-4 fill-yellow-700 text-yellow-700" />
-                          <span className="text-sm font-bold text-yellow-900">Hot Event</span>
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center text-lg font-bold text-purple-600">
+                          {event.priceInr && event.priceInr > 0 ? (
+                            <>
+                              <IndianRupee className="w-4 h-4" />
+                              {event.priceInr}
+                            </>
+                          ) : (
+                            <span className="text-green-600">FREE</span>
+                          )}
                         </div>
-                      </div>
-
-                      <div className="flex-1 p-6 flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
-                            {event.name}
-                          </h3>
-                          <p className="text-gray-600 mb-4 line-clamp-2">{event.description}</p>
-
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-indigo-500" />
-                              <span className="font-medium">{new Date(event.startsAt).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                month: 'long',
-                                day: 'numeric'
-                              })}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-indigo-500" />
-                              <span>{event.venue}, {event.city}</span>
-                            </div>
-                            {event.registrationCount && (
-                              <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-indigo-500" />
-                                <span className="font-semibold">{event.registrationCount}+ people interested</span>
-                              </div>
-                            )}
-                          </div>
+                        <div className="text-sm text-purple-600 font-semibold group-hover:translate-x-1 transition-transform">
+                          View Details →
                         </div>
-
-                        <button className="mt-4 w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
-                          <Ticket className="w-5 h-5" />
-                          Get Tickets Now
-                        </button>
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
 
         {/* Bottom Padding */}
         <div className="h-20"></div>
 
-        {/* Event Detail Modal */}
-        {selectedEvent && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedEvent(null)}>
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
-              {/* Modal Header with Image */}
-              <div className="relative h-64 bg-gradient-to-br from-teal-500 to-blue-600">
-                <div className="absolute inset-0 bg-black/30"></div>
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-700" />
-                </button>
-                <div className="absolute bottom-4 left-6 right-6">
-                  <h2 className="text-3xl font-bold text-white mb-2">{selectedEvent.name}</h2>
-                  <div className="flex items-center gap-4 text-white/90 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(selectedEvent.startsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{selectedEvent.city}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6">
-                {/* Organizer Info */}
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                        <Building2 className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Organized by</p>
-                        <p className="font-bold text-gray-900">{selectedEvent.organizerName || 'Event Organizer'}</p>
-                        <p className="text-xs text-gray-500">{selectedEvent.organizerEventsCount || 0} events hosted</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setIsFollowing(!isFollowing)}
-                      className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 ${isFollowing
-                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        }`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      {isFollowing ? 'Following' : 'Follow'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Event Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-xl">
-                    <Users className="w-6 h-6 mx-auto text-blue-600 mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">{selectedEvent.registrationCount || 0}</p>
-                    <p className="text-xs text-gray-600">Attending</p>
-                  </div>
-                  <div className="text-center p-4 bg-pink-50 rounded-xl">
-                    <Heart className="w-6 h-6 mx-auto text-pink-600 mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">1.2k</p>
-                    <p className="text-xs text-gray-600">Interested</p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-xl">
-                    <Star className="w-6 h-6 mx-auto text-purple-600 mb-2" />
-                    <p className="text-2xl font-bold text-gray-900">4.8</p>
-                    <p className="text-xs text-gray-600">Rating</p>
-                  </div>
-                </div>
-
-                {/* Event Description */}
-                <div className="mb-6">
-                  <h3 className="font-bold text-gray-900 mb-2">About This Event</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {selectedEvent.description || 'Join us for an amazing event experience! This event brings together industry leaders, innovators, and enthusiasts for an unforgettable experience.'}
-                  </p>
-                </div>
-
-                {/* Event Details */}
-                <div className="mb-6 space-y-3">
-                  <h3 className="font-bold text-gray-900 mb-3">Event Details</h3>
-                  <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-indigo-500 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Date & Time</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(selectedEvent.startsAt).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-indigo-500 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Location</p>
-                      <p className="text-sm text-gray-600">{selectedEvent.venue}, {selectedEvent.city}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Ticket className="w-5 h-5 text-indigo-500 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-900">Ticket Price</p>
-                      <p className="text-sm text-gray-600">Starting from ₹500</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsInterested(!isInterested)}
-                    className={`flex-1 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${isInterested
-                      ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    <Heart className={`w-5 h-5 ${isInterested ? 'fill-pink-700' : ''}`} />
-                    {isInterested ? 'Interested' : "I'm Interested"}
-                  </button>
-                  <Link
-                    href={`/events/${selectedEvent.id}/register`}
-                    className="flex-1 bg-gradient-to-r from-teal-600 to-blue-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <Ticket className="w-5 h-5" />
-                    Book Tickets
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-        }
-
-        .animate-slide-up {
-          animation: slide-up 0.8s ease-out forwards;
-        }
-
-        .animation-delay-100 {
-          animation-delay: 100ms;
-        }
-
-        .animation-delay-200 {
-          animation-delay: 200ms;
-        }
-
-        .animation-delay-1000 {
-          animation-delay: 1000ms;
-        }
-
-        /* Shimmer animation for glassmorphism */
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        .animate-shimmer {
-          animation: shimmer 2s ease-in-out infinite;
-        }
-
-        /* Scrolling banner animation */
-        @keyframes scroll-left {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-
-        .animate-scroll-left {
-          animation: scroll-left 30s linear infinite;
-        }
-
-        /* Unique animations for each category */
-        
-        /* 1. Flip In - 3D flip effect */
-        @keyframes flip-in {
-          from {
-            opacity: 0;
-            transform: perspective(1000px) rotateY(-90deg);
-          }
-          to {
-            opacity: 1;
-            transform: perspective(1000px) rotateY(0deg);
-          }
-        }
-
-        /* 2. Slide In - Slide from left */
-        @keyframes slide-in {
-          from {
-            opacity: 0;
-            transform: translateX(-100px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        /* 3. Zoom Bounce - Zoom in with bounce */
-        @keyframes zoom-bounce {
-          0% {
-            opacity: 0;
-            transform: scale(0);
-          }
-          50% {
-            transform: scale(1.15);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        /* 4. Rotate In - Spinning entrance */
-        @keyframes rotate-in {
-          from {
-            opacity: 0;
-            transform: rotate(-180deg) scale(0.5);
-          }
-          to {
-            opacity: 1;
-            transform: rotate(0deg) scale(1);
-          }
-        }
-
-        /* 5. Bounce In - Drop from top */
-        @keyframes bounce-in {
-          0% {
-            opacity: 0;
-            transform: translateY(-100px);
-          }
-          60% {
-            transform: translateY(10px);
-          }
-          80% {
-            transform: translateY(-5px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        /* 6. Wave In - Wave effect */
-        @keyframes wave-in {
-          0% {
-            opacity: 0;
-            transform: translateY(30px) rotate(-10deg);
-          }
-          50% {
-            transform: translateY(-10px) rotate(5deg);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) rotate(0deg);
-          }
-        }
-
-        /* Icon Float - Gentle floating */
-        @keyframes icon-float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-
-        /* Apply animations */
-        .animate-flip-in {
-          animation: flip-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-zoom-bounce {
-          animation: zoom-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-rotate-in {
-          animation: rotate-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-bounce-in {
-          animation: bounce-in 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-wave-in {
-          animation: wave-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-icon-float {
-          animation: icon-float 3s ease-in-out infinite;
-        }
-      `}</style>
     </RouteProtection>
   )
 }
