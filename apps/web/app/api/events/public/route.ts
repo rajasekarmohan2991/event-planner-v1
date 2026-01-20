@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
         (SELECT COUNT(*)::int FROM registrations WHERE event_id = e.id AND status IN ('CONFIRMED', 'PENDING')) as "registrationCount"
       FROM public.events e
       LEFT JOIN tenants t ON e.tenant_id = t.id
-      WHERE COALESCE(e.status,'PUBLISHED') IN ('PUBLISHED','LIVE','UPCOMING')
-      ORDER BY e.starts_at DESC
+      WHERE COALESCE(e.status, 'PUBLISHED') NOT IN ('TRASHED', 'CANCELLED', 'ARCHIVED')
+      ORDER BY e.created_at DESC
       LIMIT ${limit}
     `
 
