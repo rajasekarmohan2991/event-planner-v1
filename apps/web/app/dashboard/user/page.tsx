@@ -511,6 +511,28 @@ export default function UserDashboard() {
 
         </div>
 
+        {/* DEBUG SECTION - REMOVE AFTER FIXING */}
+        <div className="bg-black text-green-400 p-8 m-8 rounded-xl font-mono text-sm overflow-auto max-h-96">
+          <h3 className="font-bold text-xl mb-4 border-b border-green-800 pb-2">🔍 DEBUG PANEL</h3>
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <p className="font-bold text-white mb-2">Controls State:</p>
+              <pre>{JSON.stringify({
+                loading,
+                eventsCount: upcomingEvents.length,
+                filteredCount: filteredEvents.length,
+                selectedCategory,
+                selectedCity,
+                searchQuery
+              }, null, 2)}</pre>
+            </div>
+            <div>
+              <p className="font-bold text-white mb-2">First 2 Raw Events:</p>
+              <pre>{JSON.stringify(upcomingEvents.slice(0, 2), null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Padding */}
         <div className="h-20"></div>
 
