@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     const eventId = parseInt(params.id)
     const registrationId = params.registrationId
     const { reason, refundRequested = false } = await req.json().catch(() => ({}))
-    
+
     console.log(`❌ Cancelling registration ${registrationId} for event ${eventId}`)
 
     // Get current registration data
@@ -39,9 +39,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
 
     // Check if already cancelled
     if (currentData.status === 'CANCELLED') {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Registration already cancelled',
-        cancelledAt: currentData.cancelledAt 
+        cancelledAt: currentData.cancelledAt
       })
     }
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
 
     await prisma.$executeRaw`
       UPDATE registrations 
-      SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
+      SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
       WHERE id = ${registrationId} AND event_id = ${eventId}
     `
 
@@ -178,7 +178,7 @@ EventPlanner © 2025
 
   } catch (error: any) {
     console.error('❌ Registration cancellation error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: error?.message || 'Cancellation failed',
       error: error.code || 'UNKNOWN_ERROR'
     }, { status: 500 })

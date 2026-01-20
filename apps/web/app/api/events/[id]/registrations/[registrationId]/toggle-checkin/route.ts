@@ -60,7 +60,7 @@ export async function POST(
         await prisma.$executeRaw`
       UPDATE registrations
       SET 
-        data_json = ${JSON.stringify(newData)},
+        data_json = ${JSON.stringify(newData)}::jsonb,
         check_in_status = ${newStatus},
         check_in_time = ${checkedIn ? new Date() : null},
         updated_at = NOW()

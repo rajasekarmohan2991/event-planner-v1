@@ -14,11 +14,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const eventId = parseInt(params.id)
     const { registrationIds, notes } = await req.json()
-    
+
     if (!Array.isArray(registrationIds) || registrationIds.length === 0) {
       return NextResponse.json({ message: 'Registration IDs array required' }, { status: 400 })
     }
-    
+
     console.log(`✅ Bulk approving ${registrationIds.length} registrations for event ${eventId}`)
 
     const results = []
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         await prisma.$executeRaw`
           UPDATE registrations 
-          SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
+          SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
           WHERE id = ${registrationId} AND event_id = ${eventId}
         `
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         // Send approval email (async, don't wait)
         if (currentData.email) {
           const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCode)}`
-          
+
           sendEmail({
             to: currentData.email,
             subject: '🎉 Registration Approved - Your Event Ticket',
@@ -148,12 +148,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           }).catch(err => console.error(`Bulk approval email failed for ${registrationId}:`, err))
         }
 
-        results.push({ 
-          registrationId, 
-          status: 'approved', 
+        results.push({
+          registrationId,
+          status: 'approved',
           approvedAt: updatedData.approvedAt,
           qrCode,
-          checkInUrl 
+          checkInUrl
         })
 
       } catch (error: any) {
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   } catch (error: any) {
     console.error('❌ Bulk approval error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: error?.message || 'Bulk approval failed',
       error: error.code || 'UNKNOWN_ERROR'
     }, { status: 500 })

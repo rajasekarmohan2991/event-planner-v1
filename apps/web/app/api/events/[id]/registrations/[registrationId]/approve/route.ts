@@ -84,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
     try {
       await prisma.$executeRaw`
         UPDATE registrations 
-        SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
+        SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
         WHERE id::text = ${registrationId} AND event_id = ${eventId}
       `
     } catch (e) {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string,
       const numericId = BigInt(registrationId)
       await prisma.$executeRaw`
         UPDATE registrations 
-        SET data_json = ${JSON.stringify(updatedData)}, updated_at = NOW()
+        SET data_json = ${JSON.stringify(updatedData)}::jsonb, updated_at = NOW()
         WHERE id = ${numericId} AND event_id = ${eventId}
       `
     }
