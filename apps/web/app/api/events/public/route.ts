@@ -11,6 +11,13 @@ export async function GET(req: NextRequest) {
     console.log('🎫 [PUBLIC EVENTS] Fetching with limit:', limit)
 
     // Use raw SQL to avoid Prisma relation issues
+    // First check if events table exists and has data
+    const totalEvents = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count FROM events
+    ` as any[]
+    
+    console.log('🎫 [PUBLIC EVENTS] Total events in DB:', totalEvents[0]?.count || 0)
+
     const events = await prisma.$queryRaw`
       SELECT 
         e.id::text,
@@ -39,7 +46,6 @@ export async function GET(req: NextRequest) {
         ) as "registrationCount"
       FROM events e
       LEFT JOIN tenants t ON e.tenant_id = t.id
-      WHERE e.status NOT IN ('TRASHED', 'CANCELLED', 'ARCHIVED')
       ORDER BY e.created_at DESC
       LIMIT ${limit}
     ` as any[]
@@ -71,6 +77,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       events: formattedEvents,
       debug: {
+        totalInDb: totalEvents[0]?.count || 0,
         fetchedCount: events.length,
         firstEventStatus: events[0]?.status,
       }

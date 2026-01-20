@@ -84,7 +84,15 @@ export default function Header() {
                   {['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'New York', 'London', 'Dubai'].map((city) => (
                     <DropdownMenuItem
                       key={city}
-                      onClick={() => updateLocation && updateLocation({ city, state: '', country: '', latitude: 0, longitude: 0 })}
+                      onClick={() => {
+                        console.log('🗺️ [HEADER] Changing location to:', city)
+                        if (updateLocation) {
+                          updateLocation({ city, state: '', country: 'India', latitude: 0, longitude: 0 })
+                          console.log('✅ [HEADER] Location change triggered')
+                        } else {
+                          console.error('❌ [HEADER] updateLocation function not available')
+                        }
+                      }}
                       className="cursor-pointer"
                     >
                       {city}
