@@ -11,6 +11,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function SuperAdminSettingsPage() {
+  // Fix for ReferenceError: Define globalCurrency early
+  const globalCurrency = {
+    code: 'USD',
+    symbol: '$'
+  }
+
   const { data: session, status } = useSession()
   const router = useRouter()
 
