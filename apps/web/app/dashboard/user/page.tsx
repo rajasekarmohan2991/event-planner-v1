@@ -254,8 +254,10 @@ export default function UserDashboard() {
 
           {/* Browse by Category */}
           <div className="mb-12">
-            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Browse by Category
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Explore Categories
+              </span>
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
               {categories.map(category => (
