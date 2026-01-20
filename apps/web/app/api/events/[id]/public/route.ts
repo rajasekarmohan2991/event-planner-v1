@@ -34,7 +34,6 @@ export async function GET(
       FROM events e
       LEFT JOIN tenants t ON e.tenant_id = t.id
       WHERE e.id = ${eventIdBigInt}
-      AND e.status = 'PUBLISHED'
       LIMIT 1
     `
 
