@@ -80,15 +80,15 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ signatures });
     } catch (error: any) {
         console.error('Error fetching signatures:', error);
-        
+
         // If table doesn't exist, return empty array
         if (error.message?.includes('does not exist')) {
             return NextResponse.json({ signatures: [] });
         }
-        
-        return NextResponse.json({ 
+
+        return NextResponse.json({
             error: 'Failed to fetch signatures',
-            details: error.message 
+            details: error.message
         }, { status: 500 });
     }
 }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
         // Validate required fields
         if (!documentType || !signerEmail || !signerName || !signerType) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: 'Missing required fields',
                 details: 'documentType, signerEmail, signerName, and signerType are required'
             }, { status: 400 });
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 
         // Validate document type
         if (!DOCUMENT_TEMPLATES[documentType as SignatureDocumentType]) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: 'Invalid document type',
                 validTypes: Object.keys(DOCUMENT_TEMPLATES)
             }, { status: 400 });
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
             )
-        `, 
+        `,
             id,
             finalTenantId,
             eventId ? BigInt(eventId) : null,
@@ -204,6 +204,55 @@ export async function POST(req: NextRequest) {
         // Generate simple signing URL if not using DocuSign
         if (!signingUrl) {
             signingUrl = `${process.env.NEXTAUTH_URL}/signature/sign/${id}`;
+
+            // Send email
+            try {
+                // Determine email subject and content based on document type
+                const subject = `Signature Request: ${template.title}`;
+                const html = `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2>Signature Request</h2>
+                        <p>Hello ${signerName},</p>
+                        <p>You have been requested to sign <strong>${template.title}</strong>.</p>
+                        <p>Please click the button below to review and sign the document:</p>
+                        <div style="margin: 30px 0;">
+                            <a href="${signingUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Review and Sign</a>
+                        </div>
+                        <p>Or copy this link:</p>
+                        <p><a href="${signingUrl}">${signingUrl}</a></p>
+                        <p>This link expires on ${expiresAt.toLocaleDateString()}.</p>
+                    </div>
+                `;
+
+                // Logic to send email would go here
+                // Since sendMail is not imported, we will import it at top of file
+                // But wait, I need to add the import in the replacement or separate step?
+                // I will use a separate step for import.
+
+                // For now, logging it clearly
+                console.log(`📧 Sending signature request email to ${signerEmail}`);
+                console.log(`🔗 Link: ${signingUrl}`);
+
+                // Importing dynamically or assuming import exists (I will add it next)
+                const { sendMail } = await import('@/lib/email/mailer');
+                await sendMail({
+                    to: signerEmail,
+                    subject,
+                    html
+                });
+                console.log('✅ Email sent successfully');
+
+                status = 'SENT'; // Update status to SENT
+
+                // Update the DB status to SENT
+                await prisma.$executeRawUnsafe(`
+                    UPDATE signature_requests SET status = 'SENT', sent_at = NOW() WHERE id = $1
+                `, id);
+
+            } catch (emailError) {
+                console.error('Failed to send email:', emailError);
+                // Don't fail the request, just log it
+            }
         }
 
         return NextResponse.json({
@@ -224,10 +273,10 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error('Error creating signature request:', error);
         console.error('Error stack:', error.stack);
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: 'Failed to create signature request',
             details: error.message,
-            stack: error.stack 
+            stack: error.stack
         }, { status: 500 });
     }
 }
