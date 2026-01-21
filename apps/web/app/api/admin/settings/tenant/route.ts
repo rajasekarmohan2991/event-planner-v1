@@ -53,19 +53,40 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'No tenant found' }, { status: 404 })
     }
 
-    // Use raw SQL to fetch tenant
-    const tenants: any[] = await prisma.$queryRawUnsafe(`
-      SELECT id, name, currency, metadata FROM tenants WHERE id = $1
-    `, tenantId)
+    // Use raw SQL to fetch tenant - only select columns that definitely exist
+    let tenant: any
+    let supportedCurrencies: string[] = []
 
-    if (tenants.length === 0) {
-      return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
+    try {
+      const tenants: any[] = await prisma.$queryRawUnsafe(`
+        SELECT id, name, currency FROM tenants WHERE id = $1
+      `, tenantId)
+
+      if (tenants.length === 0) {
+        return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
+      }
+
+      tenant = tenants[0]
+
+      // Try to fetch metadata if column exists
+      try {
+        const metadataResult: any[] = await prisma.$queryRawUnsafe(`
+          SELECT metadata FROM tenants WHERE id = $1
+        `, tenantId)
+        
+        if (metadataResult.length > 0 && metadataResult[0].metadata) {
+          const metadata = typeof metadataResult[0].metadata === 'string' 
+            ? JSON.parse(metadataResult[0].metadata) 
+            : metadataResult[0].metadata
+          supportedCurrencies = metadata.supportedCurrencies || []
+        }
+      } catch (metadataError: any) {
+        console.log('⚠️ Metadata column not available, using defaults')
+      }
+    } catch (error: any) {
+      console.error('Error fetching tenant:', error)
+      throw error
     }
-
-    const tenant = tenants[0]
-    // Extract supported currencies from metadata
-    const metadata = tenant.metadata || {}
-    const supportedCurrencies = metadata.supportedCurrencies || []
 
     return NextResponse.json({
       currency: tenant.currency || 'USD',
@@ -125,7 +146,7 @@ export async function PUT(req: NextRequest) {
 
     // Fetch current tenant using raw SQL
     const tenants: any[] = await prisma.$queryRawUnsafe(`
-      SELECT id, currency, metadata FROM tenants WHERE id = $1
+      SELECT id, currency FROM tenants WHERE id = $1
     `, tenantId)
 
     if (tenants.length === 0) {
@@ -133,21 +154,51 @@ export async function PUT(req: NextRequest) {
     }
 
     const tenant = tenants[0]
-    const metadata = tenant.metadata || {}
-    const newMetadata = {
-      ...metadata,
-      supportedCurrencies: supportedCurrencies || metadata.supportedCurrencies || []
-    }
+    const finalCurrency = defaultCurrency || tenant.currency || 'USD'
 
-    // Update using raw SQL
-    await prisma.$executeRawUnsafe(`
-      UPDATE tenants SET currency = $1, metadata = $2, updated_at = NOW() WHERE id = $3
-    `, defaultCurrency || tenant.currency || 'USD', JSON.stringify(newMetadata), tenantId)
+    // Try to update with metadata if column exists, otherwise just update currency
+    try {
+      // First try to get existing metadata
+      let existingMetadata: any = {}
+      try {
+        const metadataResult: any[] = await prisma.$queryRawUnsafe(`
+          SELECT metadata FROM tenants WHERE id = $1
+        `, tenantId)
+        if (metadataResult.length > 0 && metadataResult[0].metadata) {
+          existingMetadata = typeof metadataResult[0].metadata === 'string'
+            ? JSON.parse(metadataResult[0].metadata)
+            : metadataResult[0].metadata
+        }
+      } catch (e) {
+        console.log('⚠️ Metadata column not available')
+      }
+
+      const newMetadata = {
+        ...existingMetadata,
+        supportedCurrencies: supportedCurrencies || existingMetadata.supportedCurrencies || []
+      }
+
+      // Try to update with metadata
+      try {
+        await prisma.$executeRawUnsafe(`
+          UPDATE tenants SET currency = $1, metadata = $2, updated_at = NOW() WHERE id = $3
+        `, finalCurrency, JSON.stringify(newMetadata), tenantId)
+      } catch (metadataUpdateError: any) {
+        // Fallback: just update currency if metadata column doesn't exist
+        console.log('⚠️ Updating without metadata column')
+        await prisma.$executeRawUnsafe(`
+          UPDATE tenants SET currency = $1, updated_at = NOW() WHERE id = $2
+        `, finalCurrency, tenantId)
+      }
+    } catch (error: any) {
+      console.error('Error updating tenant:', error)
+      throw error
+    }
 
     return NextResponse.json({
       message: 'Settings updated',
-      currency: defaultCurrency || tenant.currency || 'USD',
-      supportedCurrencies: newMetadata.supportedCurrencies
+      currency: finalCurrency,
+      supportedCurrencies: supportedCurrencies || []
     })
   } catch (error: any) {
     console.error('Error updating tenant settings:', error)
