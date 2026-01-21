@@ -107,6 +107,29 @@ export async function ensureSchema() {
       END $$;
     `)
 
+        // 3.5 Order Table (MixedCase for Prisma compatibility)
+        console.log('📝 Step 3.5: Creating Order table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Order" (
+        "id" TEXT PRIMARY KEY,
+        "eventId" TEXT NOT NULL,
+        "tenantId" TEXT,
+        "userId" BIGINT,
+        "email" TEXT,
+        "buyerEmail" TEXT,
+        "status" TEXT DEFAULT 'CREATED',
+        "paymentStatus" TEXT DEFAULT 'PENDING',
+        "totalInr" INTEGER DEFAULT 0,
+        "meta" JSONB,
+        "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+
+        // Add indexes for Order
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Order_eventId_idx" ON "Order"("eventId");`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Order_tenantId_idx" ON "Order"("tenantId");`)
+
         // 4. Floor Plans Table
         await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS floor_plans (

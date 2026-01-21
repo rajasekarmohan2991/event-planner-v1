@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { checkPermissionInRoute } from '@/lib/permission-middleware'
 import prisma from '@/lib/prisma'
 import { getTenantId } from '@/lib/tenant-context'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,10 +33,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Ensure tables exist
     try {
-      // Tables should already exist from migrations, skip creation to avoid schema conflicts
-      // await prisma.$executeRawUnsafe(`...`)
+      await ensureSchema()
     } catch (e) {
-      // Tables likely exist
+      console.warn('[API] Schema check failed:', e)
     }
 
     const body = await req.json().catch(() => ({}))
@@ -73,18 +73,45 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!plan) {
       console.log('[API] No floor plan in request, checking database...')
       // Try loading the latest saved plan for this event
-      const rows = await prisma.$queryRaw`
-        SELECT layout_data
-        FROM floor_plan_configs
-        WHERE event_id = ${eventId}
-        ORDER BY created_at DESC
-        LIMIT 1
-      ` as any[]
-      if (rows.length > 0 && rows[0]?.layout_data) {
-        plan = rows[0].layout_data as any
-        console.log('[API] Loaded plan from database')
-      } else {
-        console.log('[API] ❌ No floor plan found')
+      // First try floor_plans table (new schema)
+      try {
+        const rows = await prisma.$queryRaw`
+          SELECT "layoutData" as layout_data
+          FROM floor_plans
+          WHERE "eventId" = ${BigInt(eventId)}
+          ORDER BY created_at DESC
+          LIMIT 1
+        ` as any[]
+
+        if (rows.length > 0 && rows[0]?.layout_data) {
+          plan = rows[0].layout_data
+          console.log('[API] Loaded plan from floor_plans table')
+        }
+      } catch (err) {
+        console.log('[API] floor_plans lookup failed, trying legacy...')
+      }
+
+      // If still no plan, try legacy floor_plan_configs
+      if (!plan) {
+        try {
+          const rows = await prisma.$queryRaw`
+            SELECT layout_data
+            FROM floor_plan_configs
+            WHERE event_id = ${eventId}
+            ORDER BY created_at DESC
+            LIMIT 1
+          ` as any[]
+          if (rows.length > 0 && rows[0]?.layout_data) {
+            plan = rows[0].layout_data
+            console.log('[API] Loaded plan from floor_plan_configs database')
+          }
+        } catch (err) {
+          console.log('[API] Legacy lookup failed too')
+        }
+      }
+
+      if (!plan) {
+        console.log('[API] ❌ No floor plan found in DB either')
         return NextResponse.json({ error: 'Floor plan is required' }, { status: 400 })
       }
     }
