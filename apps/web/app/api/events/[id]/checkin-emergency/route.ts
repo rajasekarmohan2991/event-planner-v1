@@ -14,7 +14,30 @@ export async function POST(
         console.log('[EMERGENCY CHECKIN] Event:', eventId.toString())
         console.log('[EMERGENCY CHECKIN] Body:', body)
 
-        const registrationId = body.registrationId || body.id
+        let registrationId = body.registrationId || body.id
+
+        // Handle token format (Base64 encoded JSON)
+        if (!registrationId && body.token) {
+            try {
+                // Determine if it's base64 or raw
+                let decoded = body.token
+                // Check if likely base64 (no { at start)
+                if (!body.token.trim().startsWith('{')) {
+                    decoded = Buffer.from(body.token, 'base64').toString('utf-8')
+                }
+
+                // Try parsing JSON
+                try {
+                    const parsed = JSON.parse(decoded)
+                    registrationId = parsed.registrationId || parsed.id
+                } catch {
+                    // If not JSON, assume token is the ID directly
+                    registrationId = decoded
+                }
+            } catch (e) {
+                console.error('[EMERGENCY CHECKIN] Token decode failed', e)
+            }
+        }
 
         if (!registrationId) {
             return NextResponse.json({
