@@ -1,96 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma'; // Fixed import
+import prisma from '@/lib/prisma';
+import { AVAILABLE_CURRENCIES } from '@/lib/currency';
 
-export const dynamic = 'force-dynamic'
-
-export async function PATCH(
-    request: NextRequest,
+export async function GET(
+    req: NextRequest,
     context: { params: Promise<{ id: string }> | { id: string } }
 ) {
+    const params = 'then' in context.params ? await context.params : context.params;
+    const session = await getServerSession(authOptions as any);
+
+    if (!session) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
-        const session = await getServerSession(authOptions as any);
+        // Get company currency
+        const company: any[] = await prisma.$queryRawUnsafe(`
+            SELECT currency FROM tenants WHERE id = $1
+        `, params.id);
 
-        // Check if user is super admin
-        if (!session || (session.user as any)?.role !== 'SUPER_ADMIN') {
-            return NextResponse.json(
-                { error: 'Unauthorized - Super Admin access required' },
-                { status: 403 }
-            );
+        if (company.length === 0) {
+            return NextResponse.json({ message: 'Company not found' }, { status: 404 });
         }
 
-        const params = 'then' in context.params ? await context.params : context.params;
-        const { id: companyId } = params;
-        const { currency } = await request.json();
+        return NextResponse.json({
+            currency: company[0].currency || 'USD',
+            availableCurrencies: AVAILABLE_CURRENCIES.map(c => ({
+                code: c.code,
+                name: c.name,
+                symbol: c.symbol
+            }))
+        });
+    } catch (error: any) {
+        console.error('Error fetching company currency:', error);
+        return NextResponse.json({ message: 'Failed to fetch currency' }, { status: 500 });
+    }
+}
 
-        // Validate currency code - Expanded list to match frontend
-        const validCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CNY', 'AED'];
+export async function PATCH(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> | { id: string } }
+) {
+    const params = 'then' in context.params ? await context.params : context.params;
+    const session = await getServerSession(authOptions as any);
 
-        // Allow updating if it's in the list
-        if (!validCurrencies.includes(currency)) {
-            return NextResponse.json(
-                { error: `Invalid currency code. Supported: ${validCurrencies.join(', ')}` },
-                { status: 400 }
-            );
+    if (!session) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        const body = await req.json();
+        const { currency } = body;
+
+        // Validate currency
+        const validCurrency = AVAILABLE_CURRENCIES.find(c => c.code === currency);
+        if (!validCurrency) {
+            return NextResponse.json({
+                message: 'Invalid currency code',
+                validCurrencies: AVAILABLE_CURRENCIES.map(c => c.code)
+            }, { status: 400 });
         }
 
-        // Check if company exists first
-        const existingTenant = await prisma.$queryRaw<any[]>`
-            SELECT id, name, currency
-            FROM tenants
-            WHERE id = ${companyId}
-            LIMIT 1
-        `;
-
-        if (!existingTenant || existingTenant.length === 0) {
-            return NextResponse.json(
-                { error: 'Company not found' },
-                { status: 404 }
-            );
-        }
-
-        console.log('📝 Updating currency for tenant:', companyId, 'to:', currency);
-
-        // Update tenant currency using raw SQL
-        await prisma.$executeRaw`
+        // Update company currency
+        await prisma.$executeRawUnsafe(`
             UPDATE tenants 
-            SET currency = ${currency}, updated_at = NOW()
-            WHERE id = ${companyId}
-        `;
+            SET currency = $1, updated_at = NOW()
+            WHERE id = $2
+        `, currency, params.id);
 
-        // Fetch updated tenant to confirm
-        const updatedTenant = await prisma.$queryRaw<any[]>`
-            SELECT id, name, currency
-            FROM tenants
-            WHERE id = ${companyId}
-            LIMIT 1
-        `;
-
-        console.log('✅ Currency updated successfully:', updatedTenant[0]);
+        console.log(`Updated company ${params.id} currency to ${currency}`);
 
         return NextResponse.json({
             success: true,
-            tenant: {
-                id: updatedTenant[0].id,
-                name: updatedTenant[0].name,
-                currency: updatedTenant[0].currency,
-            },
+            currency,
+            message: `Currency updated to ${currency}`
         });
     } catch (error: any) {
         console.error('Error updating company currency:', error);
-        console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-        });
-        return NextResponse.json(
-            { 
-                error: 'Failed to update company currency',
-                details: error.message,
-                code: error.code
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            message: 'Failed to update currency',
+            details: error.message
+        }, { status: 500 });
     }
 }
