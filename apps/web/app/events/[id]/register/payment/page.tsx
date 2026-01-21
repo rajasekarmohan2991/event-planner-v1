@@ -21,6 +21,36 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
     cardholderName: 'John Doe'
   })
 
+  // Calculate total amount with fees and tax
+  const calculateTotal = () => {
+    if (!registrationData?.dataJson) return 0
+
+    // Get base price (handle both ticketPrice and finalAmount as potential base)
+    // finalAmount usually comes from registration, ticketPrice from event
+    const ticketPrice = registrationData.dataJson.ticketPrice || registrationData.dataJson.finalAmount || 0
+
+    // Calculate promo discount if applicable
+    const promoDiscount = registrationData.dataJson.promoCode
+      ? (ticketPrice - (registrationData.dataJson.finalAmount || ticketPrice))
+      : 0
+
+    // Subtotal after discount
+    const subtotal = ticketPrice - promoDiscount
+
+    // Calculate convenience fee (2.5% of subtotal)
+    const convenienceFee = Math.round(subtotal * 0.025)
+
+    // Calculate GST (18% of subtotal + convenience fee)
+    // Tax is on the service provided, so typically on the fee + ticket value
+    const taxableAmount = subtotal + convenienceFee
+    const gst = Math.round(taxableAmount * 0.18)
+
+    // Final total
+    return subtotal + convenienceFee + gst
+  }
+
+  const totalAmount = calculateTotal()
+
   useEffect(() => {
     // Load registration data
     const data = localStorage.getItem('pendingRegistration')
@@ -38,7 +68,8 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   const handlePayment = async () => {
     setProcessing(true)
 
-    const amount = registrationData?.dataJson?.finalAmount || 0
+    // Use calculated total amount
+    const amount = totalAmount
 
     // For free events (₹0), skip payment simulation
     if (amount === 0) {
@@ -166,7 +197,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount Paid:</span>
-                    <span className="font-medium">₹{((registrationData.dataJson?.finalAmount || 0) / 100).toFixed(2)}</span>
+                    <span className="font-medium">₹{(totalAmount / 100).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -445,7 +476,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
                     </div>
 
                     <div className="text-xs text-gray-600 space-y-1">
-                      <p><strong>Amount:</strong> ₹{((registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}</p>
+                      <p><strong>Amount:</strong> ₹{(totalAmount / 100).toFixed(2)}</p>
                       <p><strong>Merchant:</strong> Event Planner Demo</p>
                       <p><strong>Reference:</strong> REG-{registrationId}</p>
                     </div>
@@ -467,14 +498,14 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
             {processing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                {(registrationData?.dataJson?.finalAmount || 0) === 0 ? 'Confirming Registration...' : 'Processing Payment...'}
+                {totalAmount === 0 ? 'Confirming Registration...' : 'Processing Payment...'}
               </>
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                {(registrationData?.dataJson?.finalAmount || 0) === 0
+                {totalAmount === 0
                   ? 'Confirm Free Registration'
-                  : `Pay ₹${((registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}`
+                  : `Pay ₹${(totalAmount / 100).toFixed(2)}`
                 }
               </>
             )}

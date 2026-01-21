@@ -655,8 +655,14 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
       })
       if (seatCheckRes.ok) {
         const seatData = await seatCheckRes.json()
-        currentHasSeats = seatData.totalSeats > 0
-        console.log('[REGISTRATION] Fresh seat check result:', { totalSeats: seatData.totalSeats, hasSeats: currentHasSeats })
+        // If seats found OR if a floor plan exists (even if seats generation pending/failed)
+        // we should route to seat selection to avoid charging 'General' price for a seated event
+        currentHasSeats = seatData.totalSeats > 0 || (!!seatData.floorPlan)
+        console.log('[REGISTRATION] Fresh seat check result:', {
+          totalSeats: seatData.totalSeats,
+          hasFloorPlan: !!seatData.floorPlan,
+          routingToSeats: currentHasSeats
+        })
       }
     } catch (error) {
       console.log('[REGISTRATION] Seat check failed at submission, using cached value:', currentHasSeats)

@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
+import nodemailer from 'nodemailer';
 
-export type EmailTemplate = 
+export type EmailTemplate =
     | 'INVOICE_CREATED'
     | 'INVOICE_SENT'
     | 'INVOICE_REMINDER'
@@ -17,29 +18,40 @@ export type EmailTemplate =
 
 export interface EmailData {
     to: string;
-    subject: string;
-    template: EmailTemplate;
-    data: Record<string, any>;
+    subject?: string;
+    template?: EmailTemplate;
+    data?: Record<string, any>;
+    html?: string;
+    text?: string;
     tenantId?: string;
     eventId?: string | bigint;
 }
 
 /**
- * Send email notification (placeholder - integrate with SendGrid/Resend/etc.)
+ * Send email notification (integrate with SendGrid/Resend/etc.)
  */
 export async function sendEmail(emailData: EmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-        console.log(`📧 Sending email: ${emailData.template} to ${emailData.to}`);
-        
-        // Generate email content based on template
-        const { subject, html } = generateEmailContent(emailData.template, emailData.data);
-        
-        // TODO: Integrate with actual email service
-        // For now, log the email and return success
-        
+        console.log(`📧 Sending email to ${emailData.to}`);
+
+        let subject = emailData.subject;
+        let html = emailData.html;
+
+        // If template validation provided, generate content
+        if (emailData.template && emailData.data) {
+            const generated = generateEmailContent(emailData.template, emailData.data);
+            if (!subject) subject = generated.subject;
+            if (!html) html = generated.html;
+        }
+
+        if (!subject || !html) {
+            console.warn('Missing subject or html for email');
+            return { success: false, error: 'Missing content' };
+        }
+
         // Check if email service is configured
-        const emailProvider = process.env.EMAIL_PROVIDER; // SENDGRID, RESEND, SMTP
-        
+        const emailProvider = process.env.EMAIL_PROVIDER || (process.env.SMTP_HOST ? 'SMTP' : null); // SENDGRID, RESEND, SMTP
+
         if (emailProvider === 'SENDGRID' && process.env.SENDGRID_API_KEY) {
             // SendGrid integration
             const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
@@ -50,7 +62,7 @@ export async function sendEmail(emailData: EmailData): Promise<{ success: boolea
                 },
                 body: JSON.stringify({
                     personalizations: [{ to: [{ email: emailData.to }] }],
-                    from: { 
+                    from: {
                         email: process.env.EMAIL_FROM || 'noreply@eventplanner.com',
                         name: process.env.EMAIL_FROM_NAME || 'Event Planner'
                     },
@@ -88,6 +100,30 @@ export async function sendEmail(emailData: EmailData): Promise<{ success: boolea
             } else {
                 return { success: false, error: result.message };
             }
+        } else if (emailProvider === 'SMTP') {
+            // SMTP Notifier
+            if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+                return { success: false, error: 'SMTP Configuration missing' };
+            }
+
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: Number(process.env.SMTP_PORT || 587),
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+
+            const info = await transporter.sendMail({
+                from: `"${process.env.EMAIL_FROM_NAME || 'Event Planner'}" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+                to: emailData.to,
+                subject: emailData.subject || subject,
+                html: html,
+            });
+
+            return { success: true, messageId: info.messageId };
         } else {
             // No email provider configured - log only
             console.log('Email content:', { to: emailData.to, subject, html: html.substring(0, 200) + '...' });

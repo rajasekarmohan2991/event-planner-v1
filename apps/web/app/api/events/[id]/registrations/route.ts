@@ -488,45 +488,61 @@ export async function POST(
       console.error('QR Gen failed', e)
     }
 
-    // Send notifications asynchronously (don't block response)
-    Promise.all([
-      (async () => {
-        if (formData.email && qrCodeDataURL) {
-          await sendEmail({
-            to: formData.email,
-            subject: `Registration Confirmed - ${event.name}`,
-            text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
-            html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
-          }).catch(console.error)
-        }
-      })()
-    ]).catch(console.error)
+    // Send notifications (awaited to ensure reliable delivery in serverless environment)
+    const notificationPromises = []
 
-    // Send SMS notification
+    // 1. Email Notification
+    if (formData.email && qrCodeDataURL) {
+      notificationPromises.push(
+        sendEmail({
+          to: formData.email,
+          subject: `Registration Confirmed - ${event.name}`,
+          text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
+          html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
+        }).catch(e => console.error('Email failed:', e))
+      )
+    }
+
+    // 2. SMS Notification
     if (formData.phone) {
       const smsMessage = `Registration confirmed for ${event.name}! Check-in Code: ${qrData.checkInCode}. Show this at the venue.`
-      fetch('/api/notify/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: formData.phone,
-          message: smsMessage
-        })
-      }).catch(err => console.error('SMS send failed:', err))
+      const protocol = req.headers.get('x-forwarded-proto') || 'http'
+      const host = req.headers.get('host')
+      const baseUrl = `${protocol}://${host}`
+
+      notificationPromises.push(
+        fetch(`${baseUrl}/api/notify/sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: formData.phone,
+            message: smsMessage
+          })
+        }).catch(e => console.error('SMS failed:', e))
+      )
     }
 
-    // Send WhatsApp notification
+    // 3. WhatsApp Notification
     if (formData.phone) {
       const whatsappMessage = `🎉 Registration Confirmed!\n\nEvent: ${event.name}\nCheck-in Code: ${qrData.checkInCode}\n\nShow this message at the venue for quick check-in.`
-      fetch('/api/test-whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: formData.phone,
-          message: whatsappMessage
-        })
-      }).catch(err => console.error('WhatsApp send failed:', err))
+      const protocol = req.headers.get('x-forwarded-proto') || 'http'
+      const host = req.headers.get('host')
+      const baseUrl = `${protocol}://${host}`
+
+      notificationPromises.push(
+        fetch(`${baseUrl}/api/test-whatsapp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: formData.phone,
+            message: whatsappMessage
+          })
+        }).catch(e => console.error('WhatsApp failed:', e))
+      )
     }
+
+    // Wait for all notifications
+    await Promise.all(notificationPromises)
 
     return NextResponse.json({
       id: newRegId,
