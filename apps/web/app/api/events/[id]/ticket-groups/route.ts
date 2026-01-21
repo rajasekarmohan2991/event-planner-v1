@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma, { safeJson } from '@/lib/prisma'
 
+import { ensureSchema } from '@/lib/ensure-schema'
+
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -19,6 +21,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json(safeJson(groups))
     } catch (e: any) {
         console.error('Error fetching ticket groups:', e)
+
+        // Retry if table missing
+        if (e.message?.includes('does not exist') || e.code === 'P20210' || e.code === 'P2010') {
+            try {
+                console.log('Sanitizing schema for ticket groups...')
+                await ensureSchema()
+                const groups = await prisma.ticketGroup.findMany({
+                    where: { eventId: String(eventId) },
+                    orderBy: { createdAt: 'asc' }
+                })
+                return NextResponse.json(safeJson(groups))
+            } catch (retryErr) {
+                console.error('Retry failed:', retryErr)
+            }
+        }
+
         return NextResponse.json({ message: 'Failed to load ticket groups', error: e?.message }, { status: 500 })
     }
 }
