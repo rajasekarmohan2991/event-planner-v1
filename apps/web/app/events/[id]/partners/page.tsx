@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Zap, Users, Building2, Handshake, CheckCircle2 } from 'lucide-react'
+import { Zap, Users, Building2, Trophy, CheckCircle2 } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 
 type DonorType = 'VENDOR' | 'SPONSOR' | 'EXHIBITOR'
@@ -90,13 +90,19 @@ export default function QuickPartnerFormPage() {
                     endpoint = `/api/events/${eventId}/sponsors`
                     body = {
                         name: formData.companyName || formData.individualName,
-                        tier: formData.tier,
+                        tier: formData.tier || 'BRONZE',
                         amount: formData.amount ? Number(formData.amount) : 0,
-                        website: formData.website || undefined,
+                        website: formData.website || '',
                         contactData: {
-                            name: formData.individualName,
+                            contactName: formData.individualName || formData.companyName,
                             email: formData.emailId,
-                            phone: formData.phoneNumber
+                            phone: formData.phoneNumber || '',
+                            designation: ''
+                        },
+                        paymentData: {
+                            paymentMode: 'BANK_TRANSFER',
+                            paymentStatus: 'PENDING',
+                            amount: formData.amount ? Number(formData.amount) : 0
                         },
                         notes: formData.requirementsDescription
                     }
@@ -170,7 +176,7 @@ export default function QuickPartnerFormPage() {
 
     const getDonorTypeIcon = (type: DonorType | '') => {
         switch (type) {
-            case 'SPONSOR': return <Handshake className="w-5 h-5" />
+            case 'SPONSOR': return <Trophy className="w-5 h-5" />
             case 'VENDOR': return <Building2 className="w-5 h-5" />
             case 'EXHIBITOR': return <Users className="w-5 h-5" />
             default: return <Zap className="w-5 h-5" />
@@ -207,8 +213,8 @@ export default function QuickPartnerFormPage() {
                 <div className="flex items-center gap-6">
                     <button
                         className={`relative pb-2 text-sm font-medium transition-colors ${activeTab === 'quick'
-                                ? 'text-indigo-600'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-indigo-600'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                         onClick={() => setActiveTab('quick')}
                     >
@@ -221,20 +227,20 @@ export default function QuickPartnerFormPage() {
                     </button>
                     <button
                         className={`relative pb-2 text-sm font-medium transition-colors ${activeTab === 'sponsors'
-                                ? 'text-purple-600'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-purple-600'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                         onClick={() => router.push(`/events/${eventId}/sponsors`)}
                     >
                         <span className="flex items-center gap-2">
-                            <Handshake className="w-4 h-4" />
+                            <Trophy className="w-4 h-4" />
                             Sponsors
                         </span>
                     </button>
                     <button
                         className={`relative pb-2 text-sm font-medium transition-colors ${activeTab === 'vendors'
-                                ? 'text-blue-600'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-blue-600'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                         onClick={() => router.push(`/events/${eventId}/vendors`)}
                     >
@@ -245,8 +251,8 @@ export default function QuickPartnerFormPage() {
                     </button>
                     <button
                         className={`relative pb-2 text-sm font-medium transition-colors ${activeTab === 'exhibitors'
-                                ? 'text-green-600'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'text-green-600'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                         onClick={() => router.push(`/events/${eventId}/exhibitors`)}
                     >
@@ -284,8 +290,8 @@ export default function QuickPartnerFormPage() {
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, donorType: type })}
                                                 className={`p-4 rounded-lg border-2 transition-all text-center ${formData.donorType === type
-                                                        ? getDonorTypeColor(type) + ' ring-2 ring-offset-2 ring-indigo-500'
-                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                    ? getDonorTypeColor(type) + ' ring-2 ring-offset-2 ring-indigo-500'
+                                                    : 'border-gray-200 hover:border-gray-300 bg-white'
                                                     }`}
                                             >
                                                 <div className="flex flex-col items-center gap-2">
@@ -503,7 +509,7 @@ export default function QuickPartnerFormPage() {
                                 className="w-full justify-start gap-2"
                                 onClick={() => router.push(`/events/${eventId}/sponsors`)}
                             >
-                                <Handshake className="w-4 h-4 text-purple-600" />
+                                <Trophy className="w-4 h-4 text-purple-600" />
                                 View All Sponsors
                             </Button>
                             <Button
