@@ -2,37 +2,63 @@
 import prisma from '@/lib/prisma'
 
 export async function generateSeats(eventId: number, plan: any, tenantId: string | null) {
-    console.log('[SeatGenerator] Starting generation for event', eventId)
+    console.log('[SeatGenerator] Starting optimized generation for event', eventId)
 
-    // Delete existing seats
-    await prisma.$executeRaw`
-    DELETE FROM seat_inventory WHERE event_id = ${eventId}::bigint
-  `
+    // Delete existing seats using Prisma Client
+    await prisma.seatInventory.deleteMany({
+        where: { eventId: BigInt(eventId) }
+    })
 
     let totalSeatsGenerated = 0
     const seats: any[] = []
 
-    // Helper for insertion
+    // Batch buffer
+    let seatBatch: any[] = []
+    const BATCH_SIZE = 2000
+
+    // Flush function
+    const flushBatch = async () => {
+        if (seatBatch.length === 0) return
+        console.log(`[SeatGenerator] Flushing batch of ${seatBatch.length} seats...`)
+        await prisma.seatInventory.createMany({
+            data: seatBatch
+        })
+        seatBatch = []
+    }
+
+    // Helper for insertion (pushes to batch)
     const insertSeat = async (sectionName: string, rowLabel: string, seatNum: number, seatType: string, basePrice: number, xCoord: number, yCoord: number) => {
         // Avoid excessively long or weird values
         const safeSection = sectionName.substring(0, 50)
         const safeRow = String(rowLabel).substring(0, 10)
         const safeType = String(seatType).substring(0, 50)
 
-        await prisma.$executeRaw`
-      INSERT INTO seat_inventory (
-        event_id, section, row_number, seat_number, seat_type, 
-        base_price, x_coordinate, y_coordinate, is_available, tenant_id, created_at, updated_at
-      ) VALUES (
-        ${eventId}::bigint, ${safeSection}, ${safeRow}, ${String(seatNum)}, ${safeType},
-        ${basePrice}, ${xCoord}, ${yCoord}, true, ${tenantId}, NOW(), NOW()
-      )
-    `
-        totalSeatsGenerated++
+        // Add to batch
+        seatBatch.push({
+            eventId: BigInt(eventId),
+            section: safeSection,
+            rowNumber: safeRow,
+            seatNumber: String(seatNum),
+            seatType: safeType,
+            basePrice,
+            xCoordinate: xCoord,
+            yCoordinate: yCoord,
+            isAvailable: true,
+            tenantId: tenantId,
+            status: 'AVAILABLE' // explicit default
+        })
+
+        // Add to return array (for API response if needed)
         seats.push({ section: safeSection, row: safeRow, seat: seatNum, price: basePrice })
+        totalSeatsGenerated++
+
+        // Flush if full
+        if (seatBatch.length >= BATCH_SIZE) {
+            await flushBatch()
+        }
     }
 
-    // Logic from generate/route.ts
+    // Logic from generate/route.ts (Preserved)
     const hasV3Type = typeof plan.type === 'string' && plan.type.endsWith('_V3')
 
     if (hasV3Type) {
@@ -133,6 +159,9 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
         }
     }
 
-    console.log('[SeatGenerator] Generated', totalSeatsGenerated, 'seats')
+    // Final flush
+    await flushBatch()
+
+    console.log('[SeatGenerator] Generated', totalSeatsGenerated, 'seats (Optimized)')
     return { count: totalSeatsGenerated, seats }
 }
