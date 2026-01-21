@@ -2,46 +2,30 @@
 
 ## ✅ LATEST FIXES (Deployed)
 
-### 1. Tax Visibility for Companies (Fixed)
+### 1. Header Color (Fixed)
+- **Problem**: Header was translucent, causing background colors to bleed through and logo white box to show.
+- **Fix**: Updated `AppShell.tsx` to force **Solid White** background.
+- **Result**: Header is now clean white. Logo sits perfectly on it.
+
+### 2. Tax Visibility for Companies (Fixed)
 - **Problem**: Companies were not seeing taxes created by Super Admin.
 - **Fix**: Updated `/api/company/tax-structures` to use Raw SQL.
-- **Result**: It now correctly fetches taxes from the database, handling the new schema fields and ensuring archived taxes are hidden. Companies will see exactly what Super Admin sees for them.
+- **Result**: Companies now correctly see the taxes managed by Super Admin.
 
-### 2. Company Deletion Error (Fixed)
+### 3. Company Deletion Error (Fixed)
 - **Problem**: 500 Internal Server Error when deleting a company.
-- **Reason**: Database constraints from dependent tables (`module_access`, `tax_structure_history`).
-- **Fix**: Updated deletion logic to manually clear all related data from `module_access`, `tax_structure_history`, `invoices`, etc., before deleting the company.
-- **Result**: Deletion now works smoothly.
-
-### 3. Add/Edit Button Removal (Confirmed)
-- **Status**: The Company Tax View (`/admin/settings/tax`) is strictly **Read-Only**.
-- **Result**: There is **NO** "Add Tax" button for company admins. They can only view taxes.
+- **Fix**: Updated deletion logic to properly cascade delete all related records.
+- **Result**: Deletion works. <span style="color:orange">Note: If you get a 404 on delete, it means the company is already deleted.</span>
 
 ### 4. Build & Type Fixes (Fixed)
-- Corrected imports (`next-auth`) and TypeScript definitions to ensure successful deployment.
+- Corrected imports and TypeScript definitions.
 
 ---
 
-## ⚠️ REMINDER: Database Migration
+## 🧪 TESTING
 
-If you haven't already, please run the SQL migration script in Supabase to ensure the new columns (`effective_from`, `country_code`, etc.) exist.
+1. **Header**: Refresh page. Verify header is solid white.
+2. **Company Tax**: Log in as Company Admin -> Settings -> Tax. Verify taxes are visible (and read-only).
+3. **Delete**: Delete a company. If it disappears, it worked.
 
-```sql
-ALTER TABLE tax_structures 
-ADD COLUMN IF NOT EXISTS effective_from TIMESTAMP,
-ADD COLUMN IF NOT EXISTS effective_to TIMESTAMP,
-ADD COLUMN IF NOT EXISTS country_code VARCHAR(2),
-ADD COLUMN IF NOT EXISTS currency_code VARCHAR(3) DEFAULT 'USD',
-ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP;
-```
-
----
-
-## 🧪 HOW TO TEST
-
-1. **Check Taxes**: Log in as a Company Admin -> Go to Settings -> Tax Settings. You should see the taxes created by Super Admin.
-2. **Delete Company**: Log in as Super Admin -> Delete a test company. It should succeed without 500 error.
-3. **Verify Read-only**: As Company Admin, verify you cannot add or edit taxes.
-
-**System is now fully operational.**
+**System is fully deployed and operational.**
