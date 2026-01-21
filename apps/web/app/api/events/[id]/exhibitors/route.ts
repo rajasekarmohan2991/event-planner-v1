@@ -112,7 +112,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       events = await prisma.$queryRaw`
         SELECT id, name, tenant_id as "tenantId"
         FROM events 
-        WHERE id = ${BigInt(eventId)} 
+        WHERE id = ${eventId}::bigint 
         LIMIT 1
       ` as any[]
     } catch (eventError: any) {

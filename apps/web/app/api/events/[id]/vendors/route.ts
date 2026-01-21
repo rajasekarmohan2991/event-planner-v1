@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Use parameterized query for safety
     let vendorsRaw: any[] = []
-    
+
     if (category && paymentStatus) {
       vendorsRaw = await prisma.$queryRawUnsafe(`
         SELECT 
@@ -86,12 +86,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   } catch (error: any) {
     console.error('❌ Error fetching vendors:', error)
     console.error('❌ Error message:', error.message)
-    
+
     // Attempt self-repair for any error
     try {
       console.log('🔧 Running schema self-healing for vendors...')
       await ensureSchema()
-      
+
       // Retry the query after repair
       const eventId = params.id
       const vendorsRaw = await prisma.$queryRawUnsafe(`
@@ -106,15 +106,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         WHERE event_id = $1
         ORDER BY created_at DESC
       `, eventId) as any[]
-      
+
       return NextResponse.json({
         vendors: vendorsRaw,
         total: vendorsRaw.length
       })
     } catch (retryError: any) {
       console.error('❌ Retry also failed:', retryError.message)
-      return NextResponse.json({ 
-        message: 'Failed to fetch vendors', 
+      return NextResponse.json({
+        message: 'Failed to fetch vendors',
         error: retryError.message || 'Unknown error'
       }, { status: 500 })
     }
@@ -138,9 +138,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       SELECT 
         tenant_id as "tenantId",
         name as "eventName",
-        start_date as "startDate"
+        starts_at as "startDate"
       FROM events 
-      WHERE id = ${BigInt(eventId)} 
+      WHERE id = ${eventId}::bigint 
       LIMIT 1
     ` as any[]
     if (!events.length) {
