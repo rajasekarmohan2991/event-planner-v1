@@ -425,8 +425,8 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Only show the regular registration form if NO seats are available */}
-        {!checkingSeats && !hasSeats && (
+        {/* Show the regular registration form when not checking seats */}
+        {!checkingSeats && (
           <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
             <h1 className="text-2xl font-bold mb-2">Event Registration</h1>
             <p className="text-sm text-slate-600 mb-6">Event ID: {params.id}</p>
