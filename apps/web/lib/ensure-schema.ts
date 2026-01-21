@@ -1268,6 +1268,93 @@ export async function ensureSchema() {
       END $$;
     `)
 
+        console.log('📝 Step 39: Creating sponsors table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS sponsors (
+        id BIGSERIAL PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        name TEXT,
+        tier TEXT DEFAULT 'BRONZE',
+        logo_url TEXT,
+        website TEXT,
+        contact_data JSONB DEFAULT '{}',
+        payment_data JSONB DEFAULT '{}',
+        branding_online JSONB DEFAULT '{}',
+        branding_offline JSONB DEFAULT '{}',
+        event_presence JSONB DEFAULT '{}',
+        giveaway_data JSONB DEFAULT '{}',
+        legal_data JSONB DEFAULT '{}',
+        timeline_data JSONB DEFAULT '{}',
+        post_event_data JSONB DEFAULT '{}',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_sponsors_event_id ON sponsors(event_id);`)
+
+        console.log('📝 Step 40: Creating event_vendors table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS event_vendors (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        tenant_id TEXT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        budget DOUBLE PRECISION DEFAULT 0,
+        contact_name TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        contract_amount DOUBLE PRECISION DEFAULT 0,
+        paid_amount DOUBLE PRECISION DEFAULT 0,
+        payment_status TEXT DEFAULT 'PENDING',
+        payment_due_date TIMESTAMP WITH TIME ZONE,
+        status TEXT DEFAULT 'ACTIVE',
+        notes TEXT,
+        contract_url TEXT,
+        invoice_url TEXT,
+        bank_name TEXT,
+        account_number TEXT,
+        ifsc_code TEXT,
+        account_holder_name TEXT,
+        upi_id TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_vendors_event_id ON event_vendors(event_id);`)
+
+        console.log('📝 Step 41: Creating exhibitors table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS exhibitors (
+        id TEXT PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        tenant_id TEXT,
+        name TEXT,
+        company TEXT,
+        contact_name TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        website TEXT,
+        notes TEXT,
+        first_name TEXT,
+        last_name TEXT,
+        job_title TEXT,
+        business_address TEXT,
+        company_description TEXT,
+        products_services TEXT,
+        booth_type TEXT,
+        booth_option TEXT,
+        booth_area TEXT,
+        electrical_access BOOLEAN DEFAULT FALSE,
+        display_tables BOOLEAN DEFAULT FALSE,
+        status TEXT DEFAULT 'PENDING_CONFIRMATION',
+        email_confirmed BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_exhibitors_event_id ON exhibitors(event_id);`)
+
         console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
         return true
     } catch (error: any) {
