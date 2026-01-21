@@ -97,7 +97,8 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Photo URL</label>
-            <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://..." />
+            <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://example.com/photo.jpg" />
+            <p className="text-xs text-slate-400 mt-1">Use a direct image URL (ending in .jpg, .png, .webp). Social media profile URLs won't work.</p>
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs text-slate-500 mb-1">Or upload photo</label>
@@ -126,10 +127,19 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
             {uploading ? <div className="mt-1 text-xs text-slate-500">Uploading...</div> : null}
             {uploadError ? <div className="mt-1 text-xs text-rose-600">{uploadError}</div> : null}
             {photoUrl ? (
-              <div className="mt-2 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl} alt="Preview" className="h-12 w-12 rounded-full object-cover border" />
-                <span className="text-xs text-slate-500">Preview</span>
+              <div className="mt-2">
+                {/* Check if URL looks like a valid image */}
+                {/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(photoUrl) || photoUrl.startsWith('data:image') || photoUrl.includes('/uploads/') || photoUrl.includes('blob.') ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoUrl} alt="Preview" className="h-12 w-12 rounded-full object-cover border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    <span className="text-xs text-slate-500">Preview</span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
+                    ⚠️ This URL doesn't look like a direct image link. Please use a URL ending in .jpg, .png, etc. or upload an image instead.
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -213,10 +223,10 @@ function SpeakerRow({ item, eventId, onChanged, setBanner, sessions }: { item: S
     if (!name.trim()) { setErr('Name is required'); return }
     try {
       setBusy(true); setErr(undefined)
-      const payload = { 
-        name: name.trim(), 
-        title: title || undefined, 
-        bio: bio || undefined, 
+      const payload = {
+        name: name.trim(),
+        title: title || undefined,
+        bio: bio || undefined,
         photoUrl: photoUrl || undefined,
         sessionId: selectedSessionId || undefined
       }
@@ -229,23 +239,23 @@ function SpeakerRow({ item, eventId, onChanged, setBanner, sessions }: { item: S
   }
   const del = async () => {
     if (!confirm('Are you sure you want to delete this speaker? This will also remove them from all sessions.')) return
-    try { 
+    try {
       setBusy(true)
       setErr(undefined)
       const res = await fetch(`/api/events/${eventId}/speakers/${item.id}`, { method: 'DELETE', credentials: 'include' })
-      if (!res.ok) { 
+      if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         console.error('Delete speaker failed:', errorData)
-        throw new Error(errorData.message || errorData.error || 'Delete failed') 
+        throw new Error(errorData.message || errorData.error || 'Delete failed')
       }
       setBanner('Speaker deleted successfully')
       await onChanged()
-    } catch (e: any) { 
+    } catch (e: any) {
       console.error('Speaker deletion error:', e)
       setErr(e?.message || 'Delete failed')
       setBanner(`Error: ${e?.message || 'Delete failed'}`)
-    } finally { 
-      setBusy(false) 
+    } finally {
+      setBusy(false)
     }
   }
 
