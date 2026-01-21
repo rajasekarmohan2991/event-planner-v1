@@ -226,27 +226,53 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-4">Payment Summary</h2>
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Event Registration ({registrationData?.type || 'General'})</span>
-                <span className="font-semibold">₹{((registrationData?.dataJson?.ticketPrice || registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}</span>
-              </div>
-              {registrationData?.dataJson?.promoCode && (
-                <div className="flex justify-between text-green-600">
-                  <span className="flex items-center gap-2">
-                    <span className="text-xs bg-green-100 px-2 py-1 rounded font-mono">{registrationData.dataJson.promoCode}</span>
-                    Promo Discount
-                  </span>
-                  <span className="font-semibold">-₹{(((registrationData?.dataJson?.ticketPrice || 0) - (registrationData?.dataJson?.finalAmount || 0)) / 100).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-gray-600">Processing Fee</span>
-                <span className="font-semibold">₹0.00</span>
-              </div>
-              <div className="border-t pt-3 flex justify-between text-lg">
-                <span className="font-bold">Total</span>
-                <span className="font-bold text-indigo-600">₹{((registrationData?.dataJson?.finalAmount || 0) / 100).toFixed(2)}</span>
-              </div>
+              {(() => {
+                const ticketPrice = registrationData?.dataJson?.ticketPrice || registrationData?.dataJson?.finalAmount || 0
+                const promoDiscount = registrationData?.dataJson?.promoCode
+                  ? (ticketPrice - (registrationData?.dataJson?.finalAmount || ticketPrice))
+                  : 0
+                const subtotal = ticketPrice - promoDiscount
+
+                // Calculate convenience fee (2.5% of subtotal)
+                const convenienceFee = Math.round(subtotal * 0.025)
+
+                // Calculate GST (18% of subtotal + convenience fee)
+                const taxableAmount = subtotal + convenienceFee
+                const gst = Math.round(taxableAmount * 0.18)
+
+                // Final total
+                const total = subtotal + convenienceFee + gst
+
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Event Registration ({registrationData?.type || 'General'})</span>
+                      <span className="font-semibold">₹{(ticketPrice / 100).toFixed(2)}</span>
+                    </div>
+                    {registrationData?.dataJson?.promoCode && (
+                      <div className="flex justify-between text-green-600">
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs bg-green-100 px-2 py-1 rounded font-mono">{registrationData.dataJson.promoCode}</span>
+                          Promo Discount
+                        </span>
+                        <span className="font-semibold">-₹{(promoDiscount / 100).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Convenience Fee (2.5%)</span>
+                      <span className="font-semibold">₹{(convenienceFee / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">GST (18%)</span>
+                      <span className="font-semibold">₹{(gst / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="border-t pt-3 flex justify-between text-lg">
+                      <span className="font-bold">Total</span>
+                      <span className="font-bold text-indigo-600">₹{(total / 100).toFixed(2)}</span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
 
