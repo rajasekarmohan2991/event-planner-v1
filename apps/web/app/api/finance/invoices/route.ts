@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
         const body = await req.json();
         const {
+            tenantId: requestTenantId,
             eventId,
             recipientType,
             recipientName,
@@ -144,11 +145,14 @@ export async function POST(req: NextRequest) {
             notes
         } = body;
 
-        const tenantId = user.currentTenantId;
+        // Use tenantId from request body (for super admin) or from user session
+        const tenantId = requestTenantId || user.currentTenantId;
 
         if (!tenantId) {
             return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
         }
+
+        console.log('📝 [INVOICE] Creating invoice for tenant:', tenantId);
 
         // Validation
         if (!recipientName || !recipientEmail || !lineItems || lineItems.length === 0) {

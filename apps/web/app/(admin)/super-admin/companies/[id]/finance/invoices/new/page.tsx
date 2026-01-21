@@ -115,6 +115,7 @@ export default function CreateInvoicePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...formData,
+                    tenantId: companyId,
                     lineItems
                 })
             });
