@@ -207,294 +207,299 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
         </div>
       </div>
 
-      {/* Add Session form */}
-      <div className="rounded-md border p-4 space-y-3 bg-white">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Add Session</h2>
-          {autoFetching && <span className="text-xs text-blue-600">⏳ Loading session details...</span>}
-        </div>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
-        {notice && <div className="text-sm text-green-600">{notice}</div>}
-
-        {/* Event Time Range Info */}
-        {event && (event.startsAt || event.startDate) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <div className="text-xs font-semibold text-blue-900 mb-1">
-              📅 {event.daysConfig && event.daysConfig.length > 1 ? 'Multi-Day Event Schedule' : 'Event Time Range'}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column: List/Calendar */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* View Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">All Sessions</h3>
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                <Calendar className="h-4 w-4" />
+                Calendar
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'list'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                <List className="h-4 w-4" />
+                List
+              </button>
             </div>
-            {event.daysConfig && event.daysConfig.length > 1 ? (
-              <div className="space-y-2">
-                {event.daysConfig.map((day: any, idx: number) => (
-                  <div key={idx} className="text-xs bg-white rounded p-2 border border-blue-100">
-                    <div className="font-semibold text-blue-900">{day.title}</div>
-                    <div className="text-blue-700">
-                      {new Date(day.date).toLocaleDateString()} • {day.startTime} - {day.endTime}
-                    </div>
-                  </div>
+          </div>
+
+          {/* Calendar or List View */}
+          {loading ? (
+            <div className="p-12 text-center text-slate-500">Loading sessions...</div>
+          ) : items.length === 0 ? (
+            <div className="p-12 text-center text-slate-500 bg-gray-50 rounded-lg border-2 border-dashed">
+              No sessions yet. Create your first session using the form on the right!
+            </div>
+          ) : viewMode === 'calendar' ? (
+            <SessionCalendarView
+              sessions={items}
+              eventId={params.id}
+              onSessionClick={(sessionId) => {
+                handleSessionSelect(String(sessionId))
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            />
+          ) : (
+            <div className="rounded-md border bg-white">
+              <div className="p-3 text-sm font-medium border-b">All Sessions</div>
+              <ul className="divide-y">
+                {items.map(s => (
+                  <SessionRow key={s.id} item={s} eventId={params.id} onChanged={load} speakers={speakers} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
                 ))}
-                <div className="text-xs text-blue-600 mt-2">
-                  ℹ️ Sessions must be created within the specific day's time range
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="text-xs text-blue-700">
-                  {new Date(event.startsAt || event.startDate).toLocaleString()}
-                  {' → '}
-                  {new Date(event.endsAt || event.endDate).toLocaleString()}
-                </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  ℹ️ Sessions must be created within this time range
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        {/* Session Selector for Auto-Fetch */}
-        {items.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <label className="block text-xs font-semibold text-blue-900 mb-2">
-              🔄 Quick Edit: Select Existing Session to Auto-Fill
-            </label>
-            <select
-              value={selectedSessionId}
-              onChange={(e) => handleSessionSelect(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              disabled={autoFetching}
-            >
-              <option value="">-- Create New Session --</option>
-              {items.map(session => (
-                <option key={session.id} value={session.id}>
-                  {session.title} ({new Date(session.startTime).toLocaleString()})
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-blue-700 mt-1">
-              Select a session to automatically populate all fields including speakers
-            </p>
-          </div>
-        )}
+              </ul>
+            </div>
+          )}
+        </div>
 
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Opening Keynote" />
+        {/* Right Column: Add Session form */}
+        <div className="rounded-md border p-4 space-y-3 bg-white sticky top-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Add Session</h2>
+            {autoFetching && <span className="text-xs text-blue-600">⏳ Loading session details...</span>}
           </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Track</label>
-            <input value={track} onChange={e => setTrack(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Main" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Room</label>
-            <input value={room} onChange={e => setRoom(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Hall A" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Capacity</label>
-            <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., 200" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Starts</label>
-            <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Ends</label>
-            <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Description</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Session details" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Select Speakers</label>
-            {speakers.length === 0 ? (
-              <div className="border rounded-md p-4 text-center bg-amber-50 border-amber-200">
-                <div className="text-sm text-amber-700 mb-2">⚠️ No speakers available</div>
-                <div className="text-xs text-amber-600 mb-3">
-                  Add speakers first to assign them to sessions. This follows the speakers-first workflow.
-                </div>
-                <a
-                  href={`/events/${params.id}/speakers`}
-                  className="inline-flex items-center gap-1 text-xs bg-amber-600 text-white px-3 py-1.5 rounded-md hover:bg-amber-700"
-                >
-                  🎤 Add Speakers First
-                </a>
+          {error && <div className="text-sm text-rose-600">{error}</div>}
+          {notice && <div className="text-sm text-green-600">{notice}</div>}
+
+          {/* Event Time Range Info */}
+          {event && (event.startsAt || event.startDate) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="text-xs font-semibold text-blue-900 mb-1">
+                📅 {event.daysConfig && event.daysConfig.length > 1 ? 'Multi-Day Event Schedule' : 'Event Time Range'}
               </div>
-            ) : (
-              <div>
-                <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2 mb-3">
-                  {speakers.map(speaker => (
-                    <label key={speaker.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded">
-                      <input
-                        type="checkbox"
-                        checked={selectedSpeakers.includes(speaker.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedSpeakers([...selectedSpeakers, speaker.id])
-                          } else {
-                            setSelectedSpeakers(selectedSpeakers.filter(id => id !== speaker.id))
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm font-medium">{speaker.name}</span>
-                    </label>
-                  ))}
-                </div>
-                {/* Show selected speaker details */}
-                {selectedSpeakers.length > 0 && (
-                  <div className="border rounded-md p-3 bg-blue-50 border-blue-200">
-                    <div className="text-xs font-semibold text-blue-900 mb-2">✓ Selected Speakers ({selectedSpeakers.length})</div>
-                    <div className="space-y-2">
-                      {selectedSpeakers.map(speakerId => {
-                        const speaker = speakers.find(s => s.id === speakerId)
-                        if (!speaker) return null
-                        return (
-                          <div key={speaker.id} className="bg-white rounded p-2 border border-blue-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="text-sm font-semibold text-gray-900">{speaker.name}</div>
-                                {speaker.title && (
-                                  <div className="text-xs text-gray-600">{speaker.title}</div>
-                                )}
-                                {speaker.company && (
-                                  <div className="text-xs text-gray-500">{speaker.company}</div>
-                                )}
-                                {speaker.bio && (
-                                  <div className="text-xs text-gray-600 mt-1 line-clamp-2">{speaker.bio}</div>
-                                )}
-                                {speaker.email && (
-                                  <div className="text-xs text-blue-600 mt-1">{speaker.email}</div>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => setSelectedSpeakers(selectedSpeakers.filter(id => id !== speaker.id))}
-                                className="text-xs text-red-600 hover:text-red-800 ml-2"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
+              {event.daysConfig && event.daysConfig.length > 1 ? (
+                <div className="space-y-2">
+                  {event.daysConfig.map((day: any, idx: number) => (
+                    <div key={idx} className="text-xs bg-white rounded p-2 border border-blue-100">
+                      <div className="font-semibold text-blue-900">{day.title}</div>
+                      <div className="text-blue-700">
+                        {new Date(day.date).toLocaleDateString()} • {day.startTime} - {day.endTime}
+                      </div>
                     </div>
+                  ))}
+                  <div className="text-xs text-blue-600 mt-2">
+                    ℹ️ Sessions must be created within the specific day's time range
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={addToCalendar}
-                onChange={(e) => setAddToCalendar(e.target.checked)}
-              />
-              <span className="text-xs text-slate-600">Add to calendar events</span>
-            </label>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            disabled={!canSubmit}
-            onClick={async () => {
-              try {
-                setError(null)
-                if (!title.trim()) { setError('Title is required'); return }
-                if (!startTime) { setError('Start time is required'); return }
-                if (!endTime) { setError('End time is required'); return }
-                if (new Date(endTime) <= new Date(startTime)) { setError('End time must be after start time'); return }
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs text-blue-700">
+                    {new Date(event.startsAt || event.startDate).toLocaleString()}
+                    {' → '}
+                    {new Date(event.endsAt || event.endDate).toLocaleString()}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    ℹ️ Sessions must be created within this time range
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {/* Session Selector for Auto-Fetch */}
+          {items.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <label className="block text-xs font-semibold text-blue-900 mb-2">
+                🔄 Quick Edit: Select Existing Session to Auto-Fill
+              </label>
+              <select
+                value={selectedSessionId}
+                onChange={(e) => handleSessionSelect(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                disabled={autoFetching}
+              >
+                <option value="">-- Create New Session --</option>
+                {items.map(session => (
+                  <option key={session.id} value={session.id}>
+                    {session.title} ({new Date(session.startTime).toLocaleString()})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-blue-700 mt-1">
+                Select a session to automatically populate all fields including speakers
+              </p>
+            </div>
+          )}
 
-                // Validate session time against event time
-                const validation = validateSessionTime(startTime, endTime)
-                if (!validation.valid) {
-                  setError(validation.message)
-                  return
+          <div className="grid md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Title</label>
+              <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Opening Keynote" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Track</label>
+              <input value={track} onChange={e => setTrack(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Main" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Room</label>
+              <input value={room} onChange={e => setRoom(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Hall A" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Capacity</label>
+              <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., 200" />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Starts</label>
+              <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Ends</label>
+              <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Description</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Session details" />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Select Speakers</label>
+              {speakers.length === 0 ? (
+                <div className="border rounded-md p-4 text-center bg-amber-50 border-amber-200">
+                  <div className="text-sm text-amber-700 mb-2">⚠️ No speakers available</div>
+                  <div className="text-xs text-amber-600 mb-3">
+                    Add speakers first to assign them to sessions. This follows the speakers-first workflow.
+                  </div>
+                  <a
+                    href={`/events/${params.id}/speakers`}
+                    className="inline-flex items-center gap-1 text-xs bg-amber-600 text-white px-3 py-1.5 rounded-md hover:bg-amber-700"
+                  >
+                    🎤 Add Speakers First
+                  </a>
+                </div>
+              ) : (
+                <div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2 mb-3">
+                    {speakers.map(speaker => (
+                      <label key={speaker.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded">
+                        <input
+                          type="checkbox"
+                          checked={selectedSpeakers.includes(speaker.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSpeakers([...selectedSpeakers, speaker.id])
+                            } else {
+                              setSelectedSpeakers(selectedSpeakers.filter(id => id !== speaker.id))
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm font-medium">{speaker.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {/* Show selected speaker details */}
+                  {selectedSpeakers.length > 0 && (
+                    <div className="border rounded-md p-3 bg-blue-50 border-blue-200">
+                      <div className="text-xs font-semibold text-blue-900 mb-2">✓ Selected Speakers ({selectedSpeakers.length})</div>
+                      <div className="space-y-2">
+                        {selectedSpeakers.map(speakerId => {
+                          const speaker = speakers.find(s => s.id === speakerId)
+                          if (!speaker) return null
+                          return (
+                            <div key={speaker.id} className="bg-white rounded p-2 border border-blue-200">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="text-sm font-semibold text-gray-900">{speaker.name}</div>
+                                  {speaker.title && (
+                                    <div className="text-xs text-gray-600">{speaker.title}</div>
+                                  )}
+                                  {speaker.company && (
+                                    <div className="text-xs text-gray-500">{speaker.company}</div>
+                                  )}
+                                  {speaker.bio && (
+                                    <div className="text-xs text-gray-600 mt-1 line-clamp-2">{speaker.bio}</div>
+                                  )}
+                                  {speaker.email && (
+                                    <div className="text-xs text-blue-600 mt-1">{speaker.email}</div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => setSelectedSpeakers(selectedSpeakers.filter(id => id !== speaker.id))}
+                                  className="text-xs text-red-600 hover:text-red-800 ml-2"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={addToCalendar}
+                  onChange={(e) => setAddToCalendar(e.target.checked)}
+                />
+                <span className="text-xs text-slate-600">Add to calendar events</span>
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 w-full"
+              disabled={!canSubmit}
+              onClick={async () => {
+                try {
+                  setError(null)
+                  if (!title.trim()) { setError('Title is required'); return }
+                  if (!startTime) { setError('Start time is required'); return }
+                  if (!endTime) { setError('End time is required'); return }
+                  if (new Date(endTime) <= new Date(startTime)) { setError('End time must be after start time'); return }
+
+                  // Validate session time against event time
+                  const validation = validateSessionTime(startTime, endTime)
+                  if (!validation.valid) {
+                    setError(validation.message)
+                    return
+                  }
+                  const payload = {
+                    title: title.trim(),
+                    description: description || undefined,
+                    startTime: new Date(startTime).toISOString(),
+                    endTime: new Date(endTime).toISOString(),
+                    room: room || undefined,
+                    track: track || undefined,
+                    capacity: capacity ? Number(capacity) : undefined,
+                    speakers: selectedSpeakers,
+                    addToCalendar: addToCalendar,
+                  }
+                  const res = await fetch(`/api/events/${params.id}/sessions`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  })
+                  const data = await res.json().catch(() => null)
+                  if (!res.ok) throw new Error(data?.message || 'Create failed')
+                  setTitle(''); setDescription(''); setStartTime(''); setEndTime(''); setRoom(''); setTrack(''); setCapacity(''); setSelectedSpeakers([])
+                  await load()
+                } catch (e: any) {
+                  setError(e?.message || 'Create failed')
                 }
-                const payload = {
-                  title: title.trim(),
-                  description: description || undefined,
-                  startTime: new Date(startTime).toISOString(),
-                  endTime: new Date(endTime).toISOString(),
-                  room: room || undefined,
-                  track: track || undefined,
-                  capacity: capacity ? Number(capacity) : undefined,
-                  speakers: selectedSpeakers,
-                  addToCalendar: addToCalendar,
-                }
-                const res = await fetch(`/api/events/${params.id}/sessions`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-                })
-                const data = await res.json().catch(() => null)
-                if (!res.ok) throw new Error(data?.message || 'Create failed')
-                setTitle(''); setDescription(''); setStartTime(''); setEndTime(''); setRoom(''); setTrack(''); setCapacity(''); setSelectedSpeakers([])
-                await load()
-              } catch (e: any) {
-                setError(e?.message || 'Create failed')
-              }
-            }}
-          >
-            Add Session
-          </button>
+              }}
+            >
+              Add Session
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-700">All Sessions</h3>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setViewMode('calendar')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-              }`}
-          >
-            <Calendar className="h-4 w-4" />
-            Calendar
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'list'
-              ? 'bg-white text-indigo-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-              }`}
-          >
-            <List className="h-4 w-4" />
-            List
-          </button>
-        </div>
-      </div>
-
-      {/* Calendar or List View */}
-      {loading ? (
-        <div className="p-12 text-center text-slate-500">Loading sessions...</div>
-      ) : items.length === 0 ? (
-        <div className="p-12 text-center text-slate-500 bg-gray-50 rounded-lg border-2 border-dashed">
-          No sessions yet. Create your first session above!
-        </div>
-      ) : viewMode === 'calendar' ? (
-        <SessionCalendarView
-          sessions={items}
-          eventId={params.id}
-          onSessionClick={(sessionId) => {
-            handleSessionSelect(String(sessionId))
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-          }}
-        />
-      ) : (
-        <div className="rounded-md border bg-white">
-          <div className="p-3 text-sm font-medium border-b">All Sessions</div>
-          <ul className="divide-y">
-            {items.map(s => (
-              <SessionRow key={s.id} item={s} eventId={params.id} onChanged={load} speakers={speakers} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
-            ))}
-          </ul>
-        </div>
-      )}
 
       {notice && <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">{notice}</div>}
     </div>
@@ -559,7 +564,7 @@ function SessionRow({ item, eventId, onChanged, speakers, setBanner }: { item: S
             <div className="text-xs text-slate-500 truncate">{new Date(item.startTime).toLocaleString()} → {new Date(item.endTime).toLocaleString()} {item.room ? `· ${item.room}` : ''}</div>
           </div>
           <div className="flex items-center gap-2">
-            <a 
+            <a
               href={`/events/${eventId}/sessions/${item.id}/stream`}
               className="rounded-md border border-blue-300 bg-blue-50 text-blue-700 px-2 py-1 text-xs hover:bg-blue-100 inline-flex items-center gap-1"
             >

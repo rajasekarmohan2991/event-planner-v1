@@ -82,126 +82,140 @@ export default function EventSpeakersPage({ params }: { params: { id: string } }
         <h1 className="text-xl font-semibold">Speakers</h1>
       </div>
 
-      {/* Add Speaker form */}
-      <div className="rounded-md border p-4 space-y-3 bg-white">
-        <h2 className="text-sm font-semibold">Add Speaker</h2>
-        {error && <div className="text-sm text-rose-600">{error}</div>}
-        <div className="grid md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Jane Doe" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column: Speaker List */}
+        <div className="lg:col-span-2 rounded-md border bg-white">
+          <div className="p-3 text-sm font-medium border-b">All Speakers</div>
+          {loading ? (
+            <div className="p-4 text-sm text-slate-500">Loading...</div>
+          ) : items.length === 0 ? (
+            <div className="p-4 text-sm text-slate-500">No speakers yet. Add one using the form on the right.</div>
+          ) : (
+            <ul className="divide-y">
+              {items.map(s => (
+                <SpeakerRow key={s.id} item={s} eventId={params.id} sessions={sessions} onChanged={load} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Right Column: Add Speaker form */}
+        <div className="rounded-md border p-4 space-y-3 bg-white sticky top-4">
+          <h2 className="text-sm font-semibold">Add Speaker</h2>
+          {error && <div className="text-sm text-rose-600">{error}</div>}
+          <div className="grid md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Name</label>
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., Jane Doe" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Title</label>
+              <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., CTO, Acme Inc." />
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Photo URL</label>
+              <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://example.com/photo.jpg" />
+              <div className="mt-1 flex items-center justify-between">
+                <label className="cursor-pointer text-xs text-indigo-600 hover:text-indigo-800">
+                  Upload Image
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      try {
+                        setUploading(true)
+                        setUploadError(null)
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        const res = await fetch(`/api/events/${params.id}/upload`, { method: 'POST', body: formData })
+                        if (!res.ok) throw new Error('Upload failed')
+                        const data = await res.json()
+                        setPhotoUrl(data.url)
+                      } catch (err: any) {
+                        setUploadError(err?.message || 'Upload failed')
+                      } finally {
+                        setUploading(false)
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {uploading ? <div className="mt-1 text-xs text-slate-500">Uploading...</div> : null}
+              {uploadError ? <div className="mt-1 text-xs text-rose-600">{uploadError}</div> : null}
+              {photoUrl ? (
+                <div className="mt-2">
+                  {/* Check if URL looks like a valid image */}
+                  {/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(photoUrl) || photoUrl.startsWith('data:image') || photoUrl.includes('/uploads/') || photoUrl.includes('blob.') ? (
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photoUrl} alt="Preview" className="h-12 w-12 rounded-full object-cover border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                      <span className="text-xs text-slate-500">Preview</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
+                      ⚠️ This URL doesn't look like a direct image link. Please use a URL ending in .jpg, .png, etc. or upload an image instead.
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Assign to Session (Optional)</label>
+              <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm bg-white">
+                <option value="">-- Create new session automatically --</option>
+                {sessions.length === 0 && (
+                  <option disabled>No sessions available (create one first)</option>
+                )}
+                {sessions.map(s => <option key={s.id} value={s.id}>{s.title || `Session ${s.id}`}</option>)}
+              </select>
+              {sessions.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">💡 Tip: Create sessions first, then assign speakers to them</p>
+              )}
+            </div>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2">
+              <label className="block text-xs text-slate-500 mb-1">Bio</label>
+              <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-20" placeholder="Short bio..." />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Title</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g., CTO, Acme Inc." />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Photo URL</label>
-            <input value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="https://example.com/photo.jpg" />
-            <p className="text-xs text-slate-400 mt-1">Use a direct image URL (ending in .jpg, .png, .webp). Social media profile URLs won't work.</p>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Or upload photo</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
+          <div className="flex gap-2 mt-3">
+            <button
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 w-full"
+              disabled={!canSubmit || uploading}
+              onClick={async () => {
                 try {
-                  setUploadError(null)
-                  setUploading(true)
-                  const fd = new FormData()
-                  fd.append('file', file)
-                  const res = await fetch('/api/uploads', { method: 'POST', body: fd })
-                  const data = await res.json().catch(() => null)
-                  if (!res.ok) throw new Error(data?.message || 'Upload failed')
-                  if (data?.url) setPhotoUrl(data.url)
-                } catch (err: any) {
-                  setUploadError(err?.message || 'Upload failed')
+                  setError(null)
+                  if (!name.trim()) { setError('Name is required'); return }
+                  setLoading(true)
+                  const payload = {
+                    name: name.trim(),
+                    title: title || undefined,
+                    bio: bio || undefined,
+                    photoUrl: photoUrl || undefined,
+                    sessionId: selectedSessionId || undefined
+                  }
+                  const res = await fetch(`/api/events/${params.id}/speakers`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  })
+                  if (!res.ok) throw new Error('Create failed')
+                  setName(''); setTitle(''); setBio(''); setPhotoUrl(''); setSelectedSessionId('')
+                  await load()
+                } catch (e: any) {
+                  setError(e?.message || 'Create failed')
                 } finally {
-                  setUploading(false)
+                  setLoading(false)
                 }
               }}
-            />
-            {uploading ? <div className="mt-1 text-xs text-slate-500">Uploading...</div> : null}
-            {uploadError ? <div className="mt-1 text-xs text-rose-600">{uploadError}</div> : null}
-            {photoUrl ? (
-              <div className="mt-2">
-                {/* Check if URL looks like a valid image */}
-                {/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(photoUrl) || photoUrl.startsWith('data:image') || photoUrl.includes('/uploads/') || photoUrl.includes('blob.') ? (
-                  <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photoUrl} alt="Preview" className="h-12 w-12 rounded-full object-cover border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                    <span className="text-xs text-slate-500">Preview</span>
-                  </div>
-                ) : (
-                  <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
-                    ⚠️ This URL doesn't look like a direct image link. Please use a URL ending in .jpg, .png, etc. or upload an image instead.
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Assign to Session (Optional)</label>
-            <select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm bg-white">
-              <option value="">-- Create new session automatically --</option>
-              {sessions.length === 0 && (
-                <option disabled>No sessions available (create one first)</option>
-              )}
-              {sessions.map(s => <option key={s.id} value={s.id}>{s.title || `Session ${s.id}`}</option>)}
-            </select>
-            {sessions.length === 0 && (
-              <p className="mt-1 text-xs text-amber-600">💡 Tip: Create sessions first, then assign speakers to them</p>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs text-slate-500 mb-1">Bio</label>
-            <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm min-h-24" placeholder="Short bio" />
+            >
+              Add Speaker
+            </button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            disabled={!canSubmit}
-            onClick={async () => {
-              try {
-                setError(null)
-                const res = await fetch(`/api/events/${params.id}/speakers`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name, title: title || undefined, bio: bio || undefined, photoUrl: photoUrl || undefined, sessionId: selectedSessionId || undefined })
-                })
-                const data = await res.json().catch(() => null)
-                if (!res.ok) throw new Error(data?.message || 'Create failed')
-                setName(''); setTitle(''); setBio(''); setPhotoUrl(''); setSelectedSessionId('')
-                await load()
-              } catch (e: any) {
-                setError(e?.message || 'Create failed')
-              }
-            }}
-          >
-            Add Speaker
-          </button>
-        </div>
-      </div>
-
-      {/* List */}
-      <div className="rounded-md border bg-white">
-        <div className="p-3 text-sm font-medium border-b">All Speakers</div>
-        {loading ? (
-          <div className="p-4 text-sm text-slate-500">Loading...</div>
-        ) : items.length === 0 ? (
-          <div className="p-4 text-sm text-slate-500">No speakers yet.</div>
-        ) : (
-          <ul className="divide-y">
-            {items.map(s => (
-              <SpeakerRow key={s.id} item={s} eventId={params.id} sessions={sessions} onChanged={load} setBanner={(m) => { setNotice(m); setTimeout(() => setNotice(null), 2500) }} />
-            ))}
-          </ul>
-        )}
       </div>
 
       {notice && <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">{notice}</div>}
