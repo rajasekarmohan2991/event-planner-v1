@@ -57,9 +57,20 @@ export async function DELETE(
         console.log(`Deleting company: ${company.name} (${company.id})`);
         console.log(`Company has ${eventsDeleted} events and ${membersRemoved} members`);
 
+        // 0. Update users to remove reference to this tenant
+        try {
+            await prisma.$executeRawUnsafe(`UPDATE users SET current_tenant_id = NULL WHERE current_tenant_id = $1`, params.id);
+        } catch (e) {
+            console.warn('Error updating users current_tenant_id:', e);
+        }
+
         // Delete related records first (manual cascade)
         // Some of these might fail if table doesn't exist, so we wrap in try-catch blocks or ignore
         const tablesToDelete = [
+            'domain_verifications',
+            'notifications',
+            'audit_logs',
+            'activity_logs',
             'module_access',
             'module_access_matrix',
             'tax_structure_history',
