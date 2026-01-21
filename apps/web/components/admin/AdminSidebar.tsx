@@ -53,7 +53,6 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Back to Companies', href: '/super-admin/companies', icon: ChevronLeft },
         { name: 'Dashboard', href: `/super-admin/companies/${currentCompanyId}`, icon: LayoutDashboard },
         { name: 'Users', href: `/super-admin/companies/${currentCompanyId}/users`, icon: Users },
-        { name: 'Tax Settings', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Database },
         { name: 'System Settings', href: `/super-admin/companies/${currentCompanyId}/settings`, icon: Settings }
       )
     } else if (isSuperAdminCompanyView) {
@@ -74,7 +73,6 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
         { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
-        { name: 'Tax Settings', href: `/super-admin/companies/${currentCompanyId}/tax-structures`, icon: Globe },
         { name: 'Signature Templates', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
@@ -105,8 +103,6 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     baseNavigation.push({ name: 'Users', href: '/admin/users', icon: Users })
     // Add Finance for company admins
     baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
-    // Add Tax Settings for company admins
-    baseNavigation.push({ name: 'Tax Settings', href: '/admin/settings/tax', icon: Receipt })
     // Add Digital Signatures for company admins
     baseNavigation.push({ name: 'Digital Signatures', href: '/admin/signatures', icon: FileText })
   }

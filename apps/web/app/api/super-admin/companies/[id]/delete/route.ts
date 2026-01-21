@@ -43,16 +43,27 @@ export async function DELETE(
             }, { status: 400 });
         }
 
-        // Get counts
-        const eventCount: any[] = await prisma.$queryRawUnsafe(`
-            SELECT COUNT(*) as count FROM events WHERE tenant_id = $1
-        `, params.id);
-        const memberCount: any[] = await prisma.$queryRawUnsafe(`
-            SELECT COUNT(*) as count FROM tenant_members WHERE tenant_id = $1
-        `, params.id);
-
-        const eventsDeleted = parseInt(eventCount[0]?.count || '0');
-        const membersRemoved = parseInt(memberCount[0]?.count || '0');
+        // Get counts (with error handling)
+        let eventsDeleted = 0;
+        let membersRemoved = 0;
+        
+        try {
+            const eventCount: any[] = await prisma.$queryRawUnsafe(`
+                SELECT COUNT(*) as count FROM events WHERE tenant_id = $1
+            `, params.id);
+            eventsDeleted = parseInt(eventCount[0]?.count || '0');
+        } catch (e) {
+            console.warn('Could not count events:', e);
+        }
+        
+        try {
+            const memberCount: any[] = await prisma.$queryRawUnsafe(`
+                SELECT COUNT(*) as count FROM tenant_members WHERE tenant_id = $1
+            `, params.id);
+            membersRemoved = parseInt(memberCount[0]?.count || '0');
+        } catch (e) {
+            console.warn('Could not count members:', e);
+        }
 
         console.log(`Deleting company: ${company.name} (${company.id})`);
         console.log(`Company has ${eventsDeleted} events and ${membersRemoved} members`);
@@ -92,30 +103,35 @@ export async function DELETE(
         }
 
         // Delete event-related records first to avoid FK constraints
-        // We find all event IDs for this tenant first
-        const events: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM events WHERE tenant_id = $1`, params.id);
+        try {
+            const events: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM events WHERE tenant_id = $1`, params.id);
 
-        if (events.length > 0) {
-            const eventIds = events.map((e: any) => e.id);
-            // Delete in chunks or just use IN clause (assuming not huge number of events for a deleted company)
-            // For very large sets, this should be batched, but valid for typical usage here.
+            if (events.length > 0) {
+                const eventIds = events.map((e: any) => e.id);
+                const idList = eventIds.map((id: any) => `'${id}'`).join(',');
 
-            // 1. Delete dependent tables for these events
-            // Note: using explicit loops or IN clauses with raw SQL
-
-            // Need to format IDs for SQL IN clause safe string
-            const idList = eventIds.map((id: any) => `'${id}'`).join(',');
-
-            if (idList) {
-                try {
-                    await prisma.$executeRawUnsafe(`DELETE FROM event_role_assignments WHERE event_id IN (${idList})`);
-                    await prisma.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id IN (${idList})`);
-                    await prisma.$executeRawUnsafe(`DELETE FROM tickets WHERE event_id IN (${idList})`);
-                    await prisma.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id IN (${idList})`);
-                } catch (childError) {
-                    console.warn('Error deleting event children:', childError);
+                if (idList) {
+                    const eventTables = [
+                        'event_role_assignments',
+                        'registrations',
+                        'tickets',
+                        'sessions',
+                        'event_vendors',
+                        'event_sponsors',
+                        'floor_plans'
+                    ];
+                    
+                    for (const table of eventTables) {
+                        try {
+                            await prisma.$executeRawUnsafe(`DELETE FROM ${table} WHERE event_id IN (${idList})`);
+                        } catch (e) {
+                            console.log(`Skipping ${table} (might not exist)`);
+                        }
+                    }
                 }
             }
+        } catch (e) {
+            console.warn('Error processing events for deletion:', e);
         }
 
         // Delete events (this will cascade to registrations, etc. via database FK if configured, or fail)
