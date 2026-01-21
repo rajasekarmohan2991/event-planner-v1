@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       LEFT JOIN seat_reservations sr ON si.id = sr.seat_id 
         AND sr.status IN ('RESERVED', 'LOCKED', 'CONFIRMED')
         AND (sr.expires_at IS NULL OR sr.expires_at > NOW())
-      WHERE si.event_id = ${eventId}
+      WHERE si.event_id = ${eventId}::bigint
         AND si.is_available = true
     `
 

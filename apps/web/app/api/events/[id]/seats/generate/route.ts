@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const rows = await prisma.$queryRaw`
           SELECT "layoutData" as layout_data
           FROM floor_plans
-          WHERE "eventId" = ${BigInt(eventId)}
+          WHERE "eventId" = ${eventId}::bigint
           ORDER BY created_at DESC
           LIMIT 1
         ` as any[]
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           const rows = await prisma.$queryRaw`
             SELECT layout_data
             FROM floor_plan_configs
-            WHERE event_id = ${eventId}
+            WHERE event_id = ${eventId}::bigint
             ORDER BY created_at DESC
             LIMIT 1
           ` as any[]
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Delete existing seats for this event using raw SQL
     await prisma.$executeRaw`
-      DELETE FROM seat_inventory WHERE event_id = ${eventId}
+      DELETE FROM seat_inventory WHERE event_id = ${eventId}::bigint
     `
 
     // Get tenant_id from event
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         INSERT INTO floor_plan_configs (
           event_id, plan_name, layout_data, total_seats, sections, tenant_id, created_at, updated_at
         ) VALUES (
-          ${eventId}, ${planName}, ${layoutDataJson}, ${totalSeats}, ${sectionsJson}, ${tenantId}, NOW(), NOW()
+          ${eventId}::bigint, ${planName}, ${layoutDataJson}, ${totalSeats}, ${sectionsJson}, ${tenantId}, NOW(), NOW()
         )
       `
     }
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           event_id, section, row_number, seat_number, seat_type, 
           base_price, x_coordinate, y_coordinate, is_available, tenant_id, created_at, updated_at
         ) VALUES (
-          ${eventId}, ${sectionName}, ${String(rowLabel)}, ${String(seatNum)}, ${seatType},
+          ${eventId}::bigint, ${sectionName}, ${String(rowLabel)}, ${String(seatNum)}, ${seatType},
           ${basePrice}, ${xCoord}, ${yCoord}, true, ${tenantId}, NOW(), NOW()
         )
       `
@@ -301,7 +301,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             base_price,
             multiplier
           ) VALUES (
-            ${eventId},
+            ${eventId}::bigint,
             ${rule.section || null},
             ${rule.rowPattern || null},
             ${rule.seatType || null},
@@ -348,7 +348,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const floorPlans = await prisma.$queryRaw<any[]>`
       SELECT id, plan_name, layout_data, total_seats, sections, created_at
       FROM floor_plan_configs
-      WHERE event_id = ${eventId}
+      WHERE event_id = ${eventId}::bigint
       ORDER BY created_at DESC
       LIMIT 1
     `
@@ -357,7 +357,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Count seats using raw SQL
     const seatCountResult = await prisma.$queryRaw<any[]>`
-      SELECT COUNT(*)::int as count FROM seat_inventory WHERE event_id = ${eventId}
+      SELECT COUNT(*)::int as count FROM seat_inventory WHERE event_id = ${eventId}::bigint
     `
     const seatCount = seatCountResult[0]?.count || 0
 
