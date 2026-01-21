@@ -204,18 +204,7 @@ export default function CompanyFinancePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <button
-          onClick={() => router.push(`/super-admin/companies/${params.id}/tax-structures`)}
-          className="flex items-center gap-3 p-4 bg-white rounded-lg shadow-sm border hover:border-blue-300 transition-colors"
-        >
-          <Building2 className="h-5 w-5 text-purple-600" />
-          <div className="text-left">
-            <p className="font-medium text-gray-900">Tax Settings</p>
-            <p className="text-sm text-gray-500">Configure tax structures</p>
-          </div>
-        </button>
-        
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <button
           onClick={() => window.open(`/api/finance/reports/tax?tenantId=${params.id}`, '_blank')}
           className="flex items-center gap-3 p-4 bg-white rounded-lg shadow-sm border hover:border-blue-300 transition-colors"
