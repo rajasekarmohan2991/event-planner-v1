@@ -378,9 +378,10 @@ export async function POST(
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId}, ${eventIdBigInt}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketId || null}
+                ${newRegId}, ${eventIdBigInt}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}::"RegistrationStatus", ${ticketId || null}
             )
         `
+
       console.log('✅ Registration inserted')
 
       // 2. Insert Order ('"Order"')
@@ -398,7 +399,7 @@ export async function POST(
                 ${tenantId},
                 ${userIdStr},
                 ${formData.email},
-                ${finalAmount > 0 ? 'PAID' : 'CREATED'},
+                ${finalAmount > 0 ? 'PAID' : 'CREATED'}::"OrderStatus",
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
                 ${Math.round(finalAmount)},
                 ${metaJson}::jsonb,
