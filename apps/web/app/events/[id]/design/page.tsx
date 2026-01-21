@@ -19,10 +19,18 @@ interface FloorPlan {
   config: any
 }
 
+interface Banner {
+  id: string
+  name: string
+  createdAt: string
+  imageData: string
+}
+
 function DesignEditor({ eventId }: { eventId: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
@@ -37,36 +45,31 @@ function DesignEditor({ eventId }: { eventId: string }) {
   }, [eventId, router])
 
 
-  async function loadFloorPlans() {
+  async function loadData() {
     setLoading(true); setMsg(null)
     try {
-      console.log('[FloorPlan List] Fetching from /api/events/' + eventId + '/floor-plans-direct')
-      const r = await fetch(`/api/events/${eventId}/floor-plans-direct`, { cache: 'no-store' })
-      console.log('[FloorPlan List] Response status:', r.status, r.ok)
-
-      if (r.ok) {
-        const data = await r.json()
-        console.log('[FloorPlan List] Received data:', data)
-
-        if (data.floorPlans && Array.isArray(data.floorPlans)) {
-          setFloorPlans(data.floorPlans)
-          console.log('[FloorPlan List] Loaded', data.floorPlans.length, 'floor plans')
-        } else {
-          console.log('[FloorPlan List] No floor plans in response')
-          setFloorPlans([])
-        }
-      } else {
-        const errorText = await r.text()
-        console.error('[FloorPlan List] Failed to fetch:', r.status, errorText)
-        setFloorPlans([])
+      // Load Floor Plans
+      console.log('[Design] Fetching floor plans...')
+      const fpRes = await fetch(`/api/events/${eventId}/floor-plans-direct`, { cache: 'no-store' })
+      if (fpRes.ok) {
+        const data = await fpRes.json()
+        setFloorPlans(data.floorPlans || [])
       }
+
+      // Load Banners
+      console.log('[Design] Fetching banners...')
+      const bnRes = await fetch(`/api/events/${eventId}/design/banner`, { cache: 'no-store' })
+      if (bnRes.ok) {
+        const data = await bnRes.json()
+        setBanners(Array.isArray(data) ? data : [])
+      }
+
     } catch (e: any) {
-      console.error('[FloorPlan List] Error:', e)
-      setFloorPlans([])
+      console.error('[Design] Error loading data:', e)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { if (eventId) loadFloorPlans() }, [eventId])
+  useEffect(() => { if (eventId) loadData() }, [eventId])
 
   async function deleteFloorPlan(planId: string) {
     if (!confirm('Delete this floor plan?')) return
@@ -75,6 +78,21 @@ function DesignEditor({ eventId }: { eventId: string }) {
       if (r.ok) {
         setFloorPlans(prev => prev.filter(p => p.id !== planId))
         setMsg('Floor plan deleted')
+      }
+    } catch (e: any) {
+      setMsg('Delete failed')
+    }
+  }
+
+  async function deleteBanner(bannerId: string) {
+    if (!confirm('Delete this banner?')) return
+    try {
+      const r = await fetch(`/api/events/${eventId}/design/banner/${bannerId}`, { method: 'DELETE' })
+      if (r.ok) {
+        setBanners(prev => prev.filter(b => b.id !== bannerId))
+        setMsg('Banner deleted')
+      } else {
+        setMsg('Failed to delete banner')
       }
     } catch (e: any) {
       setMsg('Delete failed')
@@ -90,7 +108,7 @@ function DesignEditor({ eventId }: { eventId: string }) {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* 2D Floor Plan Generator */}
         <Link href={`/events/${eventId}/design/floor-plan`}>
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group h-full">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-3 bg-indigo-600 rounded-lg group-hover:scale-110 transition-transform">
                 <Layout className="w-6 h-6 text-white" />
@@ -109,7 +127,7 @@ function DesignEditor({ eventId }: { eventId: string }) {
 
         {/* Banner Generator */}
         <Link href={`/events/${eventId}/design/banner`}>
-          <div className="bg-gradient-to-br from-pink-50 to-rose-50 border-2 border-pink-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group">
+          <div className="bg-gradient-to-br from-pink-50 to-rose-50 border-2 border-pink-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer group h-full">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-3 bg-pink-600 rounded-lg group-hover:scale-110 transition-transform">
                 <ImagePlus className="w-6 h-6 text-white" />
@@ -141,16 +159,13 @@ function DesignEditor({ eventId }: { eventId: string }) {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-slate-500">Loading floor plans...</div>
+          <div className="text-center py-8 text-slate-500">Loading...</div>
         ) : floorPlans.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg bg-gray-50">
             <Layout className="w-12 h-12 mx-auto text-slate-300 mb-3" />
             <p className="text-slate-500 mb-2">No floor plans created yet</p>
-            <p className="text-sm text-slate-400 mb-4">Create your first floor plan to visualize your event layout</p>
             <Link href={`/events/${eventId}/design/floor-plan`}>
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
-                Create Floor Plan
-              </button>
+              <span className="text-indigo-600 hover:underline">Create your first floor plan</span>
             </Link>
           </div>
         ) : (
@@ -180,6 +195,69 @@ function DesignEditor({ eventId }: { eventId: string }) {
                     View/Edit
                   </button>
                 </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Created Banners List */}
+      <div className="bg-white rounded-lg border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Created Banners</h2>
+          <Link href={`/events/${eventId}/design/banner`}>
+            <button className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors text-sm font-medium">
+              + Create New Banner
+            </button>
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-slate-500">Loading...</div>
+        ) : banners.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg bg-gray-50">
+            <ImagePlus className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+            <p className="text-slate-500 mb-2">No banners created yet</p>
+            <Link href={`/events/${eventId}/design/banner`}>
+              <span className="text-pink-600 hover:underline">Create your first banner</span>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {banners.map(banner => (
+              <div key={banner.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-pink-600" />
+                    <h3 className="font-semibold text-sm truncate max-w-[150px]">{banner.name}</h3>
+                  </div>
+                  <button
+                    onClick={() => deleteBanner(banner.id)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                    title="Delete"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="border rounded-md overflow-hidden bg-gray-100 mb-3 aspect-[3/1] relative group-hover:opacity-90 transition-opacity">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={banner.imageData} alt={banner.name} className="w-full h-full object-cover" />
+                </div>
+
+                <div className="text-xs text-slate-500 mb-3">
+                  <p>Created: {new Date(banner.createdAt).toLocaleDateString()}</p>
+                </div>
+
+                <div className="flex gap-2">
+                  <a
+                    href={banner.imageData}
+                    download={`${banner.name.replace(/\s+/g, '-')}-banner.png`}
+                    className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded text-sm font-medium transition-colors text-center"
+                  >
+                    Download
+                  </a>
+                </div>
               </div>
             ))}
           </div>
