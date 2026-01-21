@@ -32,7 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 border-b bg-background/80 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b bg-white dark:bg-slate-900 shadow-sm">
         {/* Use tight horizontal padding so the logo sits near the absolute corner */}
         <div className="mx-auto w-full px-2 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
