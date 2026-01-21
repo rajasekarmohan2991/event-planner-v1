@@ -69,7 +69,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/super-admin/diagnostics') ||
       pathname?.startsWith('/admin/currency') ||
       pathname?.startsWith('/admin/signatures') ||
-      pathname?.startsWith('/super-admin/signatures');
+      pathname?.startsWith('/super-admin/signatures') ||
+      pathname?.startsWith('/super-admin/tax-templates');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show company modules in left sidebar
