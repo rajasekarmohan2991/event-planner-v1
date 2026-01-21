@@ -12,43 +12,43 @@ interface StatsCardProps {
   href?: string;
 }
 
-// Modern color schemes - Light pastel backgrounds with vibrant accents
+// Modern color schemes with vibrant pink/magenta theme and lively icon backgrounds
 const cardStyles = [
   {
-    // Violet/Purple - Primary brand color
-    bg: 'bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-950/40 dark:to-purple-900/30',
-    iconBg: 'bg-violet-100 dark:bg-violet-900/50',
-    textColor: 'text-violet-700 dark:text-violet-300',
-    iconColor: 'text-violet-600 dark:text-violet-400',
-    descColor: 'text-violet-600/80 dark:text-violet-400/80',
-    border: 'border-violet-200/50 dark:border-violet-800/50',
+    // Pink/Magenta - Primary brand color (like hospital dashboard)
+    bg: 'bg-white dark:from-pink-950/40 dark:to-fuchsia-900/30',
+    iconBg: 'bg-pink-100 dark:bg-pink-900/50',
+    textColor: 'text-gray-900 dark:text-pink-300',
+    iconColor: 'text-pink-600 dark:text-pink-400',
+    descColor: 'text-gray-600 dark:text-pink-400/80',
+    border: 'border-gray-200 dark:border-pink-800/50',
   },
   {
-    // Cyan/Teal - Fresh and modern
-    bg: 'bg-gradient-to-br from-cyan-50 to-teal-100 dark:from-cyan-950/40 dark:to-teal-900/30',
-    iconBg: 'bg-cyan-100 dark:bg-cyan-900/50',
-    textColor: 'text-cyan-700 dark:text-cyan-300',
-    iconColor: 'text-cyan-600 dark:text-cyan-400',
-    descColor: 'text-cyan-600/80 dark:text-cyan-400/80',
-    border: 'border-cyan-200/50 dark:border-cyan-800/50',
+    // Blue - Fresh and modern
+    bg: 'bg-white dark:from-blue-950/40 dark:to-cyan-900/30',
+    iconBg: 'bg-blue-100 dark:bg-blue-900/50',
+    textColor: 'text-gray-900 dark:text-blue-300',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+    descColor: 'text-gray-600 dark:text-blue-400/80',
+    border: 'border-gray-200 dark:border-blue-800/50',
   },
   {
-    // Rose/Pink - Warm accent
-    bg: 'bg-gradient-to-br from-rose-50 to-pink-100 dark:from-rose-950/40 dark:to-pink-900/30',
-    iconBg: 'bg-rose-100 dark:bg-rose-900/50',
-    textColor: 'text-rose-700 dark:text-rose-300',
-    iconColor: 'text-rose-600 dark:text-rose-400',
-    descColor: 'text-rose-600/80 dark:text-rose-400/80',
-    border: 'border-rose-200/50 dark:border-rose-800/50',
+    // Red/Rose - Alert/Important
+    bg: 'bg-white dark:from-red-950/40 dark:to-rose-900/30',
+    iconBg: 'bg-red-100 dark:bg-red-900/50',
+    textColor: 'text-gray-900 dark:text-red-300',
+    iconColor: 'text-red-600 dark:text-red-400',
+    descColor: 'text-gray-600 dark:text-red-400/80',
+    border: 'border-gray-200 dark:border-red-800/50',
   },
   {
-    // Amber/Orange - Energetic
-    bg: 'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950/40 dark:to-orange-900/30',
-    iconBg: 'bg-amber-100 dark:bg-amber-900/50',
-    textColor: 'text-amber-700 dark:text-amber-300',
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    descColor: 'text-amber-600/80 dark:text-amber-400/80',
-    border: 'border-amber-200/50 dark:border-amber-800/50',
+    // Purple - Secondary accent
+    bg: 'bg-white dark:from-purple-950/40 dark:to-violet-900/30',
+    iconBg: 'bg-purple-100 dark:bg-purple-900/50',
+    textColor: 'text-gray-900 dark:text-purple-300',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+    descColor: 'text-gray-600 dark:text-purple-400/80',
+    border: 'border-gray-200 dark:border-purple-800/50',
   },
 ];
 
