@@ -110,8 +110,8 @@ export default function EventVendorsPage() {
                     sum + Number(v.contractAmount || 0), 0
                 )
                 // Use the budget from the first vendor in category, or 0 if no vendors
-                const budgeted = categoryVendors.length > 0 && categoryVendors[0].budget 
-                    ? Number(categoryVendors[0].budget) 
+                const budgeted = categoryVendors.length > 0 && categoryVendors[0].budget
+                    ? Number(categoryVendors[0].budget)
                     : 0
 
                 return {
@@ -767,8 +767,8 @@ export default function EventVendorsPage() {
                                     <p className="text-sm text-gray-500">Status</p>
                                     <Badge className={
                                         viewingVendor.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                        viewingVendor.status === 'BOOKED' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
+                                            viewingVendor.status === 'BOOKED' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
                                     }>
                                         {viewingVendor.status}
                                     </Badge>
@@ -787,14 +787,14 @@ export default function EventVendorsPage() {
                             {(viewingVendor.contractUrl || viewingVendor.invoiceUrl) && (
                                 <div className="flex gap-4 pt-2 border-t">
                                     {viewingVendor.contractUrl && (
-                                        <a href={viewingVendor.contractUrl} target="_blank" rel="noopener noreferrer" 
-                                           className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                                        <a href={viewingVendor.contractUrl} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
                                             <FileText className="h-4 w-4" /> View Contract
                                         </a>
                                     )}
                                     {viewingVendor.invoiceUrl && (
                                         <a href={viewingVendor.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                                           className="flex items-center gap-2 text-green-600 hover:text-green-800">
+                                            className="flex items-center gap-2 text-green-600 hover:text-green-800">
                                             <FileCheck className="h-4 w-4" /> View Invoice
                                         </a>
                                     )}
@@ -866,7 +866,7 @@ export default function EventVendorsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label>Status</Label>
-                            <Select value={vendorForm.status} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
+                            <Select value={vendorForm.status || 'ACTIVE'} onValueChange={(value) => setVendorForm(prev => ({ ...prev, status: value }))}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
