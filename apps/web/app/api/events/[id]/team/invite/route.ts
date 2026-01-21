@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { ensureSchema } from '@/lib/ensure-schema'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -49,6 +50,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const tenantId = event.tenantId
 
     console.log(`[TEAM INVITE] Event found:`, { eventId: event.id.toString(), name: event.name, tenantId: tenantId?.toString() })
+
+    // Ensure the invitations table exists
+    try {
+      await ensureSchema()
+    } catch (schemaError) {
+      console.warn('[TEAM INVITE] Schema ensure warning (continuing):', schemaError)
+    }
 
     const results = []
 

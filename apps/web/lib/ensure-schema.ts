@@ -1,15 +1,15 @@
 import prisma from '@/lib/prisma'
 
 export async function ensureSchema() {
-  console.log('🔧 Running self-healing schema update...')
-  try {
-    // Test database connection first
-    await prisma.$queryRaw`SELECT 1 as test`
-    console.log('✅ Database connection successful')
-    
-    console.log('📝 Step 1: Updating tenants table...')
-    // 0. Tenants Table - Add country column (wrapped in DO block to handle missing table)
-    await prisma.$executeRawUnsafe(`
+    console.log('🔧 Running self-healing schema update...')
+    try {
+        // Test database connection first
+        await prisma.$queryRaw`SELECT 1 as test`
+        console.log('✅ Database connection successful')
+
+        console.log('📝 Step 1: Updating tenants table...')
+        // 0. Tenants Table - Add country column (wrapped in DO block to handle missing table)
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
           BEGIN
@@ -21,8 +21,8 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    // 1. Sponsors Table Columns
-    await prisma.$executeRawUnsafe(`
+        // 1. Sponsors Table Columns
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
           BEGIN
@@ -43,8 +43,8 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    // 2. Events Table Columns
-    await prisma.$executeRawUnsafe(`
+        // 2. Events Table Columns
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
           BEGIN
@@ -59,8 +59,8 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    // 3. Event Vendors Table
-    await prisma.$executeRawUnsafe(`
+        // 3. Event Vendors Table
+        await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS event_vendors (
         id TEXT PRIMARY KEY,
         event_id TEXT NOT NULL,
@@ -89,8 +89,8 @@ export async function ensureSchema() {
       );
     `)
 
-    // 3.1 Check and add missing columns for event_vendors if table exists
-    await prisma.$executeRawUnsafe(`
+        // 3.1 Check and add missing columns for event_vendors if table exists
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
         BEGIN
@@ -107,8 +107,8 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    // 4. Floor Plans Table
-    await prisma.$executeRawUnsafe(`
+        // 4. Floor Plans Table
+        await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS floor_plans (
         id TEXT PRIMARY KEY,
         "eventId" BIGINT NOT NULL, 
@@ -136,8 +136,8 @@ export async function ensureSchema() {
       );
     `)
 
-    // 4.1 Check and add missing columns for floor_plans
-    await prisma.$executeRawUnsafe(`
+        // 4.1 Check and add missing columns for floor_plans
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
         BEGIN
@@ -155,8 +155,8 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    // 5. Exchange Rates Table
-    await prisma.$executeRawUnsafe(`
+        // 5. Exchange Rates Table
+        await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS exchange_rates (
         id TEXT PRIMARY KEY,
         from_currency TEXT NOT NULL,
@@ -168,8 +168,8 @@ export async function ensureSchema() {
       );
     `)
 
-    // 6. Registrations Table Columns (Self-Healing)
-    await prisma.$executeRawUnsafe(`
+        // 6. Registrations Table Columns (Self-Healing)
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS registrations (
             id TEXT PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -186,8 +186,8 @@ export async function ensureSchema() {
         );
     `)
 
-    // 6.1 Check and add missing columns for registrations
-    await prisma.$executeRawUnsafe(`
+        // 6.1 Check and add missing columns for registrations
+        await prisma.$executeRawUnsafe(`
         DO $$ 
         BEGIN 
             BEGIN
@@ -204,8 +204,8 @@ export async function ensureSchema() {
         END $$;
     `)
 
-    // 7. Registration Approvals Table
-    await prisma.$executeRawUnsafe(`
+        // 7. Registration Approvals Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS registration_approvals (
             id BIGSERIAL PRIMARY KEY,
             registration_id TEXT NOT NULL,
@@ -218,8 +218,8 @@ export async function ensureSchema() {
         );
     `)
 
-    // 8. Sessions Table
-    await prisma.$executeRawUnsafe(`
+        // 8. Sessions Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS sessions (
             id BIGSERIAL PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -238,8 +238,8 @@ export async function ensureSchema() {
         );
     `)
 
-    // Add missing columns to sessions table
-    await prisma.$executeRawUnsafe(`
+        // Add missing columns to sessions table
+        await prisma.$executeRawUnsafe(`
         DO $$ BEGIN
             BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS room TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
             BEGIN ALTER TABLE sessions ADD COLUMN IF NOT EXISTS track TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
@@ -249,8 +249,8 @@ export async function ensureSchema() {
         END $$;
     `)
 
-    // 9. Session Speakers Table
-    await prisma.$executeRawUnsafe(`
+        // 9. Session Speakers Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS session_speakers (
             id BIGSERIAL PRIMARY KEY,
             session_id BIGINT NOT NULL,
@@ -259,8 +259,8 @@ export async function ensureSchema() {
         );
     `)
 
-    // 10. Speakers Table
-    await prisma.$executeRawUnsafe(`
+        // 10. Speakers Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS speakers (
             id BIGSERIAL PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -275,9 +275,9 @@ export async function ensureSchema() {
         );
     `)
 
-    // 10.1 Exhibitors Table
-    console.log('📝 Step 10.1: Creating exhibitors table...')
-    await prisma.$executeRawUnsafe(`
+        // 10.1 Exhibitors Table
+        console.log('📝 Step 10.1: Creating exhibitors table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS exhibitors (
             id TEXT PRIMARY KEY,
             event_id TEXT NOT NULL,
@@ -309,10 +309,10 @@ export async function ensureSchema() {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
     `)
-    
-    // 10.2 Exhibitor Registrations Table (for invoices)
-    console.log('📝 Step 10.2: Creating exhibitor_registrations table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 10.2 Exhibitor Registrations Table (for invoices)
+        console.log('📝 Step 10.2: Creating exhibitor_registrations table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS exhibitor_registrations (
             id TEXT PRIMARY KEY,
             event_id TEXT NOT NULL,
@@ -331,10 +331,10 @@ export async function ensureSchema() {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
     `)
-    
-    // 10.3 Sponsor Registrations Table (for invoices)
-    console.log('📝 Step 10.3: Creating sponsor_registrations table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 10.3 Sponsor Registrations Table (for invoices)
+        console.log('📝 Step 10.3: Creating sponsor_registrations table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS sponsor_registrations (
             id TEXT PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -351,10 +351,10 @@ export async function ensureSchema() {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
     `)
-    
-    // 10.4 Event Team Members Table
-    console.log('📝 Step 10.4: Creating event_team_members table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 10.4 Event Team Members Table
+        console.log('📝 Step 10.4: Creating event_team_members table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS event_team_members (
             id TEXT PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -368,10 +368,37 @@ export async function ensureSchema() {
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
     `)
-    
-    // 10.5 Promo Codes Table
-    console.log('📝 Step 10.5: Creating promo_codes table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 10.4.1 Event Team Invitations Table (for pending invites)
+        console.log('📝 Step 10.4.1: Creating event_team_invitations table...')
+        await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS event_team_invitations (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            email TEXT NOT NULL,
+            role TEXT DEFAULT 'STAFF',
+            token TEXT,
+            invited_by BIGINT,
+            status TEXT DEFAULT 'PENDING',
+            expires_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(event_id, email)
+        );
+    `)
+
+        // Create index for faster lookups
+        await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_event_team_invitations_event ON event_team_invitations(event_id);
+    `)
+        await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_event_team_invitations_token ON event_team_invitations(token);
+    `)
+
+        // 10.5 Promo Codes Table
+        console.log('📝 Step 10.5: Creating promo_codes table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS promo_codes (
             id BIGSERIAL PRIMARY KEY,
             event_id TEXT NOT NULL,
@@ -389,8 +416,8 @@ export async function ensureSchema() {
         );
     `)
 
-    // 11. Finance Tables - Payouts
-    await prisma.$executeRawUnsafe(`
+        // 11. Finance Tables - Payouts
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS payouts (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -418,18 +445,18 @@ export async function ensureSchema() {
         );
     `)
 
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_payouts_tenant ON payouts(tenant_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_payouts_event ON payouts(event_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(status);
     `)
 
-    // 12. Finance Tables - Charges
-    await prisma.$executeRawUnsafe(`
+        // 12. Finance Tables - Charges
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS charges (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -447,18 +474,18 @@ export async function ensureSchema() {
         );
     `)
 
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_charges_tenant ON charges(tenant_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_charges_event ON charges(event_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_charges_status ON charges(status);
     `)
 
-    // 13. Finance Tables - Credits
-    await prisma.$executeRawUnsafe(`
+        // 13. Finance Tables - Credits
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS credits (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -478,18 +505,18 @@ export async function ensureSchema() {
         );
     `)
 
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_credits_tenant ON credits(tenant_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_credits_event ON credits(event_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_credits_status ON credits(status);
     `)
 
-    // 14. Finance Tables - Finance Settings
-    await prisma.$executeRawUnsafe(`
+        // 14. Finance Tables - Finance Settings
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS finance_settings (
             id TEXT PRIMARY KEY,
             tenant_id TEXT UNIQUE NOT NULL,
@@ -512,9 +539,9 @@ export async function ensureSchema() {
         );
     `)
 
-    // 15. Invoices Table
-    console.log('📝 Step 15: Creating invoices table...')
-    await prisma.$executeRawUnsafe(`
+        // 15. Invoices Table
+        console.log('📝 Step 15: Creating invoices table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS invoices (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -551,15 +578,15 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // Create unique index for invoice number per tenant
-    await prisma.$executeRawUnsafe(`
+
+        // Create unique index for invoice number per tenant
+        await prisma.$executeRawUnsafe(`
         CREATE UNIQUE INDEX IF NOT EXISTS invoices_tenant_id_number_key ON invoices(tenant_id, number);
     `)
-    
-    // 15.1 Invoice Line Items Table
-    console.log('📝 Step 15.1: Creating invoice_line_items table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 15.1 Invoice Line Items Table
+        console.log('📝 Step 15.1: Creating invoice_line_items table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS invoice_line_items (
             id TEXT PRIMARY KEY,
             invoice_id TEXT NOT NULL,
@@ -574,10 +601,10 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 15.2 Payment Records Table
-    console.log('📝 Step 15.2: Creating payment_records table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 15.2 Payment Records Table
+        console.log('📝 Step 15.2: Creating payment_records table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS payment_records (
             id TEXT PRIMARY KEY,
             invoice_id TEXT NOT NULL,
@@ -596,10 +623,10 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 15.3 Receipts Table
-    console.log('📝 Step 15.3: Creating receipts table...')
-    await prisma.$executeRawUnsafe(`
+
+        // 15.3 Receipts Table
+        console.log('📝 Step 15.3: Creating receipts table...')
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS receipts (
             id TEXT PRIMARY KEY,
             invoice_id TEXT NOT NULL,
@@ -612,18 +639,18 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // Add indexes for invoices
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_event ON invoices(event_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoice_line_items_invoice ON invoice_line_items(invoice_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_receipts_invoice ON receipts(invoice_id);`)
 
-    console.log('📝 Step 16: Creating signature_requests table...')
-    // 16. Digital Signatures Table (DocuSign Integration)
-    await prisma.$executeRawUnsafe(`
+        // Add indexes for invoices
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON invoices(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_event ON invoices(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoice_line_items_invoice ON invoice_line_items(invoice_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_payment_records_invoice ON payment_records(invoice_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_receipts_invoice ON receipts(invoice_id);`)
+
+        console.log('📝 Step 16: Creating signature_requests table...')
+        // 16. Digital Signatures Table (DocuSign Integration)
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS signature_requests (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -652,21 +679,21 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for signature_requests
-    await prisma.$executeRawUnsafe(`
+        // Create indexes for signature_requests
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_signature_requests_tenant ON signature_requests(tenant_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_signature_requests_event ON signature_requests(event_id);
     `)
-    await prisma.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
         CREATE INDEX IF NOT EXISTS idx_signature_requests_status ON signature_requests(status);
     `)
 
-    console.log('📝 Step 17: Creating finance module tables...')
-    
-    // 17. TDS/Withholding Tax Table
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 17: Creating finance module tables...')
+
+        // 17. TDS/Withholding Tax Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS tds_deductions (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -694,9 +721,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 18. Legal Consent Tracking Table
-    await prisma.$executeRawUnsafe(`
+
+        // 18. Legal Consent Tracking Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS legal_consents (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -724,9 +751,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 19. Finance Audit Log Table
-    await prisma.$executeRawUnsafe(`
+
+        // 19. Finance Audit Log Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS finance_audit_logs (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -750,9 +777,9 @@ export async function ensureSchema() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 20. Platform Commission Config Table
-    await prisma.$executeRawUnsafe(`
+
+        // 20. Platform Commission Config Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS platform_commission_config (
             id TEXT PRIMARY KEY,
             commission_type TEXT NOT NULL,
@@ -772,9 +799,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 21. Invoice Number Sequence Table
-    await prisma.$executeRawUnsafe(`
+
+        // 21. Invoice Number Sequence Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS invoice_sequences (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL UNIQUE,
@@ -793,9 +820,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 22. Country Tax Config Table
-    await prisma.$executeRawUnsafe(`
+
+        // 22. Country Tax Config Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS country_tax_config (
             id TEXT PRIMARY KEY,
             country_code TEXT NOT NULL,
@@ -817,9 +844,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 23. Payment Gateway Config Table
-    await prisma.$executeRawUnsafe(`
+
+        // 23. Payment Gateway Config Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS payment_gateway_config (
             id TEXT PRIMARY KEY,
             gateway_name TEXT NOT NULL,
@@ -839,9 +866,9 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 24. Payment Webhook Logs Table
-    await prisma.$executeRawUnsafe(`
+
+        // 24. Payment Webhook Logs Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS payment_webhook_logs (
             id TEXT PRIMARY KEY,
             gateway TEXT NOT NULL,
@@ -860,9 +887,9 @@ export async function ensureSchema() {
             received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    // 25. Refund Requests Table
-    await prisma.$executeRawUnsafe(`
+
+        // 25. Refund Requests Table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS refund_requests (
             id TEXT PRIMARY KEY,
             tenant_id TEXT NOT NULL,
@@ -892,11 +919,11 @@ export async function ensureSchema() {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         );
     `)
-    
-    console.log('📝 Step 26: Adding multi-currency columns to existing tables...')
-    
-    // Add multi-currency columns to invoices
-    await prisma.$executeRawUnsafe(`
+
+        console.log('📝 Step 26: Adding multi-currency columns to existing tables...')
+
+        // Add multi-currency columns to invoices
+        await prisma.$executeRawUnsafe(`
         DO $$ BEGIN
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS base_currency TEXT DEFAULT 'USD';
@@ -909,9 +936,9 @@ export async function ensureSchema() {
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to TEXT;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
-    
-    // Add multi-currency columns to payouts
-    await prisma.$executeRawUnsafe(`
+
+        // Add multi-currency columns to payouts
+        await prisma.$executeRawUnsafe(`
         DO $$ BEGIN
             ALTER TABLE payouts ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
             ALTER TABLE payouts ADD COLUMN IF NOT EXISTS base_currency TEXT DEFAULT 'USD';
@@ -921,9 +948,9 @@ export async function ensureSchema() {
             ALTER TABLE payouts ADD COLUMN IF NOT EXISTS gross_amount DOUBLE PRECISION;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
-    
-    // Add gateway columns to payment_records
-    await prisma.$executeRawUnsafe(`
+
+        // Add gateway columns to payment_records
+        await prisma.$executeRawUnsafe(`
         DO $$ BEGIN
             ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
             ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS exchange_rate DOUBLE PRECISION DEFAULT 1;
@@ -932,20 +959,20 @@ export async function ensureSchema() {
             ALTER TABLE payment_records ADD COLUMN IF NOT EXISTS gateway_fee DOUBLE PRECISION DEFAULT 0;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
-    
-    console.log('📝 Step 27: Creating indexes for finance tables...')
-    
-    // Create indexes
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);`)
 
-    console.log('📝 Step 28: Creating global_tax_templates table...')
-    
-    // Create global tax templates table for super admin
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 27: Creating indexes for finance tables...')
+
+        // Create indexes
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tds_deductions_tenant ON tds_deductions(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_legal_consents_tenant ON legal_consents(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_finance_audit_tenant ON finance_audit_logs(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_tenant ON refund_requests(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_refund_requests_status ON refund_requests(status);`)
+
+        console.log('📝 Step 28: Creating global_tax_templates table...')
+
+        // Create global tax templates table for super admin
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS global_tax_templates (
             id VARCHAR(255) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -968,15 +995,15 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for global_tax_templates
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_country ON global_tax_templates(country_code);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_active ON global_tax_templates(is_active);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_effective ON global_tax_templates(effective_from);`)
+        // Create indexes for global_tax_templates
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_country ON global_tax_templates(country_code);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_active ON global_tax_templates(is_active);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_global_tax_templates_effective ON global_tax_templates(effective_from);`)
 
-    console.log('📝 Step 29: Enhancing tax_structures table...')
-    
-    // Add enhanced columns to tax_structures
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 29: Enhancing tax_structures table...')
+
+        // Add enhanced columns to tax_structures
+        await prisma.$executeRawUnsafe(`
         DO $$ BEGIN
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS country_code VARCHAR(2);
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS tax_type VARCHAR(50) DEFAULT 'STANDARD';
@@ -989,14 +1016,14 @@ export async function ensureSchema() {
             ALTER TABLE tax_structures ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false;
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
-    
-    // Create index for global template linking
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tax_structures_global_template ON tax_structures(global_template_id);`)
 
-    console.log('📝 Step 30: Creating event_tax_settings table...')
-    
-    // Create event tax settings table
-    await prisma.$executeRawUnsafe(`
+        // Create index for global template linking
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_tax_structures_global_template ON tax_structures(global_template_id);`)
+
+        console.log('📝 Step 30: Creating event_tax_settings table...')
+
+        // Create event tax settings table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS event_tax_settings (
             id VARCHAR(255) PRIMARY KEY,
             event_id BIGINT NOT NULL,
@@ -1019,14 +1046,14 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for event_tax_settings
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_event ON event_tax_settings(event_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_tenant ON event_tax_settings(tenant_id);`)
+        // Create indexes for event_tax_settings
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_event ON event_tax_settings(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_event_tax_settings_tenant ON event_tax_settings(tenant_id);`)
 
-    console.log('📝 Step 31: Creating convenience_fee_config table...')
-    
-    // Create convenience fee configuration table
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 31: Creating convenience_fee_config table...')
+
+        // Create convenience fee configuration table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS convenience_fee_config (
             id VARCHAR(255) PRIMARY KEY,
             tenant_id VARCHAR(255) NOT NULL,
@@ -1050,14 +1077,14 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for convenience_fee_config
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_tenant ON convenience_fee_config(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_event ON convenience_fee_config(event_id);`)
+        // Create indexes for convenience_fee_config
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_tenant ON convenience_fee_config(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_convenience_fee_event ON convenience_fee_config(event_id);`)
 
-    console.log('📝 Step 32: Creating document_templates table...')
-    
-    // Create document templates table for digital signatures
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 32: Creating document_templates table...')
+
+        // Create document templates table for digital signatures
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS document_templates (
             id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
             tenant_id VARCHAR(255) NOT NULL,
@@ -1078,15 +1105,15 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for document_templates
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_tenant ON document_templates(tenant_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_type ON document_templates(template_type);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_active ON document_templates(is_active);`)
+        // Create indexes for document_templates
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_tenant ON document_templates(tenant_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_type ON document_templates(template_type);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_document_templates_active ON document_templates(is_active);`)
 
-    console.log('📝 Step 33: Creating subscription_plans table...')
-    
-    // Create subscription plans table for managing pricing tiers
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 33: Creating subscription_plans table...')
+
+        // Create subscription plans table for managing pricing tiers
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS subscription_plans (
             id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
             name VARCHAR(255) NOT NULL,
@@ -1106,14 +1133,14 @@ export async function ensureSchema() {
         );
     `)
 
-    // Create indexes for subscription_plans
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_slug ON subscription_plans(slug);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_active ON subscription_plans(is_active);`)
+        // Create indexes for subscription_plans
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_slug ON subscription_plans(slug);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_subscription_plans_active ON subscription_plans(is_active);`)
 
-    console.log('📝 Step 34: Creating ticket_class_offers table...')
-    
-    // Create ticket class offers table for special pricing
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 34: Creating ticket_class_offers table...')
+
+        // Create ticket class offers table for special pricing
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS ticket_class_offers (
             id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
             ticket_id BIGINT NOT NULL,
@@ -1139,14 +1166,14 @@ export async function ensureSchema() {
         );
     `)
 
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_ticket ON ticket_class_offers(ticket_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_event ON ticket_class_offers(event_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_active ON ticket_class_offers(is_active);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_ticket ON ticket_class_offers(ticket_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_event ON ticket_class_offers(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_ticket_offers_active ON ticket_class_offers(is_active);`)
 
-    console.log('📝 Step 35: Enhancing tickets table with validation fields...')
-    
-    // Add validation fields to tickets table
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 35: Enhancing tickets table with validation fields...')
+
+        // Add validation fields to tickets table
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
         BEGIN
@@ -1162,10 +1189,10 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    console.log('📝 Step 36: Creating registration_approvals table...')
-    
-    // Create registration approvals table
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 36: Creating registration_approvals table...')
+
+        // Create registration approvals table
+        await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS registration_approvals (
             id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
             registration_id VARCHAR(255) NOT NULL,
@@ -1182,14 +1209,14 @@ export async function ensureSchema() {
         );
     `)
 
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_registration ON registration_approvals(registration_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_event ON registration_approvals(event_id);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_status ON registration_approvals(status);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_registration ON registration_approvals(registration_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_event ON registration_approvals(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_registration_approvals_status ON registration_approvals(status);`)
 
-    console.log('📝 Step 37: Adding stream_url to events table...')
-    
-    // Add stream URL field to events table
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 37: Adding stream_url to events table...')
+
+        // Add stream URL field to events table
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
         BEGIN
@@ -1202,10 +1229,10 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    console.log('📝 Step 38: Adding template_for and document_type to document_templates...')
-    
-    // Add template_for and document_type fields to document_templates
-    await prisma.$executeRawUnsafe(`
+        console.log('📝 Step 38: Adding template_for and document_type to document_templates...')
+
+        // Add template_for and document_type fields to document_templates
+        await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
         BEGIN
@@ -1218,13 +1245,13 @@ export async function ensureSchema() {
       END $$;
     `)
 
-    console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
-    return true
-  } catch (error: any) {
-    console.error('❌ Self-healing schema failed:', error)
-    console.error('❌ Error message:', error.message)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
-    throw error // Re-throw to get full details in API response
-  }
+        console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
+        return true
+    } catch (error: any) {
+        console.error('❌ Self-healing schema failed:', error)
+        console.error('❌ Error message:', error.message)
+        console.error('❌ Error stack:', error.stack)
+        console.error('❌ Error code:', error.code)
+        throw error // Re-throw to get full details in API response
+    }
 }
