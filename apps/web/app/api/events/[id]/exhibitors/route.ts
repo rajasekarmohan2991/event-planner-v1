@@ -72,7 +72,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(items)
   } catch (error: any) {
     console.error('Exhibitors fetch error:', error)
-    
+
     // If table doesn't exist, create it and return empty array
     if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
       console.warn('⚠️ Exhibitors table does not exist, running schema healing...')
@@ -84,7 +84,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json([])
       }
     }
-    
+
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -107,69 +107,93 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // 1. Fetch Event and Tenant
-    const events = await prisma.$queryRaw`
-      SELECT id, name, tenant_id as "tenantId", "startsAt", "endsAt"
-      FROM events 
-      WHERE id = ${BigInt(eventId)} 
-      LIMIT 1
-    ` as any[]
+    let events: any[] = []
+    try {
+      events = await prisma.$queryRaw`
+        SELECT id, name, tenant_id as "tenantId"
+        FROM events 
+        WHERE id = ${BigInt(eventId)} 
+        LIMIT 1
+      ` as any[]
+    } catch (eventError: any) {
+      console.error('[EXHIBITOR POST] Event fetch error:', eventError.message)
+      return NextResponse.json({ error: 'Failed to fetch event: ' + eventError.message }, { status: 500 })
+    }
 
     if (events.length === 0) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
     const event = events[0]
-    const tenantId = event.tenantId
+    const tenantId = event.tenantId || ''
     const newId = randomUUID()
 
-    // 2. Insert Exhibitor (Raw SQL with all fields)
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO exhibitors (
-        id, event_id, tenant_id,
-        name, company, contact_name, contact_email, contact_phone,
-        website, notes, 
-        first_name, last_name, job_title,
-        business_address, company_description, products_services,
-        booth_type, booth_option, booth_area,
-        electrical_access, display_tables,
-        status, email_confirmed,
-        created_at, updated_at
-      ) VALUES (
-        $1, $2, $3,
-        $4, $5, $6, $7, $8,
-        $9, $10,
-        $11, $12, $13,
-        $14, $15, $16,
-        $17, $18, $19,
-        $20, $21,
-        $22, $23,
-        NOW(), NOW()
+    // 2. Ensure exhibitors table exists
+    try {
+      await ensureSchema()
+    } catch (schemaError) {
+      console.warn('[EXHIBITOR POST] Schema ensure warning:', schemaError)
+    }
+
+    // 3. Insert Exhibitor (Raw SQL with all fields)
+    console.log('[EXHIBITOR POST] Inserting exhibitor:', { newId, eventId, name: body.name, company: body.company })
+    try {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO exhibitors (
+          id, event_id, tenant_id,
+          name, company, contact_name, contact_email, contact_phone,
+          website, notes, 
+          first_name, last_name, job_title,
+          business_address, company_description, products_services,
+          booth_type, booth_option, booth_area,
+          electrical_access, display_tables,
+          status, email_confirmed,
+          created_at, updated_at
+        ) VALUES (
+          $1, $2, $3,
+          $4, $5, $6, $7, $8,
+          $9, $10,
+          $11, $12, $13,
+          $14, $15, $16,
+          $17, $18, $19,
+          $20, $21,
+          $22, $23,
+          NOW(), NOW()
+        )
+      `,
+        newId,
+        eventId,
+        tenantId,
+        String(body.name || body.company || '').trim(),
+        body.company || null,
+        body.contactName || null,
+        body.contactEmail || null,
+        body.contactPhone || null,
+        body.website || null,
+        body.notes || null,
+        body.firstName || null,
+        body.lastName || null,
+        body.jobTitle || null,
+        body.businessAddress || null,
+        body.companyDescription || null,
+        body.productsServices || null,
+        body.boothType || null,
+        body.boothOption || null,
+        body.boothArea || null,
+        body.electricalAccess || false,
+        body.displayTables || false,
+        'PENDING_CONFIRMATION',
+        false
       )
-    `,
-      newId,
-      eventId,
-      tenantId,
-      String(body.name || body.company || '').trim(),
-      body.company || null,
-      body.contactName || null,
-      body.contactEmail || null,
-      body.contactPhone || null,
-      body.website || null,
-      body.notes || null,
-      body.firstName || null,
-      body.lastName || null,
-      body.jobTitle || null,
-      body.businessAddress || null,
-      body.companyDescription || null,
-      body.productsServices || null,
-      body.boothType || null,
-      body.boothOption || null,
-      body.boothArea || null,
-      body.electricalAccess || false,
-      body.displayTables || false,
-      'PENDING_CONFIRMATION',
-      false
-    )
+      console.log('[EXHIBITOR POST] Insert successful for:', newId)
+    } catch (insertError: any) {
+      console.error('[EXHIBITOR POST] Insert failed:', insertError.message)
+      console.error('[EXHIBITOR POST] Insert error details:', insertError)
+      return NextResponse.json({
+        error: 'Failed to create exhibitor: ' + insertError.message,
+        details: insertError.code || 'Unknown'
+      }, { status: 500 })
+    }
 
     // Prepare result object
     const result = {
@@ -317,13 +341,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(result, { status: 201 })
   } catch (error: any) {
     console.error('Exhibitor creation error:', error)
-    
+
     // If table doesn't exist, create it and retry
     if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
       console.warn('⚠️ Exhibitors table does not exist, running schema healing...')
       try {
         await ensureSchema()
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: 'Database tables created. Please try again.',
           needsRetry: true
         }, { status: 503 })
@@ -331,7 +355,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         console.error('Schema healing failed:', schemaError)
       }
     }
-    
+
     return NextResponse.json({ error: error.message || 'Failed to create exhibitor' }, { status: 500 })
   }
 }
