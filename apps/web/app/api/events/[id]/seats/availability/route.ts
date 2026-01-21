@@ -32,17 +32,45 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const ticketClass = searchParams.get('ticketClass') // VIP, PREMIUM, GENERAL
 
     // Gate by actual existence: floor plan OR existing seats
-    // Check both tables (new and legacy)
-    const floorPlanRaw = await prisma.$queryRaw<any[]>`
-      SELECT id, layout_data as "layoutData", total_seats as "totalCapacity", plan_name as name
-      FROM floor_plans WHERE "eventId" = ${eventId}::bigint
-      UNION ALL
-      SELECT id, layout_data as "layoutData", total_seats as "totalCapacity", plan_name as name
-      FROM floor_plan_configs WHERE event_id = ${eventId}::bigint
-      LIMIT 1
-    ` as any[]
 
-    const floorPlan = floorPlanRaw.length > 0 ? floorPlanRaw[0] : null
+    // 1. Check floor_plan_configs (New system) - Raw SQL
+    // It stores the layout in 'data' column (JSONB)
+    const configs = await prisma.$queryRaw<any[]>`
+       SELECT data, event_id FROM floor_plan_configs WHERE event_id = ${eventId}::bigint LIMIT 1
+    `
+
+    let floorPlan: any = null;
+    if (configs.length > 0) {
+      const cfg = configs[0]
+      // Parse data if string, else use object
+      let layoutData;
+      try {
+        layoutData = (typeof cfg.data === 'string') ? JSON.parse(cfg.data) : cfg.data;
+      } catch (e) {
+        layoutData = {}
+      }
+
+      floorPlan = {
+        id: 'config', // ID not strictly needed for rendering
+        layoutData: layoutData,
+        totalCapacity: Number(layoutData?.capacity || 0),
+        name: layoutData?.name || 'Event Floor Plan'
+      }
+    } else {
+      // 2. Check floor_plans (Legacy system) - Prisma Client
+      // This handles schema mapping safely
+      try {
+        const legacy = await prisma.floorPlan.findFirst({
+          where: { eventId: BigInt(eventId) },
+          orderBy: { createdAt: 'desc' }
+        })
+        if (legacy) {
+          floorPlan = legacy;
+        }
+      } catch (err) {
+        console.warn('Legacy floor plan check failed:', err)
+      }
+    }
 
     // Check seat inventory count safely
     const seatCountRaw = await prisma.$queryRaw<any[]>`
@@ -68,7 +96,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     await prisma.$executeRaw`
       UPDATE seat_reservations
       SET status = 'EXPIRED'
-      WHERE event_id = ${eventId}
+      WHERE event_id = ${eventId}::bigint
         AND status = 'RESERVED'
         AND expires_at < NOW()
     `
