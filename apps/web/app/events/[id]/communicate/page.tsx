@@ -578,6 +578,16 @@ function CommunicateContent() {
               )}
             </div>
 
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800 flex items-start gap-2">
+              <div className="mt-0.5 min-w-[16px]">⚠️</div>
+              <div>
+                <p className="font-semibold">Using Twilio Sandbox?</p>
+                <p className="text-xs mt-1 text-amber-700">
+                  If you are on a Twilio Trial/Sandbox, recipients <strong>MUST</strong> send a specific "join code" (e.g., "join your-keyword") to your Twilio WhatsApp number before they can receive messages. Without this, Twilio will accept the message but silently fail to deliver it.
+                </p>
+              </div>
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={async () => {
