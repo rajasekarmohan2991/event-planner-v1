@@ -25,7 +25,17 @@ export async function GET(
         console.log('[EMERGENCY REGISTRATIONS] Found:', registrations.length)
 
         const serialized = registrations.map(r => {
-            const data = r.dataJson as any || {}
+            let data: any = {}
+            try {
+                if (typeof r.dataJson === 'string') {
+                    data = JSON.parse(r.dataJson)
+                } else if (r.dataJson && typeof r.dataJson === 'object') {
+                    data = r.dataJson
+                }
+            } catch (e) {
+                console.error('Failed to parse dataJson:', e)
+            }
+
             return {
                 id: r.id,
                 eventId: r.eventId.toString(),

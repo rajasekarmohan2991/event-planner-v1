@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = BigInt(params.id)
+    const eventId = params.id
 
     // Get pending cancellation requests (JSON-first; do not rely on missing columns)
     const cancellations = await prisma.$queryRaw<any[]>`
@@ -76,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         ) as "requestedAt",
         'PENDING' as status
       FROM registrations r
-      WHERE r.event_id = ${eventId}
+      WHERE r.event_id = ${eventId}::bigint
         AND r.data_json IS NOT NULL
         AND (
           (r.data_json->>'status') = 'PENDING_CANCELLATION'
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const { registrationIds, action, notes, refundAmount, refundMode } = await req.json()
-    const eventId = BigInt(params.id)
+    const eventId = params.id
 
     if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
       return NextResponse.json({ message: 'No registrations selected' }, { status: 400 })
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             COALESCE(e.name, e.title, 'Event') as "eventTitle"
           FROM registrations r
           JOIN events e ON e.id = r.event_id
-          WHERE r.id = ${regId} AND r.event_id = ${eventId}
+          WHERE r.id = ${regId} AND r.event_id = ${eventId}::bigint
           LIMIT 1
         `
 
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 '{refundAmount}',
                 to_jsonb(${refundAmount || 0}::numeric)
               )
-            WHERE id = ${regId} AND event_id = ${eventId}
+            WHERE id = ${regId} AND event_id = ${eventId}::bigint
           `
 
           // Send approval email
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 '{refundRequested}',
                 'false'::jsonb
               )
-            WHERE id = ${regId} AND event_id = ${eventId}
+            WHERE id = ${regId} AND event_id = ${eventId}::bigint
           `
 
           // Send rejection email
@@ -247,7 +247,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 '{adminNotes}',
                 to_jsonb(${notes || 'More information requested'}::text)
               )
-            WHERE id = ${regId} AND event_id = ${eventId}
+            WHERE id = ${regId} AND event_id = ${eventId}::bigint
           `
         }
 
@@ -258,13 +258,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (updatedCount === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'No cancellations were updated.',
-        success: false 
+        success: false
       }, { status: 404 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `${updatedCount} cancellation(s) processed successfully`,
       success: true,
       updatedCount,
@@ -272,9 +272,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     })
   } catch (error: any) {
     console.error('Error processing cancellation approvals:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Failed to process cancellation approvals',
-      error: error.message 
+      error: error.message
     }, { status: 500 })
   }
 }
