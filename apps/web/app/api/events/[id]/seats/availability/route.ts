@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // 1. Check floor_plan_configs (New system) - Raw SQL
     // It stores the layout in 'layout_data' column (JSONB)
     const configs = await prisma.$queryRaw<any[]>`
-       SELECT layout_data, total_seats, plan_name, event_id FROM floor_plan_configs WHERE event_id = ${eventId}::bigint LIMIT 1
+       SELECT layout_data, total_seats, plan_name, event_id, tenant_id FROM floor_plan_configs WHERE event_id = ${eventId}::bigint LIMIT 1
     `
 
     let floorPlan: any = null;
@@ -55,7 +55,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         id: 'config', // ID not strictly needed for rendering
         layoutData: layoutData,
         totalCapacity: Number(cfg.total_seats || 0),
-        name: cfg.plan_name || 'Event Floor Plan'
+        name: cfg.plan_name || 'Event Floor Plan',
+        tenantId: cfg.tenant_id
       }
     } else {
       // 2. Check floor_plans (Legacy system) - Prisma Client
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           orderBy: { createdAt: 'desc' }
         })
         if (legacy) {
-          floorPlan = legacy;
+          floorPlan = { ...legacy, tenantId: legacy.tenantId };
         }
       } catch (err) {
         console.warn('Legacy floor plan check failed:', err)
@@ -85,7 +86,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
       console.log('[Availability] Self-healing: Generating missing seats for event', eventId)
       try {
-        await generateSeats(eventId, floorPlan.layoutData, tenantId)
+        // Use tenantId from floor plan if available (most reliable), else from context
+        await generateSeats(eventId, floorPlan.layoutData, floorPlan.tenantId || tenantId)
       } catch (genErr) {
         console.error('[Availability] Generation failed:', genErr)
       }
