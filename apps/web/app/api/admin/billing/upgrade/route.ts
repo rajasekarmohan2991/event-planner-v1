@@ -19,20 +19,35 @@ export async function POST(req: NextRequest) {
 
         // Update the tenant's plan
         // In a real scenario, this would interact with Stripe/Razorpay using paymentMethodId
-        const subscriptionStartedAt = new Date();
         const subscriptionEndsAt = new Date();
         subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
 
-        await prisma.$executeRaw`
-            UPDATE tenants 
-            SET 
-                plan = ${plan},
-                status = 'ACTIVE',
-                subscription_started_at = ${subscriptionStartedAt},
-                subscription_ends_at = ${subscriptionEndsAt},
-                updated_at = NOW()
-            WHERE id = ${tenantId}
-        `;
+        // Only update columns that exist in the tenants table
+        try {
+            await prisma.$executeRaw`
+                UPDATE tenants 
+                SET 
+                    plan = ${plan},
+                    status = 'ACTIVE',
+                    subscription_ends_at = ${subscriptionEndsAt},
+                    updated_at = NOW()
+                WHERE id = ${tenantId}
+            `;
+        } catch (updateError: any) {
+            // If subscription_ends_at doesn't exist, try without it
+            if (updateError.message?.includes('subscription_ends_at')) {
+                await prisma.$executeRaw`
+                    UPDATE tenants 
+                    SET 
+                        plan = ${plan},
+                        status = 'ACTIVE',
+                        updated_at = NOW()
+                    WHERE id = ${tenantId}
+                `;
+            } else {
+                throw updateError;
+            }
+        }
 
         const updatedTenant = await prisma.$queryRaw<any[]>`
             SELECT * FROM tenants WHERE id = ${tenantId}
