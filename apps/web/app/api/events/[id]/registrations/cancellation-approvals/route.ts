@@ -29,8 +29,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       WHERE r.event_id = ${eventId}::bigint
         AND r.data_json IS NOT NULL
         AND (
-          (r.data_json->>'status') = 'PENDING_CANCELLATION'
-          OR COALESCE(r.data_json->>'cancelReason','') <> ''
+          (r.data_json::jsonb->>'status') = 'PENDING_CANCELLATION'
+          OR COALESCE(r.data_json::jsonb->>'cancelReason','') <> ''
         )
       ORDER BY r.created_at DESC
       LIMIT 100
