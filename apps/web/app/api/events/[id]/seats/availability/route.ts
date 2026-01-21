@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getTenantId } from '@/lib/tenant-context'
+import { generateSeats } from '@/lib/seat-generator'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -81,8 +82,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const hasFloorPlan = !!floorPlan
     const hasSeatInventory = seatCount > 0
 
-    if (!hasFloorPlan && !hasSeatInventory) {
-      // No floor plan or seats exist - return empty (seat selector only works after floor plan creation)
+    if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
+      console.log('[Availability] Self-healing: Generating missing seats for event', eventId)
+      try {
+        await generateSeats(eventId, floorPlan.layoutData, tenantId)
+      } catch (genErr) {
+        console.error('[Availability] Generation failed:', genErr)
+      }
+    } else if (!hasFloorPlan && !hasSeatInventory) {
+      // No floor plan or seats exist AND generation not possible - return empty
       return NextResponse.json({
         seats: [],
         groupedSeats: {},
