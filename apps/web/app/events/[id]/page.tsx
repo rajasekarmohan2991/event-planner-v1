@@ -80,17 +80,67 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
       </div>
 
 
-      {/* Sponsor and Exhibitor row - moved up */}
+      {/* Main Dashboard Content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
+        {/* Registration Trend - Spans 2 columns */}
+        <Card className="p-4 flex flex-col justify-between md:col-span-2">
+          <div>
+            <div className="font-medium">Registration Trend</div>
+            <div className="mt-4">
+              {loading ? (
+                <div className="h-48 w-full rounded-md bg-slate-50 dark:bg-slate-800 relative overflow-hidden">
+                  <div className="absolute inset-0 animate-pulse" />
+                  <div className="absolute right-2 top-2">
+                    <lottie-player autoplay loop background="transparent" mode="normal" src="https://assets4.lottiefiles.com/packages/lf20_usmfx6bp.json" style={{ width: 24, height: 24 }} />
+                  </div>
+                </div>
+              ) : (
+                <svg viewBox="0 0 400 120" className="w-full h-48">
+                  <polyline fill="none" stroke="#6366f1" strokeWidth="2"
+                    points={(() => {
+                      const data = trend.length ? trend : Array.from({ length: 14 }, (_, i) => ({ count: 0 }))
+                      const max = Math.max(1, ...data.map(d => d.count))
+                      const divisor = Math.max(1, data.length - 1)
+                      return data.map((d, i) => {
+                        const x = (i / divisor) * 400
+                        const y = 120 - ((d.count || 0) / max) * 100 - 10
+                        return `${x.toFixed(1)},${y.toFixed(1)}`
+                      }).join(' ')
+                    })()} />
+                </svg>
+              )}
+            </div>
+            {(!trend.length || trend.every(t => t.count === 0)) && (
+              <div className="mt-4 flex items-center justify-center gap-3 bg-slate-50 p-4 rounded-lg">
+                <lottie-player
+                  autoplay
+                  loop
+                  mode="normal"
+                  background="transparent"
+                  src="https://assets9.lottiefiles.com/packages/lf20_2omr5gpu.json"
+                  style={{ width: 40, height: 40 }}
+                />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">No attendees yet</p>
+                  <p className="text-xs text-muted-foreground">Promote your event to start seeing data here.</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="pt-4 flex justify-end">
+            <Link href={`/events/${params.id}/reports/ticket-sales`} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View Detailed Report &rarr;</Link>
+          </div>
+        </Card>
+
+        {/* Event Numbers - Spans 1 column */}
         <Card className="p-4">
-          <div className="font-medium">Event Numbers</div>
-          <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-3 text-center">
+          <div className="font-medium mb-4">Event Numbers</div>
+          <div className="grid grid-cols-2 gap-3 text-center">
             {[
               { label: 'Sessions', value: stats?.counts?.sessions ?? 0 },
               { label: 'Speakers', value: stats?.counts?.speakers ?? 0 },
-              { label: 'Event Team', value: stats?.counts?.team ?? 0 },
-
+              { label: 'Team', value: stats?.counts?.team ?? 0 },
               { label: 'Promos', value: stats?.counts?.promos ?? 0 },
             ].map((it) => (
               <div key={it.label} className="rounded-md bg-indigo-50/60 dark:bg-indigo-950/20 p-3">
@@ -100,70 +150,16 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
             ))}
           </div>
         </Card>
-      </div>
 
-      {/* Registration Trend and Attendance row - moved down */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Registration Trend */}
-        <Card className="p-4 flex flex-col justify-between">
+        {/* Attendance / Promotion - Spans full width */}
+        <Card className="p-4 md:col-span-3 flex items-center justify-between">
           <div>
-            <div className="font-medium">Registration Trend</div>
-            {/* Mini line chart using SVG */}
-            <div className="mt-4">
-              {loading ? (
-                <div className="h-24 w-full rounded-md bg-slate-50 dark:bg-slate-800 relative overflow-hidden">
-                  <div className="absolute inset-0 animate-pulse" />
-                  <div className="absolute right-2 top-2">
-                    <lottie-player autoplay loop background="transparent" mode="normal" src="https://assets4.lottiefiles.com/packages/lf20_usmfx6bp.json" style={{ width: 24, height: 24 }} />
-                  </div>
-                </div>
-              ) : (
-                <svg viewBox="0 0 200 80" className="w-full h-24">
-                  <polyline fill="none" stroke="#6366f1" strokeWidth="2"
-                    points={(() => {
-                      const data = trend.length ? trend : Array.from({ length: 14 }, (_, i) => ({ count: 0 }))
-                      const max = Math.max(1, ...data.map(d => d.count))
-                      const divisor = Math.max(1, data.length - 1) // Prevent division by zero
-                      return data.map((d, i) => {
-                        const x = (i / divisor) * 200
-                        const y = 80 - ((d.count || 0) / max) * 70 - 5
-                        return `${x.toFixed(1)},${y.toFixed(1)}`
-                      }).join(' ')
-                    })()} />
-                </svg>
-              )}
-            </div>
-            {/* Show a gentle animation when there are no registrations yet */}
-            {(!trend.length || trend.every(t => t.count === 0)) && (
-              <div className="mt-2 flex items-center gap-3">
-                <lottie-player
-                  autoplay
-                  loop
-                  mode="normal"
-                  background="transparent"
-                  src="https://assets9.lottiefiles.com/packages/lf20_2omr5gpu.json"
-                  style={{ width: 56, height: 56 }}
-                />
-                <div>
-                  <p className="text-sm text-muted-foreground">Reach your first attendee</p>
-                  <p className="text-xs text-muted-foreground">No attendees yet. Promote your event to sign people up.</p>
-                </div>
-              </div>
-            )}
+            <div className="font-medium">Ready to grow?</div>
+            <p className="text-sm text-muted-foreground mt-1">Promote your event across social media and email to boost registrations.</p>
           </div>
-          <div className="pt-3">
-            <Link href={`/events/${params.id}/promote`} className="inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-600/90">Promote Your Event</Link>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="font-medium">Attendance</div>
-          <div className="mt-4 h-28 w-full rounded-md bg-slate-50 dark:bg-slate-800" />
-          <p className="mt-3 text-sm text-muted-foreground">Promote Your Event</p>
-          <p className="text-xs text-muted-foreground">Your event is now live! It's time to promote your event and start bringing in participants.</p>
-          <div className="mt-3">
-            <Link href={`/events/${params.id}/promote`} className="inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-600/90">Promote</Link>
-          </div>
+          <Link href={`/events/${params.id}/promote`} className="inline-flex items-center px-4 py-2 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-600/90 shadow-sm">
+            Promote Event
+          </Link>
         </Card>
       </div>
     </div>
