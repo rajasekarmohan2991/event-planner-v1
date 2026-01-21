@@ -14,42 +14,44 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = parseInt(params.id)
 
-    // Aggregate totals
+    const eventIdStr = params.id // Order table uses string eventId
+
+    // Aggregate totals from "Order" table
     const [totals, byStatus, byMethod, revenueByDay] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT COUNT(*)::int AS total, COALESCE(SUM(amount_in_minor),0)::bigint AS total_minor
-         FROM payments WHERE event_id = $1`,
-        eventId
+        `SELECT COUNT(*)::int AS total, COALESCE(SUM("totalInr"),0)::bigint AS total_minor
+         FROM "Order" WHERE "eventId" = $1`,
+        eventIdStr
       ).catch(() => [{ total: 0, total_minor: 0 }]),
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT status, COUNT(*)::int AS count
-         FROM payments WHERE event_id = $1
-         GROUP BY status`,
-        eventId
+        `SELECT "paymentStatus" as status, COUNT(*)::int AS count
+         FROM "Order" WHERE "eventId" = $1
+         GROUP BY "paymentStatus"`,
+        eventIdStr
       ).catch(() => []),
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT payment_method, COUNT(*)::int AS count
-         FROM payments WHERE event_id = $1
-         GROUP BY payment_method ORDER BY count DESC NULLS LAST LIMIT 1`,
-        eventId
+        `SELECT "paymentMethod" as payment_method, COUNT(*)::int AS count
+         FROM "Order" WHERE "eventId" = $1
+         GROUP BY "paymentMethod" ORDER BY count DESC NULLS LAST LIMIT 1`,
+        eventIdStr
       ).catch(() => []),
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
-                COALESCE(SUM(amount_in_minor),0)::bigint AS amt
-         FROM payments WHERE event_id = $1 AND status IN ('SUCCEEDED','COMPLETED','PAID')
+        `SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
+                COALESCE(SUM("totalInr"),0)::bigint AS amt
+         FROM "Order" WHERE "eventId" = $1 AND "paymentStatus" IN ('COMPLETED','PAID','SUCCEEDED')
          GROUP BY day ORDER BY day DESC LIMIT 30`,
-        eventId
+        eventIdStr
       ).catch(() => []),
     ])
 
     const totalPayments = totals[0]?.total || 0
     const totalRevenue = Number(totals[0]?.total_minor || 0) / 100
-    const successfulPayments = (byStatus as any[]).find(s => (s.status||'').toUpperCase() === 'SUCCEEDED' || (s.status||'').toUpperCase() === 'COMPLETED' || (s.status||'').toUpperCase() === 'PAID')?.count || 0
-    const failedPayments = (byStatus as any[]).find(s => (s.status||'').toUpperCase() === 'FAILED' || (s.status||'').toUpperCase() === 'ERROR' || (s.status||'').toUpperCase() === 'CANCELLED')?.count || 0
-    const pendingPayments = (byStatus as any[]).find(s => (s.status||'').toUpperCase() === 'PENDING' || (s.status||'').toUpperCase() === 'CREATED')?.count || 0
+    const successfulPayments = (byStatus as any[]).find(s => (s.status || '').toUpperCase() === 'SUCCEEDED' || (s.status || '').toUpperCase() === 'COMPLETED' || (s.status || '').toUpperCase() === 'PAID')?.count || 0
+    const failedPayments = (byStatus as any[]).find(s => (s.status || '').toUpperCase() === 'FAILED' || (s.status || '').toUpperCase() === 'ERROR' || (s.status || '').toUpperCase() === 'CANCELLED')?.count || 0
+    const pendingPayments = (byStatus as any[]).find(s => (s.status || '').toUpperCase() === 'PENDING' || (s.status || '').toUpperCase() === 'CREATED')?.count || 0
     const averagePaymentAmount = totalPayments > 0 ? totalRevenue / totalPayments : 0
     const topPaymentMethod = byMethod[0]?.payment_method || 'N/A'
-    const revenueByDayArr = (revenueByDay as any[]).map(r => ({ date: r.day, revenue: Number(r.amt)/100 }))
+    const revenueByDayArr = (revenueByDay as any[]).map(r => ({ date: r.day, revenue: Number(r.amt) / 100 }))
 
     return NextResponse.json({
       totalPayments,
