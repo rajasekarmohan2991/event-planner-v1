@@ -397,7 +397,7 @@ export async function POST(
                 ${newOrderId},
                 ${orderEventId},
                 ${tenantId},
-                ${userIdStr},
+                ${userIdStr}::bigint,
                 ${formData.email},
                 ${finalAmount > 0 ? 'PAID' : 'CREATED'}::"OrderStatus",
                 ${finalAmount > 0 ? 'COMPLETED' : 'FREE'},
