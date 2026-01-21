@@ -14,45 +14,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventId = BigInt(params.id)
-
     const url = new URL(req.url)
     const page = parseInt(url.searchParams.get('page') || '0')
     const size = parseInt(url.searchParams.get('size') || '50')
     const offset = page * size
 
-    // Fetch payments from "Order" table (which holds payment records)
-    // Joined with registrations via meta->>'registrationId'
-    // Order model columns are CamelCase in DB if unmapped, or mixed. Check Schema.
-    // Schema: Order { id, eventId, userId, email, paymentStatus, totalInr, meta, createdAt ... }
-    // Using quoted identifiers to be safe.
-
-    // Note: eventId in Order is String in schema, but we passed BigInt in param?
-    // In schema: eventId String. BUT in registrations logic we saw it inserting string.
-    // Wait, registrations route inserts `eventId` (BigInt or String?).
-    // registrations route: BigInt(params.id).
-    // Order table in schema: eventId String.
-    // In `registrations/route.ts` lines 210: `${eventId}` (which comes from `params.id` string).
-    // So distinct from registration.eventId (BigInt).
-
-    // We should use String(params.id) for Order table queries.
-
+    // We use params.id directly as string because Order.eventId is String in schema
     const eventIdStr = params.id
 
-    const [payments, totalResult] = await Promise.all([
+    const [paymentsRaw, totalResult] = await Promise.all([
       prisma.$queryRaw<any[]>`
         SELECT 
           o."id"::text,
           o."meta"->>'registrationId' as "registrationId",
           o."eventId",
           o."userId"::text,
-          (o."totalInr"::numeric / 100.0) as amount, -- Assuming totalInr is minor units? No, code says totalInr is Int. Usually means INR. Wait.
-          -- In registrations/route: totalPrice is passed. finalAmount (after discount).
-          -- Order.totalInr = Math.round(finalAmount).
-          -- If finalAmount is in Rupees, then totalInr is Rupees.
-          -- If finalAmount is in Paise, then totalInr is Paise.
-          -- Convention: "totalInr" usually implies Rupees? OR inconsistent naming.
-          -- Let's assume it is just the amount.
           o."totalInr" as amount_raw,
           'INR' as currency,
           'CARD' as "paymentMethod",
@@ -61,23 +37,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           '' as "stripePaymentIntentId",
           o."createdAt",
           o."updatedAt",
-          COALESCE(
-            CASE 
-              WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-                r.data_json::jsonb->>'firstName'
-              ELSE ''
-            END, 
-            ''
-          ) as "firstName",
-          COALESCE(
-            CASE 
-              WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-                r.data_json::jsonb->>'lastName'
-              ELSE ''
-            END, 
-            ''
-          ) as "lastName",
-          COALESCE(r.email, o."email", '') as email
+          r.email as "regEmail",
+          o."email" as "orderEmail",
+          r.data_json as "regDataJson"
         FROM "Order" o
         LEFT JOIN registrations r ON (o."meta"->>'registrationId') = r.id
         WHERE o."eventId" = ${eventIdStr}
@@ -93,12 +55,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const total = totalResult[0]?.count || 0
 
-    // Convert amounts to numbers
-    const formattedPayments = payments.map(p => ({
-      ...p,
-      amount: Number(p.amount),
-      paymentDetails: p.paymentDetails || {}
-    }))
+    // Process and parse in JS to avoid SQL JSON casting errors
+    const formattedPayments = paymentsRaw.map(p => {
+      // Parse registration data safely
+      let regData: any = {}
+      try {
+        if (typeof p.regDataJson === 'string') {
+          regData = JSON.parse(p.regDataJson)
+        } else if (p.regDataJson && typeof p.regDataJson === 'object') {
+          regData = p.regDataJson
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+
+      const firstName = regData.firstName || ''
+      const lastName = regData.lastName || ''
+
+      return {
+        id: p.id,
+        registrationId: p.registrationId,
+        eventId: p.eventId,
+        userId: p.userId,
+        amount: Number(p.amount_raw) || 0,
+        currency: p.currency,
+        paymentMethod: p.paymentMethod,
+        status: p.status,
+        paymentDetails: p.paymentDetails || {},
+        stripePaymentIntentId: p.stripePaymentIntentId,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        firstName,
+        lastName,
+        email: p.regEmail || p.orderEmail || ''
+      }
+    })
 
     return NextResponse.json({
       payments: formattedPayments,
