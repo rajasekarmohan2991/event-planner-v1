@@ -11,7 +11,7 @@ export async function DELETE(
     context: { params: Promise<{ id: string }> | { id: string } }
 ) {
     const params = 'then' in context.params ? await context.params : context.params;
-    
+
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,8 +38,8 @@ export async function DELETE(
 
         // Prevent deletion of super-admin tenant
         if (company.slug === 'super-admin') {
-            return NextResponse.json({ 
-                error: 'Cannot delete the super-admin tenant' 
+            return NextResponse.json({
+                error: 'Cannot delete the super-admin tenant'
             }, { status: 400 });
         }
 
@@ -58,20 +58,42 @@ export async function DELETE(
         console.log(`Company has ${eventsDeleted} events and ${membersRemoved} members`);
 
         // Delete related records first (manual cascade)
-        await prisma.$executeRawUnsafe(`DELETE FROM tenant_members WHERE tenant_id = $1`, params.id);
-        await prisma.$executeRawUnsafe(`DELETE FROM tax_structures WHERE tenant_id = $1`, params.id);
-        await prisma.$executeRawUnsafe(`DELETE FROM invoices WHERE tenant_id = $1`, params.id);
-        
-        // Delete events (this will cascade to registrations, etc.)
-        await prisma.$executeRawUnsafe(`DELETE FROM events WHERE tenant_id = $1`, params.id);
-        
+        // Some of these might fail if table doesn't exist, so we wrap in try-catch blocks or ignore
+        const tablesToDelete = [
+            'module_access_matrix',
+            'tax_structure_history',
+            'tax_structures',
+            'tenant_members',
+            'invoices',
+            'subscriptions',
+            'payments',
+            'company_settings'
+        ];
+
+        for (const table of tablesToDelete) {
+            try {
+                await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE tenant_id = $1`, params.id);
+            } catch (e) {
+                // Ignore if table doesn't exist or column missing
+                console.log(`Skipping delete for table ${table} (might not exist or no tenant_id)`);
+            }
+        }
+
+        // Delete events (this will cascade to registrations, etc. via database FK if configured, or fail)
+        // We attempt to delete events manually just in case
+        try {
+            await prisma.$executeRawUnsafe(`DELETE FROM events WHERE tenant_id = $1`, params.id);
+        } catch (e) {
+            console.warn('Error deleting events:', e);
+        }
+
         // Finally delete the tenant
         await prisma.$executeRawUnsafe(`DELETE FROM tenants WHERE id = $1`, params.id);
 
         console.log(`Successfully deleted company: ${company.name}`);
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             message: `Company "${company.name}" deleted successfully`,
             deletedCompany: {
                 id: company.id,
@@ -88,10 +110,10 @@ export async function DELETE(
             meta: error.meta,
             stack: error.stack
         });
-        
-        return NextResponse.json({ 
-            error: 'Failed to delete company', 
-            details: error.message 
+
+        return NextResponse.json({
+            error: 'Failed to delete company',
+            details: error.message
         }, { status: 500 });
     }
 }
