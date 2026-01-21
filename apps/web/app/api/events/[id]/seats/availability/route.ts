@@ -32,14 +32,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const ticketClass = searchParams.get('ticketClass') // VIP, PREMIUM, GENERAL
 
     // Gate by actual existence: floor plan OR existing seats
-    const floorPlan = await prisma.floorPlan.findFirst({
-      where: { eventId: BigInt(eventId) },
-      orderBy: { createdAt: 'desc' }
-    })
+    // Check both tables (new and legacy)
+    const floorPlanRaw = await prisma.$queryRaw<any[]>`
+      SELECT id, layout_data as "layoutData", total_seats as "totalCapacity", plan_name as name
+      FROM floor_plans WHERE "eventId" = ${eventId}::bigint
+      UNION ALL
+      SELECT id, layout_data as "layoutData", total_seats as "totalCapacity", plan_name as name
+      FROM floor_plan_configs WHERE event_id = ${eventId}::bigint
+      LIMIT 1
+    ` as any[]
 
-    const seatCount = await prisma.seatInventory.count({
-      where: { eventId }
-    })
+    const floorPlan = floorPlanRaw.length > 0 ? floorPlanRaw[0] : null
+
+    // Check seat inventory count safely
+    const seatCountRaw = await prisma.$queryRaw<any[]>`
+      SELECT COUNT(*)::int as count FROM seat_inventory WHERE event_id = ${eventId}::bigint
+    `
+    const seatCount = seatCountRaw[0]?.count || 0
 
     const hasFloorPlan = !!floorPlan
     const hasSeatInventory = seatCount > 0
