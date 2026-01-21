@@ -1409,6 +1409,14 @@ export async function ensureSchema() {
     `)
         await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_seat_pricing_rules_event_id ON seat_pricing_rules(event_id);`)
 
+        console.log('📝 Step 45: Updating event_vendors schema (missing columns)...')
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS budget DOUBLE PRECISION DEFAULT 0;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS bank_name TEXT;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_number TEXT;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS ifsc_code TEXT;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_holder_name TEXT;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS upi_id TEXT;`)
+
         console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
         return true
     } catch (error: any) {
