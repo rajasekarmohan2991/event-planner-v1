@@ -63,6 +63,8 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   companyName: z.string().optional(),
   companySlug: z.string().optional(),
+  country: z.string().optional(),
+  registrationNumber: z.string().optional(),
   acceptTerms: z.boolean().refine((val) => val === true, {
     message: 'You must accept the terms and conditions',
   }),
@@ -95,6 +97,8 @@ export function RegisterForm() {
       confirmPassword: '',
       companyName: '',
       companySlug: '',
+      country: '',
+      registrationNumber: '',
       acceptTerms: false,
     },
   })
@@ -158,7 +162,9 @@ export function RegisterForm() {
           inviteCode: searchParams?.get('invite'),
           ...(registrationType === 'company' ? {
             companyName: data.companyName,
-            companySlug: data.companySlug
+            companySlug: data.companySlug,
+            country: data.country,
+            registrationNumber: data.registrationNumber
           } : {})
         }),
       })
@@ -352,6 +358,58 @@ export function RegisterForm() {
                         {slugAvailable === false && (
                           <p className="text-xs text-destructive mt-1">Slug already taken</p>
                         )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Registration Country</FormLabel>
+                        <FormControl>
+                          <motion.div whileFocus={{ scale: 1.01 }}>
+                            <select
+                              {...field}
+                              disabled={isLoading}
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="">Select Country</option>
+                              <option value="IN">India</option>
+                              <option value="US">United States</option>
+                              <option value="GB">United Kingdom</option>
+                              <option value="CA">Canada</option>
+                              <option value="AU">Australia</option>
+                              <option value="SG">Singapore</option>
+                              <option value="AE">UAE</option>
+                              <option value="DE">Germany</option>
+                              <option value="FR">France</option>
+                              <option value="JP">Japan</option>
+                            </select>
+                          </motion.div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="registrationNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Registration Number</FormLabel>
+                        <FormControl>
+                          <motion.div whileFocus={{ scale: 1.01 }}>
+                            <Input
+                              placeholder="e.g., CIN, EIN, or Company Number"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                          </motion.div>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

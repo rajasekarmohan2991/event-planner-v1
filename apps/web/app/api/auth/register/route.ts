@@ -12,6 +12,23 @@ const RAW_API_BASE = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLI
 const API_BASE = `${RAW_API_BASE.replace(/\/$/, '')}/api`
 // UserRole enum removed from schema, using string values directly
 
+// Currency mapping based on country code
+function getCurrencyByCountry(countryCode: string): string {
+  const currencyMap: Record<string, string> = {
+    'IN': 'INR',
+    'US': 'USD',
+    'GB': 'GBP',
+    'CA': 'CAD',
+    'AU': 'AUD',
+    'SG': 'SGD',
+    'AE': 'AED',
+    'DE': 'EUR',
+    'FR': 'EUR',
+    'JP': 'JPY',
+  }
+  return currencyMap[countryCode] || 'USD' // Default to USD
+}
+
 // Define default permissions for roles
 const ROLE_PERMISSIONS: Record<string, any> = {
   'TENANT_ADMIN': {
@@ -52,7 +69,7 @@ export async function POST(req: NextRequest) {
   // Apply rate limiting (5 requests per minute)
   const rateLimitedResponse = await withRateLimit(req, async () => {
     try {
-      const { name, email, password, role: requestedRole, inviteCode, companyName, companySlug } = await req.json()
+      const { name, email, password, role: requestedRole, inviteCode, companyName, companySlug, country, registrationNumber } = await req.json()
 
       // Validate input
       if (!name || !email || !password) {
@@ -144,11 +161,17 @@ export async function POST(req: NextRequest) {
 
         // Create tenant if requested
         if (companyName && companySlug) {
+          // Determine currency based on country
+          const currency = country ? getCurrencyByCountry(country) : 'USD'
+          
           const newTenant = await tx.tenant.create({
             data: {
               name: companyName,
               slug: companySlug,
               subdomain: companySlug,
+              country: country || null,
+              registrationNumber: registrationNumber || null,
+              currency: currency,
               members: {
                 create: {
                   userId: newUser.id,
