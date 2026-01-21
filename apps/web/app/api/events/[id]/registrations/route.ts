@@ -452,14 +452,14 @@ export async function POST(
     }
 
     // 6. Log Promo Redemption (Non-critical)
-    if (promoCodeId && userId) {
+    if (promoCodeId) {
       try {
-        const userIdStr = String(userId)
+        const promoUserId = userId ? String(userId) : null
         await prisma.$executeRaw`
             INSERT INTO promo_redemptions (
                 promo_code_id, user_id, order_amount, discount_amount, redeemed_at
             ) VALUES (
-                ${promoCodeId}, ${userIdStr}, ${basePrice}, ${promoDiscount}, NOW()
+                ${promoCodeId}, ${promoUserId}::bigint, ${basePrice}, ${promoDiscount}, NOW()
             )
         `
       } catch (e: any) {

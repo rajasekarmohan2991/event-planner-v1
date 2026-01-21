@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         COUNT(*) FILTER (WHERE is_available = false)::int as "quantitySold",
         COALESCE(SUM(CASE WHEN is_available = false THEN base_price ELSE 0 END), 0)::int as revenue
       FROM seat_inventory
-      WHERE event_id = ${eventId}
+      WHERE event_id = ${eventId}::bigint
       GROUP BY section, seat_type, base_price
       ORDER BY section
     `
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const quantitySold = ticket.quantitySold || 0
       const quantityAvailable = ticket.quantityAvailable || 0
       const percentageSold = quantityAvailable > 0 ? Math.round((quantitySold / quantityAvailable) * 100) : 0
-      
+
       return {
         ticketId: index + 1,
         ticketName: ticket.ticketName || 'General',
