@@ -82,17 +82,7 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
 
       {/* Sponsor and Exhibitor row - moved up */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="font-medium">Sponsor Category</div>
-          <div className="mt-6 h-28 w-full rounded-md bg-slate-50 dark:bg-slate-800" />
-          <p className="mt-3 text-sm text-muted-foreground">No Sponsors Yet</p>
-          <p className="text-xs text-muted-foreground">Add a sponsor manually, if available, or set up sponsorship categories and related benefits to be displayed on your event website.</p>
-        </Card>
-        <Card className="p-4">
-          <div className="font-medium">Exhibitor</div>
-          <div className="mt-6 h-28 w-full rounded-md bg-slate-50 dark:bg-slate-800" />
-          <p className="mt-3 text-sm text-muted-foreground">No Exhibitors Yet</p>
-        </Card>
+
         <Card className="p-4">
           <div className="font-medium">Event Numbers</div>
           <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-3 text-center">
@@ -100,8 +90,7 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
               { label: 'Sessions', value: stats?.counts?.sessions ?? 0 },
               { label: 'Speakers', value: stats?.counts?.speakers ?? 0 },
               { label: 'Event Team', value: stats?.counts?.team ?? 0 },
-              { label: 'Sponsors', value: stats?.counts?.sponsors ?? 0 },
-              { label: 'Exhibitors', value: stats?.counts?.exhibitors ?? 0 },
+
               { label: 'Promos', value: stats?.counts?.promos ?? 0 },
             ].map((it) => (
               <div key={it.label} className="rounded-md bg-indigo-50/60 dark:bg-indigo-950/20 p-3">
@@ -166,7 +155,7 @@ export default function EventWorkspaceDashboard({ params }: { params: { id: stri
             <Link href={`/events/${params.id}/promote`} className="inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-600/90">Promote Your Event</Link>
           </div>
         </Card>
-        
+
         <Card className="p-4">
           <div className="font-medium">Attendance</div>
           <div className="mt-4 h-28 w-full rounded-md bg-slate-50 dark:bg-slate-800" />
