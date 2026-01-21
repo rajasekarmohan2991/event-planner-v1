@@ -16,30 +16,67 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         console.log('[PAYMENT CONFIRM] Confirming payment for:', { registrationId, amount })
 
-        // 1. Update Order Status
-        // Find the order linked to this registration
-        // We use raw sql to match the JSON meta field
+        // 1. Fetch Registration to ensure it exists and get details
+        const registration = await prisma.registration.findUnique({
+            where: { id: registrationId }
+        })
+
+        if (!registration) {
+            return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
+        }
+
+        // 2. Check for existing Order
         const orders = await prisma.$queryRaw<any[]>`
-      SELECT "id" FROM "Order" 
-      WHERE "meta"->>'registrationId' = ${registrationId}
-      LIMIT 1
-    `
+            SELECT "id" FROM "Order" 
+            WHERE "meta"->>'registrationId' = ${registrationId}
+            LIMIT 1
+        `
+
+        let orderId: string | null = null
 
         if (orders.length > 0) {
-            const orderId = orders[0].id
-            // Update to COMPLETED
+            // Update existing
+            orderId = orders[0].id
             await prisma.$executeRaw`
-         UPDATE "Order"
-         SET "paymentStatus" = 'COMPLETED',
-             "paymentMethod" = ${paymentMethod || 'CARD'},
-             "updatedAt" = NOW()
-         WHERE "id" = ${orderId}
-       `
+                UPDATE "Order"
+                SET "paymentStatus" = 'COMPLETED',
+                    "status" = 'PAID',
+                    "paymentMethod" = ${paymentMethod || 'CARD'},
+                    "updatedAt" = NOW()
+                WHERE "id" = ${orderId}
+            `
             console.log('[PAYMENT CONFIRM] Order updated:', orderId)
         } else {
-            console.warn('[PAYMENT CONFIRM] Order not found for registration:', registrationId)
-            // Optional: Create an order if missing? 
-            // For now, we assume registration created it.
+            // Create new Order (Self-healing)
+            console.log('[PAYMENT CONFIRM] Order missing, creating new one...')
+            const newOrderId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
+            const metaJson = JSON.stringify({ registrationId: registration.id })
+
+            // Assuming tenantId from registration or fallback
+            // We cast eventId to string as Order.eventId is String usually
+            const eventIdStr = registration.eventId.toString()
+            const email = registration.email || 'unknown@example.com'
+
+            await prisma.$executeRaw`
+                INSERT INTO "Order" (
+                    "id", "eventId", "tenantId", "userId", "email", "status", 
+                    "paymentStatus", "totalInr", "meta", "createdAt", "updatedAt"
+                ) VALUES (
+                    ${newOrderId},
+                    ${eventIdStr},
+                    ${registration.tenantId},
+                    NULL, -- userId might be null for guest
+                    ${email},
+                    'PAID',
+                    'COMPLETED',
+                    ${amount},
+                    ${metaJson}::jsonb,
+                    NOW(),
+                    NOW()
+                )
+            `
+            orderId = newOrderId
+            console.log('[PAYMENT CONFIRM] Order created:', orderId)
         }
 
         return NextResponse.json({ success: true })
