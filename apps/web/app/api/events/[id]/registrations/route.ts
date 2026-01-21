@@ -372,13 +372,13 @@ export async function POST(
       const regStatus = initialStatus
 
       const registrationDataJson = JSON.stringify(registrationData)
-      const ticketIdBigInt = ticketId ? BigInt(ticketId) : null
+      // ticket_id column is TEXT, so we pass the string ticketId directly
 
       await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId}, ${eventIdBigInt}::bigint, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdBigInt}
+                ${newRegId}, ${eventIdBigInt}::bigint, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketId}
             )
         `
       console.log('✅ Registration inserted')

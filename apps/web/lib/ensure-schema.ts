@@ -1355,6 +1355,60 @@ export async function ensureSchema() {
     `)
         await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_exhibitors_event_id ON exhibitors(event_id);`)
 
+
+        console.log('📝 Step 42: Creating seat_inventory table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS seat_inventory (
+        id BIGSERIAL PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        section TEXT,
+        row_number TEXT,
+        seat_number TEXT,
+        seat_type TEXT,
+        base_price DECIMAL(10,2) DEFAULT 0,
+        x_coordinate DECIMAL(10,2) DEFAULT 0,
+        y_coordinate DECIMAL(10,2) DEFAULT 0,
+        is_available BOOLEAN DEFAULT TRUE,
+        tenant_id TEXT,
+        status TEXT DEFAULT 'AVAILABLE', 
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_seat_inventory_event_id ON seat_inventory(event_id);`)
+
+        console.log('📝 Step 43: Creating floor_plan_configs table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS floor_plan_configs (
+        id BIGSERIAL PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        plan_name TEXT,
+        layout_data JSONB,
+        total_seats INTEGER DEFAULT 0,
+        sections JSONB,
+        tenant_id TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_floor_plan_configs_event_id ON floor_plan_configs(event_id);`)
+
+        console.log('📝 Step 44: Creating seat_pricing_rules table...')
+        await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS seat_pricing_rules (
+        id BIGSERIAL PRIMARY KEY,
+        event_id BIGINT NOT NULL,
+        section TEXT,
+        row_pattern TEXT,
+        seat_type TEXT,
+        base_price DECIMAL(10,2),
+        multiplier DECIMAL(5,2) DEFAULT 1.0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_seat_pricing_rules_event_id ON seat_pricing_rules(event_id);`)
+
         console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
         return true
     } catch (error: any) {
