@@ -29,9 +29,9 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
     // Helper for insertion (pushes to batch)
     const insertSeat = async (sectionName: string, rowLabel: string, seatNum: number, seatType: string, basePrice: number, xCoord: number, yCoord: number) => {
         // Avoid excessively long or weird values
-        const safeSection = sectionName.substring(0, 50)
-        const safeRow = String(rowLabel).substring(0, 10)
-        const safeType = String(seatType).substring(0, 50)
+        const safeSection = (sectionName || 'General').substring(0, 50)
+        const safeRow = String(rowLabel || '1').substring(0, 10)
+        const safeType = (seatType || 'Standard').substring(0, 50)
 
         // Add to batch
         seatBatch.push({
@@ -62,6 +62,7 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
     const hasV3Type = typeof plan.type === 'string' && plan.type.endsWith('_V3')
 
     if (hasV3Type) {
+        // ... V3 Logic (Theater, Stadium, Banquet)
         const type = String(plan.type)
         if (type === 'THEATER_V3') {
             const rows = Math.max(1, Number(plan.rows || 0))
@@ -98,6 +99,7 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
                 }
             }
         } else if (type === 'STADIUM_V3') {
+            // ... Stadium Logic
             const rings: any[] = Array.isArray(plan.rings) ? plan.rings : []
             const centerX = Number(plan.centerX || 500)
             const centerY = Number(plan.centerY || 300)
@@ -119,6 +121,7 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
                 }
             }
         } else if (type === 'BANQUET_V3') {
+            // ... Banquet Logic
             const tables: any[] = Array.isArray(plan.tables) ? plan.tables : []
             for (let ti = 0; ti < tables.length; ti++) {
                 const t = tables[ti]
@@ -138,8 +141,60 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
                 }
             }
         }
+    } else if (plan.objects && Array.isArray(plan.objects)) {
+        // NEW: Canvas Designer Format (objects array)
+        console.log('[SeatGenerator] Generating from Canvas Objects')
+        for (const obj of plan.objects) {
+            // Handle Round Tables
+            if (obj.type === 'ROUND_TABLE') {
+                const seatCount = Number(obj.totalSeats) || 0
+                if (seatCount <= 0) continue
+
+                const cx = obj.x + (obj.width / 2)
+                const cy = obj.y + (obj.height / 2)
+                const radius = (obj.width / 2) + 15 // Seats slightly outside table
+                const startAngle = 0
+
+                const sectionName = obj.label || 'Tables'
+                const rowLabel = obj.label || 'T'
+                const price = Number(obj.price || 0)
+                const seatType = obj.pricingTier || obj.seatType || 'STANDARD'
+
+                for (let i = 0; i < seatCount; i++) {
+                    const angle = startAngle + (i * (2 * Math.PI)) / seatCount
+                    const x = cx + radius * Math.cos(angle)
+                    const y = cy + radius * Math.sin(angle)
+                    await insertSeat(sectionName, rowLabel, i + 1, seatType, price, x, y)
+                }
+            }
+            // Handle Rectangular Tables (If supported)
+            else if (obj.type === 'RECT_TABLE' || obj.type === 'DINING_TABLE') {
+                const seatCount = Number(obj.totalSeats) || 0
+                if (seatCount <= 0) continue
+                // Simple distribution for rect table? Just use center for now or perimeter?
+                // Simplified: Same as round for now as fall back or skip?
+                // Better: Just center logic if complex.
+                // Let's assume circular distribution for simplicity to unblock, or valid logic if simple.
+                const cx = obj.x + (obj.width / 2)
+                const cy = obj.y + (obj.height / 2)
+                const radius = (Math.max(obj.width, obj.height) / 2) + 10
+                const sectionName = obj.label || 'Tables'
+                const rowLabel = obj.label || 'T'
+                const price = Number(obj.price || 0)
+                const seatType = obj.pricingTier || obj.seatType || 'STANDARD'
+
+                for (let i = 0; i < seatCount; i++) {
+                    const angle = (i * (2 * Math.PI)) / seatCount
+                    const x = cx + radius * Math.cos(angle)
+                    const y = cy + radius * Math.sin(angle)
+                    await insertSeat(sectionName, rowLabel, i + 1, seatType, price, x, y)
+                }
+            }
+            // Handle Individual Seats (Future support)
+            // else if (obj.type === 'SEAT') ...
+        }
     } else {
-        // Standard Sections V1/V2
+        // Standard Sections V1/V2 (Legacy)
         if (plan.sections) {
             for (const section of plan.sections) {
                 const sectionName = section.name || 'General'
