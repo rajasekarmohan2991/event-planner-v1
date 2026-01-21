@@ -14,14 +14,18 @@ export async function GET(req: NextRequest) {
 
     let tenantId = (session as any).user.currentTenantId as string | undefined
     const userId = (session as any).user.id
-    
+
     // If no tenant ID, try resolving by role/membership/defaults
     if (!tenantId) {
       // SUPER_ADMIN global view: try well-known id, else fall through
+      // SUPER_ADMIN global view: resolve by slug 'super-admin'
       if ((session as any).user.role === 'SUPER_ADMIN') {
-        tenantId = 'super-admin'
+        const adminTenants: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM tenants WHERE slug = 'super-admin' LIMIT 1`);
+        if (adminTenants.length > 0) {
+          tenantId = adminTenants[0].id;
+        }
       }
-      
+
       // If still missing, resolve via membership using raw SQL
       if (!tenantId && userId) {
         try {
@@ -35,7 +39,7 @@ export async function GET(req: NextRequest) {
           console.log('Could not find membership, trying fallback')
         }
       }
-      
+
       // If still missing, pick the first tenant in the system as a safe fallback
       if (!tenantId) {
         const tenants: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM tenants LIMIT 1`)
@@ -44,7 +48,7 @@ export async function GET(req: NextRequest) {
         }
       }
     }
-    
+
     if (!tenantId) {
       return NextResponse.json({ message: 'No tenant found' }, { status: 404 })
     }
@@ -83,11 +87,14 @@ export async function PUT(req: NextRequest) {
 
     let tenantId = (session as any).user.currentTenantId as string | undefined
     const userId = (session as any).user.id
-    
+
     // If no tenant ID, try resolving by role/membership/defaults
     if (!tenantId) {
       if ((session as any).user.role === 'SUPER_ADMIN') {
-        tenantId = 'super-admin'
+        const adminTenants: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM tenants WHERE slug = 'super-admin' LIMIT 1`);
+        if (adminTenants.length > 0) {
+          tenantId = adminTenants[0].id;
+        }
       }
       if (!tenantId && userId) {
         try {
@@ -120,7 +127,7 @@ export async function PUT(req: NextRequest) {
     const tenants: any[] = await prisma.$queryRawUnsafe(`
       SELECT id, currency, metadata FROM tenants WHERE id = $1
     `, tenantId)
-    
+
     if (tenants.length === 0) {
       return NextResponse.json({ message: 'Tenant not found' }, { status: 404 })
     }
@@ -131,13 +138,13 @@ export async function PUT(req: NextRequest) {
       ...metadata,
       supportedCurrencies: supportedCurrencies || metadata.supportedCurrencies || []
     }
-    
+
     // Update using raw SQL
     await prisma.$executeRawUnsafe(`
       UPDATE tenants SET currency = $1, metadata = $2, updated_at = NOW() WHERE id = $3
     `, defaultCurrency || tenant.currency || 'USD', JSON.stringify(newMetadata), tenantId)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Settings updated',
       currency: defaultCurrency || tenant.currency || 'USD',
       supportedCurrencies: newMetadata.supportedCurrencies
