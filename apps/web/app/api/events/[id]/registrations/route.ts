@@ -372,14 +372,13 @@ export async function POST(
       const regStatus = initialStatus
 
       const registrationDataJson = JSON.stringify(registrationData)
-      const eventIdStr = eventIdBigInt.toString()
-      const ticketIdStr = ticketId ? String(ticketId) : null
+      const ticketIdBigInt = ticketId ? BigInt(ticketId) : null
 
       await prisma.$executeRaw`
             INSERT INTO registrations (
                 id, event_id, tenant_id, data_json, type, email, created_at, updated_at, status, ticket_id
             ) VALUES (
-                ${newRegId}, ${eventIdStr}, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdStr}
+                ${newRegId}, ${eventIdBigInt}::bigint, ${tenantId}, ${registrationDataJson}::jsonb, ${regType}, ${formData.email}, NOW(), NOW(), ${regStatus}, ${ticketIdBigInt}
             )
         `
       console.log('✅ Registration inserted')
