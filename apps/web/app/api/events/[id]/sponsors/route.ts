@@ -84,15 +84,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         created_at, updated_at
       ) VALUES (
         ${eventId}, ${raw.name}, ${raw.tier || 'BRONZE'}, ${raw.logoUrl || null}, ${raw.website || null},
-        ${JSON.stringify(raw.contactData || {}) || '{}'},
-        ${JSON.stringify(raw.paymentData || {}) || '{}'},
-        ${JSON.stringify(raw.brandingOnline || {}) || '{}'},
-        ${JSON.stringify(raw.brandingOffline || {}) || '{}'},
-        ${JSON.stringify(raw.eventPresence || {}) || '{}'},
-        ${JSON.stringify(raw.giveawayData || {}) || '{}'},
-        ${JSON.stringify(raw.legalData || {}) || '{}'},
-        ${JSON.stringify(raw.timelineData || {}) || '{}'},
-        ${JSON.stringify(raw.postEventData || {}) || '{}'},
+        ${JSON.stringify(raw.contactData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.paymentData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.brandingOnline || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.brandingOffline || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.eventPresence || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.giveawayData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.legalData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.timelineData || {}) || '{}'}::jsonb,
+        ${JSON.stringify(raw.postEventData || {}) || '{}'}::jsonb,
         NOW(), NOW()
       )
       RETURNING id::text as id
