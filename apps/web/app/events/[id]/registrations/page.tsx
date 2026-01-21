@@ -45,6 +45,51 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
   const [bulkActionLoading, setBulkActionLoading] = useState<boolean>(false)
   const [showAddMenu, setShowAddMenu] = useState<boolean>(false)
 
+  // Edit State
+  const [editingRegistration, setEditingRegistration] = useState<Registration | null>(null)
+  const [editForm, setEditForm] = useState<any>({})
+  const [saving, setSaving] = useState(false)
+
+  // Update edit form when selection changes
+  useEffect(() => {
+    if (editingRegistration) {
+      setEditForm({
+        firstName: editingRegistration.firstName || '',
+        lastName: editingRegistration.lastName || '',
+        email: editingRegistration.email || '',
+        phone: editingRegistration.phone || '',
+        type: editingRegistration.type || 'GENERAL'
+      })
+    }
+  }, [editingRegistration])
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingRegistration) return
+
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/events/${eventId}/registrations/${editingRegistration.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      })
+
+      if (res.ok) {
+        setEditingRegistration(null)
+        await loadRegistrations()
+        // alert('Registration updated successfully')
+      } else {
+        const err = await res.json()
+        alert(`Failed to update: ${err.message}`)
+      }
+    } catch (error) {
+      alert('Error updating registration')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Handle params being a Promise in Next.js 15
   useEffect(() => {
     const resolveParams = async () => {
@@ -484,7 +529,11 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button className="text-indigo-600 hover:text-indigo-900 p-1" title="Edit">
+                    <button
+                      onClick={() => setEditingRegistration(registration)}
+                      className="text-indigo-600 hover:text-indigo-900 p-1"
+                      title="Edit"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
                     {registration.status !== 'CANCELLED' && (
@@ -526,6 +575,85 @@ export default function RegistrationsOverview({ params }: { params: Promise<{ id
           </button>
         </div>
       )}
+      {/* Edit Modal */}
+      {editingRegistration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold mb-4">Edit Registration</h2>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <input
+                    type="text"
+                    value={editForm.firstName || ''}
+                    onChange={e => setEditForm({ ...editForm, firstName: e.target.value })}
+                    className="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <input
+                    type="text"
+                    value={editForm.lastName || ''}
+                    onChange={e => setEditForm({ ...editForm, lastName: e.target.value })}
+                    className="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email || ''}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  className="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <input
+                  type="text"
+                  value={editForm.phone || ''}
+                  onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ticket Type</label>
+                <select
+                  value={editForm.type || 'GENERAL'}
+                  onChange={e => setEditForm({ ...editForm, type: e.target.value })}
+                  className="mt-1 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="GENERAL">General</option>
+                  <option value="VIP">VIP</option>
+                  <option value="VIRTUAL">Virtual</option>
+                  <option value="SPEAKER">Speaker</option>
+                  <option value="EXHIBITOR">Exhibitor</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEditingRegistration(null)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
