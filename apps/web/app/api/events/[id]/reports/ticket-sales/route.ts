@@ -48,6 +48,35 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
     })
 
+    // Fallback: Check for unassigned registrations (orphaned from seats)
+    const regRes = await prisma.$queryRaw<any[]>`SELECT COUNT(*)::int as count FROM registrations WHERE event_id = ${eventId}::bigint`
+    const totalRegs = regRes[0]?.count || 0
+    const totalSeatsSold = formattedSales.reduce((acc, t) => acc + t.quantitySold, 0)
+
+    if (totalRegs > totalSeatsSold) {
+      const orphans = totalRegs - totalSeatsSold
+      // Try to approximate revenue from Orders for these orphans
+      // We know total revenue from Overview (~4620). We know seat revenue (~0).
+      // So orphan revenue is likely Total Order Revenue - Total Seat Revenue.
+      const orderRevRes = await prisma.$queryRaw<any[]>`SELECT COALESCE(SUM("totalInr"), 0)::int as revenue FROM "Order" WHERE "eventId" = ${String(eventId)} AND "paymentStatus" = 'COMPLETED'`
+      const totalOrderRev = orderRevRes[0]?.revenue || 0
+      const totalSeatRev = formattedSales.reduce((acc, t) => acc + t.revenue, 0)
+      const orphanRevenue = Math.max(0, totalOrderRev - totalSeatRev)
+
+      formattedSales.push({
+        ticketId: 999, // Virtual ID
+        ticketName: 'General / Unassigned',
+        ticketType: 'General',
+        priceInMinor: 0,
+        currency: 'INR',
+        quantitySold: orphans,
+        quantityAvailable: orphans, // Assume flexible
+        revenue: orphanRevenue,
+        percentageSold: 100,
+        status: 'Sold Only'
+      })
+    }
+
     return NextResponse.json(formattedSales)
   } catch (error: any) {
     console.error('Error fetching ticket sales report:', error)

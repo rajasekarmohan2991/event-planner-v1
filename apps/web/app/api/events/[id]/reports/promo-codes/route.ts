@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = parseInt(params.id)
 
-    const [codes, redemptions] = await Promise.all([
+    const [codes, redemptions, regUsages] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(
         `SELECT id::text, code, discount_type, discount_amount, is_active
          FROM promo_codes WHERE event_id = $1`,
@@ -28,17 +28,51 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
          GROUP BY promo_code_id`,
         eventId
       ).catch(() => []),
+      // Fallback: Check registrations for usage (in case redemption log failed)
+      prisma.$queryRawUnsafe<any[]>(
+        `SELECT data_json->>'promoCode' as code, COUNT(*)::int as uses, SUM(COALESCE((data_json->>'discountAmount')::numeric, 0))::int as discount
+         FROM registrations 
+         WHERE event_id = $1::bigint 
+           AND data_json->>'promoCode' IS NOT NULL 
+           AND (data_json->>'promoCode') <> ''
+         GROUP BY data_json->>'promoCode'`,
+        eventId
+      ).catch(() => [])
     ])
 
     const totalPromoCodes = codes.length
     const activePromoCodes = codes.filter(c => c.is_active).length
-    const totals = redemptions.reduce((acc, r) => { acc.uses += r.uses; acc.discount += r.discount; return acc }, { uses: 0, discount: 0 })
+
+    // Merge redemptions and regUsages
+    // Normalize regUsages to map by ID if possible, or matches by Code
+    const usageMap = new Map<string, { uses: number, discount: number }>()
+
+    // Process explicit redemptions
+    redemptions.forEach(r => {
+      usageMap.set(r.id, { uses: r.uses, discount: r.discount })
+    })
+
+    // Process registration usages (fill gaps)
+    regUsages.forEach(reg => {
+      const codeObj = codes.find(c => c.code === reg.code)
+      if (codeObj) {
+        const existing = usageMap.get(codeObj.id) || { uses: 0, discount: 0 }
+        // If registration count is higher, assume we missed logs and use registration count
+        if (reg.uses > existing.uses) {
+          usageMap.set(codeObj.id, { uses: reg.uses, discount: reg.discount > existing.discount ? reg.discount : existing.discount }) // approximate discount
+        }
+      }
+    })
+
+    const finalRedemptions = Array.from(usageMap.entries()).map(([id, val]) => ({ id, ...val }))
+
+    const totals = finalRedemptions.reduce((acc, r) => { acc.uses += r.uses; acc.discount += r.discount; return acc }, { uses: 0, discount: 0 })
     const averageDiscountAmount = totalPromoCodes > 0 ? totals.discount / totalPromoCodes : 0
 
     // Find most used promo
     let mostUsedPromoCode = ''
     let mostUsedPromoCount = 0
-    for (const r of redemptions) {
+    for (const r of finalRedemptions) {
       if (r.uses > mostUsedPromoCount) {
         mostUsedPromoCount = r.uses
         const code = codes.find(c => c.id?.toString() === r.id?.toString())
@@ -54,7 +88,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       averageDiscountAmount: averageDiscountAmount / 100,
       mostUsedPromoCode,
       mostUsedPromoCount,
-      promoCodeUsage: JSON.stringify(redemptions.map(r => ({ id: r.id, uses: r.uses, discount: r.discount/100 })))
+      promoCodeUsage: JSON.stringify(redemptions.map(r => ({ id: r.id, uses: r.uses, discount: r.discount / 100 })))
     })
   } catch (error: any) {
     console.error('Error fetching promo code analytics:', error)
