@@ -22,76 +22,38 @@ export async function GET(request: NextRequest) {
             }, { status: 200 });
         }
 
-        // Fetch taxes using Prisma Client
-        let taxes = await prisma.taxStructure.findMany({
-            where: { tenantId },
-            orderBy: [
-                { isDefault: 'desc' },
-                { createdAt: 'desc' }
-            ],
-            include: {
-                globalTemplate: true
-            }
-        });
+        console.log(`Fetching taxes for company: ${tenantId}`);
 
-        // Auto-populate if empty
-        if (taxes.length === 0) {
-            console.log('No tax structures found, attempting auto-population...');
+        // Fetch taxes using Raw SQL to ensure we get all new columns
+        // and filter out archived ones
+        const taxes: any[] = await prisma.$queryRawUnsafe(`
+            SELECT 
+                id, name, rate, description, 
+                is_default as "isDefault", 
+                COALESCE(is_custom, true) as "isCustom",
+                global_template_id as "globalTemplateId",
+                country_code as "countryCode",
+                currency_code as "currencyCode",
+                effective_from as "effectiveFrom",
+                effective_to as "effectiveTo",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+            FROM tax_structures 
+            WHERE tenant_id = $1 
+              AND (archived = FALSE OR archived IS NULL)
+            ORDER BY is_default DESC, effective_from DESC NULLS LAST, created_at DESC
+        `, tenantId);
 
-            const tenant = await prisma.tenant.findUnique({
-                where: { id: tenantId },
-                select: { country: true, currency: true }
-            });
+        console.log(`Found ${taxes.length} taxes for company`);
 
-            if (tenant) {
-                const country = tenant.country || 'IN';
-
-                const defaultTaxes: Record<string, { name: string; rate: number; description: string }> = {
-                    'IN': { name: 'GST (18%)', rate: 18.0, description: 'Goods and Services Tax' },
-                    'US': { name: 'Sales Tax', rate: 8.5, description: 'State Sales Tax' },
-                    'GB': { name: 'VAT (20%)', rate: 20.0, description: 'Value Added Tax' },
-                    'AU': { name: 'GST (10%)', rate: 10.0, description: 'Goods and Services Tax' },
-                    'CA': { name: 'GST/HST', rate: 13.0, description: 'Goods and Services Tax' },
-                    'SG': { name: 'GST (9%)', rate: 9.0, description: 'Goods and Services Tax' },
-                    'AE': { name: 'VAT (5%)', rate: 5.0, description: 'Value Added Tax' }
-                };
-
-                const template = defaultTaxes[country] || defaultTaxes['IN'];
-
-                try {
-                    await prisma.taxStructure.create({
-                        data: {
-                            name: template.name,
-                            rate: template.rate,
-                            description: template.description,
-                            isDefault: true,
-                            isCustom: false,
-                            tenantId: tenantId
-                        }
-                    });
-
-                    // Fetch again
-                    taxes = await prisma.taxStructure.findMany({
-                        where: { tenantId },
-                        orderBy: [
-                            { isDefault: 'desc' },
-                            { createdAt: 'desc' }
-                        ],
-                        include: {
-                            globalTemplate: true
-                        }
-                    });
-                } catch (createError) {
-                    console.error('Failed to auto-create tax structure:', createError);
-                }
-            }
-        }
+        // If no taxes found, checking for potential auto-population or fallback is handled by the Super Admin
+        // Here we just return what exists. By default, Super Admin should have created taxes.
 
         return NextResponse.json({ taxes });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching company tax structures:", error);
         return NextResponse.json(
-            { error: "Failed to fetch tax structures", taxes: [] },
+            { error: "Failed to fetch tax structures", details: error.message, taxes: [] },
             { status: 500 }
         );
     }
