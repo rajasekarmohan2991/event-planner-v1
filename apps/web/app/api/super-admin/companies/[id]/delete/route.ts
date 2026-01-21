@@ -13,11 +13,11 @@ export async function DELETE(
     const params = 'then' in context.params ? await context.params : context.params;
 
     const session = await getServerSession(authOptions as any);
-    if (!session?.user) {
+    if (!(session as any)?.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = session.user as any;
+    const user = (session as any).user;
     if (user.role !== 'SUPER_ADMIN') {
         return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
