@@ -13,9 +13,11 @@ import {
     Globe,
     ArrowRight,
     Link2,
-    Sparkles
+    Sparkles,
+    AlertCircle
 } from "lucide-react";
 import BackButton from "@/components/ui/back-button";
+import { useToast } from "@/components/ui/use-toast";
 
 interface TaxStructure {
     id: string;
@@ -47,12 +49,14 @@ interface GlobalTaxTemplate {
 export default function TaxStructuresPage() {
     const params = useParams();
     const router = useRouter();
+    const { toast } = useToast();
     const [taxes, setTaxes] = useState<TaxStructure[]>([]);
     const [globalTemplates, setGlobalTemplates] = useState<GlobalTaxTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [mode, setMode] = useState<"template" | "custom">("template");
+    const [submitting, setSubmitting] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -101,12 +105,23 @@ export default function TaxStructuresPage() {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        setSubmitting(true);
+
         try {
             let payload: any;
 
             if (mode === "template" && formData.globalTemplateId) {
                 // Using a global template
                 const template = globalTemplates.find((t) => t.id === formData.globalTemplateId);
+                if (!template) {
+                    toast({
+                        title: "Error",
+                        description: "Selected template not found",
+                        variant: "destructive"
+                    });
+                    setSubmitting(false);
+                    return;
+                }
                 payload = {
                     name: template?.name || formData.name,
                     rate: template?.rate || parseFloat(formData.rate),
@@ -117,6 +132,15 @@ export default function TaxStructuresPage() {
                 };
             } else {
                 // Custom tax structure
+                if (!formData.name || !formData.rate) {
+                    toast({
+                        title: "Validation Error",
+                        description: "Name and rate are required",
+                        variant: "destructive"
+                    });
+                    setSubmitting(false);
+                    return;
+                }
                 payload = {
                     name: formData.name,
                     rate: parseFloat(formData.rate),
@@ -127,6 +151,8 @@ export default function TaxStructuresPage() {
                 };
             }
 
+            console.log('Submitting tax structure:', payload);
+
             if (editingId) {
                 const res = await fetch(
                     `/api/super-admin/companies/${companyId}/tax-structures/${editingId}`,
@@ -136,23 +162,50 @@ export default function TaxStructuresPage() {
                         body: JSON.stringify(payload)
                     }
                 );
-                if (res.ok) {
-                    resetForm();
-                    fetchTaxes();
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.message || 'Failed to update tax structure');
                 }
+
+                toast({
+                    title: "Success",
+                    description: "Tax structure updated successfully"
+                });
+                resetForm();
+                fetchTaxes();
             } else {
                 const res = await fetch(`/api/super-admin/companies/${companyId}/tax-structures`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
-                if (res.ok) {
-                    resetForm();
-                    fetchTaxes();
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    console.error('API Error:', error);
+                    throw new Error(error.message || 'Failed to create tax structure');
                 }
+
+                const result = await res.json();
+                console.log('Tax structure created:', result);
+
+                toast({
+                    title: "Success",
+                    description: "Tax structure created successfully"
+                });
+                resetForm();
+                fetchTaxes();
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error('Error submitting tax structure:', error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to save tax structure",
+                variant: "destructive"
+            });
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -265,8 +318,8 @@ export default function TaxStructuresPage() {
                             type="button"
                             onClick={() => setMode("template")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${mode === "template"
-                                    ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
-                                    : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
+                                ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
+                                : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
                                 }`}
                         >
                             <Globe className="w-4 h-4" />
@@ -276,8 +329,8 @@ export default function TaxStructuresPage() {
                             type="button"
                             onClick={() => setMode("custom")}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${mode === "custom"
-                                    ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
-                                    : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
+                                ? "bg-indigo-100 text-indigo-700 border-2 border-indigo-300"
+                                : "bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200"
                                 }`}
                         >
                             <Sparkles className="w-4 h-4" />
@@ -299,8 +352,8 @@ export default function TaxStructuresPage() {
                                                 key={template.id}
                                                 onClick={() => handleTemplateSelect(template.id)}
                                                 className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${formData.globalTemplateId === template.id
-                                                        ? "border-indigo-500 bg-indigo-50"
-                                                        : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                                                    ? "border-indigo-500 bg-indigo-50"
+                                                    : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
@@ -400,11 +453,20 @@ export default function TaxStructuresPage() {
                             </button>
                             <button
                                 type="submit"
-                                disabled={mode === "template" && !formData.globalTemplateId}
+                                disabled={submitting || (mode === "template" && !formData.globalTemplateId)}
                                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Save className="w-4 h-4" />
-                                {editingId ? "Update Tax" : "Create Tax"}
+                                {submitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        {editingId ? "Updating..." : "Creating..."}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4" />
+                                        {editingId ? "Update Tax" : "Create Tax"}
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>
