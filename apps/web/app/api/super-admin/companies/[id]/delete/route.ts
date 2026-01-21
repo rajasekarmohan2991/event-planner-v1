@@ -60,6 +60,7 @@ export async function DELETE(
         // Delete related records first (manual cascade)
         // Some of these might fail if table doesn't exist, so we wrap in try-catch blocks or ignore
         const tablesToDelete = [
+            'module_access',
             'module_access_matrix',
             'tax_structure_history',
             'tax_structures',
