@@ -56,6 +56,17 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       // Simulate payment processing for paid events
       setTimeout(async () => {
         try {
+          // Confirm payment with backend to update Order status
+          await fetch(`/api/events/${params.id}/registrations/payment-confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              registrationId: registrationId || registrationData?.id,
+              amount: amount,
+              paymentMethod: showDummyPayment ? 'DEMO_CARD' : 'DEMO_UPI'
+            })
+          })
+
           const response = registrationData
 
           if (response) {
@@ -78,7 +89,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
 
   const downloadQRCode = async () => {
     if (!qrCode) return
-    
+
     try {
       // QR code is already a data URL from the backend
       const link = document.createElement('a')
