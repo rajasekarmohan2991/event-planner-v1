@@ -121,7 +121,7 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
                 const basePrice = section.basePrice || 100
                 for (const row of rows) {
                     const rowNumber = row.number || row.label
-                    const seatsInRow = row.seats || row.count || 10
+                    const seatsInRow = Array.isArray(row.seats) ? row.seats.length : (Number(row.seats) || Number(row.count) || 10)
                     const seatType = row.tier || section.tier || section.type || 'Standard'
                     for (let seatNum = 1; seatNum <= seatsInRow; seatNum++) {
                         const xCoord = (row.xOffset || 0) + (seatNum * 50)
