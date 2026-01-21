@@ -75,7 +75,9 @@ export default function EventExhibitorsPage() {
       const res = await fetch(`/api/events/${eventId}/exhibitors`)
       if (res.ok) {
         const data = await res.json()
-        setExhibitors(data.exhibitors || [])
+        // API returns array directly or wrapped in exhibitors property
+        const items = Array.isArray(data) ? data : (data.exhibitors || data.data || [])
+        setExhibitors(items)
       }
     } catch (error) {
       console.error('Failed to fetch exhibitors:', error)
