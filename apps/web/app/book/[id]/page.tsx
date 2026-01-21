@@ -66,12 +66,18 @@ export default function BookEventPage({ params }: { params: { id: string } }) {
         setError(null)
 
         try {
+            // Split name into firstName and lastName
+            const nameParts = formData.name.trim().split(' ')
+            const firstName = nameParts[0] || ''
+            const lastName = nameParts.slice(1).join(' ') || nameParts[0] || 'User'
+
             const res = await fetch(`/api/events/${params.id}/registrations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({
-                    name: formData.name,
+                    firstName,
+                    lastName,
                     email: formData.email,
                     phone: formData.phone,
                     quantity: formData.quantity,
