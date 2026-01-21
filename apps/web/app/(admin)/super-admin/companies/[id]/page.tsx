@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2, Ban, CheckCircle } from "lucide-react";
+import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2, Ban, CheckCircle, DollarSign, Edit2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Table,
@@ -91,10 +91,69 @@ export default function CompanyDetailsPage() {
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [savingCurrency, setSavingCurrency] = useState(false);
+  const [companyCurrency, setCompanyCurrency] = useState('USD');
+
+  const currencies = [
+    { code: 'USD', name: 'US Dollar', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+    { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+    { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+    { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+    { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+    { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+    { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' }
+  ];
 
   useEffect(() => {
-    if (params?.id) fetchData();
+    if (params?.id) {
+      fetchData();
+      fetchCurrency();
+    }
   }, [params?.id]);
+
+  async function fetchCurrency() {
+    try {
+      const res = await fetch(`/api/super-admin/companies/${params?.id}/currency`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyCurrency(data.currency || 'USD');
+        setSelectedCurrency(data.currency || 'USD');
+      }
+    } catch (error) {
+      console.error('Error fetching currency:', error);
+    }
+  }
+
+  async function handleSaveCurrency() {
+    if (savingCurrency) return;
+    setSavingCurrency(true);
+
+    try {
+      const res = await fetch(`/api/super-admin/companies/${params?.id}/currency`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currency: selectedCurrency })
+      });
+
+      if (res.ok) {
+        setCompanyCurrency(selectedCurrency);
+        setShowCurrencyModal(false);
+        alert(`Currency updated to ${selectedCurrency} successfully!`);
+      } else {
+        const data = await res.json();
+        alert(`Failed to update currency: ${data.message}`);
+      }
+    } catch (error: any) {
+      alert(`Error updating currency: ${error.message}`);
+    } finally {
+      setSavingCurrency(false);
+    }
+  }
 
   async function handleToggleStatus() {
     if (!company || toggling) return;
@@ -522,6 +581,17 @@ export default function CompanyDetailsPage() {
                   <span className="text-gray-600">Billing Email</span>
                   <span className="font-medium">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
                 </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600">Base Currency</span>
+                  <button
+                    onClick={() => setShowCurrencyModal(true)}
+                    className="flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    {companyCurrency}
+                    <Edit2 className="h-3 w-3" />
+                  </button>
+                </div>
                 {company.trialEndsAt && (
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">Trial Ends</span>
@@ -676,6 +746,63 @@ export default function CompanyDetailsPage() {
                     <>
                       <Trash2 className="h-4 w-4" />
                       Delete Company
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Currency Change Modal */}
+        {showCurrencyModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6 border-b">
+                <h3 className="text-xl font-semibold text-gray-900">Change Base Currency</h3>
+                <p className="text-sm text-gray-500 mt-1">This will update the base currency for {company?.name}</p>
+              </div>
+              <div className="p-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Currency
+                </label>
+                <select
+                  value={selectedCurrency}
+                  onChange={(e) => setSelectedCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  {currencies.map(curr => (
+                    <option key={curr.code} value={curr.code}>
+                      {curr.code} - {curr.name} ({curr.symbol})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-2">
+                  This will affect all financial calculations and displays for this company.
+                </p>
+              </div>
+              <div className="p-6 border-t bg-gray-50 flex gap-3">
+                <button
+                  onClick={() => setShowCurrencyModal(false)}
+                  disabled={savingCurrency}
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveCurrency}
+                  disabled={savingCurrency}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {savingCurrency ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <DollarSign className="h-4 w-4" />
+                      Update Currency
                     </>
                   )}
                 </button>

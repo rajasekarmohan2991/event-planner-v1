@@ -257,8 +257,22 @@ export async function POST(
         let emailSent = false;
         let emailError: string | null = null;
 
-        // Check if SMTP is configured
-        const smtpConfigured = process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD;
+        // Check if SMTP is configured (check for real values, not placeholders)
+        const smtpHost = process.env.EMAIL_SERVER_HOST;
+        const smtpUser = process.env.EMAIL_SERVER_USER;
+        const smtpPass = process.env.EMAIL_SERVER_PASSWORD;
+        
+        const smtpConfigured = smtpHost && smtpUser && smtpPass && 
+            !smtpUser.includes('your-email') && 
+            !smtpPass.includes('your-app-password') &&
+            smtpHost !== 'smtp.gmail.com' || (smtpHost === 'smtp.gmail.com' && !smtpUser.includes('your-email'));
+
+        console.log(`📧 [SIGNATURES] SMTP Config Check:`, {
+            hasHost: !!smtpHost,
+            hasUser: !!smtpUser,
+            hasPass: !!smtpPass,
+            isConfigured: smtpConfigured
+        });
 
         if (smtpConfigured) {
             try {
@@ -295,8 +309,8 @@ export async function POST(
                 console.error('❌ [SIGNATURES] Failed to send signature email:', err.message);
             }
         } else {
-            emailError = 'SMTP not configured';
-            console.log('⚠️ [SIGNATURES] SMTP not configured, email not sent. Link:', signatureLink);
+            emailError = 'SMTP not configured - Please configure email settings in environment variables';
+            console.log('⚠️ [SIGNATURES] SMTP not configured properly. Link:', signatureLink);
         }
 
         return NextResponse.json(
