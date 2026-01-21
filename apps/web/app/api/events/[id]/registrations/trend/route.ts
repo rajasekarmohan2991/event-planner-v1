@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         DATE(created_at) as date,
         COUNT(*)::int as count
       FROM registrations
-      WHERE event_id = ${eventId}
+      WHERE event_id = ${eventId}::bigint
         AND created_at >= NOW() - INTERVAL '14 days'
       GROUP BY DATE(created_at)
       ORDER BY date ASC
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('Registration trend API error:', error)
-    
+
     // If table doesn't exist, return empty trend data
     if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
       const last14Days = Array.from({ length: 14 }, (_, i) => {
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       })
       return NextResponse.json(last14Days)
     }
-    
+
     return NextResponse.json({
       error: 'Failed to fetch registration trend',
       details: error.message
