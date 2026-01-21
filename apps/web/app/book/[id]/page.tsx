@@ -66,7 +66,7 @@ export default function BookEventPage({ params }: { params: { id: string } }) {
         setError(null)
 
         try {
-            const res = await fetch(`/api/events/${params.id}/register`, {
+            const res = await fetch(`/api/events/${params.id}/registrations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
