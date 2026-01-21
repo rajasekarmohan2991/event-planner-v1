@@ -480,23 +480,27 @@ export async function POST(
       checkInCode: `REG-${eventId}-${newRegId.substring(0, 8)}`
     }
 
-    // Generate QR code and send email asynchronously (don't wait)
-    // This prevents blocking the response
+    // Generate QR code (Await it to send to client)
+    let qrCodeDataURL = ''
+    try {
+      qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(qrData))
+    } catch (e) {
+      console.error('QR Gen failed', e)
+    }
+
+    // Send notifications asynchronously (don't block response)
     Promise.all([
-      QRCode.toDataURL(JSON.stringify(qrData)).catch(e => {
-        console.error('QR Gen failed', e)
-        return ''
-      })
-    ]).then(([qrCodeDataURL]) => {
-      if (formData.email && qrCodeDataURL) {
-        sendEmail({
-          to: formData.email,
-          subject: `Registration Confirmed - ${event.name}`,
-          text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
-          html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
-        }).catch(console.error)
-      }
-    }).catch(console.error)
+      (async () => {
+        if (formData.email && qrCodeDataURL) {
+          await sendEmail({
+            to: formData.email,
+            subject: `Registration Confirmed - ${event.name}`,
+            text: `Confirmed! Check-in Code: ${qrData.checkInCode}`,
+            html: `<p>Registration Confirmed for <strong>${event.name}</strong></p><img src="${qrCodeDataURL}" />`
+          }).catch(console.error)
+        }
+      })()
+    ]).catch(console.error)
 
     // Send SMS notification
     if (formData.phone) {
@@ -529,6 +533,7 @@ export async function POST(
       eventId: Number(eventId),
       dataJson: registrationData,
       checkInCode: qrData.checkInCode,
+      qrCode: qrCodeDataURL,
       message: 'Registration successful. QR code will be sent to your email.'
     }, { status: 201 })
 
