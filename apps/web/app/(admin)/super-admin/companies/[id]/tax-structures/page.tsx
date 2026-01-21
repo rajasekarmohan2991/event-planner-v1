@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import BackButton from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/use-toast";
+import { COUNTRY_CURRENCY_MAP, getCountryByCode } from "@/lib/country-currency-config";
 
 interface TaxStructure {
     id: string;
@@ -64,7 +65,11 @@ export default function TaxStructuresPage() {
         rate: "",
         description: "",
         isDefault: false,
-        globalTemplateId: ""
+        globalTemplateId: "",
+        countryCode: "",
+        currencyCode: "USD",
+        effectiveFrom: new Date().toISOString().split('T')[0], // Today's date
+        effectiveTo: ""
     });
 
     // Handle both array and string params
@@ -229,7 +234,11 @@ export default function TaxStructuresPage() {
             rate: tax.rate.toString(),
             description: tax.description || "",
             isDefault: tax.isDefault,
-            globalTemplateId: tax.globalTemplateId || ""
+            globalTemplateId: tax.globalTemplateId || "",
+            countryCode: (tax as any).countryCode || "",
+            currencyCode: (tax as any).currencyCode || "USD",
+            effectiveFrom: (tax as any).effectiveFrom ? new Date((tax as any).effectiveFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            effectiveTo: (tax as any).effectiveTo ? new Date((tax as any).effectiveTo).toISOString().split('T')[0] : ""
         });
         setIsCreating(false);
     }
@@ -243,7 +252,11 @@ export default function TaxStructuresPage() {
             rate: "",
             description: "",
             isDefault: false,
-            globalTemplateId: ""
+            globalTemplateId: "",
+            countryCode: "",
+            currencyCode: "USD",
+            effectiveFrom: new Date().toISOString().split('T')[0],
+            effectiveTo: ""
         });
     }
 
