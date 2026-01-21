@@ -411,75 +411,7 @@ export function AdminDashboardClient() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Recent Activity Feed */}
-        <Card className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-200">
-              <Activity className="w-5 h-5 text-violet-500" />
-              Recent System Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentActivity activities={recentActivities} isLoading={isLoading} />
-          </CardContent>
-        </Card>
-
-        {/* Right Column: Quick Actions */}
-        <div className="lg:col-span-1 space-y-6">
-
-          {/* Quick Actions Panel */}
-          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl h-fit">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-200">
-                <Zap className="w-5 h-5 text-amber-500" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors" variant="outline" onClick={() => router.push('/events/create')}>
-                <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2.5 rounded-xl mr-3">
-                  <Plus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">Create New Event</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Launch a new event page</span>
-                </div>
-              </Button>
-
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-700 dark:hover:text-blue-300 hover:border-blue-200 dark:hover:border-blue-800 transition-colors" variant="outline" onClick={() => router.push('/admin/users')}>
-                <div className="bg-blue-100 dark:bg-blue-900/50 p-2.5 rounded-xl mr-3">
-                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">Manage Users</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">View and edit user roles</span>
-                </div>
-              </Button>
-
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300 hover:border-violet-200 dark:hover:border-violet-800 transition-colors" variant="outline" onClick={() => router.push('/admin/analytics')}>
-                <div className="bg-violet-100 dark:bg-violet-900/50 p-2.5 rounded-xl mr-3">
-                  <BarChart3 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">View Analytics</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Deep dive into data</span>
-                </div>
-              </Button>
-
-              <Button className="w-full justify-start text-left h-auto py-3 px-4 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" variant="outline" onClick={() => router.push('/admin/settings')}>
-                <div className="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl mr-3">
-                  <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">System Settings</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Configure platform</span>
-                </div>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Removed Recent System Activity and Quick Actions sections per user request */}
 
       {/* Your Events Section */}
       {

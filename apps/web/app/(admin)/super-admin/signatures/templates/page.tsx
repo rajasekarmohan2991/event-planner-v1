@@ -75,8 +75,8 @@ export default function DocumentTemplatesPage() {
                         key={type}
                         onClick={() => setFilter(type)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === type
-                                ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500 ring-offset-2'
-                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                            ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500 ring-offset-2'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                             }`}
                     >
                         {type.charAt(0) + type.slice(1).toLowerCase()}s
@@ -104,13 +104,13 @@ export default function DocumentTemplatesPage() {
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`p-3 rounded-lg ${template.templateType === 'VENDOR' ? 'bg-blue-50 text-blue-600' :
-                                            template.templateType === 'SPONSOR' ? 'bg-purple-50 text-purple-600' :
-                                                'bg-orange-50 text-orange-600'
+                                        template.templateType === 'SPONSOR' ? 'bg-purple-50 text-purple-600' :
+                                            'bg-orange-50 text-orange-600'
                                         }`}>
                                         <FileText className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">{template.documentName}</h3>
+                                        <h3 className="text-sm font-medium text-gray-900">{template.documentName}</h3>
                                         <div className="flex gap-3 text-sm text-gray-500 mt-1">
                                             <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium">
                                                 {template.templateType}
@@ -124,8 +124,8 @@ export default function DocumentTemplatesPage() {
 
                                 <div className="flex items-center gap-3">
                                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${template.isActive
-                                            ? 'bg-green-50 text-green-700'
-                                            : 'bg-gray-100 text-gray-600'
+                                        ? 'bg-green-50 text-green-700'
+                                        : 'bg-gray-100 text-gray-600'
                                         }`}>
                                         {template.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                         {template.isActive ? 'Active' : 'Inactive'}
