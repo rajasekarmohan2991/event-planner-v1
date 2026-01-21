@@ -53,6 +53,8 @@ export default function CompanyFinancePage() {
 
   async function fetchData() {
     try {
+      console.log('🏢 Fetching finance data for company:', params.id);
+      
       // Fetch company details
       const companyRes = await fetch(`/api/super-admin/companies/${params.id}`, {
         credentials: 'include'
@@ -60,14 +62,17 @@ export default function CompanyFinancePage() {
       if (companyRes.ok) {
         const data = await companyRes.json();
         setCompany(data);
+        console.log('✅ Company loaded:', data.name);
       }
 
       // Fetch invoices for this company
+      console.log('📄 Fetching invoices for tenantId:', params.id);
       const invoicesRes = await fetch(`/api/finance/invoices?tenantId=${params.id}`, {
         credentials: 'include'
       });
       if (invoicesRes.ok) {
         const data = await invoicesRes.json();
+        console.log('📊 Invoices received:', data.invoices?.length || 0, 'invoices');
         setInvoices(data.invoices || []);
         
         // Calculate stats

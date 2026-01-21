@@ -110,6 +110,9 @@ export default function CreateInvoicePage() {
 
         setSaving(true);
         try {
+            console.log('🔍 Creating invoice for company:', companyId);
+            console.log('📋 Invoice payload:', { ...formData, tenantId: companyId, lineItems });
+            
             const res = await fetch('/api/finance/invoices', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
