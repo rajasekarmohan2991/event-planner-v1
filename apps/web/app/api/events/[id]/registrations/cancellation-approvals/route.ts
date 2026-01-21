@@ -15,66 +15,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     const eventId = params.id
 
-    // Get pending cancellation requests (JSON-first; do not rely on missing columns)
-    const cancellations = await prisma.$queryRaw<any[]>`
+    // Get pending cancellation requests
+    // Fetch raw strings from JSON to avoid SQL cast errors (e.g. invalid syntax for integer)
+    const cancellationsRaw = await prisma.$queryRaw<any[]>`
       SELECT 
         r.id::text as "registrationId",
         r.id::text as id,
-        COALESCE(
-          CASE 
-            WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-              CONCAT(
-                COALESCE((r.data_json::jsonb)->>'firstName', ''),
-                ' ',
-                COALESCE((r.data_json::jsonb)->>'lastName', '')
-              )
-            ELSE r.email
-          END,
-          'N/A'
-        ) as "attendeeName",
-        COALESCE(r.email, '') as email,
-        COALESCE(
-          CASE 
-            WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-              (r.data_json::jsonb)->>'phone'
-            ELSE ''
-          END, 
-          ''
-        ) as phone,
-        COALESCE(r.type, 'Standard') as "ticketType",
-        COALESCE(
-          CASE 
-            WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-              COALESCE(((r.data_json::jsonb)->>'priceInr')::numeric, ((r.data_json::jsonb)->>'finalAmount')::numeric)
-            ELSE 0
-          END, 
-          0
-        ) as "ticketPrice",
-        COALESCE(
-          CASE 
-            WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN
-              COALESCE(((r.data_json::jsonb)->>'totalPrice')::numeric, ((r.data_json::jsonb)->>'priceInr')::numeric)
-            ELSE 0
-          END, 
-          0
-        ) as "originalPayment",
-        COALESCE(
-          CASE WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN (r.data_json::jsonb)->>'cancelReason' ELSE NULL END,
-          ''
-        ) as "cancellationReason",
-        COALESCE(
-          CASE WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN ((r.data_json::jsonb)->>'refundRequested')::boolean ELSE NULL END,
-          false
-        ) as "refundRequested",
-        COALESCE(
-          CASE WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN ((r.data_json::jsonb)->>'refundAmount')::numeric ELSE NULL END,
-          0
-        ) as "refundAmount",
-        COALESCE(
-          CASE WHEN r.data_json IS NOT NULL AND jsonb_typeof(r.data_json::jsonb) = 'object' THEN ((r.data_json::jsonb)->>'cancellationRequestedAt')::timestamp ELSE NULL END,
-          r.created_at
-        ) as "requestedAt",
-        'PENDING' as status
+        r.email,
+        r.data_json as "dataJson",
+        r.type as "ticketType",
+        r.created_at as "createdAt"
       FROM registrations r
       WHERE r.event_id = ${eventId}::bigint
         AND r.data_json IS NOT NULL
@@ -86,7 +36,44 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       LIMIT 100
     `
 
-    console.log('📋 Cancellation approvals fetched:', { eventId: params.id, count: cancellations.length })
+    console.log('📋 Cancellation approvals raw fetch:', { eventId, count: cancellationsRaw.length })
+
+    // Process and parse in JS
+    const cancellations = cancellationsRaw.map(row => {
+      let data: any = {}
+      try {
+        if (typeof row.dataJson === 'string') {
+          data = JSON.parse(row.dataJson)
+        } else if (row.dataJson && typeof row.dataJson === 'object') {
+          data = row.dataJson
+        }
+      } catch (e) {
+        console.error('Failed to parse dataJson for cancellation:', row.id)
+      }
+
+      const firstName = data.firstName || ''
+      const lastName = data.lastName || ''
+      const attendeeName = (firstName || lastName) ? `${firstName} ${lastName}`.trim() : (row.email || 'N/A')
+
+      const priceVal = data.priceInr || data.finalAmount || 0
+      const totalVal = data.totalPrice || data.priceInr || 0
+
+      return {
+        registrationId: row.id,
+        id: row.id,
+        attendeeName,
+        email: row.email || data.email || '',
+        phone: data.phone || '',
+        ticketType: row.ticketType || 'Standard',
+        ticketPrice: Number(priceVal) || 0,
+        originalPayment: Number(totalVal) || 0,
+        cancellationReason: data.cancelReason || '',
+        refundRequested: data.refundRequested === true || data.refundRequested === 'true',
+        refundAmount: Number(data.refundAmount) || 0,
+        requestedAt: data.cancellationRequestedAt || row.createdAt,
+        status: 'PENDING'
+      }
+    })
 
     return NextResponse.json(cancellations)
   } catch (e: any) {
