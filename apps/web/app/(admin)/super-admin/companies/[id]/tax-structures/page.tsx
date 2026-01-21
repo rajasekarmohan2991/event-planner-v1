@@ -244,6 +244,7 @@ export default function TaxStructuresPage() {
     }
 
     function resetForm() {
+        console.log('resetForm called');
         setIsCreating(false);
         setEditingId(null);
         setMode("template");
@@ -302,9 +303,21 @@ export default function TaxStructuresPage() {
                 </div>
                 <button
                     onClick={() => {
+                        console.log('Add Tax Structure button clicked');
                         setIsCreating(true);
                         setEditingId(null);
-                        resetForm();
+                        setMode("template");
+                        setFormData({
+                            name: "",
+                            rate: "",
+                            description: "",
+                            isDefault: false,
+                            globalTemplateId: "",
+                            countryCode: "",
+                            currencyCode: "USD",
+                            effectiveFrom: new Date().toISOString().split('T')[0],
+                            effectiveTo: ""
+                        });
                     }}
                     className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
                 >
