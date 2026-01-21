@@ -145,33 +145,26 @@ export async function POST(
             }, { status: 400 });
         }
 
-        // If using a global template, verify it exists (optional - don't fail if table doesn't exist)
+        // If using a global template, verify it exists
         if (globalTemplateId) {
-            try {
-                const template = await prisma.$queryRawUnsafe(`
-                    SELECT id FROM global_tax_templates WHERE id = $1
-                `, globalTemplateId);
-                if ((template as any[]).length === 0) {
-                    console.warn('Global tax template not found, but proceeding:', globalTemplateId);
-                }
-            } catch (templateError: any) {
-                console.warn('Could not validate global template (table may not exist):', templateError.message);
-                // Continue anyway - template validation is optional
+            const template = await prisma.$queryRawUnsafe(`
+                SELECT id FROM global_tax_templates WHERE id = $1
+            `, globalTemplateId);
+            if ((template as any[]).length === 0) {
+                return NextResponse.json({
+                    message: 'Global tax template not found',
+                    details: { globalTemplateId }
+                }, { status: 400 });
             }
         }
 
         // If setting as default, unset others
         if (isDefault) {
-            try {
-                await prisma.$executeRawUnsafe(`
-                    UPDATE tax_structures 
-                    SET is_default = false 
-                    WHERE tenant_id = $1 AND is_default = true
-                `, params.id);
-            } catch (updateError: any) {
-                console.warn('Could not unset other defaults (may be first tax):', updateError.message);
-                // Continue anyway
-            }
+            await prisma.$executeRawUnsafe(`
+                UPDATE tax_structures 
+                SET is_default = false 
+                WHERE tenant_id = $1 AND is_default = true
+            `, params.id);
         }
 
         // Create tax structure using raw SQL
