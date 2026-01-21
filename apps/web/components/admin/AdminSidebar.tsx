@@ -73,6 +73,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
         { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
+        { name: 'Tax Settings', href: '/super-admin/tax-templates', icon: Globe },
         { name: 'Signature Templates', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
         { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
