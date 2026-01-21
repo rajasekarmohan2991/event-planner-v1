@@ -133,10 +133,17 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
           } else {
             setHasSeats(data.totalSeats > 0)
           }
+        } else {
+          // API returned error - no seats available
+          console.log('[REGISTER] Seats API returned error, assuming no seats')
+          setHasSeats(false)
         }
       } catch (error) {
-        console.log('No seats available for this event')
+        // Network error or API doesn't exist - allow registration without seats
+        console.log('[REGISTER] Seats check failed (this is OK), allowing registration without seat selection:', error)
+        setHasSeats(false)
       } finally {
+        // Always set checkingSeats to false so registration can proceed
         setCheckingSeats(false)
       }
     }
@@ -248,11 +255,10 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
                       updateLocation({ city, state: '', country: 'India', latitude: 0, longitude: 0 })
                       setShowLocationSelector(false)
                     }}
-                    className={`px-3 py-2 text-sm rounded-lg border transition-all ${
-                      location?.city === city
+                    className={`px-3 py-2 text-sm rounded-lg border transition-all ${location?.city === city
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                    }`}
+                      }`}
                   >
                     {city}
                   </button>
