@@ -84,7 +84,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         ` as any[]
 
         if (rows.length > 0 && rows[0]?.layout_data) {
-          plan = rows[0].layout_data
+          const raw = rows[0].layout_data
+          try {
+            plan = typeof raw === 'string' ? JSON.parse(raw) : raw
+          } catch (e) { plan = raw }
           console.log('[API] Loaded plan from floor_plans table')
         }
       } catch (err) {
@@ -102,7 +105,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             LIMIT 1
           ` as any[]
           if (rows.length > 0 && rows[0]?.layout_data) {
-            plan = rows[0].layout_data
+            const raw = rows[0].layout_data
+            try {
+              plan = typeof raw === 'string' ? JSON.parse(raw) : raw
+            } catch (e) { plan = raw }
             console.log('[API] Loaded plan from floor_plan_configs database')
           }
         } catch (err) {
