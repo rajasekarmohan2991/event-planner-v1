@@ -645,9 +645,27 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Re-check seat availability at submission time to ensure accuracy
+    console.log('[REGISTRATION] Checking seat availability before submission...')
+    let currentHasSeats = hasSeats
+
+    try {
+      const seatCheckRes = await fetch(`/api/events/${eventId}/seats/availability`, {
+        cache: 'no-store'
+      })
+      if (seatCheckRes.ok) {
+        const seatData = await seatCheckRes.json()
+        currentHasSeats = seatData.totalSeats > 0
+        console.log('[REGISTRATION] Fresh seat check result:', { totalSeats: seatData.totalSeats, hasSeats: currentHasSeats })
+      }
+    } catch (error) {
+      console.log('[REGISTRATION] Seat check failed at submission, using cached value:', currentHasSeats)
+    }
+
     // Check if seats are available for this event
-    if (hasSeats) {
+    if (currentHasSeats) {
       // Store form data and redirect to seat selection
+      console.log('[REGISTRATION] Seats available! Redirecting to seat selection...')
       localStorage.setItem(`registration:${eventId}:formData`, JSON.stringify({
         ...formData,
         ticketPrice,
@@ -658,6 +676,7 @@ function GeneralRegistrationForm({ eventId, hasSeats, inviteData }: { eventId: s
       return
     }
 
+    console.log('[REGISTRATION] No seats available, proceeding with direct registration...')
     // Proceed with normal registration if no seats
     const finalAmount = promoDiscount ? promoDiscount.finalAmount : ticketPrice
 
