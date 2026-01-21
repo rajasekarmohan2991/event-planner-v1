@@ -386,114 +386,125 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Fallback seat banner (if no ticket classes) */}
+        {/* Fallback seat banner (if no ticket classes) - Direct link to seat selection */}
         {!checkingSeats && hasSeats && ticketClasses.length === 0 && !loadingTickets && (
           <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg p-6 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-lg">
-                <Armchair className="w-8 h-8" />
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/20 rounded-lg">
+                  <Armchair className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Reserved Seating Event</h3>
+                  <p className="text-indigo-100 mt-1">
+                    This event has reserved seating. Select your seats first before completing registration.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold">Reserved Seating Event</h3>
-                <p className="text-indigo-100 mt-1">
-                  Please fill in your registration details below. You will be able to select your seats in the next step.
-                </p>
-              </div>
+              <button
+                onClick={() => router.push(`/events/${params.id}/register-with-seats`)}
+                className="px-6 py-3 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors whitespace-nowrap"
+              >
+                Select Seats →
+              </button>
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h1 className="text-2xl font-bold mb-2">Event Registration</h1>
-          <p className="text-sm text-slate-600 mb-6">Event ID: {params.id}</p>
+        {/* Only show the regular registration form if NO seats are available */}
+        {!checkingSeats && !hasSeats && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h1 className="text-2xl font-bold mb-2">Event Registration</h1>
+            <p className="text-sm text-slate-600 mb-6">Event ID: {params.id}</p>
 
-          {/* Horizontal stepper */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 flex items-center">
-                <div className={`flex items-center gap-2 ${step >= 1 ? 'text-indigo-600' : 'text-slate-400'}`}>
-                  <span className={`h-6 w-6 rounded-full border flex items-center justify-center text-xs ${step >= 1 ? 'bg-indigo-600 text-white border-indigo-600' : ''}`}>1</span>
-                  <span className="text-sm font-medium">Select Type</span>
+            {/* Horizontal stepper */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 flex items-center">
+                  <div className={`flex items-center gap-2 ${step >= 1 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                    <span className={`h-6 w-6 rounded-full border flex items-center justify-center text-xs ${step >= 1 ? 'bg-indigo-600 text-white border-indigo-600' : ''}`}>1</span>
+                    <span className="text-sm font-medium">Select Type</span>
+                  </div>
+                  <div className={`mx-3 h-px flex-1 ${step >= 2 ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+                  <div className={`flex items-center gap-2 ${step >= 2 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                    <span className={`h-6 w-6 rounded-full border flex items-center justify-center text-xs ${step >= 2 ? 'bg-indigo-600 text-white border-indigo-600' : ''}`}>2</span>
+                    <span className="text-sm font-medium">Fill Details</span>
+                  </div>
                 </div>
-                <div className={`mx-3 h-px flex-1 ${step >= 2 ? 'bg-indigo-600' : 'bg-slate-200'}`} />
-                <div className={`flex items-center gap-2 ${step >= 2 ? 'text-indigo-600' : 'text-slate-400'}`}>
-                  <span className={`h-6 w-6 rounded-full border flex items-center justify-center text-xs ${step >= 2 ? 'bg-indigo-600 text-white border-indigo-600' : ''}`}>2</span>
-                  <span className="text-sm font-medium">Fill Details</span>
+                <div className="ml-4">
+                  {step === 2 ? (
+                    <button className="text-sm px-3 py-1.5 rounded border" onClick={() => setStep(1)}>Back</button>
+                  ) : (
+                    <button className="text-sm px-3 py-1.5 rounded bg-indigo-600 text-white" onClick={() => setStep(2)}>Continue</button>
+                  )}
                 </div>
-              </div>
-              <div className="ml-4">
-                {step === 2 ? (
-                  <button className="text-sm px-3 py-1.5 rounded border" onClick={() => setStep(1)}>Back</button>
-                ) : (
-                  <button className="text-sm px-3 py-1.5 rounded bg-indigo-600 text-white" onClick={() => setStep(2)}>Continue</button>
-                )}
               </div>
             </div>
+
+            {/* Step 1: Registration Type Selector */}
+            {step === 1 && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">Select Registration Type</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
+                    <input
+                      type="radio"
+                      name="registrationType"
+                      value="general"
+                      checked={type === "general"}
+                      onChange={(e) => setType(e.target.value as RegistrationType)}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-medium">General Admission Registration</div>
+                      <div className="text-xs text-slate-500">Standard event attendance</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
+                    <input
+                      type="radio"
+                      name="registrationType"
+                      value="vip"
+                      checked={type === "vip"}
+                      onChange={(e) => setType(e.target.value as RegistrationType)}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-medium">VIP Registration</div>
+                      <div className="text-xs text-slate-500">Premium access with exclusive benefits</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
+                    <input
+                      type="radio"
+                      name="registrationType"
+                      value="virtual"
+                      checked={type === "virtual"}
+                      onChange={(e) => setType(e.target.value as RegistrationType)}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-medium">Virtual Attendee Registration</div>
+                      <div className="text-xs text-slate-500">Join remotely via online platform</div>
+                    </div>
+                  </label>
+
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Conditional Form Rendering */}
+            {step === 2 && (
+              <>
+                {type === "general" && <GeneralRegistrationForm eventId={params.id} hasSeats={hasSeats} inviteData={inviteData} />}
+                {type === "vip" && <VipRegistrationForm eventId={params.id} hasSeats={hasSeats} inviteData={inviteData} />}
+                {type === "virtual" && <VirtualRegistrationForm eventId={params.id} inviteData={inviteData} />}
+              </>
+            )}
           </div>
-
-          {/* Step 1: Registration Type Selector */}
-          {step === 1 && (
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-slate-700">Select Registration Type</label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="registrationType"
-                    value="general"
-                    checked={type === "general"}
-                    onChange={(e) => setType(e.target.value as RegistrationType)}
-                    className="w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-medium">General Admission Registration</div>
-                    <div className="text-xs text-slate-500">Standard event attendance</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="registrationType"
-                    value="vip"
-                    checked={type === "vip"}
-                    onChange={(e) => setType(e.target.value as RegistrationType)}
-                    className="w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-medium">VIP Registration</div>
-                    <div className="text-xs text-slate-500">Premium access with exclusive benefits</div>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 border rounded-md cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="registrationType"
-                    value="virtual"
-                    checked={type === "virtual"}
-                    onChange={(e) => setType(e.target.value as RegistrationType)}
-                    className="w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-medium">Virtual Attendee Registration</div>
-                    <div className="text-xs text-slate-500">Join remotely via online platform</div>
-                  </div>
-                </label>
-
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Conditional Form Rendering */}
-          {step === 2 && (
-            <>
-              {type === "general" && <GeneralRegistrationForm eventId={params.id} hasSeats={hasSeats} inviteData={inviteData} />}
-              {type === "vip" && <VipRegistrationForm eventId={params.id} hasSeats={hasSeats} inviteData={inviteData} />}
-              {type === "virtual" && <VirtualRegistrationForm eventId={params.id} inviteData={inviteData} />}
-            </>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )
