@@ -80,6 +80,33 @@ export async function DELETE(
             }
         }
 
+        // Delete event-related records first to avoid FK constraints
+        // We find all event IDs for this tenant first
+        const events: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM events WHERE tenant_id = $1`, params.id);
+
+        if (events.length > 0) {
+            const eventIds = events.map((e: any) => e.id);
+            // Delete in chunks or just use IN clause (assuming not huge number of events for a deleted company)
+            // For very large sets, this should be batched, but valid for typical usage here.
+
+            // 1. Delete dependent tables for these events
+            // Note: using explicit loops or IN clauses with raw SQL
+
+            // Need to format IDs for SQL IN clause safe string
+            const idList = eventIds.map((id: any) => `'${id}'`).join(',');
+
+            if (idList) {
+                try {
+                    await prisma.$executeRawUnsafe(`DELETE FROM event_role_assignments WHERE event_id IN (${idList})`);
+                    await prisma.$executeRawUnsafe(`DELETE FROM registrations WHERE event_id IN (${idList})`);
+                    await prisma.$executeRawUnsafe(`DELETE FROM tickets WHERE event_id IN (${idList})`);
+                    await prisma.$executeRawUnsafe(`DELETE FROM sessions WHERE event_id IN (${idList})`);
+                } catch (childError) {
+                    console.warn('Error deleting event children:', childError);
+                }
+            }
+        }
+
         // Delete events (this will cascade to registrations, etc. via database FK if configured, or fail)
         // We attempt to delete events manually just in case
         try {
