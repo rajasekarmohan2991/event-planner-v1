@@ -34,9 +34,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Gate by actual existence: floor plan OR existing seats
 
     // 1. Check floor_plan_configs (New system) - Raw SQL
-    // It stores the layout in 'data' column (JSONB)
+    // It stores the layout in 'layout_data' column (JSONB)
     const configs = await prisma.$queryRaw<any[]>`
-       SELECT data, event_id FROM floor_plan_configs WHERE event_id = ${eventId}::bigint LIMIT 1
+       SELECT layout_data, total_seats, plan_name, event_id FROM floor_plan_configs WHERE event_id = ${eventId}::bigint LIMIT 1
     `
 
     let floorPlan: any = null;
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // Parse data if string, else use object
       let layoutData;
       try {
-        layoutData = (typeof cfg.data === 'string') ? JSON.parse(cfg.data) : cfg.data;
+        layoutData = (typeof cfg.layout_data === 'string') ? JSON.parse(cfg.layout_data) : cfg.layout_data;
       } catch (e) {
         layoutData = {}
       }
@@ -53,8 +53,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       floorPlan = {
         id: 'config', // ID not strictly needed for rendering
         layoutData: layoutData,
-        totalCapacity: Number(layoutData?.capacity || 0),
-        name: layoutData?.name || 'Event Floor Plan'
+        totalCapacity: Number(cfg.total_seats || 0),
+        name: cfg.plan_name || 'Event Floor Plan'
       }
     } else {
       // 2. Check floor_plans (Legacy system) - Prisma Client
