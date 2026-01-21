@@ -42,7 +42,7 @@ export async function GET(
         status, 
         type
       FROM registrations
-      WHERE event_id = ${params.id}
+      WHERE event_id = ${params.id}::bigint
       ORDER BY created_at DESC
     ` as any[]
 
