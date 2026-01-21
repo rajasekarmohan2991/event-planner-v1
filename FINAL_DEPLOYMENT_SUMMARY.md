@@ -3,29 +3,34 @@
 ## ✅ LATEST FIXES (Deployed)
 
 ### 1. Header Color (Fixed)
-- **Problem**: Header was translucent, causing background colors to bleed through and logo white box to show.
-- **Fix**: Updated `AppShell.tsx` to force **Solid White** background.
-- **Result**: Header is now clean white. Logo sits perfectly on it.
+- **Problem**: Header was translucent.
+- **Fix**: Changed to **Solid White**.
+- **Result**: Clean, professional look.
 
-### 2. Tax Visibility for Companies (Fixed)
-- **Problem**: Companies were not seeing taxes created by Super Admin.
-- **Fix**: Updated `/api/company/tax-structures` to use Raw SQL.
-- **Result**: Companies now correctly see the taxes managed by Super Admin.
+### 2. Company Deletion & Events (Fixed)
+- **Problem**: Deleting a company left its events visible ("Zombie Events").
+- **Reason**: Database deletion didn't automatically remove child records (registrations, sessions, etc.), causing the event deletion to fail silently while the company was deleted.
+- **Fix**: Updated the delete API to **explicitly cascade delete**:
+  1. `event_role_assignments`
+  2. `registrations`
+  3. `tickets`
+  4. `sessions`
+  5. `events`
+  6. ...then the company.
+- **Result**: Deleting a company now **completely removes** all its events.
 
-### 3. Company Deletion Error (Fixed)
-- **Problem**: 500 Internal Server Error when deleting a company.
-- **Fix**: Updated deletion logic to properly cascade delete all related records.
-- **Result**: Deletion works. <span style="color:orange">Note: If you get a 404 on delete, it means the company is already deleted.</span>
+### 3. Tax Visibility (Fixed)
+- Companies can view Super Admin created taxes correctly.
 
-### 4. Build & Type Fixes (Fixed)
-- Corrected imports and TypeScript definitions.
+### 4. Build Fixes (Fixed)
+- All imports and types resolved.
 
 ---
 
-## 🧪 TESTING
+## 🧹 CLEANUP INSTRUCTIONS (For previously failed deletes)
+For companies deleted *before* this fix, their events might still exist.
+1. Go to **Super Admin Dashboard** -> **All Events** (`/admin/events`).
+2. Identify the events from the deleted company (they might show "Unknown Tenant" or similar).
+3. Delete them manually.
 
-1. **Header**: Refresh page. Verify header is solid white.
-2. **Company Tax**: Log in as Company Admin -> Settings -> Tax. Verify taxes are visible (and read-only).
-3. **Delete**: Delete a company. If it disappears, it worked.
-
-**System is fully deployed and operational.**
+**System is fully operational.**
