@@ -113,24 +113,37 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
           if (data.totalSeats === 0 && data.floorPlan) {
             console.log('[REGISTER] No seats found but floor plan exists, triggering generation...')
             try {
-              await fetch(`/api/events/${params.id}/seats/generate`, {
+              const genRes = await fetch(`/api/events/${params.id}/seats/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
               })
-              // Re-check after generation
-              const recheckRes = await fetch(`/api/events/${params.id}/seats/availability`, {
-                cache: 'no-store'
-              })
-              if (recheckRes.ok) {
-                const recheckData = await recheckRes.json()
-                setHasSeats(recheckData.totalSeats > 0)
+              
+              if (genRes.ok) {
+                console.log('[REGISTER] Seat generation successful, re-checking...')
+                // Re-check after generation with a small delay
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                const recheckRes = await fetch(`/api/events/${params.id}/seats/availability`, {
+                  cache: 'no-store'
+                })
+                if (recheckRes.ok) {
+                  const recheckData = await recheckRes.json()
+                  console.log('[REGISTER] Re-check result:', { totalSeats: recheckData.totalSeats })
+                  setHasSeats(recheckData.totalSeats > 0)
+                } else {
+                  console.log('[REGISTER] Re-check failed, assuming no seats')
+                  setHasSeats(false)
+                }
+              } else {
+                console.error('[REGISTER] Seat generation failed:', await genRes.text())
+                setHasSeats(false)
               }
             } catch (genError) {
               console.error('[REGISTER] Failed to generate seats:', genError)
               setHasSeats(false)
             }
           } else {
+            console.log('[REGISTER] Seats check result:', { totalSeats: data.totalSeats })
             setHasSeats(data.totalSeats > 0)
           }
         } else {
@@ -144,6 +157,7 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
         setHasSeats(false)
       } finally {
         // Always set checkingSeats to false so registration can proceed
+        console.log('[REGISTER] Setting checkingSeats to false, hasSeats:', hasSeats)
         setCheckingSeats(false)
       }
     }
