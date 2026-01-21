@@ -12,6 +12,30 @@ import { useSession } from 'next-auth/react'
 import { useSidebar } from '@/contexts/SidebarContext'
 import { BrandLogo } from '@/components/BrandLogo'
 
+// Icon color mapping for each navigation item
+const getIconColor = (itemName: string, isActive: boolean) => {
+  const colorMap: Record<string, string> = {
+    'Dashboard': isActive ? 'text-purple-600' : 'text-purple-500',
+    'Back to Companies': isActive ? 'text-gray-600' : 'text-gray-500',
+    'All Events': isActive ? 'text-blue-600' : 'text-blue-500',
+    'Events': isActive ? 'text-blue-600' : 'text-blue-500',
+    'All Users': isActive ? 'text-green-600' : 'text-green-500',
+    'Users': isActive ? 'text-green-600' : 'text-green-500',
+    'Lookup Management': isActive ? 'text-orange-600' : 'text-orange-500',
+    'Finance': isActive ? 'text-emerald-600' : 'text-emerald-500',
+    'Tax Settings': isActive ? 'text-indigo-600' : 'text-indigo-500',
+    'Signature Templates': isActive ? 'text-pink-600' : 'text-pink-500',
+    'Digital Signatures': isActive ? 'text-rose-600' : 'text-rose-500',
+    'System Settings': isActive ? 'text-gray-600' : 'text-gray-500',
+    'Settings': isActive ? 'text-gray-600' : 'text-gray-500',
+    'Billing & Subscription': isActive ? 'text-yellow-600' : 'text-yellow-500',
+    'Run Diagnostics': isActive ? 'text-red-600' : 'text-red-500',
+    'Companies': isActive ? 'text-cyan-600' : 'text-cyan-500',
+    'Company': isActive ? 'text-cyan-600' : 'text-cyan-500'
+  }
+  return colorMap[itemName] || (isActive ? 'text-violet-600' : 'text-slate-400')
+}
+
 const getNavigation = (userRole?: string, pathname?: string) => {
   const baseNavigation = []
 
@@ -191,7 +215,7 @@ export function AdminSidebar() {
                 >
                   <item.icon
                     className={cn(
-                      isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-violet-600 dark:group-hover:text-violet-400',
+                      getIconColor(item.name, isActive),
                       'flex-shrink-0 h-5 w-5 transition-all',
                       !isCollapsed && 'mr-3'
                     )}
@@ -254,7 +278,7 @@ export function AdminSidebar() {
                 >
                   <item.icon
                     className={cn(
-                      isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-violet-600',
+                      getIconColor(item.name, isActive),
                       'mr-3 flex-shrink-0 h-5 w-5'
                     )}
                     aria-hidden="true"
