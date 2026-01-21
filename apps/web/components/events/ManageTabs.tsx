@@ -12,9 +12,10 @@ export default function ManageTabs({ eventId }: { eventId: string }) {
   const tabs = [
     { href: `${base}/info`, label: 'Event Info', short: 'Info' },
     { href: `${base}/team`, label: 'Team', short: 'Team' },
+    { href: `${base}/partners`, label: '⚡ Quick Form', short: 'Quick' },
     { href: `${base}/sponsors`, label: 'Sponsors', short: 'Sponsors' },
     { href: `${base}/vendors`, label: 'Vendors', short: 'Vendors' },
-    { href: `${base}/exhibitor-registration`, label: 'Exhibitor Registration', short: 'Exhibitors' },
+    { href: `${base}/exhibitors`, label: 'Exhibitors', short: 'Exhibitors' },
   ]
 
   const activeIndex = tabs.findIndex(t => pathname === t.href)
