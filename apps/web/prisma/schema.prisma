@@ -2044,6 +2044,7 @@ model VendorService {
   vendor          Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   categories      MenuCategory[]
   packages        MealPackage[]
+  bookings        VendorBooking[]
   
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
