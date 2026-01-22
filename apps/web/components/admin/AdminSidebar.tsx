@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity, CreditCard, Wallet, Receipt, Globe, FileText } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, Building2, Home, Shield, Database, List, Activity, CreditCard, Wallet, Receipt, Globe, FileText, Package, Store, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -97,11 +97,18 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Events', href: '/admin/events', icon: Calendar },
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
+        { name: 'Service Management', href: '/super-admin/service-management', icon: Package, 
+          subItems: [
+            { name: 'Vendor Management', href: '/super-admin/service-management/vendors', icon: Package },
+            { name: 'Sponsor Management', href: '/super-admin/service-management/sponsors', icon: Users },
+            { name: 'Exhibitor Management', href: '/super-admin/service-management/exhibitors', icon: Store }
+          ]
+        },
         { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
         { name: 'Tax Settings', href: '/super-admin/tax-templates', icon: Globe },
         { name: 'Signature Templates', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
-        { name: 'System Settings', href: '/admin/system-settings', icon: Settings },
+        { name: 'System Settings', href: '/super-admin/settings', icon: Settings },
         { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
       )

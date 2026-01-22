@@ -160,12 +160,7 @@ export default function SuperAdminSettingsPage() {
             </div>
 
             {/* Currency Summary Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full relative group">
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" onClick={() => setIsEditingCurrency(true)}>
-                  <Edit2 className="h-4 w-4 text-gray-500" />
-                </Button>
-              </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-yellow-50 text-yellow-600 rounded-lg">
