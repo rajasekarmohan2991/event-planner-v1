@@ -22,6 +22,13 @@ interface PlanFeature {
     limit?: number;
 }
 
+interface ModuleConfig {
+    vendorManagement: boolean;
+    sponsorManagement: boolean;
+    exhibitorManagement: boolean;
+    providerCommissionRate: number;
+}
+
 interface SubscriptionPlan {
     id: string;
     name: string;
@@ -34,6 +41,7 @@ interface SubscriptionPlan {
     maxUsers?: number;
     maxAttendees?: number;
     features: PlanFeature[];
+    modules?: ModuleConfig;
     isActive: boolean;
     sortOrder: number;
 }
@@ -57,6 +65,12 @@ export default function SubscriptionPlansPage() {
         maxUsers: undefined,
         maxAttendees: undefined,
         features: [],
+        modules: {
+            vendorManagement: false,
+            sponsorManagement: false,
+            exhibitorManagement: false,
+            providerCommissionRate: 15
+        },
         isActive: true,
         sortOrder: 0
     });
@@ -144,6 +158,12 @@ export default function SubscriptionPlansPage() {
             maxUsers: undefined,
             maxAttendees: undefined,
             features: [],
+            modules: {
+                vendorManagement: false,
+                sponsorManagement: false,
+                exhibitorManagement: false,
+                providerCommissionRate: 15
+            },
             isActive: true,
             sortOrder: 0
         });
@@ -351,6 +371,75 @@ export default function SubscriptionPlansPage() {
                                     value={formData.maxAttendees || ''}
                                     onChange={(e) => setFormData({ ...formData, maxAttendees: e.target.value ? parseInt(e.target.value) : undefined })}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Service Management Modules */}
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Service Management Modules (included in this plan)
+                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-blue-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.modules?.vendorManagement || false}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            modules: { ...formData.modules!, vendorManagement: e.target.checked }
+                                        })}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <div>
+                                        <span className="font-medium text-gray-900">Vendor Management</span>
+                                        <p className="text-xs text-gray-500">Manage vendors for events</p>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-blue-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.modules?.sponsorManagement || false}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            modules: { ...formData.modules!, sponsorManagement: e.target.checked }
+                                        })}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <div>
+                                        <span className="font-medium text-gray-900">Sponsor Management</span>
+                                        <p className="text-xs text-gray-500">Manage sponsors and deals</p>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-blue-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.modules?.exhibitorManagement || false}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            modules: { ...formData.modules!, exhibitorManagement: e.target.checked }
+                                        })}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <div>
+                                        <span className="font-medium text-gray-900">Exhibitor Management</span>
+                                        <p className="text-xs text-gray-500">Manage exhibitors and booths</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <label className="text-sm text-gray-700">Default Commission Rate:</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    className="w-20 px-2 py-1 border rounded text-center"
+                                    value={formData.modules?.providerCommissionRate || 15}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        modules: { ...formData.modules!, providerCommissionRate: parseFloat(e.target.value) || 0 }
+                                    })}
+                                />
+                                <span className="text-sm text-gray-500">%</span>
                             </div>
                         </div>
 

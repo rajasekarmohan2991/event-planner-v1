@@ -80,7 +80,7 @@ export async function DELETE(
       return NextResponse.json({ message: 'Forbidden - Super Admin only' }, { status: 403 })
     }
 
-    // Check if item is system-protected
+    // Check if item exists
     const item = await prisma.lookupOption.findUnique({
       where: { id: params.id },
     })
@@ -89,13 +89,7 @@ export async function DELETE(
       return NextResponse.json({ message: 'Lookup item not found' }, { status: 404 })
     }
 
-    if (item.isSystem) {
-      return NextResponse.json(
-        { message: 'Cannot delete system-protected lookup item' },
-        { status: 403 }
-      )
-    }
-
+    // Delete the item (allow deleting any item including system items)
     await prisma.lookupOption.delete({
       where: { id: params.id },
     })

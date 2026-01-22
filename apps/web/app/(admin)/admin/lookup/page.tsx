@@ -377,15 +377,21 @@ export default function LookupManagementPage() {
                       selectedCategory.options.map((option) => (
                         <TableRow key={option.id} className="group hover:bg-gray-50/50">
                           <TableCell>
-                            <div
-                              onClick={() => !option.isSystem && handleToggleActive(option)}
+                            <button
+                              onClick={() => handleToggleActive(option)}
                               className={cn(
-                                "w-2 h-2 rounded-full transition-all hover:scale-150",
-                                option.isActive ? "bg-emerald-500" : "bg-gray-300",
-                                option.isSystem ? "cursor-not-allowed opacity-70 hover:scale-100" : "cursor-pointer"
+                                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
+                                option.isActive ? "bg-emerald-500" : "bg-gray-300"
                               )}
-                              title={option.isSystem ? 'System Value (Protected)' : (option.isActive ? 'Active' : 'Inactive')}
-                            />
+                              title={option.isActive ? 'Click to disable' : 'Click to enable'}
+                            >
+                              <span
+                                className={cn(
+                                  "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                                  option.isActive ? "translate-x-5" : "translate-x-1"
+                                )}
+                              />
+                            </button>
                           </TableCell>
                           <TableCell className="font-medium">
                             {option.label}
@@ -426,7 +432,6 @@ export default function LookupManagementPage() {
                                 size="icon"
                                 className="h-8 w-8 text-gray-500 hover:text-red-600"
                                 onClick={() => handleDeleteOption(option)}
-                                disabled={option.isSystem}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
