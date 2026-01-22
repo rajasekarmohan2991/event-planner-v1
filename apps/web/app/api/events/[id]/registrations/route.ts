@@ -118,11 +118,19 @@ export async function POST(
     const event = events[0]
     const tenantId = event.tenantId
     const now = new Date()
-    const eventEnd = event.endsAt ? new Date(event.endsAt) : null
+    const eventStart = event.startsAt ? new Date(event.startsAt) : null
 
-    if (eventEnd && now > eventEnd) {
-      console.log('❌ Event has ended:', { eventEnd, now })
-      return NextResponse.json({ message: 'This event has ended.' }, { status: 400 })
+    // Allow registrations until event starts (not until it ends)
+    // This allows people to register for ongoing events
+    if (eventStart && now > eventStart) {
+      // Check if event has ended
+      const eventEnd = event.endsAt ? new Date(event.endsAt) : null
+      if (eventEnd && now > eventEnd) {
+        console.log('❌ Event has ended:', { eventEnd, now })
+        return NextResponse.json({ message: 'This event has ended.' }, { status: 400 })
+      }
+      // Event is ongoing, allow registration
+      console.log('✅ Event is ongoing, allowing registration')
     }
 
     // ============================================

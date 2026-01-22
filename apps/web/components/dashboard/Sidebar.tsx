@@ -16,7 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X as CloseIcon
+  X as CloseIcon,
+  Package,
+  FileText,
+  DollarSign
 } from 'lucide-react'
 
 const sidebarVariants = {
@@ -61,6 +64,9 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Events', href: '/dashboard/events', icon: CalendarDays },
     { name: 'Tickets', href: '/dashboard/tickets', icon: Ticket },
+    { name: 'Providers', href: '/providers', icon: Package },
+    { name: 'Bookings', href: '/bookings', icon: FileText },
+    { name: 'Commissions', href: '/commissions', icon: DollarSign },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
   
