@@ -18,31 +18,35 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'No company context' }, { status: 400 });
         }
 
-        // Fetch company information
-        const company = await prisma.tenant.findUnique({
-            where: { id: tenantId },
-            select: {
-                id: true,
-                name: true,
-                slug: true,
-                logo: true,
-                subdomain: true,
-                plan: true,
-                status: true,
-                billingEmail: true,
-                currency: true,
-                country: true,
-                timezone: true,
-                createdAt: true,
-                updatedAt: true
-            }
-        });
+        // Fetch company information including provider module settings
+        const company = await prisma.$queryRaw<any[]>`
+            SELECT 
+                id,
+                name,
+                slug,
+                logo,
+                subdomain,
+                subscription_plan as plan,
+                status,
+                billing_email as "billingEmail",
+                currency,
+                country,
+                timezone,
+                module_vendor_management,
+                module_sponsor_management,
+                module_exhibitor_management,
+                provider_commission_rate,
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+            FROM tenants
+            WHERE id = ${tenantId}
+        `;
 
-        if (!company) {
+        if (!company || company.length === 0) {
             return NextResponse.json({ error: 'Company not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ company }, { status: 200 });
+        return NextResponse.json(company[0], { status: 200 });
     } catch (error) {
         console.error('Error fetching company info:', error);
         return NextResponse.json(

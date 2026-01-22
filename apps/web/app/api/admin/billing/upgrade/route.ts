@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
             await prisma.$executeRaw`
                 UPDATE tenants 
                 SET 
-                    plan = ${plan},
+                    subscription_plan = ${plan},
                     status = 'ACTIVE',
                     subscription_ends_at = ${subscriptionEndsAt},
                     updated_at = NOW()
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
                 await prisma.$executeRaw`
                     UPDATE tenants 
                     SET 
-                        plan = ${plan},
+                        subscription_plan = ${plan},
                         status = 'ACTIVE',
                         updated_at = NOW()
                     WHERE id = ${tenantId}
