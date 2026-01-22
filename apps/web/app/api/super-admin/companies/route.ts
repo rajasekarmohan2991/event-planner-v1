@@ -58,6 +58,17 @@ export async function GET(req: NextRequest) {
       return 0 // Maintain existing sort for others
     })
 
+    // Fetch system logo for Super Admin company
+    let systemLogo: string | null = null
+    try {
+      const logoResult = await prisma.$queryRaw<any[]>`
+        SELECT value FROM system_settings WHERE key = 'company_logo' LIMIT 1
+      `
+      systemLogo = logoResult[0]?.value || null
+    } catch (e) {
+      // Table might not exist yet
+    }
+
     // Map to match UI expectations
     const companiesWithCounts = sortedCompanies.map(c => {
       // Priority: Billing Email -> Email From Address -> Tenant Admin Email -> System Email -> Placeholder
@@ -69,13 +80,17 @@ export async function GET(req: NextRequest) {
       if (emailMatch) {
         fallbackEmail = emailMatch[1]
       }
+      
+      // Use system logo for Super Admin company
+      const companyLogo = (c.slug === 'super-admin' || c.slug === 'default-tenant') ? (systemLogo || c.logo) : c.logo
+      
       return {
         id: c.id,
         name: c.name,
         slug: c.slug,
         plan: c.plan,
         status: c.status,
-        logo: c.logo,
+        logo: companyLogo,
         createdAt: c.createdAt,
         billingEmail: fallbackEmail,
         _count: c._count,

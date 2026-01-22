@@ -6,70 +6,96 @@ interface LoadingSpinnerProps {
   text?: string
   className?: string
   fullScreen?: boolean
+  variant?: 'default' | 'dots' | 'pulse' | 'gradient'
 }
 
 const sizeClasses = {
-  sm: 'h-8 w-8',
-  md: 'h-12 w-12',
+  sm: 'h-6 w-6',
+  md: 'h-10 w-10',
   lg: 'h-16 w-16',
   xl: 'h-24 w-24'
+}
+
+const dotSizeClasses = {
+  sm: 'h-2 w-2',
+  md: 'h-3 w-3',
+  lg: 'h-4 w-4',
+  xl: 'h-5 w-5'
 }
 
 export function LoadingSpinner({ 
   size = 'md', 
   text, 
   className,
-  fullScreen = false 
+  fullScreen = false,
+  variant = 'gradient'
 }: LoadingSpinnerProps) {
-  const spinner = (
-    <div className={cn('flex flex-col items-center justify-center gap-4', className)}>
-      <div className={cn('relative', sizeClasses[size])}>
-        {/* Logo with pulse animation */}
-        <div className="absolute inset-0 animate-pulse">
-          <svg
-            viewBox="0 0 200 200"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full"
-          >
-            {/* Pink circle background */}
-            <circle cx="100" cy="100" r="95" fill="#E91E63" />
-            
-            {/* White 'a' letter */}
-            <path
-              d="M 70 60 Q 100 40, 130 60 L 130 140 L 110 140 L 110 100 Q 110 80, 100 80 Q 90 80, 90 100 L 90 140 L 70 140 Z M 110 120 L 130 120 L 130 140 L 110 140 Z"
-              fill="white"
-            />
-            
-            {/* Pink circle in center */}
-            <circle cx="100" cy="100" r="20" fill="#E91E63" />
-          </svg>
-        </div>
-        
-        {/* Rotating border */}
-        <div className="absolute inset-0 animate-spin">
-          <svg
-            viewBox="0 0 200 200"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full"
-          >
-            <circle
-              cx="100"
-              cy="100"
-              r="95"
-              stroke="#E91E63"
-              strokeWidth="4"
-              strokeDasharray="30 10"
-              strokeLinecap="round"
-              opacity="0.3"
-            />
-          </svg>
-        </div>
-      </div>
+  
+  const renderSpinner = () => {
+    switch (variant) {
+      case 'dots':
+        return (
+          <div className="flex items-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={cn(
+                  dotSizeClasses[size],
+                  'rounded-full animate-bounce',
+                  i === 0 ? 'bg-violet-500' : i === 1 ? 'bg-blue-500' : 'bg-emerald-500'
+                )}
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
+        )
       
+      case 'pulse':
+        return (
+          <div className={cn('relative', sizeClasses[size])}>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500 to-blue-500 animate-ping opacity-75" />
+            <div className="relative rounded-full bg-gradient-to-r from-violet-500 to-blue-500 h-full w-full" />
+          </div>
+        )
+      
+      case 'gradient':
+      default:
+        return (
+          <div className={cn('relative', sizeClasses[size])}>
+            {/* Outer rotating ring */}
+            <svg className="animate-spin" viewBox="0 0 50 50">
+              <defs>
+                <linearGradient id="spinner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8B5CF6" />
+                  <stop offset="50%" stopColor="#3B82F6" />
+                  <stop offset="100%" stopColor="#10B981" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx="25"
+                cy="25"
+                r="20"
+                fill="none"
+                stroke="url(#spinner-gradient)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray="80 30"
+              />
+            </svg>
+            {/* Inner pulsing dot */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-violet-500 to-blue-500 animate-pulse" />
+            </div>
+          </div>
+        )
+    }
+  }
+
+  const spinner = (
+    <div className={cn('flex flex-col items-center justify-center gap-3', className)}>
+      {renderSpinner()}
       {text && (
-        <p className="text-sm text-muted-foreground animate-pulse">
+        <p className="text-sm font-medium bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent animate-pulse">
           {text}
         </p>
       )}
@@ -78,7 +104,7 @@ export function LoadingSpinner({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
         {spinner}
       </div>
     )
@@ -89,8 +115,8 @@ export function LoadingSpinner({
 
 export function LoadingPage({ text = 'Loading...' }: { text?: string }) {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <LoadingSpinner size="lg" text={text} />
+    <div className="flex items-center justify-center min-h-[60vh] bg-gradient-to-br from-slate-50 to-white">
+      <LoadingSpinner size="lg" text={text} variant="gradient" />
     </div>
   )
 }
@@ -98,7 +124,7 @@ export function LoadingPage({ text = 'Loading...' }: { text?: string }) {
 export function LoadingCard({ text }: { text?: string }) {
   return (
     <div className="flex items-center justify-center py-12">
-      <LoadingSpinner size="md" text={text} />
+      <LoadingSpinner size="md" text={text} variant="gradient" />
     </div>
   )
 }
@@ -106,8 +132,12 @@ export function LoadingCard({ text }: { text?: string }) {
 export function LoadingButton({ text = 'Loading...' }: { text?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <LoadingSpinner size="sm" />
-      <span>{text}</span>
+      <LoadingSpinner size="sm" variant="gradient" />
+      <span className="text-sm">{text}</span>
     </div>
   )
+}
+
+export function LoadingDots() {
+  return <LoadingSpinner size="sm" variant="dots" />
 }

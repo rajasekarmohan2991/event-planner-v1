@@ -516,85 +516,101 @@ export default function CompanyDetailsPage() {
           </div>
         </div>
 
-        {/* Subscription & Billing Details */}
-        <div className="bg-white rounded-lg shadow border overflow-hidden mb-8">
-          <div className="p-6 border-b flex justify-between items-center bg-green-50/50">
-            <div className="flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-green-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Subscription & Limits</h2>
-            </div>
+        {/* Subscription & Billing Details - Modern Design */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+          {/* Header with gradient accent */}
+          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
-                {company.plan} Plan
-              </Badge>
+              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
+                <Ticket className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Subscription & Limits</h2>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-emerald-400 text-emerald-600 bg-emerald-50">
+                {company.plan?.toUpperCase()} Plan
+              </span>
               <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/provider-modules`)}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 shadow-sm"
               >
                 <Settings className="h-4 w-4" />
                 Provider Modules
               </button>
               <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
-                className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm"
               >
                 Change Plan
               </button>
             </div>
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Plan Usage Limits */}
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-4">Plan Usage Limits</h3>
-              <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-500 mb-5">Plan Usage Limits</h3>
+              <div className="space-y-5">
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">Events Created</span>
-                    <span className="text-gray-500">{company.events.length} / {company.maxEvents}</span>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-gray-700">Events Created</span>
+                    <span className="text-gray-500 font-mono">{company.events.length} / {company.maxEvents}</span>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} />
+                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} 
+                    />
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">Team Members</span>
-                    <span className="text-gray-500">{company.members.length} / {company.maxUsers}</span>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-gray-700">Team Members</span>
+                    <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers}</span>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} />
+                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} 
+                    />
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">Storage (MB)</span>
-                    <span className="text-gray-500">0 / {company.maxStorage}</span>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-gray-700">Storage (MB)</span>
+                    <span className="text-gray-500 font-mono">0 / {company.maxStorage}</span>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gray-400 rounded-full" style={{ width: `0%` }} />
+                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500" 
+                      style={{ width: `0%` }} 
+                    />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Billing Information</h3>
-              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                <div className="flex justify-between items-center text-sm">
+            
+            {/* Billing Information */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-5">Billing Information</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-gray-600">Status</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {company.status}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-gray-600">Billing Email</span>
-                  <span className="font-medium">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
+                  <span className="font-medium text-gray-900 text-sm">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-gray-600">Base Currency</span>
                   <button
                     onClick={() => setShowCurrencyModal(true)}
-                    className="flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700"
+                    className="flex items-center gap-2 font-medium text-violet-600 hover:text-violet-700 transition-colors"
                   >
-                    <DollarSign className="h-4 w-4" />
+                    <span className="text-lg">{currencies.find(c => c.code === companyCurrency)?.symbol || '$'}</span>
                     {companyCurrency}
                     <Edit2 className="h-3 w-3" />
                   </button>

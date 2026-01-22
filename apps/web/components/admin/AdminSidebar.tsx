@@ -121,9 +121,9 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     } else {
       // Global Super Admin View: Only Companies and Settings
       // This is the "Landing" view requested by the user
+      // When on /super-admin/companies or /super-admin (root), show minimal menu
       baseNavigation.push(
-        { name: 'Companies', href: '/super-admin/companies', icon: Building2 },
-        { name: 'Settings', href: '/super-admin/settings', icon: Settings }
+        { name: 'Companies', href: '/super-admin/companies', icon: Building2 }
       )
     }
     return baseNavigation
