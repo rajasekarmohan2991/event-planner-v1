@@ -8,12 +8,17 @@ export async function ensureSchema() {
         console.log('✅ Database connection successful')
 
         console.log('📝 Step 1: Updating tenants table...')
-        // 0. Tenants Table - Add country column (wrapped in DO block to handle missing table)
+        // 0. Tenants Table - Add country column and subscription modules (wrapped in DO block to handle missing table)
         await prisma.$executeRawUnsafe(`
       DO $$ 
       BEGIN 
           BEGIN
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_vendor_management BOOLEAN DEFAULT false;
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_sponsor_management BOOLEAN DEFAULT false;
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_exhibitor_management BOOLEAN DEFAULT false;
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS provider_commission_rate DECIMAL(5,2) DEFAULT 15.00;
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS provider_settings JSONB DEFAULT '{}'::jsonb;
           EXCEPTION
               WHEN undefined_table THEN
                   RAISE NOTICE 'Table tenants does not exist yet';
@@ -1417,16 +1422,17 @@ export async function ensureSchema() {
         await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_holder_name TEXT;`)
         await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS upi_id TEXT;`)
 
-        console.log('📝 Step 46: Creating provider portal tables...')
-        // Service Providers Table
+        console.log('📝 Step 46: Creating provider portal tables (tenant-scoped)...')
+        // Service Providers Table - Now tenant-scoped for company-level management
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS service_providers (
                 id BIGSERIAL PRIMARY KEY,
+                tenant_id VARCHAR(255) NOT NULL,
                 provider_type VARCHAR(50) NOT NULL CHECK (provider_type IN ('VENDOR', 'SPONSOR', 'EXHIBITOR')),
                 company_name VARCHAR(255) NOT NULL,
                 business_registration_number VARCHAR(100),
                 tax_id VARCHAR(100),
-                email VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255) NOT NULL,
                 phone VARCHAR(50),
                 website VARCHAR(255),
                 address_line1 VARCHAR(255),
@@ -1455,12 +1461,12 @@ export async function ensureSchema() {
                 gallery JSONB DEFAULT '[]'::jsonb,
                 commission_rate DECIMAL(5,2) DEFAULT 15.00,
                 payment_terms VARCHAR(50) DEFAULT 'NET_30',
-                subscription_tier VARCHAR(50) DEFAULT 'FREE',
-                subscription_expires_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
+                updated_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(tenant_id, email)
             );
         `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_tenant ON service_providers(tenant_id);`)
         await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_type ON service_providers(provider_type);`)
         await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_status ON service_providers(verification_status);`)
         await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_city ON service_providers(city);`)
