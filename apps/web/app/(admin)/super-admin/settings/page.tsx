@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import {
-  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2, Image, Upload
+  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2, Image, Upload, Trash2
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -24,7 +24,7 @@ export default function SuperAdminSettingsPage() {
   const [isEditingCurrency, setIsEditingCurrency] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [savingCurrency, setSavingCurrency] = useState(false)
-  
+
   // Company Logo state
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -41,7 +41,7 @@ export default function SuperAdminSettingsPage() {
         }
       })
       .catch(err => console.error('Failed to fetch currency settings', err))
-    
+
     // Fetch company logo
     fetch('/api/super-admin/settings/logo')
       .then(res => res.json())
@@ -91,6 +91,25 @@ export default function SuperAdminSettingsPage() {
       toast({ title: 'Failed to upload logo', variant: 'destructive' })
     } finally {
       setUploadingLogo(false)
+    }
+  }
+
+  const handleDeleteLogo = async () => {
+    if (!window.confirm('Are you sure you want to remove the company logo?')) return
+
+    try {
+      const res = await fetch('/api/super-admin/settings/logo', {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        setCompanyLogo(null)
+        toast({ title: 'Logo removed successfully' })
+      } else {
+        throw new Error('Failed to delete logo')
+      }
+    } catch (error) {
+      toast({ title: 'Failed to remove logo', variant: 'destructive' })
     }
   }
 
@@ -201,8 +220,31 @@ export default function SuperAdminSettingsPage() {
               </div>
               <div className="flex flex-col items-center gap-4">
                 {companyLogo ? (
-                  <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
-                    <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
+                  <div className="relative w-32 h-32 group">
+                    <div className="w-full h-full rounded-lg border border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                      <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain p-2" />
+                    </div>
+                    {/* Overlay Actions */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-3">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-9 w-9 hover:scale-105 transition-transform"
+                        onClick={() => logoInputRef.current?.click()}
+                        title="Change Logo"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-9 w-9 hover:scale-105 transition-transform bg-red-600 hover:bg-red-700 text-white border-0"
+                        onClick={handleDeleteLogo}
+                        title="Remove Logo"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
@@ -221,16 +263,18 @@ export default function SuperAdminSettingsPage() {
                   onChange={handleLogoUpload}
                   className="hidden"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => logoInputRef.current?.click()}
-                  disabled={uploadingLogo}
-                  className="w-full"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
-                </Button>
+                {!companyLogo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  </Button>
+                )}
               </div>
             </div>
 

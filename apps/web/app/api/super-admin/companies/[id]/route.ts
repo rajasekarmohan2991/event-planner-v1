@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
+// Polyfill for BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString()
+}
+
 export const dynamic = 'force-dynamic'
 
 export async function GET(

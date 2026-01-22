@@ -4,6 +4,11 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { ensureSchema } from '@/lib/ensure-schema'
 
+// Polyfill for BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString()
+}
+
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/lookups - Get all lookup categories or values for a specific category

@@ -76,3 +76,22 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// DELETE - Remove company logo
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || (session.user as any).role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    await prisma.$executeRawUnsafe(`
+      UPDATE system_settings SET value = NULL WHERE key = 'company_logo'
+    `)
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('Error deleting logo:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

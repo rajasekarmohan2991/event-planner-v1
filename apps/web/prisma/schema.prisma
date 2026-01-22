@@ -687,6 +687,7 @@ model Exhibitor {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
   booths              Booth[]
+  products            ExhibitorProduct[]
   tenantId            String?  @map("tenant_id")
 
   @@index([eventId, name])
@@ -1298,6 +1299,7 @@ model Event {
   payouts            Payout[]
   charges            Charge[]
   credits            Credit[]
+  sponsors           Sponsor[]
 
   @@map("events")
 }
@@ -1986,3 +1988,231 @@ model SignatureRequest {
   @@map("signature_requests")
 }
 
+
+// ==============================
+// Service Management (Vendor Module)
+// ==============================
+
+model Vendor {
+  id              String   @id @default(cuid())
+  tenantId        String?  @map("tenant_id")
+  name            String
+  category        String   // Catering, Decor, AV
+  description     String?  @db.Text
+  email           String?
+  phone           String?
+  website         String?
+  
+  // Advanced Profile
+  logo            String?
+  coverImage      String?  @map("cover_image")
+  establishedYear Int?     @map("established_year")
+  operatingCities Json?    // Array of strings
+  serviceCapacity Int?     @map("service_capacity") // Max guests
+  licenses        Json?    // Array of { title, url }
+  
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  services        VendorService[]
+  bookings        VendorBooking[]
+  
+  @@index([tenantId])
+  @@index([category])
+  @@map("vendors")
+}
+
+model VendorService {
+  id              String   @id @default(cuid())
+  vendorId        String   @map("vendor_id")
+  name            String
+  type            String   // Full Service, Buffet, etc.
+  priceModel      String   // Per Plate, Per Event
+  basePrice       Decimal  @db.Decimal(10, 2) @map("base_price")
+  currency        String   @default("INR")
+  minOrderQty     Int      @default(1) @map("min_order_qty")
+  maxCapacity     Int?     @map("max_capacity")
+  prepTimeHours   Int?     @map("prep_time_hours")
+  staffCount      Int      @default(0) @map("staff_count")
+  
+  description     String?  @db.Text
+  isPopular       Boolean  @default(false) @map("is_popular")
+  
+  vendor          Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categories      MenuCategory[]
+  packages        MealPackage[]
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([vendorId])
+  @@map("vendor_services")
+}
+
+model MenuCategory {
+  id              String   @id @default(cuid())
+  serviceId       String   @map("service_id")
+  name            String   // Starters, Mains, Desserts
+  description     String?
+  sortOrder       Int      @default(0) @map("sort_order")
+  
+  service         VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  items           MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id              String   @id @default(cuid())
+  categoryId      String   @map("category_id")
+  name            String
+  type            String   // VEG, NON_VEG, VEGAN
+  cuisine         String?  // Indian, Chinese
+  description     String?
+  imageUrls       Json?    // Array of strings
+  allergens       Json?    // Array of strings
+  
+  priceImpact     Decimal  @default(0) @db.Decimal(10, 2) @map("price_impact")
+  isCustomizable  Boolean  @default(false) @map("is_customizable")
+  
+  category        MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("menu_items")
+}
+
+model MealPackage {
+  id              String   @id @default(cuid())
+  serviceId       String   @map("service_id")
+  name            String
+  type            String   // Breakfast, Lunch, Dinner
+  pricePerPlate   Decimal  @db.Decimal(10, 2) @map("price_per_plate")
+  minGuests       Int      @default(10) @map("min_guests")
+  maxGuests       Int?     @map("max_guests")
+  
+  description     String?
+  includedItems   Json?    // Summary of what is included (e.g., {"Starters": 3, "Mains": 4})
+  
+  service         VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("meal_packages")
+}
+
+model VendorBooking {
+  id              String   @id @default(cuid())
+  vendorId        String   @map("vendor_id")
+  serviceId       String   @map("service_id")
+  eventId         String?  @map("event_id")
+  userId          BigInt?  @map("user_id") // Who booked
+  
+  bookingDate     DateTime @map("booking_date")
+  guestCount      Int      @map("guest_count")
+  
+  status          String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  
+  // Financials
+  baseAmount      Decimal  @db.Decimal(10, 2) @map("base_amount")
+  taxAmount       Decimal  @default(0) @db.Decimal(10, 2) @map("tax_amount")
+  totalAmount     Decimal  @db.Decimal(10, 2) @map("total_amount")
+  advancePaid     Decimal  @default(0) @db.Decimal(10, 2) @map("advance_paid")
+  
+  notes           String?
+  
+  vendor          Vendor         @relation(fields: [vendorId], references: [id])
+  service         VendorService  @relation(fields: [serviceId], references: [id])
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("vendor_bookings")
+}
+
+// ==============================
+// Exhibitor Enhancements
+// ==============================
+
+model ExhibitorProduct {
+  id              String   @id @default(cuid())
+  exhibitorId     String   @map("exhibitor_id")
+  name            String
+  category        String?
+  description     String?  @db.Text
+  price           Decimal? @db.Decimal(10, 2)
+  imageUrls       Json?
+  videoUrl        String?  @map("video_url")
+  brochureUrl     String?  @map("brochure_url")
+  
+  exhibitor       Exhibitor @relation(fields: [exhibitorId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("exhibitor_products")
+}
+
+// ==============================
+// Sponsor Module
+// ==============================
+
+model Sponsor {
+  id              String   @id @default(cuid())
+  eventId         BigInt   @map("event_id") // Using BigInt to match Event.id
+  name            String
+  industry        String?
+  website         String?
+  logo            String?
+  description     String?  @db.Text
+  
+  // Contact
+  contactName     String?  @map("contact_name")
+  contactEmail    String?  @map("contact_email")
+  contactPhone    String?  @map("contact_phone")
+  
+  status          String   @default("ACTIVE")
+  
+  event           Event    @relation(fields: [eventId], references: [id])
+  
+  packages        SponsorshipPackage[]
+  assets          SponsorAsset[]
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([eventId])
+  @@map("sponsors")
+}
+
+model SponsorshipPackage {
+  id              String   @id @default(cuid())
+  sponsorId       String?  @map("sponsor_id") // Can be template or specific
+  eventId         BigInt?  @map("event_id")   // If template
+  
+  name            String   // Gold, Title
+  price           Decimal  @db.Decimal(10, 2)
+  benefits        Json?    // Array of benefits
+  deliverables    Json?    // Checklist
+  
+  sponsor         Sponsor? @relation(fields: [sponsorId], references: [id])
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("sponsorship_packages")
+}
+
+model SponsorAsset {
+  id              String   @id @default(cuid())
+  sponsorId       String   @map("sponsor_id")
+  type            String   // LOGO, BANNER, VIDEO
+  url             String
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  sponsor         Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("sponsor_assets")
+}
