@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { Plus, Search, Package, Users, Store, Star, MapPin, Phone, Mail, ExternalLink } from 'lucide-react'
+import { LoadingPage } from '@/components/ui/loading-spinner'
 
 interface Provider {
   id: number
@@ -195,12 +196,7 @@ export default function ProvidersPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading providers...</p>
-          </div>
-        </div>
+        <LoadingPage text="Loading providers..." />
       ) : providers.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">

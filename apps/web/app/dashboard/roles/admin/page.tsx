@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar, User, Ticket, Clock, AlertCircle, Settings, Users, Shield, Database } from 'lucide-react'
 import Link from 'next/link'
+import { LoadingPage } from '@/components/ui/loading-spinner'
 
 // Define types inline since we're having issues with the import
 type DashboardStats = {
@@ -112,7 +113,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <LoadingPage text="Loading dashboard..." />
         <p className="text-muted-foreground">Loading dashboard...</p>
       </div>
     )

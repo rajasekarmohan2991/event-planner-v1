@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { Package, Users, Store, Calendar, DollarSign, TrendingUp, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { LoadingPage } from '@/components/ui/loading-spinner'
 
 interface Booking {
   id: number
@@ -198,12 +199,7 @@ export default function BookingsPage() {
       </Tabs>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading bookings...</p>
-          </div>
-        </div>
+        <LoadingPage text="Loading bookings..." />
       ) : bookings.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">

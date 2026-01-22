@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { DollarSign, TrendingUp, TrendingDown, Package, Users, Store, Clock, CheckCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { LoadingPage } from '@/components/ui/loading-spinner'
 
 interface DashboardData {
   overview: {
@@ -102,14 +103,7 @@ export default function CommissionDashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    )
+    return <LoadingPage text="Loading dashboard..." />
   }
 
   if (!data) return null

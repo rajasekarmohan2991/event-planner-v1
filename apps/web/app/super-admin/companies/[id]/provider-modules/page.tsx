@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { ArrowLeft, Save, Package, Users, Store, TrendingUp } from 'lucide-react'
+import { LoadingPage } from '@/components/ui/loading-spinner'
 
 interface ModuleSettings {
   moduleVendorManagement: boolean
@@ -119,14 +120,7 @@ export default function ProviderModulesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading module settings...</p>
-        </div>
-      </div>
-    )
+    return <LoadingPage text="Loading module settings..." />
   }
 
   return (
