@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -138,7 +139,9 @@ export function CompanyLogoUpload({ companyId }: CompanyLogoUploadProps) {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <div className="relative w-12 h-12">
+                    <Image src="/loading-logo.png" alt="Loading" fill className="object-contain" />
+                </div>
             </div>
         );
     }
@@ -194,7 +197,9 @@ export function CompanyLogoUpload({ companyId }: CompanyLogoUploadProps) {
                     >
                         {uploading ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <div className="relative w-4 h-4 mr-2">
+                                    <Image src="/loading-logo.png" alt="Loading" fill className="object-contain" />
+                                </div>
                                 Uploading...
                             </>
                         ) : (

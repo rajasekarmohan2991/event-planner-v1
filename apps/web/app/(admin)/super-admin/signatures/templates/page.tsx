@@ -79,7 +79,7 @@ export default function DocumentTemplatesPage() {
                             : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                             }`}
                     >
-                        {type.charAt(0) + type.slice(1).toLowerCase()}s
+                        {type === 'ALL' ? 'All' : type.charAt(0) + type.slice(1).toLowerCase() + 's'}
                     </button>
                 ))}
             </div>

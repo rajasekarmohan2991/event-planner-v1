@@ -93,9 +93,104 @@ export default function SuperAdminCompaniesPage() {
     company.billingEmail.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Separate Super Admin companies from platform-registered companies
+  const superAdminCompanies = filteredCompanies.filter(c =>
+    c.slug === 'super-admin' || c.slug === 'default-tenant'
+  );
+
+  const platformCompanies = filteredCompanies.filter(c =>
+    c.slug !== 'super-admin' && c.slug !== 'default-tenant'
+  );
+
   if (loading) {
     return <LoadingPage text="Loading companies..." />;
   }
+
+  const CompanyCard = ({ company }: { company: Tenant }) => (
+    <div
+      key={company.id}
+      onClick={() => {
+        if (company.slug === 'super-admin' || company.slug === 'default-tenant') {
+          router.push('/admin'); // Detailed View for Super Admin Tenant
+        } else {
+          router.push(`/super-admin/companies/${company.id}`);
+        }
+      }}
+      className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 overflow-hidden flex flex-col"
+    >
+      {/* Banner Image (Gradient) */}
+      <div className={`h-20 bg-gradient-to-r ${getGradient(company.name)} relative`}>
+        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-300" />
+      </div>
+
+      {/* Card Content */}
+      <div className="p-4 pt-0 flex-1 flex flex-col relative">
+        {/* Avatar overlapping banner */}
+        <div className="flex justify-between items-end mb-3 -mt-8 px-2">
+          <div className="w-16 h-16 bg-white rounded-xl shadow-md overflow-hidden">
+            {company.logo ? (
+              <img
+                src={company.logo}
+                alt={company.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${getGradient(company.name)} flex items-center justify-center text-white text-xl font-semibold`}>
+                {company.name.charAt(0)}
+              </div>
+            )}
+          </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(company.status)} shadow-sm`}>
+            {company.status}
+          </span>
+        </div>
+
+        <div className="space-y-3 flex-1">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+              {company.name}
+            </h3>
+            <p className="text-sm text-gray-500 font-medium">@{company.slug}</p>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 py-3 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-base font-semibold text-gray-900">{company.eventCount || 0}</div>
+                <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Events</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-base font-semibold text-gray-900">{company._count.members}</div>
+                <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Members</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Mail className="w-4 h-4" />
+            <span className="truncate">{company.billingEmail}</span>
+          </div>
+        </div>
+
+        {/* Footer / More Details */}
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <div className="w-full py-2 px-3 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium group-hover:shadow-inner">
+            More Details
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -139,102 +234,50 @@ export default function SuperAdminCompaniesPage() {
         <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-indigo-50/50 to-transparent pointer-events-none" />
       </div>
 
-      {/* Companies Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filteredCompanies.length > 0 ? (
-          filteredCompanies.map((company) => (
-            <div
-              key={company.id}
-              onClick={() => {
-                if (company.slug === 'super-admin' || company.slug === 'default-tenant') {
-                  router.push('/admin'); // Detailed View for Super Admin Tenant
-                } else {
-                  router.push(`/super-admin/companies/${company.id}`);
-                }
-              }}
-              className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 overflow-hidden flex flex-col"
-            >
-              {/* Banner Image (Gradient) */}
-              <div className={`h-20 bg-gradient-to-r ${getGradient(company.name)} relative`}>
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-300" />
-              </div>
-
-              {/* Card Content */}
-              <div className="p-4 pt-0 flex-1 flex flex-col relative">
-                {/* Avatar overlapping banner */}
-                <div className="flex justify-between items-end mb-3 -mt-8 px-2">
-                  <div className="w-16 h-16 bg-white rounded-xl shadow-md p-0.5">
-                    {company.logo ? (
-                      <img 
-                        src={company.logo} 
-                        alt={company.name}
-                        className="w-full h-full rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className={`w-full h-full rounded-lg bg-gradient-to-br ${getGradient(company.name)} flex items-center justify-center text-white text-xl font-semibold`}>
-                        {company.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(company.status)} shadow-sm`}>
-                    {company.status}
-                  </span>
-                </div>
-
-                <div className="space-y-3 flex-1">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                      {company.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium">@{company.slug}</p>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 py-3 border-t border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                        <Calendar className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-base font-semibold text-gray-900">{company.eventCount || 0}</div>
-                        <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Events</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-base font-semibold text-gray-900">{company._count.members}</div>
-                        <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Members</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Mail className="w-4 h-4" />
-                    <span className="truncate">{company.billingEmail}</span>
-                  </div>
-                </div>
-
-                {/* Footer / More Details */}
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <div className="w-full py-2 px-3 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium group-hover:shadow-inner">
-                    More Details
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
-            <Search className="w-12 h-12 text-gray-300 mb-4" />
-            <p className="text-lg font-medium">No companies found</p>
-            <p className="text-sm">Try adjusting your search query</p>
+      {/* Super Admin Companies Section */}
+      {superAdminCompanies.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Building2 className="w-6 h-6 text-pink-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Super Admin Companies</h2>
+            <span className="px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-semibold">
+              {superAdminCompanies.length}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            {superAdminCompanies.map((company) => (
+              <CompanyCard key={company.id} company={company} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Platform Registered Companies Section */}
+      {platformCompanies.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Building2 className="w-6 h-6 text-indigo-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Platform Registered Companies</h2>
+            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
+              {platformCompanies.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            {platformCompanies.map((company) => (
+              <CompanyCard key={company.id} company={company} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No Results State */}
+      {filteredCompanies.length === 0 && (
+        <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
+          <Search className="w-12 h-12 text-gray-300 mb-4" />
+          <p className="text-lg font-medium">No companies found</p>
+          <p className="text-sm">Try adjusting your search query</p>
+        </div>
+      )}
     </div>
   );
 }
