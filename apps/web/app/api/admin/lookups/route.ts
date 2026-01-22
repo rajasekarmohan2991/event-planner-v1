@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || (session.user as any).role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -17,46 +18,56 @@ export async function GET(req: NextRequest) {
     const categoryCode = searchParams.get('category')
     const tenantId = searchParams.get('tenantId')
 
-    // If category specified, return values for that category
-    if (categoryCode) {
-      const category = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, name, code, description FROM lookup_categories WHERE code = $1`,
-        categoryCode
-      )
+    try {
+      // If category specified, return values for that category
+      if (categoryCode) {
+        const category = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id, name, code, description FROM lookup_categories WHERE code = $1`,
+          categoryCode
+        )
 
-      if (!category || category.length === 0) {
-        return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+        if (!category || category.length === 0) {
+          return NextResponse.json({ error: 'Category not found' }, { status: 404 })
+        }
+
+        const values = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT 
+            id, value, label, description, color_code, icon, 
+            sort_order, is_active, is_default, is_system, metadata
+           FROM lookup_values 
+           WHERE category_id = $1 
+             AND (tenant_id IS NULL OR tenant_id = $2)
+           ORDER BY sort_order, label`,
+          category[0].id, tenantId || null
+        )
+
+        return NextResponse.json({
+          category: category[0],
+          values: values
+        })
       }
 
-      const values = await prisma.$queryRawUnsafe<any[]>(
+      // Otherwise, return all categories with value counts
+      const categories = await prisma.$queryRawUnsafe<any[]>(
         `SELECT 
-          id, value, label, description, color_code, icon, 
-          sort_order, is_active, is_default, is_system, metadata
-         FROM lookup_values 
-         WHERE category_id = $1 
-           AND (tenant_id IS NULL OR tenant_id = $2)
-         ORDER BY sort_order, label`,
-        category[0].id, tenantId || null
+          lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system,
+          COUNT(lv.id)::int as value_count
+         FROM lookup_categories lc
+         LEFT JOIN lookup_values lv ON lv.category_id = lc.id AND lv.is_active = true
+         GROUP BY lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system
+         ORDER BY lc.name`
       )
 
-      return NextResponse.json({
-        category: category[0],
-        values: values
-      })
+      return NextResponse.json({ categories: categories })
+    } catch (dbError: any) {
+      // If table doesn't exist, run schema migration
+      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        console.log('Lookup tables missing, running schema migration...')
+        await ensureSchema()
+        return NextResponse.json({ categories: [], message: 'Tables created, please refresh' })
+      }
+      throw dbError
     }
-
-    // Otherwise, return all categories with value counts
-    const categories = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT 
-        lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system,
-        COUNT(lv.id)::int as value_count
-       FROM lookup_categories lc
-       LEFT JOIN lookup_values lv ON lv.category_id = lc.id AND lv.is_active = true
-       GROUP BY lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system
-       ORDER BY lc.name`
-    )
-
-    return NextResponse.json({ categories: categories })
   } catch (error: any) {
     console.error('Error fetching lookups:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -67,7 +78,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || (session.user as any).role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

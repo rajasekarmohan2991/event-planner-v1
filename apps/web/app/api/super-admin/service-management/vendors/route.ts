@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,31 +14,37 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const vendors = await prisma.$queryRaw<any[]>`
-      SELECT 
-        sp.id,
-        sp.company_name,
-        sp.email,
-        sp.phone,
-        sp.city,
-        sp.country,
-        sp.verification_status as status,
-        sp.avg_rating,
-        sp.total_reviews,
-        sp.total_revenue,
-        sp.commission_rate,
-        sp.created_at,
-        (SELECT COUNT(*) FROM provider_services WHERE provider_id = sp.id) as services_count,
-        (SELECT COUNT(*) FROM vendor_bookings WHERE provider_id = sp.id) as total_bookings,
-        (SELECT string_agg(DISTINCT pc.name, ', ') FROM provider_categories pc 
-         JOIN provider_category_links pcl ON pc.id = pcl.category_id 
-         WHERE pcl.provider_id = sp.id) as category
-      FROM service_providers sp
-      WHERE sp.provider_type = 'VENDOR'
-      ORDER BY sp.created_at DESC
-    `
+    // Try to fetch vendors, if table doesn't exist, run schema migration
+    try {
+      const vendors = await prisma.$queryRaw<any[]>`
+        SELECT 
+          sp.id,
+          sp.company_name,
+          sp.email,
+          sp.phone,
+          sp.city,
+          sp.country,
+          sp.verification_status as status,
+          sp.avg_rating,
+          sp.total_reviews,
+          sp.total_revenue,
+          sp.commission_rate,
+          sp.created_at
+        FROM service_providers sp
+        WHERE sp.provider_type = 'VENDOR'
+        ORDER BY sp.created_at DESC
+      `
 
-    return NextResponse.json({ vendors })
+      return NextResponse.json({ vendors })
+    } catch (dbError: any) {
+      // If table doesn't exist, run schema migration
+      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        console.log('Service providers table missing, running schema migration...')
+        await ensureSchema()
+        return NextResponse.json({ vendors: [], message: 'Tables created, please refresh' })
+      }
+      throw dbError
+    }
   } catch (error: any) {
     console.error('Error fetching vendors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

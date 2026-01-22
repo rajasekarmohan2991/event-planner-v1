@@ -75,7 +75,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/super-admin/service-management') ||
       pathname?.startsWith('/super-admin/settings') ||
       pathname?.startsWith('/super-admin/lookups') ||
-      pathname?.startsWith('/super-admin/subscription-plans');
+      pathname?.startsWith('/super-admin/subscription-plans') ||
+      pathname?.startsWith('/super-admin/finance');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show company modules in left sidebar

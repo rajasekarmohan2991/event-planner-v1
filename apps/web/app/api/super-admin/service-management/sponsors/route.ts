@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,25 +14,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const sponsors = await prisma.$queryRaw<any[]>`
-      SELECT 
-        sp.id,
-        sp.company_name,
-        sp.email,
-        sp.phone,
-        sp.city,
-        sp.country,
-        sp.verification_status as status,
-        sp.total_revenue as total_amount,
-        sp.created_at,
-        (SELECT COUNT(*) FROM sponsor_deals WHERE provider_id = sp.id) as total_deals,
-        COALESCE(sp.provider_settings->>'default_tier', 'GOLD') as tier
-      FROM service_providers sp
-      WHERE sp.provider_type = 'SPONSOR'
-      ORDER BY sp.created_at DESC
-    `
+    try {
+      const sponsors = await prisma.$queryRaw<any[]>`
+        SELECT 
+          sp.id,
+          sp.company_name,
+          sp.email,
+          sp.phone,
+          sp.city,
+          sp.country,
+          sp.verification_status as status,
+          sp.total_revenue as total_amount,
+          sp.created_at,
+          COALESCE(sp.provider_settings->>'default_tier', 'GOLD') as tier
+        FROM service_providers sp
+        WHERE sp.provider_type = 'SPONSOR'
+        ORDER BY sp.created_at DESC
+      `
 
-    return NextResponse.json({ sponsors })
+      return NextResponse.json({ sponsors })
+    } catch (dbError: any) {
+      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        console.log('Service providers table missing, running schema migration...')
+        await ensureSchema()
+        return NextResponse.json({ sponsors: [], message: 'Tables created, please refresh' })
+      }
+      throw dbError
+    }
   } catch (error: any) {
     console.error('Error fetching sponsors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,25 +14,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const exhibitors = await prisma.$queryRaw<any[]>`
-      SELECT 
-        sp.id,
-        sp.company_name,
-        sp.email,
-        sp.phone,
-        sp.city,
-        sp.country,
-        sp.verification_status as status,
-        sp.total_revenue,
-        sp.created_at,
-        (SELECT COUNT(*) FROM exhibitor_bookings WHERE provider_id = sp.id) as total_bookings,
-        COALESCE(sp.provider_settings->>'industry', 'General') as industry
-      FROM service_providers sp
-      WHERE sp.provider_type = 'EXHIBITOR'
-      ORDER BY sp.created_at DESC
-    `
+    try {
+      const exhibitors = await prisma.$queryRaw<any[]>`
+        SELECT 
+          sp.id,
+          sp.company_name,
+          sp.email,
+          sp.phone,
+          sp.city,
+          sp.country,
+          sp.verification_status as status,
+          sp.total_revenue,
+          sp.created_at,
+          COALESCE(sp.provider_settings->>'industry', 'General') as industry
+        FROM service_providers sp
+        WHERE sp.provider_type = 'EXHIBITOR'
+        ORDER BY sp.created_at DESC
+      `
 
-    return NextResponse.json({ exhibitors })
+      return NextResponse.json({ exhibitors })
+    } catch (dbError: any) {
+      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+        console.log('Service providers table missing, running schema migration...')
+        await ensureSchema()
+        return NextResponse.json({ exhibitors: [], message: 'Tables created, please refresh' })
+      }
+      throw dbError
+    }
   } catch (error: any) {
     console.error('Error fetching exhibitors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

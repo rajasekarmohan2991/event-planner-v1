@@ -1688,6 +1688,137 @@ export async function ensureSchema() {
         `)
 
         console.log('✅ Provider portal tables created successfully')
+
+        // ============ LOOKUP MANAGEMENT TABLES ============
+        console.log('📝 Creating Lookup Management tables...')
+
+        // Lookup Categories Table
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS lookup_categories (
+                id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                name VARCHAR(255) NOT NULL,
+                code VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                is_global BOOLEAN DEFAULT true,
+                is_system BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+
+        // Lookup Values Table
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS lookup_values (
+                id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                category_id VARCHAR(255) NOT NULL,
+                tenant_id VARCHAR(255),
+                value VARCHAR(255) NOT NULL,
+                label VARCHAR(255) NOT NULL,
+                description TEXT,
+                color_code VARCHAR(50),
+                icon VARCHAR(100),
+                sort_order INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT true,
+                is_default BOOLEAN DEFAULT false,
+                is_system BOOLEAN DEFAULT false,
+                metadata JSONB DEFAULT '{}'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_lookup_values_category ON lookup_values(category_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_lookup_values_tenant ON lookup_values(tenant_id);`)
+
+        // Lookup Audit Log
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS lookup_audit_log (
+                id BIGSERIAL PRIMARY KEY,
+                category_id VARCHAR(255),
+                value_id VARCHAR(255),
+                action VARCHAR(50) NOT NULL,
+                old_data JSONB,
+                new_data JSONB,
+                changed_by BIGINT,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+
+        // Seed default lookup categories if empty
+        const existingCategories = await prisma.$queryRaw<any[]>`SELECT COUNT(*) as count FROM lookup_categories`
+        if (existingCategories[0]?.count == 0) {
+            console.log('📝 Seeding default lookup categories...')
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO lookup_categories (id, name, code, description, is_global, is_system) VALUES
+                ('cat_event_type', 'Event Types', 'EVENT_TYPE', 'Types of events', true, true),
+                ('cat_event_category', 'Event Categories', 'EVENT_CATEGORY', 'Event categories', true, true),
+                ('cat_ticket_type', 'Ticket Types', 'TICKET_TYPE', 'Types of tickets', true, true),
+                ('cat_payment_method', 'Payment Methods', 'PAYMENT_METHOD', 'Payment methods', true, true),
+                ('cat_currency', 'Currencies', 'CURRENCY', 'Supported currencies', true, true),
+                ('cat_country', 'Countries', 'COUNTRY', 'Countries list', true, true),
+                ('cat_vendor_category', 'Vendor Categories', 'VENDOR_CATEGORY', 'Vendor service categories', true, false),
+                ('cat_sponsor_tier', 'Sponsor Tiers', 'SPONSOR_TIER', 'Sponsorship tiers', true, false)
+                ON CONFLICT (code) DO NOTHING;
+            `)
+
+            // Seed some default values
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO lookup_values (id, category_id, value, label, sort_order, is_active, is_system) VALUES
+                ('val_conference', 'cat_event_type', 'CONFERENCE', 'Conference', 1, true, true),
+                ('val_workshop', 'cat_event_type', 'WORKSHOP', 'Workshop', 2, true, true),
+                ('val_seminar', 'cat_event_type', 'SEMINAR', 'Seminar', 3, true, true),
+                ('val_wedding', 'cat_event_type', 'WEDDING', 'Wedding', 4, true, true),
+                ('val_corporate', 'cat_event_type', 'CORPORATE', 'Corporate Event', 5, true, true),
+                ('val_birthday', 'cat_event_type', 'BIRTHDAY', 'Birthday Party', 6, true, true),
+                ('val_catering', 'cat_vendor_category', 'CATERING', 'Catering', 1, true, false),
+                ('val_decoration', 'cat_vendor_category', 'DECORATION', 'Decoration', 2, true, false),
+                ('val_photography', 'cat_vendor_category', 'PHOTOGRAPHY', 'Photography', 3, true, false),
+                ('val_entertainment', 'cat_vendor_category', 'ENTERTAINMENT', 'Entertainment', 4, true, false),
+                ('val_platinum', 'cat_sponsor_tier', 'PLATINUM', 'Platinum', 1, true, false),
+                ('val_gold', 'cat_sponsor_tier', 'GOLD', 'Gold', 2, true, false),
+                ('val_silver', 'cat_sponsor_tier', 'SILVER', 'Silver', 3, true, false),
+                ('val_bronze', 'cat_sponsor_tier', 'BRONZE', 'Bronze', 4, true, false)
+                ON CONFLICT DO NOTHING;
+            `)
+        }
+
+        console.log('✅ Lookup Management tables created successfully')
+
+        // ============ SUBSCRIPTION PLANS TABLE ============
+        console.log('📝 Creating Subscription Plans table...')
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS subscription_plans (
+                id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                name VARCHAR(255) NOT NULL,
+                slug VARCHAR(100) NOT NULL UNIQUE,
+                description TEXT,
+                price DECIMAL(15,2) DEFAULT 0,
+                currency VARCHAR(10) DEFAULT 'USD',
+                billing_period VARCHAR(50) DEFAULT 'MONTHLY',
+                max_events INTEGER,
+                max_users INTEGER,
+                max_attendees INTEGER,
+                max_storage_gb INTEGER,
+                features JSONB DEFAULT '[]'::jsonb,
+                modules JSONB DEFAULT '{}'::jsonb,
+                is_active BOOLEAN DEFAULT true,
+                is_featured BOOLEAN DEFAULT false,
+                sort_order INTEGER DEFAULT 0,
+                stripe_price_id VARCHAR(255),
+                razorpay_plan_id VARCHAR(255),
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+
+        // Add modules column if not exists
+        await prisma.$executeRawUnsafe(`
+            DO $$ BEGIN
+                ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS modules JSONB DEFAULT '{}'::jsonb;
+            EXCEPTION WHEN duplicate_column THEN NULL;
+            END $$;
+        `)
+
+        console.log('✅ Subscription Plans table created successfully')
         console.log('✅ Self-healing schema update complete (including provider portal system).')
         return true
     } catch (error: any) {
