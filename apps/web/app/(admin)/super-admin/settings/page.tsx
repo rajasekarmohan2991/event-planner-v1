@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic'
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
-  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2
+  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2, Image, Upload
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -24,6 +24,11 @@ export default function SuperAdminSettingsPage() {
   const [isEditingCurrency, setIsEditingCurrency] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [savingCurrency, setSavingCurrency] = useState(false)
+  
+  // Company Logo state
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     // Fetch currency settings
@@ -36,7 +41,58 @@ export default function SuperAdminSettingsPage() {
         }
       })
       .catch(err => console.error('Failed to fetch currency settings', err))
+    
+    // Fetch company logo
+    fetch('/api/super-admin/settings/logo')
+      .then(res => res.json())
+      .then(data => {
+        if (data.logo) setCompanyLogo(data.logo)
+      })
+      .catch(err => console.error('Failed to fetch logo', err))
   }, [])
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Max size is 5MB', variant: 'destructive' })
+      return
+    }
+
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', 'logo')
+
+      const res = await fetch('/api/uploads', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const logoUrl = data.url || data.secure_url
+
+        // Save logo URL to settings
+        await fetch('/api/super-admin/settings/logo', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo: logoUrl })
+        })
+
+        setCompanyLogo(logoUrl)
+        toast({ title: 'Logo uploaded successfully!' })
+      } else {
+        throw new Error('Upload failed')
+      }
+    } catch (error) {
+      toast({ title: 'Failed to upload logo', variant: 'destructive' })
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   const handleSaveCurrency = async () => {
     setSavingCurrency(true)
@@ -127,6 +183,54 @@ export default function SuperAdminSettingsPage() {
                   <span className="text-gray-600">Language</span>
                   <span className="font-medium text-gray-900">English</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Company Logo */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <Image className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Company Logo</h3>
+                    <p className="text-xs text-gray-500">Upload organization photo</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                {companyLogo ? (
+                  <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
+                    <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                    <Image className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-700">{companyLogo ? 'Logo Uploaded' : 'No Logo Uploaded'}</p>
+                  <p className="text-xs text-gray-500">Recommended: Square image, at least 200x200px</p>
+                  <p className="text-xs text-gray-500">Max size: 5MB (JPG, PNG, SVG, GIF)</p>
+                </div>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                </Button>
               </div>
             </div>
 
