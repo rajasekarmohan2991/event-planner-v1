@@ -1417,7 +1417,272 @@ export async function ensureSchema() {
         await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS account_holder_name TEXT;`)
         await prisma.$executeRawUnsafe(`ALTER TABLE event_vendors ADD COLUMN IF NOT EXISTS upi_id TEXT;`)
 
-        console.log('✅ Self-healing schema update complete (including ticket offers, registration approvals, stream settings, and enhanced validation).')
+        console.log('📝 Step 46: Creating provider portal tables...')
+        // Service Providers Table
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS service_providers (
+                id BIGSERIAL PRIMARY KEY,
+                provider_type VARCHAR(50) NOT NULL CHECK (provider_type IN ('VENDOR', 'SPONSOR', 'EXHIBITOR')),
+                company_name VARCHAR(255) NOT NULL,
+                business_registration_number VARCHAR(100),
+                tax_id VARCHAR(100),
+                email VARCHAR(255) UNIQUE NOT NULL,
+                phone VARCHAR(50),
+                website VARCHAR(255),
+                address_line1 VARCHAR(255),
+                address_line2 VARCHAR(255),
+                city VARCHAR(100),
+                state VARCHAR(100),
+                country VARCHAR(100) DEFAULT 'India',
+                postal_code VARCHAR(20),
+                description TEXT,
+                year_established INTEGER,
+                team_size VARCHAR(50),
+                verification_status VARCHAR(50) DEFAULT 'PENDING',
+                verification_documents JSONB DEFAULT '[]'::jsonb,
+                verification_notes TEXT,
+                verified_at TIMESTAMP,
+                verified_by BIGINT,
+                is_active BOOLEAN DEFAULT true,
+                rating DECIMAL(3,2) DEFAULT 0.00,
+                total_reviews INTEGER DEFAULT 0,
+                total_bookings INTEGER DEFAULT 0,
+                completed_bookings INTEGER DEFAULT 0,
+                cancelled_bookings INTEGER DEFAULT 0,
+                total_revenue DECIMAL(15,2) DEFAULT 0.00,
+                logo_url VARCHAR(500),
+                banner_url VARCHAR(500),
+                gallery JSONB DEFAULT '[]'::jsonb,
+                commission_rate DECIMAL(5,2) DEFAULT 15.00,
+                payment_terms VARCHAR(50) DEFAULT 'NET_30',
+                subscription_tier VARCHAR(50) DEFAULT 'FREE',
+                subscription_expires_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_type ON service_providers(provider_type);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_status ON service_providers(verification_status);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_providers_city ON service_providers(city);`)
+
+        // Provider Categories
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS provider_categories (
+                id BIGSERIAL PRIMARY KEY,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+                category VARCHAR(100) NOT NULL,
+                subcategory VARCHAR(100),
+                is_primary BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(provider_id, category, subcategory)
+            );
+        `)
+
+        // Provider Services
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS provider_services (
+                id BIGSERIAL PRIMARY KEY,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+                service_name VARCHAR(255) NOT NULL,
+                description TEXT,
+                base_price DECIMAL(15,2),
+                pricing_model VARCHAR(50) DEFAULT 'FIXED',
+                currency VARCHAR(10) DEFAULT 'INR',
+                min_order_value DECIMAL(15,2),
+                max_capacity INTEGER,
+                features JSONB DEFAULT '[]'::jsonb,
+                is_active BOOLEAN DEFAULT true,
+                display_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+
+        // Vendor Bookings
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS vendor_bookings (
+                id BIGSERIAL PRIMARY KEY,
+                booking_number VARCHAR(50) UNIQUE NOT NULL,
+                event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                tenant_id VARCHAR(255) NOT NULL,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id),
+                service_id BIGINT REFERENCES provider_services(id),
+                booking_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                service_date_from DATE NOT NULL,
+                service_date_to DATE NOT NULL,
+                attendee_count INTEGER,
+                quoted_amount DECIMAL(15,2) NOT NULL,
+                negotiated_amount DECIMAL(15,2),
+                final_amount DECIMAL(15,2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'INR',
+                commission_rate DECIMAL(5,2) NOT NULL,
+                commission_amount DECIMAL(15,2) NOT NULL,
+                provider_payout DECIMAL(15,2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'PENDING',
+                payment_status VARCHAR(50) DEFAULT 'UNPAID',
+                terms_and_conditions TEXT,
+                special_requirements TEXT,
+                contract_url VARCHAR(500),
+                signed_at TIMESTAMP,
+                created_by BIGINT,
+                approved_by BIGINT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_vendor_bookings_event ON vendor_bookings(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_vendor_bookings_provider ON vendor_bookings(provider_id);`)
+
+        // Sponsor Deals
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS sponsor_deals (
+                id BIGSERIAL PRIMARY KEY,
+                deal_number VARCHAR(50) UNIQUE NOT NULL,
+                event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                tenant_id VARCHAR(255) NOT NULL,
+                sponsor_id BIGINT NOT NULL REFERENCES service_providers(id),
+                sponsorship_tier VARCHAR(50),
+                sponsorship_package VARCHAR(255),
+                benefits JSONB DEFAULT '[]'::jsonb,
+                deliverables JSONB DEFAULT '[]'::jsonb,
+                sponsorship_amount DECIMAL(15,2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'INR',
+                commission_rate DECIMAL(5,2) NOT NULL,
+                commission_amount DECIMAL(15,2) NOT NULL,
+                sponsor_payout DECIMAL(15,2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'PROPOSED',
+                payment_status VARCHAR(50) DEFAULT 'UNPAID',
+                contract_url VARCHAR(500),
+                signed_at TIMESTAMP,
+                visibility_metrics JSONB DEFAULT '{}'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_sponsor_deals_event ON sponsor_deals(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_sponsor_deals_sponsor ON sponsor_deals(sponsor_id);`)
+
+        // Exhibitor Bookings
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS exhibitor_bookings (
+                id BIGSERIAL PRIMARY KEY,
+                booking_number VARCHAR(50) UNIQUE NOT NULL,
+                event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                tenant_id VARCHAR(255) NOT NULL,
+                exhibitor_id BIGINT NOT NULL REFERENCES service_providers(id),
+                booth_number VARCHAR(50),
+                booth_size VARCHAR(50),
+                booth_type VARCHAR(50),
+                booth_location VARCHAR(255),
+                floor_plan_position JSONB,
+                booth_rental_fee DECIMAL(15,2) NOT NULL,
+                additional_services JSONB DEFAULT '[]'::jsonb,
+                total_amount DECIMAL(15,2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'INR',
+                commission_rate DECIMAL(5,2) NOT NULL,
+                commission_amount DECIMAL(15,2) NOT NULL,
+                exhibitor_payout DECIMAL(15,2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'PENDING',
+                payment_status VARCHAR(50) DEFAULT 'UNPAID',
+                setup_date TIMESTAMP,
+                teardown_date TIMESTAMP,
+                special_requirements TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_exhibitor_bookings_event ON exhibitor_bookings(event_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_exhibitor_bookings_exhibitor ON exhibitor_bookings(exhibitor_id);`)
+
+        // Provider Reviews
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS provider_reviews (
+                id BIGSERIAL PRIMARY KEY,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+                booking_id BIGINT,
+                booking_type VARCHAR(50),
+                tenant_id VARCHAR(255) NOT NULL,
+                reviewer_id BIGINT,
+                overall_rating INTEGER NOT NULL CHECK (overall_rating >= 1 AND overall_rating <= 5),
+                quality_rating INTEGER,
+                communication_rating INTEGER,
+                value_rating INTEGER,
+                professionalism_rating INTEGER,
+                review_title VARCHAR(255),
+                review_text TEXT,
+                pros TEXT,
+                cons TEXT,
+                images JSONB DEFAULT '[]'::jsonb,
+                is_verified BOOLEAN DEFAULT false,
+                is_featured BOOLEAN DEFAULT false,
+                is_public BOOLEAN DEFAULT true,
+                provider_response TEXT,
+                provider_response_date TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_provider_reviews_provider ON provider_reviews(provider_id);`)
+
+        // Commission Transactions
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS commission_transactions (
+                id BIGSERIAL PRIMARY KEY,
+                transaction_number VARCHAR(50) UNIQUE NOT NULL,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id),
+                booking_id BIGINT,
+                booking_type VARCHAR(50),
+                event_id BIGINT,
+                tenant_id VARCHAR(255) NOT NULL,
+                booking_amount DECIMAL(15,2) NOT NULL,
+                commission_rate DECIMAL(5,2) NOT NULL,
+                commission_amount DECIMAL(15,2) NOT NULL,
+                provider_payout DECIMAL(15,2) NOT NULL,
+                currency VARCHAR(10) DEFAULT 'INR',
+                status VARCHAR(50) DEFAULT 'PENDING',
+                payment_method VARCHAR(50),
+                payment_reference VARCHAR(255),
+                payment_gateway_fee DECIMAL(15,2) DEFAULT 0.00,
+                paid_at TIMESTAMP,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_commission_transactions_provider ON commission_transactions(provider_id);`)
+
+        // Provider Users
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS provider_users (
+                id BIGSERIAL PRIMARY KEY,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+                user_id BIGINT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+                role VARCHAR(50) DEFAULT 'MEMBER',
+                permissions JSONB DEFAULT '[]'::jsonb,
+                is_active BOOLEAN DEFAULT true,
+                invited_by BIGINT,
+                invited_at TIMESTAMP DEFAULT NOW(),
+                joined_at TIMESTAMP,
+                UNIQUE(provider_id, user_id)
+            );
+        `)
+
+        // Saved Providers
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS saved_providers (
+                id BIGSERIAL PRIMARY KEY,
+                tenant_id VARCHAR(255) NOT NULL,
+                provider_id BIGINT NOT NULL REFERENCES service_providers(id) ON DELETE CASCADE,
+                saved_by BIGINT,
+                notes TEXT,
+                tags JSONB DEFAULT '[]'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(tenant_id, provider_id)
+            );
+        `)
+
+        console.log('✅ Provider portal tables created successfully')
+        console.log('✅ Self-healing schema update complete (including provider portal system).')
         return true
     } catch (error: any) {
         console.error('❌ Self-healing schema failed:', error)
