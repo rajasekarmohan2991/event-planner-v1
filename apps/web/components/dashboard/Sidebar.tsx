@@ -55,20 +55,53 @@ interface NavItem {
 export default function Sidebar({ onClose }: SidebarProps = {}) {
   const [isOpen, setIsOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [moduleSettings, setModuleSettings] = useState<any>(null)
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
   
-  // Navigation items
-  const navItems: NavItem[] = [
+  // Fetch module settings
+  useEffect(() => {
+    const fetchModuleSettings = async () => {
+      try {
+        const res = await fetch('/api/company/info')
+        if (res.ok) {
+          const data = await res.json()
+          setModuleSettings(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch module settings:', error)
+      }
+    }
+    
+    if (session) {
+      fetchModuleSettings()
+    }
+  }, [session])
+  
+  // Check if provider modules are enabled
+  const hasProviderModules = moduleSettings?.module_vendor_management || 
+                             moduleSettings?.module_sponsor_management || 
+                             moduleSettings?.module_exhibitor_management
+  
+  // Navigation items - conditionally include provider modules
+  const baseNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Events', href: '/dashboard/events', icon: CalendarDays },
     { name: 'Tickets', href: '/dashboard/tickets', icon: Ticket },
+  ]
+  
+  const providerNavItems: NavItem[] = hasProviderModules ? [
     { name: 'Providers', href: '/providers', icon: Package },
     { name: 'Bookings', href: '/bookings', icon: FileText },
     { name: 'Commissions', href: '/commissions', icon: DollarSign },
+  ] : []
+  
+  const settingsNavItems: NavItem[] = [
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
+  
+  const navItems = [...baseNavItems, ...providerNavItems, ...settingsNavItems]
   
   // Toggle sidebar on mobile
   const toggleSidebar = () => setIsOpen(!isOpen)

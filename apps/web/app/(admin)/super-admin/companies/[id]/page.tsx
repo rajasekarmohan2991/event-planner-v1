@@ -528,6 +528,13 @@ export default function CompanyDetailsPage() {
                 {company.plan} Plan
               </Badge>
               <button
+                onClick={() => router.push(`/super-admin/companies/${company.id}/provider-modules`)}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Provider Modules
+              </button>
+              <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
                 className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
               >

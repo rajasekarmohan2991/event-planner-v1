@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lightbulb, Users, Calendar, ArrowRight, Mail, Building2, Search } from 'lucide-react';
+import { LoadingPage } from '@/components/ui/loading-spinner';
 
 interface Tenant {
   id: string;
@@ -93,12 +94,7 @@ export default function SuperAdminCompaniesPage() {
   );
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        <p className="text-gray-500 mt-4 font-medium">Loading companies...</p>
-      </div>
-    );
+    return <LoadingPage text="Loading companies..." />;
   }
 
   return (
