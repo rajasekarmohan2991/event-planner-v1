@@ -127,12 +127,12 @@ export default function SuperAdminCompaniesPage() {
       <div className="p-4 pt-0 flex-1 flex flex-col relative">
         {/* Avatar overlapping banner */}
         <div className="flex justify-between items-end mb-3 -mt-8 px-2">
-          <div className="w-16 h-16 bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="w-16 h-16 bg-white rounded-xl shadow-md overflow-hidden flex items-center justify-center">
             {company.logo ? (
               <img
                 src={company.logo}
                 alt={company.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-110"
               />
             ) : (
               <div className={`w-full h-full bg-gradient-to-br ${getGradient(company.name)} flex items-center justify-center text-white text-xl font-semibold`}>
@@ -239,7 +239,7 @@ export default function SuperAdminCompaniesPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Building2 className="w-6 h-6 text-pink-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Super Admin Companies</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Super Admin Company</h2>
             <span className="px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-semibold">
               {superAdminCompanies.length}
             </span>

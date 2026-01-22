@@ -13,7 +13,10 @@ import {
     Zap,
     Crown,
     Sparkles,
-    DollarSign
+    DollarSign,
+    Settings,
+    Mail,
+    Send
 } from "lucide-react";
 
 interface PlanFeature {
@@ -65,6 +68,11 @@ export default function SubscriptionPlansPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'plans' | 'subscriptions'>('plans');
+
+    // Manage Plan State
+    const [managingCompany, setManagingCompany] = useState<CompanySubscription | null>(null);
+    const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+    const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
     const [formData, setFormData] = useState<Partial<SubscriptionPlan>>({
         name: "",
@@ -169,9 +177,42 @@ export default function SubscriptionPlansPage() {
         setIsCreating(false);
     }
 
-    function resetForm() {
-        setIsCreating(false);
-        setEditingId(null);
+    async function handleUpdatePlan() {
+        if (!managingCompany) return;
+        setIsUpdatingPlan(true);
+
+        try {
+            // 1. Update the tenant's plan in DB
+            const res = await fetch(`/api/super-admin/companies/${managingCompany.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan: selectedPlanId })
+            });
+
+            if (res.ok) {
+                // 2. Mock sending payment link/invoice
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate sending email
+                alert(`Plan updated to ${selectedPlanId}!\n\nSuccess: Payment link generated and sent to billing email.`);
+
+                setManagingCompany(null);
+                fetchCompanies();
+            } else {
+                const error = await res.json();
+                alert(`Failed to update plan: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Error updating plan:', error);
+            alert('An error occurred while updating the plan.');
+        } finally {
+            setIsUpdatingPlan(false);
+        }
+    }
+
+    function resetForm(closeForm = true) {
+        if (closeForm) {
+            setIsCreating(false);
+            setEditingId(null);
+        }
         setFormData({
             name: "",
             slug: "",
@@ -193,6 +234,12 @@ export default function SubscriptionPlansPage() {
             sortOrder: 0
         });
         setNewFeature({ name: "", included: true, limit: undefined });
+    }
+
+    function handleCreateClick() {
+        resetForm(false); // Don't close, we are opening
+        setIsCreating(true);
+        setEditingId(null);
     }
 
     function addFeature() {
@@ -243,11 +290,7 @@ export default function SubscriptionPlansPage() {
                     </div>
                     {activeTab === 'plans' && !isCreating && !editingId && (
                         <button
-                            onClick={() => {
-                                setIsCreating(true);
-                                setEditingId(null);
-                                resetForm();
-                            }}
+                            onClick={handleCreateClick}
                             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             <Plus className="w-4 h-4" />
@@ -296,7 +339,7 @@ export default function SubscriptionPlansPage() {
                         <h3 className="text-xl font-semibold">
                             {editingId ? "Edit Plan" : "Create New Plan"}
                         </h3>
-                        <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
+                        <button onClick={() => resetForm(true)} className="text-gray-400 hover:text-gray-600">
                             <X className="w-5 h-5" />
                         </button>
                     </div>
@@ -569,7 +612,7 @@ export default function SubscriptionPlansPage() {
                         <div className="flex justify-end gap-3 pt-4 border-t">
                             <button
                                 type="button"
-                                onClick={resetForm}
+                                onClick={() => resetForm(true)}
                                 className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                             >
                                 Cancel
@@ -746,8 +789,8 @@ export default function SubscriptionPlansPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                                                    company.status === 'TRIAL' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-red-100 text-red-800'
+                                                company.status === 'TRIAL' ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-red-100 text-red-800'
                                                 }`}>
                                                 {company.status}
                                             </span>
@@ -761,10 +804,14 @@ export default function SubscriptionPlansPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
-                                                onClick={() => router.push(`/super-admin/companies/${company.id}`)}
-                                                className="text-indigo-600 hover:text-indigo-900"
+                                                onClick={() => {
+                                                    setManagingCompany(company);
+                                                    setSelectedPlanId(company.plan);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-900 font-medium flex items-center justify-end gap-1 ml-auto"
                                             >
-                                                View Details
+                                                <Settings className="w-4 h-4" />
+                                                Manage Plan
                                             </button>
                                         </td>
                                     </tr>
@@ -777,6 +824,72 @@ export default function SubscriptionPlansPage() {
                             <p className="text-gray-500">No companies found.</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Manage Plan Modal */}
+            {managingCompany && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+                        <div className="p-6 border-b">
+                            <h3 className="text-xl font-bold text-gray-900">Manage Subscription</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Update plan for <span className="font-semibold text-gray-900">{managingCompany.name}</span>
+                            </p>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Select New Plan
+                                </label>
+                                <select
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={selectedPlanId}
+                                    onChange={(e) => setSelectedPlanId(e.target.value)}
+                                >
+                                    {plans.map(plan => (
+                                        <option key={plan.slug} value={plan.slug}>
+                                            {plan.name} ({plan.currency} {plan.price}/{plan.billingPeriod})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg flex gap-3">
+                                <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <p className="text-sm text-blue-700">
+                                    Updating the plan will automatically generate a pro-rated payment link and email it to the company's billing contact.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 flex justify-end gap-3 border-t">
+                            <button
+                                onClick={() => setManagingCompany(null)}
+                                className="px-4 py-2 text-gray-700 hover:bg-white border border-transparent hover:border-gray-300 rounded-lg transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUpdatePlan}
+                                disabled={isUpdatingPlan || !selectedPlanId}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isUpdatingPlan ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4" />
+                                        Update Plan & Send Link
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

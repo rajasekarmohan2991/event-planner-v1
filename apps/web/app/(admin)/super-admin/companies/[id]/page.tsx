@@ -519,7 +519,7 @@ export default function CompanyDetailsPage() {
         {/* Subscription & Billing Details - Modern Design */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
           {/* Header with gradient accent */}
-          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4 border-b border-gray-100">
+          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
                 <Ticket className="h-5 w-5 text-white" />
@@ -527,9 +527,6 @@ export default function CompanyDetailsPage() {
               <h2 className="text-lg font-semibold text-gray-900">Subscription & Limits</h2>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="px-4 py-1.5 rounded-full text-sm font-semibold border-2 border-emerald-400 text-emerald-600 bg-emerald-50">
-                {company.plan?.toUpperCase()} Plan
-              </span>
               <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/provider-modules`)}
                 className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 shadow-sm"
@@ -545,7 +542,7 @@ export default function CompanyDetailsPage() {
               </button>
             </div>
           </div>
-          
+
           <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Plan Usage Limits */}
             <div>
@@ -557,9 +554,9 @@ export default function CompanyDetailsPage() {
                     <span className="text-gray-500 font-mono">{company.events.length} / {company.maxEvents}</span>
                   </div>
                   <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }} 
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -569,9 +566,9 @@ export default function CompanyDetailsPage() {
                     <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers}</span>
                   </div>
                   <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }} 
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -581,15 +578,15 @@ export default function CompanyDetailsPage() {
                     <span className="text-gray-500 font-mono">0 / {company.maxStorage}</span>
                   </div>
                   <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500" 
-                      style={{ width: `0%` }} 
+                    <div
+                      className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500"
+                      style={{ width: `0%` }}
                     />
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Billing Information */}
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-5">Billing Information</h3>
@@ -650,13 +647,13 @@ export default function CompanyDetailsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Event Name</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Registrations</TableHead>
-                    <TableHead>Tickets Remaining</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="font-bold text-gray-900">Event Name</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-center">Date</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-center">Location</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-center">Price</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-center">Registrations</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-center">Tickets Remaining</TableHead>
+                    <TableHead className="font-bold text-gray-900 text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -670,8 +667,8 @@ export default function CompanyDetailsPage() {
                         <TableCell className="font-medium">
                           {event.name}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col text-sm">
+                        <TableCell className="text-center">
+                          <div className="flex flex-col text-sm items-center">
                             <span>{new Date(event.start_date).toLocaleDateString()}</span>
                             {event.end_date && (
                               <span className="text-gray-500 text-xs">
@@ -680,17 +677,17 @@ export default function CompanyDetailsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{event.location || 'Online'}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">{event.location || 'Online'}</TableCell>
+                        <TableCell className="text-center">
                           {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center gap-2">
                             <Users className="h-4 w-4 text-gray-400" />
                             <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
                             {capacity > 0 ? ticketsRemaining : 'Unlimited'}
                           </span>
@@ -876,8 +873,8 @@ export default function CompanyDetailsPage() {
                   onClick={handleToggleStatus}
                   disabled={toggling}
                   className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${company.status === 'ACTIVE'
-                      ? 'bg-amber-500 hover:bg-amber-600'
-                      : 'bg-green-500 hover:bg-green-600'
+                    ? 'bg-amber-500 hover:bg-amber-600'
+                    : 'bg-green-500 hover:bg-green-600'
                     }`}
                 >
                   {toggling ? (

@@ -160,11 +160,24 @@ export async function PATCH(
 
     const body = await req.json()
 
-    // Implement update logic if needed
+    // Only allow updating specific fields
+    const { plan, status } = body
+
+    // Validate if plan exists (optional but good practice)
+    // For now we just update the string
+
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: params.id },
+      data: {
+        ...(plan && { plan }),
+        ...(status && { status })
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'Company updated successfully'
+      message: 'Company plan updated successfully',
+      company: updatedTenant
     })
   } catch (error: any) {
     console.error('Error updating company:', error)
