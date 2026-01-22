@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, Crown, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Crown, Calendar, DollarSign, Package, Users, Store, Settings } from "lucide-react";
+
+interface ModuleSettings {
+    moduleVendorManagement: boolean;
+    moduleSponsorManagement: boolean;
+    moduleExhibitorManagement: boolean;
+    providerCommissionRate: number;
+}
 
 interface SubscriptionPlan {
     id: string;
@@ -16,6 +23,7 @@ interface SubscriptionPlan {
     maxUsers?: number;
     maxAttendees?: number;
     features: any[];
+    isActive?: boolean;
 }
 
 export default function CompanySubscriptionPage() {
@@ -26,6 +34,12 @@ export default function CompanySubscriptionPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<string>('');
+    const [moduleSettings, setModuleSettings] = useState<ModuleSettings>({
+        moduleVendorManagement: false,
+        moduleSponsorManagement: false,
+        moduleExhibitorManagement: false,
+        providerCommissionRate: 15
+    });
 
     const companyId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
 
@@ -55,6 +69,22 @@ export default function CompanySubscriptionPage() {
                 const data = await plansRes.json();
                 setPlans(data.plans || []);
             }
+
+            // Fetch module settings
+            const modulesRes = await fetch(`/api/super-admin/companies/${companyId}/modules`, {
+                credentials: 'include'
+            });
+            if (modulesRes.ok) {
+                const data = await modulesRes.json();
+                if (data.company) {
+                    setModuleSettings({
+                        moduleVendorManagement: data.company.module_vendor_management || false,
+                        moduleSponsorManagement: data.company.module_sponsor_management || false,
+                        moduleExhibitorManagement: data.company.module_exhibitor_management || false,
+                        providerCommissionRate: data.company.provider_commission_rate || 15
+                    });
+                }
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -70,7 +100,8 @@ export default function CompanySubscriptionPage() {
 
         setSaving(true);
         try {
-            const res = await fetch(`/api/admin/billing/upgrade`, {
+            // Update subscription plan
+            const planRes = await fetch(`/api/admin/billing/upgrade`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -79,11 +110,18 @@ export default function CompanySubscriptionPage() {
                 })
             });
 
-            if (res.ok) {
-                alert('Subscription plan updated successfully!');
+            // Update module settings
+            const modulesRes = await fetch(`/api/super-admin/companies/${companyId}/modules`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(moduleSettings)
+            });
+
+            if (planRes.ok && modulesRes.ok) {
+                alert('Subscription and modules updated successfully!');
                 router.push(`/super-admin/companies/${companyId}`);
             } else {
-                const error = await res.json();
+                const error = await planRes.json();
                 alert(`Failed: ${error.message || 'Unknown error'}`);
             }
         } catch (error) {
@@ -258,6 +296,111 @@ export default function CompanySubscriptionPage() {
                         </button>
                     </div>
                 )}
+            </div>
+
+            {/* Service Management Modules */}
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                        <Settings className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">Service Management Modules</h2>
+                        <p className="text-sm text-gray-500">Enable or disable service management features for this company</p>
+                    </div>
+                </div>
+                
+                <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                    {/* Vendor Management */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Package className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-900">Vendor Management</p>
+                                <p className="text-sm text-gray-500">Allow company to manage vendors (catering, AV, security, etc.)</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={moduleSettings.moduleVendorManagement}
+                                onChange={(e) => setModuleSettings(prev => ({ ...prev, moduleVendorManagement: e.target.checked }))}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Sponsor Management */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                                <Users className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-900">Sponsor Management</p>
+                                <p className="text-sm text-gray-500">Allow company to manage sponsors and sponsorship deals</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={moduleSettings.moduleSponsorManagement}
+                                onChange={(e) => setModuleSettings(prev => ({ ...prev, moduleSponsorManagement: e.target.checked }))}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Exhibitor Management */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <Store className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-900">Exhibitor Management</p>
+                                <p className="text-sm text-gray-500">Allow company to manage exhibitors and booth bookings</p>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={moduleSettings.moduleExhibitorManagement}
+                                onChange={(e) => setModuleSettings(prev => ({ ...prev, moduleExhibitorManagement: e.target.checked }))}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Commission Rate */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-100 rounded-lg">
+                                <DollarSign className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-900">Default Commission Rate</p>
+                                <p className="text-sm text-gray-500">Platform commission percentage for all provider bookings</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={moduleSettings.providerCommissionRate}
+                                onChange={(e) => setModuleSettings(prev => ({ ...prev, providerCommissionRate: parseFloat(e.target.value) || 0 }))}
+                                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                            <span className="text-gray-600">%</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Action Buttons */}
