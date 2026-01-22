@@ -59,6 +59,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     // 1. Explicitly viewing default-tenant dashboard
     // 2. Viewing global admin modules (Events, Users, Lookup, Currency) which belong to the system/default tenant
     // 3. Viewing System Settings
+    // 4. Viewing Service Management Portal
     const isSuperAdminCompanyView = (isCompanyPage && currentCompanyId === 'default-tenant') ||
       pathname === '/admin' || // Exact dashboard match
       pathname?.startsWith('/admin/events') ||
@@ -70,7 +71,11 @@ const getNavigation = (userRole?: string, pathname?: string) => {
       pathname?.startsWith('/admin/currency') ||
       pathname?.startsWith('/admin/signatures') ||
       pathname?.startsWith('/super-admin/signatures') ||
-      pathname?.startsWith('/super-admin/tax-templates');
+      pathname?.startsWith('/super-admin/tax-templates') ||
+      pathname?.startsWith('/super-admin/service-management') ||
+      pathname?.startsWith('/super-admin/settings') ||
+      pathname?.startsWith('/super-admin/lookups') ||
+      pathname?.startsWith('/super-admin/subscription-plans');
 
     if (isIndividualCompanyView) {
       // Inside Individual Company: Show company modules in left sidebar
@@ -96,7 +101,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Dashboard', href: `/admin`, icon: LayoutDashboard },
         { name: 'All Events', href: '/admin/events', icon: Calendar },
         { name: 'All Users', href: '/admin/users', icon: Users },
-        { name: 'Lookup Management', href: '/admin/lookup', icon: Database },
+        { name: 'Lookup Management', href: '/super-admin/lookups', icon: Database },
         { name: 'Service Management', href: '/super-admin/service-management', icon: Package, 
           subItems: [
             { name: 'Vendor Management', href: '/super-admin/service-management/vendors', icon: Package },
@@ -104,12 +109,12 @@ const getNavigation = (userRole?: string, pathname?: string) => {
             { name: 'Exhibitor Management', href: '/super-admin/service-management/exhibitors', icon: Store }
           ]
         },
-        { name: 'Finance', href: `/super-admin/companies/${currentCompanyId}/finance`, icon: Wallet },
+        { name: 'Finance', href: `/super-admin/finance`, icon: Wallet },
         { name: 'Tax Settings', href: '/super-admin/tax-templates', icon: Globe },
         { name: 'Signature Templates', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
         { name: 'System Settings', href: '/super-admin/settings', icon: Settings },
-        { name: 'Billing & Subscription', href: '/admin/billing-subscription', icon: CreditCard },
+        { name: 'Subscription Plans', href: '/super-admin/subscription-plans', icon: CreditCard },
         { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
       )
     } else {
