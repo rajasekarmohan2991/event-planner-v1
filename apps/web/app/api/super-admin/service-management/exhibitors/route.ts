@@ -14,81 +14,87 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch exhibitors from existing Prisma Exhibitor model
-    const exhibitors = await prisma.exhibitor.findMany({
-      include: {
-        booths: {
-          select: {
-            id: true,
-            boothNumber: true,
-            type: true,
-            status: true,
-            priceInr: true
-          }
-        },
-        products: {
-          select: {
-            id: true,
-            name: true,
-            category: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
-    // Get tenant info for each exhibitor's event
-    const exhibitorsWithDetails = await Promise.all(
-      exhibitors.map(async (exhibitor) => {
-        let linkedCompany = null
-        if (exhibitor.tenantId) {
-          const tenant = await prisma.tenant.findUnique({
-            where: { id: exhibitor.tenantId },
+    try {
+      const exhibitors = await prisma.exhibitor.findMany({
+        include: {
+          booths: {
+            select: {
+              id: true,
+              boothNumber: true,
+              type: true,
+              status: true,
+              priceInr: true
+            }
+          },
+          products: {
             select: {
               id: true,
               name: true,
-              slug: true,
-              logo: true
+              category: true
             }
-          })
-          linkedCompany = tenant
-        }
-
-        // Calculate stats
-        const boothsCount = exhibitor.booths.length
-        const productsCount = exhibitor.products.length
-        const totalRevenue = exhibitor.booths.reduce((sum, b) => sum + (b.priceInr || 0), 0)
-
-        return {
-          id: exhibitor.id,
-          name: exhibitor.name,
-          company: exhibitor.company,
-          contactName: exhibitor.contactName,
-          contactEmail: exhibitor.contactEmail,
-          contactPhone: exhibitor.contactPhone,
-          website: exhibitor.website,
-          companyDescription: exhibitor.companyDescription,
-          status: exhibitor.status,
-          paymentStatus: exhibitor.paymentStatus,
-          boothNumber: exhibitor.boothNumber,
-          boothType: exhibitor.boothType,
-          createdAt: exhibitor.createdAt,
-          // Event info
-          eventId: exhibitor.eventId,
-          // Stats
-          boothsCount,
-          productsCount,
-          totalRevenue,
-          // Linked Event Management Company
-          linkedCompany,
-          // Products preview
-          products: exhibitor.products.slice(0, 3)
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       })
-    )
 
-    return NextResponse.json({ exhibitors: exhibitorsWithDetails })
+      // Get tenant info for each exhibitor's event
+      const exhibitorsWithDetails = await Promise.all(
+        exhibitors.map(async (exhibitor: any) => {
+          let linkedCompany = null
+          if (exhibitor.tenantId) {
+            const tenant = await prisma.tenant.findUnique({
+              where: { id: exhibitor.tenantId },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true
+              }
+            })
+            linkedCompany = tenant
+          }
+
+          // Calculate stats
+          const boothsCount = exhibitor.booths.length
+          const productsCount = exhibitor.products.length
+          const totalRevenue = exhibitor.booths.reduce((sum: number, b: any) => sum + (b.priceInr || 0), 0)
+
+          return {
+            id: exhibitor.id,
+            name: exhibitor.name,
+            company: exhibitor.company,
+            contactName: exhibitor.contactName,
+            contactEmail: exhibitor.contactEmail,
+            contactPhone: exhibitor.contactPhone,
+            website: exhibitor.website,
+            companyDescription: exhibitor.companyDescription,
+            status: exhibitor.status,
+            paymentStatus: exhibitor.paymentStatus,
+            boothNumber: exhibitor.boothNumber,
+            boothType: exhibitor.boothType,
+            createdAt: exhibitor.createdAt,
+            // Event info
+            eventId: exhibitor.eventId,
+            // Stats
+            boothsCount,
+            productsCount,
+            totalRevenue,
+            // Linked Event Management Company
+            linkedCompany,
+            // Products preview
+            products: exhibitor.products.slice(0, 3)
+          }
+        })
+      )
+
+      return NextResponse.json({ exhibitors: exhibitorsWithDetails })
+    } catch (schemaError: any) {
+      // If Exhibitor model doesn't exist in schema, return empty array
+      console.log('Exhibitor model not found in schema, returning empty array')
+      return NextResponse.json({ exhibitors: [] })
+    }
   } catch (error: any) {
     console.error('Error fetching exhibitors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

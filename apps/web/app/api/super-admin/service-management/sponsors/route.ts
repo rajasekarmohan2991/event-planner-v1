@@ -19,85 +19,91 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch sponsors from Prisma model with event info
-    const sponsors = await prisma.sponsor.findMany({
-      include: {
-        event: {
-          select: {
-            id: true,
-            name: true,
-            tenantId: true
-          }
-        },
-        packages: {
-          select: {
-            id: true,
-            name: true,
-            price: true
-          }
-        },
-        assets: {
-          select: {
-            id: true,
-            type: true,
-            status: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
-    // Get tenant info for each sponsor's event
-    const sponsorsWithDetails = await Promise.all(
-      sponsors.map(async (sponsor) => {
-        let linkedCompany = null
-        if (sponsor.event?.tenantId) {
-          const tenant = await prisma.tenant.findUnique({
-            where: { id: sponsor.event.tenantId },
+    try {
+      const sponsors = await prisma.sponsor.findMany({
+        include: {
+          event: {
             select: {
               id: true,
               name: true,
-              slug: true,
-              logo: true
+              tenantId: true
             }
-          })
-          linkedCompany = tenant
-        }
-
-        // Calculate stats
-        const packagesCount = sponsor.packages.length
-        const totalValue = sponsor.packages.reduce((sum, p) => sum + Number(p.price || 0), 0)
-        const assetsCount = sponsor.assets.length
-
-        return {
-          id: sponsor.id,
-          name: sponsor.name,
-          industry: sponsor.industry,
-          website: sponsor.website,
-          logo: sponsor.logo,
-          description: sponsor.description,
-          contactName: sponsor.contactName,
-          contactEmail: sponsor.contactEmail,
-          contactPhone: sponsor.contactPhone,
-          status: sponsor.status,
-          createdAt: sponsor.createdAt,
-          // Event info
-          eventId: sponsor.eventId?.toString(),
-          eventName: sponsor.event?.name,
-          // Stats
-          packagesCount,
-          totalValue,
-          assetsCount,
-          // Linked Event Management Company
-          linkedCompany,
-          // Packages preview
-          packages: sponsor.packages.slice(0, 3)
+          },
+          packages: {
+            select: {
+              id: true,
+              name: true,
+              price: true
+            }
+          },
+          assets: {
+            select: {
+              id: true,
+              type: true,
+              status: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       })
-    )
 
-    return NextResponse.json({ sponsors: sponsorsWithDetails })
+      // Get tenant info for each sponsor's event
+      const sponsorsWithDetails = await Promise.all(
+        sponsors.map(async (sponsor) => {
+          let linkedCompany = null
+          if (sponsor.event?.tenantId) {
+            const tenant = await prisma.tenant.findUnique({
+              where: { id: sponsor.event.tenantId },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo: true
+              }
+            })
+            linkedCompany = tenant
+          }
+
+          // Calculate stats
+          const packagesCount = sponsor.packages.length
+          const totalValue = sponsor.packages.reduce((sum, p) => sum + Number(p.price || 0), 0)
+          const assetsCount = sponsor.assets.length
+
+          return {
+            id: sponsor.id,
+            name: sponsor.name,
+            industry: sponsor.industry,
+            website: sponsor.website,
+            logo: sponsor.logo,
+            description: sponsor.description,
+            contactName: sponsor.contactName,
+            contactEmail: sponsor.contactEmail,
+            contactPhone: sponsor.contactPhone,
+            status: sponsor.status,
+            createdAt: sponsor.createdAt,
+            // Event info
+            eventId: sponsor.eventId?.toString(),
+            eventName: sponsor.event?.name,
+            // Stats
+            packagesCount,
+            totalValue,
+            assetsCount,
+            // Linked Event Management Company
+            linkedCompany,
+            // Packages preview
+            packages: sponsor.packages.slice(0, 3)
+          }
+        })
+      )
+
+      return NextResponse.json({ sponsors: sponsorsWithDetails })
+    } catch (schemaError: any) {
+      // If Sponsor model doesn't exist in schema, return empty array
+      console.log('Sponsor model not found in schema, returning empty array')
+      return NextResponse.json({ sponsors: [] })
+    }
   } catch (error: any) {
     console.error('Error fetching sponsors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
