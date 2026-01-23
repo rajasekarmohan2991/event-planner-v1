@@ -55,6 +55,30 @@ export default function ServiceManagementPage() {
                     totalRevenue: vendors.reduce((sum: number, v: any) => sum + (v.totalRevenue || 0), 0)
                 })
             }
+
+            // Fetch sponsors
+            const sponsorRes = await fetch('/api/admin/service-management/sponsors')
+            if (sponsorRes.ok) {
+                const data = await sponsorRes.json()
+                const sponsors = data.sponsors || []
+                setSponsorStats({
+                    count: sponsors.length,
+                    totalPackages: sponsors.reduce((sum: number, s: any) => sum + (s.totalPackages || 0), 0),
+                    totalValue: sponsors.reduce((sum: number, s: any) => sum + (s.totalValue || 0), 0)
+                })
+            }
+
+            // Fetch exhibitors
+            const exhibitorRes = await fetch('/api/admin/service-management/exhibitors')
+            if (exhibitorRes.ok) {
+                const data = await exhibitorRes.json()
+                const exhibitors = data.exhibitors || []
+                setExhibitorStats({
+                    count: exhibitors.length,
+                    totalProducts: exhibitors.reduce((sum: number, e: any) => sum + (e.totalProducts || 0), 0),
+                    totalRevenue: exhibitors.reduce((sum: number, e: any) => sum + (e.totalRevenue || 0), 0)
+                })
+            }
         } catch (error) {
             console.error('Failed to fetch stats:', error)
         } finally {
