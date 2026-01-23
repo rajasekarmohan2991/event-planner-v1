@@ -2,15 +2,27 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus, Check, DollarSign, RefreshCw, Edit, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, Check, DollarSign, RefreshCw, Edit, Trash2, ExternalLink, Users, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import ManageTabs from '@/components/events/ManageTabs'
+import { toast } from '@/components/ui/use-toast'
+
+interface CompanyExhibitor {
+  id: string
+  name: string
+  company: string | null
+  contactName: string | null
+  contactEmail: string | null
+  contactPhone: string | null
+  website: string | null
+  boothType: string | null
+}
 
 interface Exhibitor {
   id: string
@@ -37,6 +49,11 @@ export default function EventExhibitorsPage() {
   const [showPricingModal, setShowPricingModal] = useState(false)
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null)
+
+  // Company exhibitors selection
+  const [showCompanyExhibitors, setShowCompanyExhibitors] = useState(false)
+  const [companyExhibitors, setCompanyExhibitors] = useState<CompanyExhibitor[]>([])
+  const [loadingCompanyExhibitors, setLoadingCompanyExhibitors] = useState(false)
 
   const [exhibitorForm, setExhibitorForm] = useState({
     name: '',
@@ -83,6 +100,53 @@ export default function EventExhibitorsPage() {
       console.error('Failed to fetch exhibitors:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Load company's pre-registered exhibitors
+  const loadCompanyExhibitors = async () => {
+    try {
+      setLoadingCompanyExhibitors(true)
+      const res = await fetch('/api/admin/service-management/exhibitors')
+      if (res.ok) {
+        const data = await res.json()
+        setCompanyExhibitors(data.exhibitors || [])
+      }
+    } catch (error) {
+      console.error('Failed to load company exhibitors:', error)
+    } finally {
+      setLoadingCompanyExhibitors(false)
+    }
+  }
+
+  // Import a company exhibitor to this event
+  const handleImportExhibitor = async (exhibitor: CompanyExhibitor) => {
+    try {
+      const exhibitorData = {
+        name: exhibitor.name,
+        company: exhibitor.company,
+        contactName: exhibitor.contactName,
+        contactEmail: exhibitor.contactEmail,
+        contactPhone: exhibitor.contactPhone,
+        boothType: exhibitor.boothType
+      }
+
+      const res = await fetch(`/api/events/${eventId}/exhibitors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exhibitorData)
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || 'Failed to import exhibitor')
+      }
+
+      toast({ title: 'Exhibitor imported successfully!' })
+      setShowCompanyExhibitors(false)
+      fetchExhibitors()
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' as any })
     }
   }
 
@@ -346,11 +410,70 @@ export default function EventExhibitorsPage() {
             <h1 className="text-2xl font-bold">Exhibitor Management</h1>
             <p className="text-gray-600">Manage exhibitor registrations and booth allocations</p>
           </div>
-          <Button onClick={() => setShowAddForm(true)} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Exhibitor
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { loadCompanyExhibitors(); setShowCompanyExhibitors(true) }}
+            >
+              <Users className="w-4 h-4 mr-2" /> Import from Company
+            </Button>
+            <Button onClick={() => setShowAddForm(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Exhibitor
+            </Button>
+          </div>
         </div>
+
+        {/* Company Exhibitors Selection Dialog */}
+        <Dialog open={showCompanyExhibitors} onOpenChange={setShowCompanyExhibitors}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-green-600" />
+                Import from Company Exhibitors
+              </DialogTitle>
+              <DialogDescription>
+                Select from your company's pre-registered exhibitors to add to this event
+              </DialogDescription>
+            </DialogHeader>
+            {loadingCompanyExhibitors ? (
+              <div className="py-8 text-center text-gray-500">Loading exhibitors...</div>
+            ) : companyExhibitors.length === 0 ? (
+              <div className="py-8 text-center">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">No pre-registered exhibitors</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Add exhibitors in Service Management to see them here
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {companyExhibitors.map((exhibitor) => (
+                  <div
+                    key={exhibitor.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-bold">
+                        {exhibitor.name?.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-medium">{exhibitor.name}</p>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          {exhibitor.company && <span>{exhibitor.company}</span>}
+                          {exhibitor.boothType && <Badge variant="outline" className="text-xs">{exhibitor.boothType}</Badge>}
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => handleImportExhibitor(exhibitor)}>
+                      <Download className="w-4 h-4 mr-2" /> Import
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {loading ? (
           <div className="text-center py-12">
