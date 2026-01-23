@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Package, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Package, Plus, Trash2, Link2, Building2 } from 'lucide-react'
 
 const VENDOR_CATEGORIES = [
   'Catering', 'Audio/Visual', 'Photography', 'Videography', 'Decoration',
@@ -17,67 +17,63 @@ const VENDOR_CATEGORIES = [
   'Lighting', 'Stage Setup', 'Cleaning', 'Technical Support', 'Other'
 ]
 
-interface Service {
+interface Tenant {
+  id: string
   name: string
-  description: string
-  base_price: number
-  price_unit: string
+  slug: string
 }
 
 export default function AddVendorPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
-  
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [loadingTenants, setLoadingTenants] = useState(true)
+
   const [formData, setFormData] = useState({
-    company_name: '',
+    name: '',
     email: '',
     phone: '',
     website: '',
     category: '',
     description: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    postal_code: '',
-    year_established: '',
-    tax_id: '',
-    bank_name: '',
-    account_number: '',
-    account_holder_name: '',
-    ifsc_code: '',
-    commission_rate: '15'
+    logo: '',
+    coverImage: '',
+    establishedYear: '',
+    serviceCapacity: '',
+    tenantId: '' // Link to Event Management Company
   })
 
-  const [services, setServices] = useState<Service[]>([
-    { name: '', description: '', base_price: 0, price_unit: 'per_event' }
-  ])
+  // Fetch Event Management Companies (Tenants)
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const res = await fetch('/api/super-admin/companies')
+        if (res.ok) {
+          const data = await res.json()
+          // Filter out super-admin tenants
+          const companies = (data.companies || []).filter(
+            (c: any) => c.slug !== 'super-admin' && c.slug !== 'default-tenant'
+          )
+          setTenants(companies)
+        }
+      } catch (error) {
+        console.error('Failed to fetch tenants:', error)
+      } finally {
+        setLoadingTenants(false)
+      }
+    }
+    fetchTenants()
+  }, [])
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleServiceChange = (index: number, field: string, value: any) => {
-    const updated = [...services]
-    updated[index] = { ...updated[index], [field]: value }
-    setServices(updated)
-  }
-
-  const addService = () => {
-    setServices([...services, { name: '', description: '', base_price: 0, price_unit: 'per_event' }])
-  }
-
-  const removeService = (index: number) => {
-    if (services.length > 1) {
-      setServices(services.filter((_, i) => i !== index))
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.company_name || !formData.email || !formData.category) {
+
+    if (!formData.name || !formData.category) {
       toast({ title: 'Please fill required fields', variant: 'destructive' })
       return
     }
@@ -88,13 +84,22 @@ export default function AddVendorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          services: services.filter(s => s.name.trim() !== '')
+          name: formData.name,
+          category: formData.category,
+          description: formData.description || null,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          website: formData.website || null,
+          logo: formData.logo || null,
+          coverImage: formData.coverImage || null,
+          establishedYear: formData.establishedYear || null,
+          serviceCapacity: formData.serviceCapacity || null,
+          tenantId: formData.tenantId || null
         })
       })
 
       if (res.ok) {
-        toast({ title: 'Vendor added successfully' })
+        toast({ title: 'Vendor created successfully!' })
         router.push('/super-admin/service-management/vendors')
       } else {
         const data = await res.json()
@@ -121,25 +126,62 @@ export default function AddVendorPage() {
             Add New Vendor
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Register a new vendor company with services and payment details
+            Register a new vendor company on the platform
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Link to Event Management Company */}
+        <Card className="border-2 border-dashed border-green-300 bg-green-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-700">
+              <Link2 className="h-5 w-5" />
+              Link to Event Management Company
+            </CardTitle>
+            <CardDescription>
+              Optionally link this vendor to an event management company on the platform
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="tenantId">Select Company (Optional)</Label>
+              <Select value={formData.tenantId} onValueChange={(v) => handleChange('tenantId', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={loadingTenants ? "Loading companies..." : "Select a company or leave empty"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Linked Company (Platform Vendor)</SelectItem>
+                  {tenants.map(tenant => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-500" />
+                        {tenant.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Linked vendors will appear in the selected company's vendor list
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Company Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Company Information</CardTitle>
+            <CardTitle>Vendor Information</CardTitle>
             <CardDescription>Basic details about the vendor company</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name *</Label>
+              <Label htmlFor="name">Company Name *</Label>
               <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) => handleChange('company_name', e.target.value)}
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="Enter company name"
                 required
               />
@@ -158,14 +200,13 @@ export default function AddVendorPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 placeholder="vendor@company.com"
-                required
               />
             </div>
             <div className="space-y-2">
@@ -187,12 +228,31 @@ export default function AddVendorPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="year_established">Year Established</Label>
+              <Label htmlFor="establishedYear">Year Established</Label>
               <Input
-                id="year_established"
-                value={formData.year_established}
-                onChange={(e) => handleChange('year_established', e.target.value)}
+                id="establishedYear"
+                value={formData.establishedYear}
+                onChange={(e) => handleChange('establishedYear', e.target.value)}
                 placeholder="2020"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="serviceCapacity">Max Service Capacity (Guests)</Label>
+              <Input
+                id="serviceCapacity"
+                type="number"
+                value={formData.serviceCapacity}
+                onChange={(e) => handleChange('serviceCapacity', e.target.value)}
+                placeholder="500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="logo">Logo URL</Label>
+              <Input
+                id="logo"
+                value={formData.logo}
+                onChange={(e) => handleChange('logo', e.target.value)}
+                placeholder="https://example.com/logo.png"
               />
             </div>
             <div className="md:col-span-2 space-y-2">
@@ -201,203 +261,8 @@ export default function AddVendorPage() {
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Brief description of the vendor company..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Address</CardTitle>
-            <CardDescription>Company location details</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleChange('address', e.target.value)}
-                placeholder="123 Business Street"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => handleChange('city', e.target.value)}
-                placeholder="City"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State/Province</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) => handleChange('state', e.target.value)}
-                placeholder="State"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                value={formData.country}
-                onChange={(e) => handleChange('country', e.target.value)}
-                placeholder="Country"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="postal_code">Postal Code</Label>
-              <Input
-                id="postal_code"
-                value={formData.postal_code}
-                onChange={(e) => handleChange('postal_code', e.target.value)}
-                placeholder="12345"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Services */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Services Offered</CardTitle>
-                <CardDescription>List of services this vendor provides</CardDescription>
-              </div>
-              <Button type="button" variant="outline" onClick={addService}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Service
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {services.map((service, index) => (
-              <div key={index} className="p-4 border rounded-lg space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Service {index + 1}</span>
-                  {services.length > 1 && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeService(index)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Service Name</Label>
-                    <Input
-                      value={service.name}
-                      onChange={(e) => handleServiceChange(index, 'name', e.target.value)}
-                      placeholder="e.g., Full Event Catering"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Base Price</Label>
-                    <Input
-                      type="number"
-                      value={service.base_price}
-                      onChange={(e) => handleServiceChange(index, 'base_price', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Price Unit</Label>
-                    <Select 
-                      value={service.price_unit} 
-                      onValueChange={(v) => handleServiceChange(index, 'price_unit', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="per_event">Per Event</SelectItem>
-                        <SelectItem value="per_day">Per Day</SelectItem>
-                        <SelectItem value="per_hour">Per Hour</SelectItem>
-                        <SelectItem value="per_person">Per Person</SelectItem>
-                        <SelectItem value="fixed">Fixed Price</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Input
-                      value={service.description}
-                      onChange={(e) => handleServiceChange(index, 'description', e.target.value)}
-                      placeholder="Brief description"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Payment Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Information</CardTitle>
-            <CardDescription>Bank details for vendor payments</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tax_id">Tax ID / GST Number</Label>
-              <Input
-                id="tax_id"
-                value={formData.tax_id}
-                onChange={(e) => handleChange('tax_id', e.target.value)}
-                placeholder="Tax identification number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="commission_rate">Commission Rate (%)</Label>
-              <Input
-                id="commission_rate"
-                type="number"
-                value={formData.commission_rate}
-                onChange={(e) => handleChange('commission_rate', e.target.value)}
-                placeholder="15"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bank_name">Bank Name</Label>
-              <Input
-                id="bank_name"
-                value={formData.bank_name}
-                onChange={(e) => handleChange('bank_name', e.target.value)}
-                placeholder="Bank name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="account_holder_name">Account Holder Name</Label>
-              <Input
-                id="account_holder_name"
-                value={formData.account_holder_name}
-                onChange={(e) => handleChange('account_holder_name', e.target.value)}
-                placeholder="Account holder name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="account_number">Account Number</Label>
-              <Input
-                id="account_number"
-                value={formData.account_number}
-                onChange={(e) => handleChange('account_number', e.target.value)}
-                placeholder="Account number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ifsc_code">IFSC / Routing Code</Label>
-              <Input
-                id="ifsc_code"
-                value={formData.ifsc_code}
-                onChange={(e) => handleChange('ifsc_code', e.target.value)}
-                placeholder="IFSC or routing code"
+                placeholder="Brief description of the vendor company and their services..."
+                rows={4}
               />
             </div>
           </CardContent>
@@ -409,7 +274,7 @@ export default function AddVendorPage() {
             Cancel
           </Button>
           <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Add Vendor'}
+            {saving ? 'Creating...' : 'Create Vendor'}
           </Button>
         </div>
       </form>

@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
+
+  // Polyfill for BigInt serialization
+  (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
 
 // GET - List all vendors (platform-wide)
 export async function GET(req: NextRequest) {
@@ -14,37 +18,81 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Try to fetch vendors, if table doesn't exist, run schema migration
-    try {
-      const vendors = await prisma.$queryRaw<any[]>`
-        SELECT 
-          sp.id,
-          sp.company_name,
-          sp.email,
-          sp.phone,
-          sp.city,
-          sp.country,
-          sp.verification_status as status,
-          sp.avg_rating,
-          sp.total_reviews,
-          sp.total_revenue,
-          sp.commission_rate,
-          sp.created_at
-        FROM service_providers sp
-        WHERE sp.provider_type = 'VENDOR'
-        ORDER BY sp.created_at DESC
-      `
-
-      return NextResponse.json({ vendors })
-    } catch (dbError: any) {
-      // If table doesn't exist, run schema migration
-      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
-        console.log('Service providers table missing, running schema migration...')
-        await ensureSchema()
-        return NextResponse.json({ vendors: [], message: 'Tables created, please refresh' })
+    // Fetch vendors from new Prisma model with tenant (Event Management Company) info
+    const vendors = await prisma.vendor.findMany({
+      include: {
+        services: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            basePrice: true
+          }
+        },
+        bookings: {
+          select: {
+            id: true,
+            status: true,
+            totalAmount: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-      throw dbError
-    }
+    })
+
+    // Get tenant info for each vendor
+    const vendorsWithTenant = await Promise.all(
+      vendors.map(async (vendor) => {
+        let linkedCompany = null
+        if (vendor.tenantId) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: vendor.tenantId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true
+            }
+          })
+          linkedCompany = tenant
+        }
+
+        // Calculate stats
+        const totalBookings = vendor.bookings.length
+        const totalRevenue = vendor.bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
+        const servicesCount = vendor.services.length
+
+        return {
+          id: vendor.id,
+          name: vendor.name,
+          category: vendor.category,
+          description: vendor.description,
+          email: vendor.email,
+          phone: vendor.phone,
+          website: vendor.website,
+          logo: vendor.logo,
+          coverImage: vendor.coverImage,
+          establishedYear: vendor.establishedYear,
+          operatingCities: vendor.operatingCities,
+          serviceCapacity: vendor.serviceCapacity,
+          rating: vendor.rating,
+          reviewCount: vendor.reviewCount,
+          createdAt: vendor.createdAt,
+          // Stats
+          servicesCount,
+          totalBookings,
+          totalRevenue,
+          // Linked Event Management Company
+          linkedCompany,
+          // Services preview
+          services: vendor.services.slice(0, 3)
+        }
+      })
+    )
+
+    return NextResponse.json({ vendors: vendorsWithTenant })
   } catch (error: any) {
     console.error('Error fetching vendors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -61,73 +109,48 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const {
-      company_name, email, phone, website, category, description,
-      address, city, state, country, postal_code, year_established,
-      tax_id, bank_name, account_number, account_holder_name, ifsc_code,
-      commission_rate, services
+      name,
+      category,
+      description,
+      email,
+      phone,
+      website,
+      logo,
+      coverImage,
+      establishedYear,
+      operatingCities,
+      serviceCapacity,
+      licenses,
+      tenantId // Optional: Link to Event Management Company
     } = body
 
-    if (!company_name || !email || !category) {
-      return NextResponse.json({ error: 'Company name, email, and category are required' }, { status: 400 })
+    if (!name || !category) {
+      return NextResponse.json({ error: 'Name and category are required' }, { status: 400 })
     }
 
-    // Create vendor in service_providers table
-    const result = await prisma.$queryRaw<any[]>`
-      INSERT INTO service_providers (
-        tenant_id, provider_type, company_name, email, phone, website,
-        description, address, city, state, country, postal_code,
-        year_established, tax_id, bank_name, account_number, 
-        account_holder_name, ifsc_code, commission_rate,
-        verification_status, created_at, updated_at
-      ) VALUES (
-        'platform', 'VENDOR', ${company_name}, ${email}, ${phone || null}, ${website || null},
-        ${description || null}, ${address || null}, ${city || null}, ${state || null}, 
-        ${country || null}, ${postal_code || null}, ${year_established ? parseInt(year_established) : null},
-        ${tax_id || null}, ${bank_name || null}, ${account_number || null},
-        ${account_holder_name || null}, ${ifsc_code || null}, ${parseFloat(commission_rate) || 15},
-        'PENDING', NOW(), NOW()
-      )
-      RETURNING id
-    `
-
-    const vendorId = result[0]?.id
-
-    // Create or link category
-    if (category && vendorId) {
-      await prisma.$executeRaw`
-        INSERT INTO provider_categories (name, provider_type, created_at)
-        VALUES (${category}, 'VENDOR', NOW())
-        ON CONFLICT (name, provider_type) DO NOTHING
-      `
-
-      await prisma.$executeRaw`
-        INSERT INTO provider_category_links (provider_id, category_id)
-        SELECT ${vendorId}, id FROM provider_categories 
-        WHERE name = ${category} AND provider_type = 'VENDOR'
-        ON CONFLICT DO NOTHING
-      `
-    }
-
-    // Add services
-    if (services && services.length > 0 && vendorId) {
-      for (const service of services) {
-        if (service.name) {
-          await prisma.$executeRaw`
-            INSERT INTO provider_services (
-              provider_id, name, description, base_price, price_unit, is_active, created_at
-            ) VALUES (
-              ${vendorId}, ${service.name}, ${service.description || null},
-              ${service.base_price || 0}, ${service.price_unit || 'per_event'}, true, NOW()
-            )
-          `
-        }
+    // Create vendor using Prisma model
+    const vendor = await prisma.vendor.create({
+      data: {
+        name,
+        category,
+        description,
+        email,
+        phone,
+        website,
+        logo,
+        coverImage,
+        establishedYear: establishedYear ? parseInt(establishedYear) : null,
+        operatingCities: operatingCities || null,
+        serviceCapacity: serviceCapacity ? parseInt(serviceCapacity) : null,
+        licenses: licenses || null,
+        tenantId: tenantId || null
       }
-    }
+    })
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Vendor created successfully',
-      vendorId 
+      vendor
     })
   } catch (error: any) {
     console.error('Error creating vendor:', error)
