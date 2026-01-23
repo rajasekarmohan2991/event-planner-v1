@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Prefer raw SQL for resilience; fall back to schema heal if needed
-    const rows: any[] = await prisma.$queryRawUnsafe(`
+    // Ensure vendors table exists
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS vendors (
-        id TEXT PRIMARY KEY,
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
         description TEXT,
@@ -34,12 +34,12 @@ export async function GET(req: NextRequest) {
         established_year INTEGER,
         operating_cities TEXT,
         service_capacity INTEGER,
-        rating DOUBLE PRECISION,
-        review_count INTEGER,
+        rating DOUBLE PRECISION DEFAULT 0,
+        review_count INTEGER DEFAULT 0,
         tenant_id TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
-    `) as any
+    `)
 
     const vendors: any[] = await prisma.$queryRawUnsafe(`
       SELECT 
@@ -69,8 +69,12 @@ export async function GET(req: NextRequest) {
     for (const v of vendors) {
       let linkedCompany = null as any
       if (v.tenantId) {
-        const t: any[] = await prisma.$queryRawUnsafe(`SELECT id, name, slug, logo FROM tenants WHERE id = $1 LIMIT 1`, v.tenantId)
-        linkedCompany = t[0] || null
+        try {
+          const t: any[] = await prisma.$queryRawUnsafe(`SELECT id, name, slug, logo FROM tenants WHERE id = $1 LIMIT 1`, v.tenantId)
+          linkedCompany = t[0] || null
+        } catch (e) {
+          // Tenant might not exist, skip
+        }
       }
       result.push({ ...v, linkedCompany })
     }
@@ -83,7 +87,7 @@ export async function GET(req: NextRequest) {
       try {
         await ensureSchema()
         return NextResponse.json({ error: 'System updated. Please retry.' }, { status: 503 })
-      } catch {}
+      } catch { }
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -169,7 +173,7 @@ export async function POST(req: NextRequest) {
       try {
         await ensureSchema()
         return NextResponse.json({ error: 'System updated. Please retry.' }, { status: 503 })
-      } catch {}
+      } catch { }
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
