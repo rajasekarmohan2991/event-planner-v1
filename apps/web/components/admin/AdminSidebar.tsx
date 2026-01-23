@@ -103,7 +103,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'All Events', href: '/admin/events', icon: Calendar },
         { name: 'All Users', href: '/admin/users', icon: Users },
         { name: 'Lookup Management', href: '/super-admin/lookups', icon: Database },
-        { name: 'Service Management', href: '/super-admin/service-management', icon: Package, 
+        {
+          name: 'Service Management', href: '/super-admin/service-management', icon: Package,
           subItems: [
             { name: 'Vendor Management', href: '/super-admin/service-management/vendors', icon: Package },
             { name: 'Sponsor Management', href: '/super-admin/service-management/sponsors', icon: Users },
@@ -140,6 +141,8 @@ const getNavigation = (userRole?: string, pathname?: string) => {
 
   if (userRole === 'ADMIN' || userRole === 'TENANT_ADMIN') {
     baseNavigation.push({ name: 'Users', href: '/admin/users', icon: Users })
+    // Add Service Management for company admins (their own vendors/sponsors/exhibitors)
+    baseNavigation.push({ name: 'Service Management', href: '/admin/service-management', icon: Package })
     // Add Finance for company admins
     baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
     // Add Tax Settings (read-only view for company)
