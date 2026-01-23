@@ -16,6 +16,7 @@ export default function SettingsPage() {
   // Notification settings
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
+    pushNotifications: true,
     smsNotifications: false,
     eventReminders: true,
     marketingEmails: false
@@ -28,21 +29,77 @@ export default function SettingsPage() {
     showPhone: false
   })
 
+  // Language & Region
+  const [language, setLanguage] = useState('en')
+  const [timeZone, setTimeZone] = useState('UTC')
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login')
     }
   }, [status, router])
 
+  // Load existing preferences
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/user/preferences', { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        // Notifications
+        setNotifications(prev => ({
+          ...prev,
+          emailNotifications: data.emailNotifications ?? prev.emailNotifications,
+          pushNotifications: data.pushNotifications ?? prev.pushNotifications,
+          smsNotifications: data.smsNotifications ?? prev.smsNotifications,
+          eventReminders: data.eventReminders ?? prev.eventReminders,
+          marketingEmails: data.marketingEmails ?? prev.marketingEmails,
+        }))
+        // Privacy
+        const prefPrivacy = data.privacy || {}
+        setPrivacy({
+          profileVisibility: prefPrivacy.profileVisibility || 'public',
+          showEmail: !!prefPrivacy.showEmail,
+          showPhone: !!prefPrivacy.showPhone,
+        })
+        // Language & Region
+        setLanguage(data.language || 'en')
+        setTimeZone(data.timeZone || 'UTC')
+      } catch (e) {
+        // ignore
+      }
+    }
+    load()
+  }, [])
+
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const payload = {
+        language,
+        emailNotifications: notifications.emailNotifications,
+        pushNotifications: notifications.pushNotifications,
+        // other prefs stored in JSON
+        smsNotifications: notifications.smsNotifications,
+        eventReminders: notifications.eventReminders,
+        marketingEmails: notifications.marketingEmails,
+        timeZone,
+        privacy,
+      }
+      const res = await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || 'Failed to save')
+      }
       setMessage('Settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
-    } catch (error) {
-      setMessage('Failed to save settings')
+    } catch (error: any) {
+      setMessage(error.message || 'Failed to save settings')
     } finally {
       setSaving(false)
     }
@@ -149,8 +206,8 @@ export default function SettingsPage() {
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={notifications.eventReminders}
-                          onChange={(e) => setNotifications({ ...notifications, eventReminders: e.target.checked })}
+                          checked={notifications.pushNotifications}
+                          onChange={(e) => setNotifications({ ...notifications, pushNotifications: e.target.checked })}
                           className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -337,7 +394,7 @@ export default function SettingsPage() {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-semibold mb-3 text-gray-900">Language</label>
-                      <select className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all">
+                      <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all">
                         <option value="en">English</option>
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
@@ -348,7 +405,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold mb-3 text-gray-900">Time Zone</label>
-                      <select className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all">
+                      <select value={timeZone} onChange={(e) => setTimeZone(e.target.value)} className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all">
                         <option value="UTC">UTC</option>
                         <option value="Asia/Kolkata">India Standard Time (IST)</option>
                         <option value="America/New_York">Eastern Time (ET)</option>

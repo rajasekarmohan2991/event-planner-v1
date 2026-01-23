@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,83 +19,72 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch vendors from new Prisma model with tenant (Event Management Company) info
-    const vendors = await prisma.vendor.findMany({
-      include: {
-        services: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            basePrice: true
-          }
-        },
-        bookings: {
-          select: {
-            id: true,
-            status: true,
-            totalAmount: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
+    // Prefer raw SQL for resilience; fall back to schema heal if needed
+    const rows: any[] = await prisma.$queryRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS vendors (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT,
+        email TEXT,
+        phone TEXT,
+        website TEXT,
+        logo TEXT,
+        cover_image TEXT,
+        established_year INTEGER,
+        operating_cities TEXT,
+        service_capacity INTEGER,
+        rating DOUBLE PRECISION,
+        review_count INTEGER,
+        tenant_id TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `) as any
+
+    const vendors: any[] = await prisma.$queryRawUnsafe(`
+      SELECT 
+        id,
+        name,
+        category,
+        description,
+        email,
+        phone,
+        website,
+        logo,
+        cover_image as "coverImage",
+        established_year as "establishedYear",
+        operating_cities as "operatingCities",
+        service_capacity as "serviceCapacity",
+        rating,
+        review_count as "reviewCount",
+        tenant_id as "tenantId",
+        created_at as "createdAt"
+      FROM vendors
+      ORDER BY created_at DESC
+      LIMIT 200
+    `)
+
+    // Enrich with tenant name (if present)
+    const result = [] as any[]
+    for (const v of vendors) {
+      let linkedCompany = null as any
+      if (v.tenantId) {
+        const t: any[] = await prisma.$queryRawUnsafe(`SELECT id, name, slug, logo FROM tenants WHERE id = $1 LIMIT 1`, v.tenantId)
+        linkedCompany = t[0] || null
       }
-    })
+      result.push({ ...v, linkedCompany })
+    }
 
-    // Get tenant info for each vendor
-    const vendorsWithTenant = await Promise.all(
-      vendors.map(async (vendor) => {
-        let linkedCompany = null
-        if (vendor.tenantId) {
-          const tenant = await prisma.tenant.findUnique({
-            where: { id: vendor.tenantId },
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              logo: true
-            }
-          })
-          linkedCompany = tenant
-        }
-
-        // Calculate stats
-        const totalBookings = vendor.bookings.length
-        const totalRevenue = vendor.bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
-        const servicesCount = vendor.services.length
-
-        return {
-          id: vendor.id,
-          name: vendor.name,
-          category: vendor.category,
-          description: vendor.description,
-          email: vendor.email,
-          phone: vendor.phone,
-          website: vendor.website,
-          logo: vendor.logo,
-          coverImage: vendor.coverImage,
-          establishedYear: vendor.establishedYear,
-          operatingCities: vendor.operatingCities,
-          serviceCapacity: vendor.serviceCapacity,
-          rating: vendor.rating,
-          reviewCount: vendor.reviewCount,
-          createdAt: vendor.createdAt,
-          // Stats
-          servicesCount,
-          totalBookings,
-          totalRevenue,
-          // Linked Event Management Company
-          linkedCompany,
-          // Services preview
-          services: vendor.services.slice(0, 3)
-        }
-      })
-    )
-
-    return NextResponse.json({ vendors: vendorsWithTenant })
+    return NextResponse.json({ vendors: result })
   } catch (error: any) {
     console.error('Error fetching vendors:', error)
+    // Attempt global schema healing if relation missing
+    if (String(error.message || '').includes('relation') || String(error.code || '').startsWith('42')) {
+      try {
+        await ensureSchema()
+        return NextResponse.json({ error: 'System updated. Please retry.' }, { status: 503 })
+      } catch {}
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -120,40 +110,67 @@ export async function POST(req: NextRequest) {
       establishedYear,
       operatingCities,
       serviceCapacity,
-      licenses,
-      tenantId // Optional: Link to Event Management Company
+      tenantId
     } = body
 
     if (!name || !category) {
       return NextResponse.json({ error: 'Name and category are required' }, { status: 400 })
     }
 
-    // Create vendor using Prisma model
-    const vendor = await prisma.vendor.create({
-      data: {
-        name,
-        category,
-        description,
-        email,
-        phone,
-        website,
-        logo,
-        coverImage,
-        establishedYear: establishedYear ? parseInt(establishedYear) : null,
-        operatingCities: operatingCities || null,
-        serviceCapacity: serviceCapacity ? parseInt(serviceCapacity) : null,
-        licenses: licenses || null,
-        tenantId: tenantId || null
-      }
-    })
+    // Ensure table exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS vendors (
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT,
+        email TEXT,
+        phone TEXT,
+        website TEXT,
+        logo TEXT,
+        cover_image TEXT,
+        established_year INTEGER,
+        operating_cities TEXT,
+        service_capacity INTEGER,
+        rating DOUBLE PRECISION,
+        review_count INTEGER,
+        tenant_id TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `)
 
-    return NextResponse.json({
-      success: true,
-      message: 'Vendor created successfully',
-      vendor
-    })
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO vendors (
+        name, category, description, email, phone, website, logo, cover_image,
+        established_year, operating_cities, service_capacity, tenant_id
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9, $10, $11, $12
+      )
+    `,
+      name,
+      category,
+      description || null,
+      email || null,
+      phone || null,
+      website || null,
+      logo || null,
+      coverImage || null,
+      establishedYear ? parseInt(establishedYear) : null,
+      operatingCities || null,
+      serviceCapacity ? parseInt(serviceCapacity) : null,
+      tenantId || null,
+    )
+
+    return NextResponse.json({ success: true, message: 'Vendor created successfully' })
   } catch (error: any) {
     console.error('Error creating vendor:', error)
+    if (String(error.message || '').includes('relation') || String(error.code || '').startsWith('42')) {
+      try {
+        await ensureSchema()
+        return NextResponse.json({ error: 'System updated. Please retry.' }, { status: 503 })
+      } catch {}
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

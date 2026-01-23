@@ -80,6 +80,7 @@ export default function AddVendorPage() {
 
     setSaving(true)
     try {
+      const tenantId = formData.tenantId === 'none' ? null : (formData.tenantId || null)
       const res = await fetch('/api/super-admin/service-management/vendors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +95,7 @@ export default function AddVendorPage() {
           coverImage: formData.coverImage || null,
           establishedYear: formData.establishedYear || null,
           serviceCapacity: formData.serviceCapacity || null,
-          tenantId: formData.tenantId || null
+          tenantId
         })
       })
 
@@ -151,7 +152,7 @@ export default function AddVendorPage() {
                   <SelectValue placeholder={loadingTenants ? "Loading companies..." : "Select a company or leave empty"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Linked Company (Platform Vendor)</SelectItem>
+                  <SelectItem value="none">No Linked Company (Platform Vendor)</SelectItem>
                   {tenants.map(tenant => (
                     <SelectItem key={tenant.id} value={tenant.id}>
                       <div className="flex items-center gap-2">

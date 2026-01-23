@@ -16,6 +16,7 @@ interface SignatureRequest {
   id: string;
   documentType: string;
   documentTitle: string;
+  documentContent?: string;
   signerEmail: string;
   signerName: string;
   signerType: string;
@@ -240,8 +241,13 @@ export default function SignDocumentPage() {
         {/* Document Preview */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Document Content</h2>
-          <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+          <div className="border rounded-lg p-4 bg-white max-h-96 overflow-y-auto">
             <div className="prose prose-sm">
+              {/* Prefer tenant/template HTML content if available */}
+              {signature.documentContent ? (
+                <div dangerouslySetInnerHTML={{ __html: signature.documentContent }} />
+              ) : (
+                <>
               {signature.documentType === 'TERMS_AND_CONDITIONS' && (
                 <div>
                   <h3>Terms and Conditions</h3>
@@ -299,6 +305,8 @@ export default function SignDocumentPage() {
                   <h4>3. Cancellation</h4>
                   <p>Cancellation policies apply as specified.</p>
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>
