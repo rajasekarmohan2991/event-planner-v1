@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
     // Polyfill for BigInt serialization
-    (BigInt.prototype as any).toJSON = function () {
+    ; (BigInt.prototype as any).toJSON = function () {
         return this.toString()
     }
 

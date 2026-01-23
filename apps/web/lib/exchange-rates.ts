@@ -156,3 +156,54 @@ export function formatCurrencyWithConversion(
     const convertedAmount = amount * rate;
     return `${displayCurrency} ${convertedAmount.toFixed(2)} (${originalCurrency} ${amount.toFixed(2)} @ ${rate.toFixed(4)})`;
 }
+
+/**
+ * Updates exchange rates in the database from the API
+ * Returns true if successful
+ */
+import prisma from '@/lib/prisma'
+
+export async function updateExchangeRates(): Promise<boolean> {
+    try {
+        const data = await fetchExchangeRates();
+
+        // Prepare batch upsert
+        // Since Prisma doesn't support bulk upsert easily across all DBs,
+        // we will simple use a transaction or just loop for now as rate counts aren't massive (150-200)
+
+        // However, we only care about important ones usually. 
+        // Let's filter to save DB space if needed, or just save all.
+        // Saving all is safer.
+
+        const timestamp = new Date(data.timestamp);
+
+        // We use a transaction to ensure atomicity
+        await prisma.$transaction(
+            Object.entries(data.rates).map(([currency, rate]) =>
+                prisma.exchangeRate.upsert({
+                    where: {
+                        fromCurrency_toCurrency: {
+                            fromCurrency: data.base,
+                            toCurrency: currency
+                        }
+                    },
+                    create: {
+                        fromCurrency: data.base,
+                        toCurrency: currency,
+                        rate: rate,
+                        lastUpdated: timestamp
+                    },
+                    update: {
+                        rate: rate,
+                        lastUpdated: timestamp
+                    }
+                })
+            )
+        );
+
+        return true;
+    } catch (error) {
+        console.error('Failed to update exchange rates in DB:', error);
+        return false;
+    }
+}
