@@ -4,10 +4,10 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { ensureSchema } from '@/lib/ensure-schema'
 
-// Polyfill for BigInt serialization
-(BigInt.prototype as any).toJSON = function () {
-  return this.toString()
-}
+  // Polyfill for BigInt serialization
+  ; (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
 
 export const dynamic = 'force-dynamic'
 
