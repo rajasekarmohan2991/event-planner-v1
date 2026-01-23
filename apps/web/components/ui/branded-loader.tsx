@@ -18,7 +18,7 @@ export function BrandedLoader({ text = "Loading...", className }: BrandedLoaderP
                         src="/images/ayphen-logo.png"
                         alt="Ayphen Technologies"
                         fill
-                        className="object-contain"
+                        className="object-contain mix-blend-multiply"
                         priority
                         quality={100}
                     />
