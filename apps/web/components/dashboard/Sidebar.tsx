@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { signOut, useSession } from 'next-auth/react'
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   CalendarDays,
   Ticket,
   Settings,
@@ -23,15 +23,15 @@ import {
 } from 'lucide-react'
 
 const sidebarVariants = {
-  open: { 
+  open: {
     x: 0,
-    transition: { 
-      type: 'spring', 
+    transition: {
+      type: 'spring',
       stiffness: 300,
       damping: 40
     }
   },
-  closed: { 
+  closed: {
     x: '-100%',
     transition: {
       type: 'spring',
@@ -48,7 +48,7 @@ interface SidebarProps {
 interface NavItem {
   name: string
   href: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: any // Relaxing type to allow Lucide props
   roles?: string[]
 }
 
@@ -59,7 +59,7 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
-  
+
   // Fetch module settings
   useEffect(() => {
     const fetchModuleSettings = async () => {
@@ -73,44 +73,44 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
         console.error('Failed to fetch module settings:', error)
       }
     }
-    
+
     if (session) {
       fetchModuleSettings()
     }
   }, [session])
-  
+
   // Check if provider modules are enabled
-  const hasProviderModules = moduleSettings?.module_vendor_management || 
-                             moduleSettings?.module_sponsor_management || 
-                             moduleSettings?.module_exhibitor_management
-  
+  const hasProviderModules = moduleSettings?.module_vendor_management ||
+    moduleSettings?.module_sponsor_management ||
+    moduleSettings?.module_exhibitor_management
+
   // Navigation items - conditionally include provider modules
   const baseNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Events', href: '/dashboard/events', icon: CalendarDays },
     { name: 'Tickets', href: '/dashboard/tickets', icon: Ticket },
   ]
-  
+
   const providerNavItems: NavItem[] = hasProviderModules ? [
     { name: 'Providers', href: '/providers', icon: Package },
     { name: 'Bookings', href: '/bookings', icon: FileText },
     { name: 'Commissions', href: '/commissions', icon: DollarSign },
   ] : []
-  
+
   const settingsNavItems: NavItem[] = [
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
-  
+
   const navItems = [...baseNavItems, ...providerNavItems, ...settingsNavItems]
-  
+
   // Toggle sidebar on mobile
   const toggleSidebar = () => setIsOpen(!isOpen)
-  
+
   // Handle sign out
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
   }
-  
+
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -120,7 +120,7 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
         setIsOpen(false)
       }
     }
-    
+
     // Check if mobile on mount and resize
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -130,14 +130,14 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
         setIsOpen(false)
       }
     }
-    
+
     // Set initial state
     checkIfMobile()
-    
+
     // Add event listeners
     window.addEventListener('resize', checkIfMobile)
     document.addEventListener('mousedown', handleClickOutside)
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', checkIfMobile)
@@ -148,7 +148,7 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
   if (!session) return null
 
   return (
-    <motion.aside 
+    <motion.aside
       className="flex flex-col h-full bg-white border-r border-gray-200 w-64"
       initial="closed"
       animate={isOpen ? "open" : "closed"}
@@ -156,8 +156,8 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
       variants={sidebarVariants}
     >
       <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-        <motion.div 
-          className="text-xl font-bold text-indigo-600"
+        <motion.div
+          className="text-xl font-bold text-rose-600"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -181,13 +181,13 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
         {navItems.map((item, index) => {
           const isActive = pathname === item.href
           const Icon = item.icon
-          
+
           return (
             <motion.div
               key={item.href}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ 
-                opacity: 1, 
+              animate={{
+                opacity: 1,
                 x: 0,
                 transition: {
                   delay: 0.1 * (index + 1)
@@ -202,14 +202,16 @@ export default function Sidebar({ onClose }: SidebarProps = {}) {
                 className={cn(
                   'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700'
+                    ? 'bg-rose-50 text-rose-700'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 )}
               >
-                <Icon className={cn(
-                  'mr-3 h-5 w-5',
-                  isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
-                )} />
+                <Icon
+                  strokeWidth={isActive ? 2 : 1.5}
+                  className={cn(
+                    'mr-3 h-5 w-5',
+                    isActive ? 'text-rose-600' : 'text-gray-400 group-hover:text-gray-500'
+                  )} />
                 {item.name}
               </Link>
             </motion.div>

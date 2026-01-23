@@ -14,26 +14,9 @@ import { BrandLogo } from '@/components/BrandLogo'
 
 // Icon color mapping for each navigation item
 const getIconColor = (itemName: string, isActive: boolean) => {
-  const colorMap: Record<string, string> = {
-    'Dashboard': isActive ? 'text-purple-600' : 'text-purple-500',
-    'Back to Companies': isActive ? 'text-gray-600' : 'text-gray-500',
-    'All Events': isActive ? 'text-blue-600' : 'text-blue-500',
-    'Events': isActive ? 'text-blue-600' : 'text-blue-500',
-    'All Users': isActive ? 'text-green-600' : 'text-green-500',
-    'Users': isActive ? 'text-green-600' : 'text-green-500',
-    'Lookup Management': isActive ? 'text-orange-600' : 'text-orange-500',
-    'Finance': isActive ? 'text-emerald-600' : 'text-emerald-500',
-    'Tax Settings': isActive ? 'text-indigo-600' : 'text-indigo-500',
-    'Signature Templates': isActive ? 'text-pink-600' : 'text-pink-500',
-    'Digital Signatures': isActive ? 'text-rose-600' : 'text-rose-500',
-    'System Settings': isActive ? 'text-gray-600' : 'text-gray-500',
-    'Settings': isActive ? 'text-gray-600' : 'text-gray-500',
-    'Billing & Subscription': isActive ? 'text-yellow-600' : 'text-yellow-500',
-    'Run Diagnostics': isActive ? 'text-red-600' : 'text-red-500',
-    'Companies': isActive ? 'text-cyan-600' : 'text-cyan-500',
-    'Company': isActive ? 'text-cyan-600' : 'text-cyan-500'
-  }
-  return colorMap[itemName] || (isActive ? 'text-violet-600' : 'text-slate-400')
+  // Unified brand color (Rose) for all active items to match new theme
+  if (isActive) return 'text-rose-600';
+  return 'text-slate-500 group-hover:text-slate-700';
 }
 
 const getNavigation = (userRole?: string, pathname?: string) => {
@@ -226,13 +209,14 @@ export function AdminSidebar() {
                   title={isCollapsed ? item.name : undefined}
                   className={cn(
                     isActive
-                      ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300',
+                      ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-700 dark:hover:text-rose-300',
                     'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200',
                     isCollapsed && 'justify-center px-3'
                   )}
                 >
                   <item.icon
+                    strokeWidth={isActive ? 2 : 1.5}
                     className={cn(
                       getIconColor(item.name, isActive),
                       'flex-shrink-0 h-5 w-5 transition-all',
@@ -290,12 +274,13 @@ export function AdminSidebar() {
                   href={item.href}
                   className={cn(
                     isActive
-                      ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:text-violet-700 dark:hover:text-violet-300',
+                      ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-700 dark:hover:text-rose-300',
                     'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200'
                   )}
                 >
                   <item.icon
+                    strokeWidth={isActive ? 2 : 1.5}
                     className={cn(
                       getIconColor(item.name, isActive),
                       'mr-3 flex-shrink-0 h-5 w-5'
