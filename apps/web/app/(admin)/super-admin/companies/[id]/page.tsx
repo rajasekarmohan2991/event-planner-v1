@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2, Ban, CheckCircle, DollarSign, Edit2 } from "lucide-react";
+import { Calendar, Users, Wallet, Settings, BookOpen, Clock, UserCheck, FileText, Bell, Star, ChevronRight, Building2, RefreshCw, Ticket, Percent, Trash2, Ban, CheckCircle, DollarSign, Edit2, MoreHorizontal } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
   Table,
@@ -478,9 +478,8 @@ export default function CompanyDetailsPage() {
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  Manage
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100">
+                  <MoreHorizontal className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -512,42 +511,45 @@ export default function CompanyDetailsPage() {
         {/* Stats Cards - Subtle Modern Style */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Total Events Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+          {/* Total Events Card */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-blue-100 h-full hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
                 <Calendar className="h-6 w-6 text-blue-600" />
               </div>
               <div>
                 <div className="text-3xl font-bold text-gray-900">{company.events.length}</div>
-                <div className="text-gray-500 text-sm font-medium">Total Events</div>
+                <div className="text-blue-700 text-sm font-medium">Total Events</div>
               </div>
             </div>
           </div>
 
           {/* Team Members Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+          {/* Team Members Card */}
+          <div className="bg-gradient-to-br from-teal-50 to-emerald-50 p-6 rounded-xl shadow-sm border border-teal-100 h-full hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-teal-50 rounded-lg">
+              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
                 <Users className="h-6 w-6 text-teal-600" />
               </div>
               <div>
                 <div className="text-3xl font-bold text-gray-900">{company.members.length}</div>
-                <div className="text-gray-500 text-sm font-medium">Team Members</div>
+                <div className="text-teal-700 text-sm font-medium">Team Members</div>
               </div>
             </div>
           </div>
 
           {/* Total Registrations Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-full hover:shadow-md transition-all duration-200">
+          {/* Total Registrations Card */}
+          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-6 rounded-xl shadow-sm border border-purple-100 h-full hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-50 rounded-lg">
+              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
                 <Ticket className="h-6 w-6 text-purple-600" />
               </div>
               <div>
                 <div className="text-3xl font-bold text-gray-900">
                   {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
                 </div>
-                <div className="text-gray-500 text-sm font-medium">Total Registrations</div>
+                <div className="text-purple-700 text-sm font-medium">Total Registrations</div>
               </div>
             </div>
           </div>
