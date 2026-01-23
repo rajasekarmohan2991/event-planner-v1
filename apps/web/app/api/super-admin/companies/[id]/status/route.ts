@@ -54,11 +54,26 @@ export async function PATCH(
             }, { status: 400 });
         }
 
-        // Update status using Prisma
-        const updatedCompany = await prisma.tenant.update({
-            where: { id: params.id },
-            data: { status }
-        });
+        // Update status using Prisma with fallback
+        let updatedCompany;
+        try {
+            updatedCompany = await prisma.tenant.update({
+                where: { id: params.id },
+                data: { status }
+            });
+        } catch (updateError) {
+            console.warn('Prisma update failed, trying raw SQL fallback:', updateError);
+            // Fallback to raw SQL if Prisma schema is out of sync
+            await prisma.$executeRawUnsafe(
+                `UPDATE tenants SET status = $1 WHERE id = $2`,
+                status,
+                params.id
+            );
+            // Fetch updated record to return
+            updatedCompany = await prisma.tenant.findUnique({
+                where: { id: params.id }
+            });
+        }
 
         console.log(`Company ${company.name} status changed to ${status} by ${user.email}`);
 

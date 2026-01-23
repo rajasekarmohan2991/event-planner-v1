@@ -182,7 +182,7 @@ export default function CompanyDetailsPage() {
         alert(`Company "${company.name}" ${newStatus === 'ACTIVE' ? 'enabled' : 'disabled'} successfully!`);
         fetchData(); // Refresh data
       } else {
-        alert(`Failed to update company status: ${data.error || data.message}`);
+        alert(`Failed to update company status: ${data.details || data.error || data.message}`);
       }
     } catch (error: any) {
       console.error('Status toggle error:', error);
