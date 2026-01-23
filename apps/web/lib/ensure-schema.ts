@@ -14,6 +14,7 @@ export async function ensureSchema() {
       BEGIN 
           BEGIN
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_vendor_management BOOLEAN DEFAULT false;
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_sponsor_management BOOLEAN DEFAULT false;
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_exhibitor_management BOOLEAN DEFAULT false;

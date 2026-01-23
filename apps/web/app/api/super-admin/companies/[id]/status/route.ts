@@ -9,8 +9,10 @@ export const dynamic = 'force-dynamic';
 // PATCH /api/super-admin/companies/[id]/status - Update company status (enable/disable)
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: any
 ) {
+    const params = context.params instanceof Promise ? await context.params : context.params;
+
     const session = await getServerSession(authOptions as any);
     if (!session?.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,6 +31,10 @@ export async function PATCH(
             return NextResponse.json({
                 error: 'Invalid status. Must be ACTIVE or DISABLED'
             }, { status: 400 });
+        }
+
+        if (!params || !params.id) {
+            return NextResponse.json({ error: 'Missing company ID' }, { status: 400 });
         }
 
         // Check if company exists first
