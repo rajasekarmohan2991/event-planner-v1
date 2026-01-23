@@ -475,34 +475,7 @@ export default function CompanyDetailsPage() {
             <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowDisableConfirm(true)}>
-                  {company.status === 'ACTIVE' ? (
-                    <>
-                      <Ban className="h-4 w-4 mr-2" />
-                      Disable Company
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Enable Company
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-red-600 focus:text-red-600">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Company
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {/* Top-right actions removed per design feedback */}
         </div>
       </div>
 
@@ -555,20 +528,20 @@ export default function CompanyDetailsPage() {
           </div>
         </div>
 
-        {/* Subscription & Billing Details - Modern Design */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+        {/* Subscription & Billing Details - Enhanced Aesthetic */}
+        <div className="rounded-2xl overflow-hidden mb-8 shadow-md ring-1 ring-black/5 bg-gradient-to-br from-slate-50 via-white to-indigo-50">
           {/* Header with gradient accent */}
-          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4">
+          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-indigo-100/50">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
-                <Ticket className="h-5 w-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg shadow-sm">
+                <Ticket className="h-5 w-5 text-white drop-shadow" />
               </div>
               <h2 className="text-lg font-semibold text-gray-900">Subscription & Limits</h2>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm"
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
               >
                 Change Plan
               </button>
@@ -577,17 +550,20 @@ export default function CompanyDetailsPage() {
 
           <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Plan Usage Limits */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-5">Plan Usage Limits</h3>
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-5 ring-1 ring-white/60 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-700 mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                Plan Usage Limits
+              </h3>
               <div className="space-y-5">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-gray-700">Events Created</span>
                     <span className="text-gray-500 font-mono">{company.events.length} / {company.maxEvents}</span>
                   </div>
-                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-indigo-100/60 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }}
                     />
                   </div>
@@ -597,9 +573,9 @@ export default function CompanyDetailsPage() {
                     <span className="font-medium text-gray-700">Team Members</span>
                     <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers}</span>
                   </div>
-                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-fuchsia-100/60 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }}
                     />
                   </div>
@@ -609,7 +585,7 @@ export default function CompanyDetailsPage() {
                     <span className="font-medium text-gray-700">Storage (MB)</span>
                     <span className="text-gray-500 font-mono">0 / {company.maxStorage}</span>
                   </div>
-                  <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-slate-200/70 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500"
                       style={{ width: `0%` }}
@@ -620,20 +596,23 @@ export default function CompanyDetailsPage() {
             </div>
 
             {/* Billing Information */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-5">Billing Information</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-5 ring-1 ring-white/60 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-700 mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Billing Information
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
                   <span className="text-gray-600">Status</span>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {company.status}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
                   <span className="text-gray-600">Billing Email</span>
                   <span className="font-medium text-gray-900 text-sm">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
                   <span className="text-gray-600">Base Currency</span>
                   <button
                     onClick={() => setShowCurrencyModal(true)}
@@ -645,13 +624,13 @@ export default function CompanyDetailsPage() {
                   </button>
                 </div>
                 {company.trialEndsAt && (
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-sm py-3 border-b border-gray-100/70">
                     <span className="text-gray-600">Trial Ends</span>
                     <span className="font-medium">{new Date(company.trialEndsAt).toLocaleDateString()}</span>
                   </div>
                 )}
                 {company.subscriptionEndsAt && (
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-sm py-3">
                     <span className="text-gray-600">Renews On</span>
                     <span className="font-medium">{new Date(company.subscriptionEndsAt).toLocaleDateString()}</span>
                   </div>
