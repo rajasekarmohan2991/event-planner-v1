@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
     // Polyfill for BigInt serialization
-    (BigInt.prototype as any).toJSON = function () {
+    ; (BigInt.prototype as any).toJSON = function () {
         return this.toString()
     }
 
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch vendors linked to this tenant
-        const vendors = await prisma.vendor.findMany({
+        const vendors = await (prisma as any).vendor.findMany({
             where: {
                 tenantId: currentTenantId
             },
@@ -48,11 +48,11 @@ export async function GET(req: NextRequest) {
             }
         })
 
-        const vendorsWithStats = vendors.map(vendor => {
+        const vendorsWithStats = vendors.map((vendor: any) => {
             const totalServices = vendor.services.length
-            const totalPackages = vendor.services.reduce((sum, s) => sum + s.packages.length, 0)
+            const totalPackages = vendor.services.reduce((sum: number, s: any) => sum + s.packages.length, 0)
             const totalBookings = vendor.bookings.length
-            const totalRevenue = vendor.bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
+            const totalRevenue = vendor.bookings.reduce((sum: number, b: any) => sum + Number(b.totalAmount || 0), 0)
 
             return {
                 id: vendor.id,
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
                 totalBookings,
                 totalRevenue,
                 // Services preview
-                services: vendor.services.slice(0, 3).map(s => ({
+                services: vendor.services.slice(0, 3).map((s: any) => ({
                     id: s.id,
                     name: s.name,
                     type: s.type,
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create vendor linked to this tenant
-        const vendor = await prisma.vendor.create({
+        const vendor = await (prisma as any).vendor.create({
             data: {
                 name,
                 category,

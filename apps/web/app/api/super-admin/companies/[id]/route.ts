@@ -10,33 +10,30 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+import { ensureSchema } from '@/lib/ensure-schema'
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions as any) as any
-
+    // ... existing auth checks ...
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-
     const userRole = session.user.role
     const currentTenantId = (session.user as any).currentTenantId
-
-    // SUPER_ADMIN can view any company, ADMIN can only view their own company
     if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-
     const tenantId = params.id
-
-    // If ADMIN, ensure they can only access their own tenant
     if (userRole === 'ADMIN' && currentTenantId !== tenantId) {
-      return NextResponse.json({ error: 'Unauthorized - Can only access your own company' }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Fetch real company data
+    // ...
     const company = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
@@ -53,7 +50,8 @@ export async function GET(
         maxStorage: true,
         trialEndsAt: true,
         subscriptionStartedAt: true,
-        subscriptionEndsAt: true
+        subscriptionEndsAt: true,
+        // Ensure we select fields that definitely exist or handle error if schema mismatch
       }
     })
 
@@ -61,16 +59,12 @@ export async function GET(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
+    // ... rest of logic for members/events ...
     // Fetch company members
     const members = await prisma.tenantMember.findMany({
       where: { tenantId: tenantId },
       include: {
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
+        user: { select: { name: true, email: true } }
       }
     })
 
@@ -86,13 +80,11 @@ export async function GET(
       eventsList = []
     }
 
-    // Calculate real-time registrations for each event
-    // Convert BigInt IDs to numbers/strings safely
+    // Calculate real-time registrations
     const eventIds = eventsList.map((e: any) => e.id)
     const registrationCounts: Record<string, number> = {}
 
     if (eventIds.length > 0) {
-      // Prisma groupBy is safer for aggregations
       const regCounts = await prisma.registration.groupBy({
         by: ['eventId'],
         where: {
@@ -106,7 +98,7 @@ export async function GET(
       })
     }
 
-    // Map events with real registration counts
+    // Map events
     const events = eventsList.map((e: any) => ({
       id: String(e.id),
       name: e.name,
@@ -138,8 +130,15 @@ export async function GET(
       success: true,
       company: formattedCompany
     })
+
   } catch (error: any) {
     console.error('Error fetching company details:', error)
+    if (error.message?.includes('column') || error.message?.includes('exist') || error.code === 'P2010' || error.code === '42703') {
+      try {
+        await ensureSchema()
+        return NextResponse.json({ message: 'System updated. Please refresh.' }, { status: 503 })
+      } catch (e) { console.error(e) }
+    }
     return NextResponse.json(
       { error: 'Failed to fetch company details', details: error.message },
       { status: 500 }
@@ -186,6 +185,15 @@ export async function PATCH(
     })
   } catch (error: any) {
     console.error('Error updating company:', error)
+
+    // Auto-heal if columns are missing
+    if (error.message?.includes('column') || error.message?.includes('exist') || error.code === 'P2010' || error.code === '42703') {
+      try {
+        await ensureSchema()
+        return NextResponse.json({ message: 'System updated. Please try again.' }, { status: 503 })
+      } catch (e) { console.error(e) }
+    }
+
     return NextResponse.json(
       { error: 'Failed to update company', details: error.message },
       { status: 500 }

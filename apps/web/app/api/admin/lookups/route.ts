@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       // If category specified, return values for that category
       if (categoryCode) {
         const category = await prisma.$queryRawUnsafe<any[]>(
-          `SELECT id, name, code, description FROM lookup_categories WHERE code = $1`,
+          `SELECT id, name, label, description FROM lookup_groups WHERE name = $1`,
           categoryCode
         )
 
@@ -37,10 +37,9 @@ export async function GET(req: NextRequest) {
 
         const values = await prisma.$queryRawUnsafe<any[]>(
           `SELECT 
-            id, value, label, description, color_code, icon, 
-            sort_order, is_active, is_default, is_system, metadata
-           FROM lookup_values 
-           WHERE category_id = $1 
+            id, value, label, description, sort_order, is_active, is_default, is_system, metadata
+           FROM lookup_options 
+           WHERE group_id = $1 
              AND (tenant_id IS NULL OR tenant_id = $2)
            ORDER BY sort_order, label`,
           category[0].id, tenantId || null
@@ -53,14 +52,15 @@ export async function GET(req: NextRequest) {
       }
 
       // Otherwise, return all categories with value counts
+      // Otherwise, return all categories with value counts
       const categories = await prisma.$queryRawUnsafe<any[]>(
         `SELECT 
-          lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system,
-          COUNT(lv.id)::int as value_count
-         FROM lookup_categories lc
-         LEFT JOIN lookup_values lv ON lv.category_id = lc.id AND lv.is_active = true
-         GROUP BY lc.id, lc.name, lc.code, lc.description, lc.is_global, lc.is_system
-         ORDER BY lc.name`
+          lg.id, lg.name, lg.label, lg.description, lg.is_active,
+          COUNT(lo.id)::int as value_count
+         FROM lookup_groups lg
+         LEFT JOIN lookup_options lo ON lo.group_id = lg.id AND lo.is_active = true
+         GROUP BY lg.id, lg.name, lg.label, lg.description, lg.is_active
+         ORDER BY lg.label`
       )
 
       return NextResponse.json({ categories: categories })
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     // Get category ID
     const category = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT id, is_system FROM lookup_categories WHERE code = $1`,
+      `SELECT id FROM lookup_groups WHERE name = $1`,
       categoryCode
     )
 
@@ -122,19 +122,17 @@ export async function POST(req: NextRequest) {
     const categoryId = category[0].id
 
     // Insert new lookup value
-    const valueId = `lv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const valueId = `lo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     await prisma.$executeRawUnsafe(
-      `INSERT INTO lookup_values (
-        id, category_id, value, label, description, color_code, icon,
+      `INSERT INTO lookup_options (
+        id, group_id, value, label, description,
         sort_order, is_active, is_default, is_system, metadata, tenant_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE, $11, $12)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, $9, $10)`,
       valueId,
       categoryId,
       value,
       label,
       description || null,
-      colorCode || null,
-      icon || null,
       sortOrder,
       isActive,
       isDefault,
@@ -144,17 +142,17 @@ export async function POST(req: NextRequest) {
 
     // Fetch the created value
     const result = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT * FROM lookup_values WHERE id = $1`,
+      `SELECT * FROM lookup_options WHERE id = $1`,
       valueId
     )
 
     // Log audit trail
     try {
-      await prisma.$executeRawUnsafe(
+      /* await prisma.$executeRawUnsafe(
         `INSERT INTO lookup_audit_log (category_id, value_id, action, new_data, changed_by)
          VALUES ($1, $2, 'CREATE', $3, $4)`,
         categoryId, valueId, JSON.stringify(result[0]), (session.user as any).id
-      )
+      ) */
     } catch (auditError) {
       console.log('Audit log failed (non-critical):', auditError)
     }

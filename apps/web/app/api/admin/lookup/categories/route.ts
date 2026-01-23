@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
+import { ensureSchema } from '@/lib/ensure-schema'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any)
@@ -28,6 +30,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ categories })
   } catch (error: any) {
     console.error('Failed to fetch lookup categories:', error)
+
+    // Check if table missing
+    if (error.message?.includes('does not exist') || error.code === 'P2010' || error.code === '42P01') {
+      try {
+        console.log('Lookup table missing. Running self-healing...')
+        await ensureSchema()
+        return NextResponse.json({ categories: [], message: 'System updated. Please refresh.' })
+      } catch (e) {
+        console.error('Self-healing failed:', e)
+      }
+    }
+
     return NextResponse.json(
       { message: error?.message || 'Failed to fetch categories' },
       { status: 500 }

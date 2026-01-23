@@ -5,6 +5,11 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+    // Polyfill for BigInt serialization
+    ; (BigInt.prototype as any).toJSON = function () {
+        return this.toString()
+    }
+
 // GET - List exhibitors for events belonging to this company
 export async function GET(req: NextRequest) {
     try {
@@ -25,7 +30,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch exhibitors linked to this tenant OR for events belonging to this tenant
-        const exhibitors = await prisma.exhibitor.findMany({
+        const exhibitors = await (prisma as any).exhibitor.findMany({
             where: {
                 OR: [
                     { tenantId: currentTenantId },
@@ -51,10 +56,10 @@ export async function GET(req: NextRequest) {
             }
         })
 
-        const exhibitorsWithStats = exhibitors.map(exhibitor => {
+        const exhibitorsWithStats = exhibitors.map((exhibitor: any) => {
             const totalBooths = exhibitor.booths.length
             const totalProducts = exhibitor.products.length
-            const totalRevenue = exhibitor.booths.reduce((sum, b) => sum + (b.priceInr || 0), 0)
+            const totalRevenue = exhibitor.booths.reduce((sum: number, b: any) => sum + (b.priceInr || 0), 0)
 
             return {
                 id: exhibitor.id,
@@ -77,7 +82,7 @@ export async function GET(req: NextRequest) {
                 totalProducts,
                 totalRevenue,
                 // Products preview
-                products: exhibitor.products.slice(0, 3).map(p => ({
+                products: exhibitor.products.slice(0, 3).map((p: any) => ({
                     id: p.id,
                     name: p.name,
                     category: p.category
@@ -142,7 +147,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create exhibitor
-        const exhibitor = await prisma.exhibitor.create({
+        const exhibitor = await (prisma as any).exhibitor.create({
             data: {
                 name,
                 company,

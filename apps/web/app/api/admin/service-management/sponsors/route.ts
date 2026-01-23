@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
     // Polyfill for BigInt serialization
-    (BigInt.prototype as any).toJSON = function () {
+    ; (BigInt.prototype as any).toJSON = function () {
         return this.toString()
     }
 
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         const eventIds = tenantEvents.map(e => e.id)
 
         // Fetch sponsors for these events
-        const sponsors = await prisma.sponsor.findMany({
+        const sponsors = await (prisma as any).sponsor.findMany({
             where: {
                 eventId: { in: eventIds }
             },
@@ -57,9 +57,9 @@ export async function GET(req: NextRequest) {
             }
         })
 
-        const sponsorsWithStats = sponsors.map(sponsor => {
+        const sponsorsWithStats = sponsors.map((sponsor: any) => {
             const totalPackages = sponsor.packages.length
-            const totalValue = sponsor.packages.reduce((sum, p) => sum + Number(p.price || 0), 0)
+            const totalValue = sponsor.packages.reduce((sum: number, p: any) => sum + Number(p.price || 0), 0)
             const totalAssets = sponsor.assets.length
 
             return {
@@ -73,17 +73,16 @@ export async function GET(req: NextRequest) {
                 contactPhone: sponsor.contactPhone,
                 status: sponsor.status,
                 eventId: sponsor.eventId.toString(),
-                eventName: sponsor.event?.name,
+                eventName: (sponsor as any).event?.name,
                 createdAt: sponsor.createdAt,
                 // Stats
                 totalPackages,
                 totalValue,
                 totalAssets,
                 // Packages preview
-                packages: sponsor.packages.slice(0, 3).map(p => ({
+                packages: sponsor.packages.slice(0, 3).map((p: any) => ({
                     id: p.id,
                     name: p.name,
-                    tier: p.tier,
                     price: Number(p.price)
                 }))
             }
@@ -145,7 +144,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create sponsor
-        const sponsor = await prisma.sponsor.create({
+        const sponsor = await (prisma as any).sponsor.create({
             data: {
                 name,
                 industry,

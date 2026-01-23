@@ -2172,6 +2172,18 @@ model Sponsor {
   contactPhone    String?  @map("contact_phone")
   
   status          String   @default("ACTIVE")
+  tier            String?
+
+  // Rich data from Event Sponsor Form
+  contactData     Json?    @map("contact_data")
+  paymentData     Json?    @map("payment_data")
+  brandingOnline  Json?    @map("branding_online")
+  brandingOffline Json?    @map("branding_offline")
+  eventPresence   Json?    @map("event_presence")
+  giveawayData    Json?    @map("giveaway_data")
+  legalData       Json?    @map("legal_data")
+  timelineData    Json?    @map("timeline_data")
+  postEventData   Json?    @map("post_event_data")
   
   event           Event    @relation(fields: [eventId], references: [id])
   

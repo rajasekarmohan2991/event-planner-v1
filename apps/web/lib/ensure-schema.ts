@@ -483,6 +483,72 @@ export async function ensureSchema() {
         CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(status);
     `)
 
+        // 11.5 Lookup Tables (Self-Healing)
+        console.log('📝 Step 11.5: Creating lookup tables...')
+        await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS lookup_groups (
+            id TEXT PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            label TEXT NOT NULL,
+            description TEXT,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            tenant_id TEXT
+        );
+    `)
+        await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_lookup_groups_tenant ON lookup_groups(tenant_id);
+    `)
+
+        await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS lookup_options (
+            id TEXT PRIMARY KEY,
+            group_id TEXT NOT NULL,
+            tenant_id TEXT,
+            value TEXT NOT NULL,
+            label TEXT NOT NULL,
+            description TEXT,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT true,
+            is_default BOOLEAN DEFAULT false,
+            is_system BOOLEAN DEFAULT false,
+            metadata JSONB,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(group_id, value)
+        );
+    `)
+        await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_lookup_options_group ON lookup_options(group_id);
+    `)
+        await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS idx_lookup_options_tenant ON lookup_options(tenant_id);
+    `)
+
+        // Seed some initial lookup groups if empty
+        const groupCount = await prisma.$queryRaw<any[]>`SELECT count(*) as count FROM lookup_groups`;
+        const count = Number(groupCount[0]?.count || 0);
+
+        if (count === 0) {
+            console.log('🌱 Seeding initial lookup groups...')
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO lookup_groups (id, name, label, description, is_active) VALUES 
+                ('lg_event_category', 'event_category', 'Event Category', 'Types of events (Conference, Workshop, etc.)', true),
+                ('lg_event_mode', 'event_mode', 'Event Mode', 'Online, In-Person, Hybrid', true),
+                ('lg_ticket_type', 'ticket_type', 'Ticket Type', 'VIP, General, Early Bird', true),
+                ('lg_vendor_category', 'vendor_category', 'Vendor Category', 'Catering, Audio/Visual, Decoration', true);
+            `);
+
+            // Seed Event Modes
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO lookup_options (id, group_id, value, label, sort_order, is_system) VALUES
+                ('lo_mode_1', 'lg_event_mode', 'ONLINE', 'Online', 1, true),
+                ('lo_mode_2', 'lg_event_mode', 'OFFLINE', 'In-Person', 2, true),
+                ('lo_mode_3', 'lg_event_mode', 'HYBRID', 'Hybrid', 3, true);
+            `);
+        }
+
         // 12. Finance Tables - Charges
         await prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS charges (
