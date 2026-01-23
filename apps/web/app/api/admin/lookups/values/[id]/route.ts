@@ -30,21 +30,21 @@ export async function PUT(
         // If setting as default, unset other defaults in same category
         if (isDefault) {
             const current = await prisma.$queryRaw<any[]>`
-        SELECT category_id FROM lookup_values WHERE id = ${valueId} LIMIT 1
+        SELECT group_id FROM lookup_options WHERE id = ${valueId} LIMIT 1
       `
 
             if (current && current.length > 0) {
                 await prisma.$executeRawUnsafe(`
-          UPDATE lookup_values
+          UPDATE lookup_options
           SET is_default = FALSE
-          WHERE category_id = '${current[0].category_id}' AND id != '${valueId}'
+          WHERE group_id = '${current[0].group_id}' AND id != '${valueId}'
         `)
             }
         }
 
         // Update the value
         await prisma.$executeRawUnsafe(`
-      UPDATE lookup_values
+      UPDATE lookup_options
       SET 
         value = '${value}',
         label = '${label}',
@@ -58,7 +58,7 @@ export async function PUT(
 
         // Fetch updated value
         const updated = await prisma.$queryRaw<any[]>`
-      SELECT * FROM lookup_values WHERE id = ${valueId} LIMIT 1
+      SELECT * FROM lookup_options WHERE id = ${valueId} LIMIT 1
     `
 
         return NextResponse.json({
@@ -93,7 +93,7 @@ export async function DELETE(
 
         // Check if value exists
         const value = await prisma.$queryRaw<any[]>`
-      SELECT id, label FROM lookup_values WHERE id = ${valueId} LIMIT 1
+      SELECT id, label FROM lookup_options WHERE id = ${valueId} LIMIT 1
     `
 
         if (!value || value.length === 0) {
@@ -102,7 +102,7 @@ export async function DELETE(
 
         // Delete the value (allow deleting any value including system values)
         await prisma.$executeRawUnsafe(`
-      DELETE FROM lookup_values WHERE id = '${valueId}'
+      DELETE FROM lookup_options WHERE id = '${valueId}'
     `)
 
         return NextResponse.json({
