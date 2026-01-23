@@ -141,6 +141,7 @@ const SUPER_ADMIN_COMPANY_ITEMS: MenuItem[] = [
   { name: 'All Users', href: '/admin/users', icon: Users, roles: ['SUPER_ADMIN'] },
   { name: 'Lookup Management', href: '/admin/lookup', icon: FileText, roles: ['SUPER_ADMIN'] },
   { name: 'System Settings', href: '/admin/system-settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+  { name: 'Vendors', href: '/company/vendors', icon: Building2, roles: ['SUPER_ADMIN'] },
   { name: 'Billing & Subscription', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
   { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity, roles: ['SUPER_ADMIN'] },
 ]
