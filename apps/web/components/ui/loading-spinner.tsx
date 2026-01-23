@@ -30,7 +30,7 @@ export function LoadingSpinner({
           src="/loading-logo.png"
           alt="Loading"
           fill
-          className="object-contain"
+          className="object-contain mix-blend-multiply"
           priority
         />
       </div>
@@ -55,7 +55,7 @@ export function LoadingSpinner({
 
 export function LoadingPage({ text = 'Loading...' }: { text?: string }) {
   return (
-    <div className="flex items-center justify-center min-h-[60vh] bg-white">
+    <div className="flex items-center justify-center min-h-[60vh]">
       <LoadingSpinner size="lg" text={text} />
     </div>
   )
