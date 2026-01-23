@@ -13,6 +13,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface AppHighlight {
   id: string;
@@ -469,32 +476,33 @@ export default function CompanyDetailsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowDisableConfirm(true)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border flex items-center gap-2 ${company.status === 'ACTIVE'
-                ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                : 'border-green-200 text-green-700 hover:bg-green-50'
-                }`}
-            >
-              {company.status === 'ACTIVE' ? (
-                <>
-                  <Ban className="h-4 w-4" />
-                  Disable
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4" />
-                  Enable
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Manage
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowDisableConfirm(true)}>
+                  {company.status === 'ACTIVE' ? (
+                    <>
+                      <Ban className="h-4 w-4 mr-2" />
+                      Disable Company
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Enable Company
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-red-600 focus:text-red-600">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Company
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
