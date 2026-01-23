@@ -472,8 +472,8 @@ export default function CompanyDetailsPage() {
             <button
               onClick={() => setShowDisableConfirm(true)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border flex items-center gap-2 ${company.status === 'ACTIVE'
-                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                  : 'border-green-200 text-green-700 hover:bg-green-50'
+                ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                : 'border-green-200 text-green-700 hover:bg-green-50'
                 }`}
             >
               {company.status === 'ACTIVE' ? (
@@ -556,13 +556,6 @@ export default function CompanyDetailsPage() {
               <h2 className="text-lg font-semibold text-gray-900">Subscription & Limits</h2>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <button
-                onClick={() => router.push(`/super-admin/companies/${company.id}/provider-modules`)}
-                className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 shadow-sm"
-              >
-                <Settings className="h-4 w-4" />
-                Provider Modules
-              </button>
               <button
                 onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
                 className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm"
