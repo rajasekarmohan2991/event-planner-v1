@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import {
-  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2, Image, Upload, Trash2
+  Settings, Globe, Database, Mail, Server, Lock, Coins, Edit2, Image, Upload, Trash2, Bell, Shield, Save
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -24,6 +24,32 @@ export default function SuperAdminSettingsPage() {
   const [isEditingCurrency, setIsEditingCurrency] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [savingCurrency, setSavingCurrency] = useState(false)
+
+  // User Preferences State
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    smsNotifications: false,
+    eventReminders: true,
+    marketingEmails: false
+  })
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: 'public',
+    showEmail: false,
+    showPhone: false
+  })
+  const [savingPrefs, setSavingPrefs] = useState(false)
+
+  const handleSavePrefs = async () => {
+    setSavingPrefs(true)
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast({ title: "Preferences saved successfully!" })
+    } catch {
+      toast({ title: "Failed to save preferences", variant: "destructive" })
+    } finally {
+      setSavingPrefs(false)
+    }
+  }
 
   // Company Logo state
   const [companyLogo, setCompanyLogo] = useState<string | null>(null)
@@ -161,16 +187,19 @@ export default function SuperAdminSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900">
           <Settings className="h-6 w-6" />
-          System Settings
+          Settings
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Configure system-wide settings and permissions
+          Manage system configuration and personal preferences
         </p>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-white border p-1 rounded-lg">
           <TabsTrigger value="overview" className="data-[state=active]:bg-gray-100">Overview</TabsTrigger>
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-gray-100">Notifications</TabsTrigger>
+          <TabsTrigger value="privacy" className="data-[state=active]:bg-gray-100">Privacy</TabsTrigger>
+          <TabsTrigger value="language" className="data-[state=active]:bg-gray-100">Language</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -420,6 +449,178 @@ export default function SuperAdminSettingsPage() {
                   <span className="text-gray-600">Uptime</span>
                   <span className="font-medium text-gray-900">{systemInfo.uptime}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="max-w-2xl">
+              <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-indigo-600" />
+                Notification Preferences
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">Manage how you receive notifications</p>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="font-semibold text-gray-900">Email Notifications</div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notifications.emailNotifications}
+                      onChange={(e) => setNotifications({ ...notifications, emailNotifications: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="font-semibold text-gray-900">Push Notifications</div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notifications.eventReminders}
+                      onChange={(e) => setNotifications({ ...notifications, eventReminders: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="font-semibold text-gray-900">SMS Notifications</div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notifications.smsNotifications}
+                      onChange={(e) => setNotifications({ ...notifications, smsNotifications: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-6 mt-4 border-t">
+                <Button onClick={handleSavePrefs} disabled={savingPrefs}>
+                  {savingPrefs ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="privacy" className="space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="max-w-2xl">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-indigo-600" />
+                Privacy Settings
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Profile Visibility</label>
+                  <Select
+                    value={privacy.profileVisibility}
+                    onValueChange={(val) => setPrivacy({ ...privacy, profileVisibility: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select visibility" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="contacts">Contacts Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <label className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacy.showEmail}
+                    onChange={(e) => setPrivacy({ ...privacy, showEmail: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-medium">Show Email Address</div>
+                    <div className="text-sm text-gray-500">Allow others to see your email</div>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacy.showPhone}
+                    onChange={(e) => setPrivacy({ ...privacy, showPhone: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-medium">Show Phone Number</div>
+                    <div className="text-sm text-gray-500">Allow others to see your phone number</div>
+                  </div>
+                </label>
+              </div>
+              <div className="flex justify-end pt-6 mt-4 border-t">
+                <Button onClick={handleSavePrefs} disabled={savingPrefs}>
+                  {savingPrefs ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="language" className="space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="max-w-2xl">
+              <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" />
+                Language & Region
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">Set your language and timezone preferences</p>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-3 text-gray-900">Language</label>
+                  <Select defaultValue="en">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                      <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="hi">Hindi</SelectItem>
+                      <SelectItem value="ta">Tamil</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-3 text-gray-900">Time Zone</label>
+                  <Select defaultValue="Asia/Kolkata">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC">UTC</SelectItem>
+                      <SelectItem value="Asia/Kolkata">India Standard Time (IST)</SelectItem>
+                      <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                      <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                      <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                      <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                      <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                      <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                      <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                      <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end pt-6 mt-4 border-t">
+                <Button onClick={handleSavePrefs} disabled={savingPrefs}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingPrefs ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </div>
           </div>
