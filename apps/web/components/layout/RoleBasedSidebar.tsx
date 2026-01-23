@@ -127,9 +127,15 @@ const SUPER_ADMIN_ITEMS: MenuItem[] = [
     roles: ['SUPER_ADMIN']
   },
   {
-    name: 'Settings',
-    href: '/super-admin/settings',
+    name: 'My Settings',
+    href: '/super-admin/my-settings',
     icon: Settings,
+    roles: ['SUPER_ADMIN']
+  },
+  {
+    name: 'System Settings',
+    href: '/super-admin/settings',
+    icon: Shield,
     roles: ['SUPER_ADMIN']
   }
 ]

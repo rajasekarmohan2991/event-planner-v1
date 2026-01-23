@@ -35,7 +35,7 @@ function PreferencesSection() {
           weeklyDigest: data?.weeklyDigest ?? prev.weeklyDigest,
           marketingEmails: data?.marketingEmails ?? prev.marketingEmails,
         }))
-      } catch {}
+      } catch { }
     }
     load()
     return () => { cancelled = true }
@@ -53,7 +53,7 @@ function PreferencesSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(preferences)
       })
-      
+
       if (response.ok) {
         setMessage("Preferences saved successfully!")
         setTimeout(() => setMessage(""), 3000)
@@ -150,13 +150,13 @@ function PreferencesSection() {
   )
 }
 
-function PreferenceToggle({ 
-  label, 
-  description, 
-  icon, 
-  checked, 
-  onChange 
-}: { 
+function PreferenceToggle({
+  label,
+  description,
+  icon,
+  checked,
+  onChange
+}: {
   label: string
   description: string
   icon: React.ReactNode
@@ -176,14 +176,12 @@ function PreferenceToggle({
       </div>
       <button
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? 'bg-indigo-600' : 'bg-gray-200'
-        }`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-indigo-600' : 'bg-gray-200'
+          }`}
       >
         <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
+            }`}
         />
       </button>
     </div>
@@ -220,7 +218,7 @@ export default function ProfilePage() {
             <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-              {(user.name || user.email || "U").slice(0,1).toUpperCase()}
+              {(user.name || user.email || "U").slice(0, 1).toUpperCase()}
             </div>
           )}
         </div>
@@ -236,9 +234,8 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="rounded-lg border p-6">
-        <h2 className="text-lg font-semibold mb-4">Preferences</h2>
-        <PreferencesSection />
+      <div className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
+        Use "My Settings" in the sidebar to manage your preferences.
       </div>
     </div>
   )
