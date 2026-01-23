@@ -27,7 +27,7 @@ const LottieAnimation = dynamicImport(() => import('@/components/ui/LottieAnimat
 export default function HomePage() {
   // Always show landing page - authenticated users should go to /dashboard
   return (
-    <main className="relative overflow-hidden min-h-[calc(100vh-4rem)] bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <main className="relative overflow-hidden min-h-[calc(100vh-4rem)] bg-gradient-to-br from-orange-100 via-orange-50 to-rose-50">
       {/* Decorative gradient blobs */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-br from-indigo-300/30 to-fuchsia-300/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-gradient-to-br from-sky-300/30 to-purple-300/30 blur-3xl" />
