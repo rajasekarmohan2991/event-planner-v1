@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// POST - Add service to vendor
+// POST - Add a new service to vendor
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -18,28 +18,58 @@ export async function POST(
 
     const vendorId = params.id
     const body = await req.json()
-    const { name, description, base_price, price_unit, details, images, category_id } = body
+    const {
+      name,
+      type,
+      priceModel,
+      basePrice,
+      currency,
+      minOrderQty,
+      maxCapacity,
+      prepTimeHours,
+      staffCount,
+      description,
+      isPopular
+    } = body
 
-    if (!name) {
-      return NextResponse.json({ error: 'Service name is required' }, { status: 400 })
+    if (!name || !type || !priceModel) {
+      return NextResponse.json({ error: 'Name, type, and price model are required' }, { status: 400 })
+    }
+
+    // Verify vendor exists
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId }
+    })
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
 
     // Create service
-    const result = await prisma.$queryRaw<any[]>`
-      INSERT INTO provider_services (
-        provider_id, name, description, base_price, price_unit,
-        service_details, images, is_active, created_at
-      ) VALUES (
-        ${vendorId}, ${name}, ${description || null}, ${base_price || 0},
-        ${price_unit || 'per_event'}, ${details || null}::jsonb, 
-        ${images ? JSON.stringify(images) : '[]'}::jsonb, true, NOW()
-      )
-      RETURNING id
-    `
+    const service = await prisma.vendorService.create({
+      data: {
+        vendorId,
+        name,
+        type,
+        priceModel,
+        basePrice: basePrice || 0,
+        currency: currency || 'INR',
+        minOrderQty: minOrderQty || 1,
+        maxCapacity: maxCapacity || null,
+        prepTimeHours: prepTimeHours || null,
+        staffCount: staffCount || 0,
+        description: description || null,
+        isPopular: isPopular || false
+      }
+    })
 
-    return NextResponse.json({ success: true, serviceId: result[0]?.id })
+    return NextResponse.json({
+      success: true,
+      message: 'Service created successfully',
+      service
+    })
   } catch (error: any) {
-    console.error('Error adding service:', error)
+    console.error('Error creating service:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

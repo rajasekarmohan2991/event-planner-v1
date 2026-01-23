@@ -5,7 +5,12 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// GET - Get vendor details with categories and services
+  // Polyfill for BigInt serialization
+  (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
+
+// GET - Get vendor details with services, menu, packages, bookings
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -18,64 +23,141 @@ export async function GET(
 
     const vendorId = params.id
 
-    // Fetch vendor details
-    const vendor = await prisma.$queryRaw<any[]>`
-      SELECT 
-        id, company_name, email, phone, website, description,
-        address, city, state, country, postal_code,
-        verification_status as status, avg_rating, total_reviews,
-        commission_rate, created_at
-      FROM service_providers
-      WHERE id = ${vendorId} AND provider_type = 'VENDOR'
-      LIMIT 1
-    `
+    // Fetch vendor with all relations
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: vendorId },
+      include: {
+        services: {
+          include: {
+            categories: {
+              include: {
+                items: true
+              }
+            },
+            packages: true
+          }
+        },
+        bookings: {
+          orderBy: { bookingDate: 'desc' },
+          take: 20
+        }
+      }
+    })
 
-    if (!vendor || vendor.length === 0) {
+    if (!vendor) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
     }
 
-    // Fetch categories for this vendor
-    const categories = await prisma.$queryRaw<any[]>`
-      SELECT DISTINCT pc.id, pc.name, pc.description
-      FROM provider_categories pc
-      JOIN provider_category_links pcl ON pc.id = pcl.category_id
-      WHERE pcl.provider_id = ${vendorId}
-      ORDER BY pc.name
-    `
-
-    // Fetch services for this vendor
-    const services = await prisma.$queryRaw<any[]>`
-      SELECT 
-        ps.id, ps.name, ps.description, ps.base_price, ps.price_unit,
-        ps.is_active, ps.service_details as details, ps.images,
-        pcl.category_id
-      FROM provider_services ps
-      LEFT JOIN provider_category_links pcl ON ps.provider_id = pcl.provider_id
-      WHERE ps.provider_id = ${vendorId}
-      ORDER BY ps.name
-    `
-
-    // Organize services by category
-    const categoriesWithServices = categories.map((cat: any) => ({
-      ...cat,
-      services: services.filter((s: any) => s.category_id === cat.id)
-    }))
-
-    // Add uncategorized services
-    const uncategorizedServices = services.filter((s: any) => !s.category_id)
-    if (uncategorizedServices.length > 0) {
-      categoriesWithServices.push({
-        id: 'uncategorized',
-        name: 'Other Services',
-        description: 'Services without a specific category',
-        services: uncategorizedServices
+    // Get linked tenant info
+    let linkedCompany = null
+    if (vendor.tenantId) {
+      linkedCompany = await prisma.tenant.findUnique({
+        where: { id: vendor.tenantId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logo: true
+        }
       })
     }
 
+    // Calculate stats
+    const totalServices = vendor.services.length
+    const totalBookings = vendor.bookings.length
+    const totalRevenue = vendor.bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
+    const totalCategories = vendor.services.reduce((sum, s) => sum + s.categories.length, 0)
+    const totalMenuItems = vendor.services.reduce((sum, s) =>
+      sum + s.categories.reduce((catSum, c) => catSum + c.items.length, 0), 0
+    )
+    const totalPackages = vendor.services.reduce((sum, s) => sum + s.packages.length, 0)
+
     return NextResponse.json({
       vendor: {
-        ...vendor[0],
-        categories: categoriesWithServices
+        id: vendor.id,
+        name: vendor.name,
+        category: vendor.category,
+        description: vendor.description,
+        email: vendor.email,
+        phone: vendor.phone,
+        website: vendor.website,
+        logo: vendor.logo,
+        coverImage: vendor.coverImage,
+        establishedYear: vendor.establishedYear,
+        operatingCities: vendor.operatingCities,
+        serviceCapacity: vendor.serviceCapacity,
+        licenses: vendor.licenses,
+        rating: vendor.rating,
+        reviewCount: vendor.reviewCount,
+        tenantId: vendor.tenantId,
+        createdAt: vendor.createdAt,
+        updatedAt: vendor.updatedAt,
+        // Related data
+        services: vendor.services.map(s => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          priceModel: s.priceModel,
+          basePrice: Number(s.basePrice),
+          currency: s.currency,
+          minOrderQty: s.minOrderQty,
+          maxCapacity: s.maxCapacity,
+          prepTimeHours: s.prepTimeHours,
+          staffCount: s.staffCount,
+          description: s.description,
+          isPopular: s.isPopular,
+          // Menu categories with items
+          categories: s.categories.map(c => ({
+            id: c.id,
+            name: c.name,
+            description: c.description,
+            sortOrder: c.sortOrder,
+            items: c.items.map(i => ({
+              id: i.id,
+              name: i.name,
+              type: i.type,
+              cuisine: i.cuisine,
+              description: i.description,
+              imageUrls: i.imageUrls,
+              allergens: i.allergens,
+              priceImpact: Number(i.priceImpact),
+              isCustomizable: i.isCustomizable
+            }))
+          })),
+          // Meal packages
+          packages: s.packages.map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            pricePerPlate: Number(p.pricePerPlate),
+            minGuests: p.minGuests,
+            maxGuests: p.maxGuests,
+            description: p.description,
+            includedItems: p.includedItems
+          }))
+        })),
+        bookings: vendor.bookings.map(b => ({
+          id: b.id,
+          bookingDate: b.bookingDate,
+          guestCount: b.guestCount,
+          status: b.status,
+          baseAmount: Number(b.baseAmount),
+          taxAmount: Number(b.taxAmount),
+          totalAmount: Number(b.totalAmount),
+          advancePaid: Number(b.advancePaid),
+          notes: b.notes
+        })),
+        // Linked company
+        linkedCompany,
+        // Stats
+        stats: {
+          totalServices,
+          totalBookings,
+          totalRevenue,
+          totalCategories,
+          totalMenuItems,
+          totalPackages
+        }
       }
     })
   } catch (error: any) {
@@ -97,32 +179,27 @@ export async function PUT(
 
     const vendorId = params.id
     const body = await req.json()
-    const {
-      company_name, email, phone, website, description,
-      address, city, state, country, postal_code,
-      commission_rate, status
-    } = body
 
-    await prisma.$executeRaw`
-      UPDATE service_providers
-      SET 
-        company_name = ${company_name},
-        email = ${email},
-        phone = ${phone || null},
-        website = ${website || null},
-        description = ${description || null},
-        address = ${address || null},
-        city = ${city || null},
-        state = ${state || null},
-        country = ${country || null},
-        postal_code = ${postal_code || null},
-        commission_rate = ${commission_rate || 15},
-        verification_status = ${status || 'PENDING'},
-        updated_at = NOW()
-      WHERE id = ${vendorId}
-    `
+    const vendor = await prisma.vendor.update({
+      where: { id: vendorId },
+      data: {
+        name: body.name,
+        category: body.category,
+        description: body.description,
+        email: body.email,
+        phone: body.phone,
+        website: body.website,
+        logo: body.logo,
+        coverImage: body.coverImage,
+        establishedYear: body.establishedYear ? parseInt(body.establishedYear) : null,
+        operatingCities: body.operatingCities,
+        serviceCapacity: body.serviceCapacity ? parseInt(body.serviceCapacity) : null,
+        licenses: body.licenses,
+        tenantId: body.tenantId || null
+      }
+    })
 
-    return NextResponse.json({ success: true, message: 'Vendor updated successfully' })
+    return NextResponse.json({ success: true, message: 'Vendor updated successfully', vendor })
   } catch (error: any) {
     console.error('Error updating vendor:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -140,16 +217,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const vendorId = params.id
-
-    // Delete services first
-    await prisma.$executeRaw`DELETE FROM provider_services WHERE provider_id = ${vendorId}`
-    
-    // Delete category links
-    await prisma.$executeRaw`DELETE FROM provider_category_links WHERE provider_id = ${vendorId}`
-    
-    // Delete vendor
-    await prisma.$executeRaw`DELETE FROM service_providers WHERE id = ${vendorId}`
+    // Delete vendor (cascade will handle related records)
+    await prisma.vendor.delete({
+      where: { id: params.id }
+    })
 
     return NextResponse.json({ success: true, message: 'Vendor deleted successfully' })
   } catch (error: any) {
