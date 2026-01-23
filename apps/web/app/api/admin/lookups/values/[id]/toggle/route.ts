@@ -23,7 +23,7 @@ export async function PATCH(
         // Get current value
         const current = await prisma.$queryRaw<any[]>`
       SELECT id, value, label, is_active, is_system
-      FROM lookup_options
+      FROM lookup_values
       WHERE id = ${valueId}
       LIMIT 1
     `
@@ -37,7 +37,7 @@ export async function PATCH(
 
         // Update the active state
         await prisma.$executeRawUnsafe(`
-      UPDATE lookup_options
+      UPDATE lookup_values
       SET is_active = ${newActiveState}, updated_at = NOW()
       WHERE id = '${valueId}'
     `)
