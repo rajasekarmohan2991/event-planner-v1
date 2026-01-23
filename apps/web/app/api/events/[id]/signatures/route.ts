@@ -109,22 +109,60 @@ export async function POST(
             return NextResponse.json({ error: `Invalid document type: ${normalizedDocType}. Valid types: ${validDocumentTypes.join(', ')}` }, { status: 400 });
         }
 
-        // Get document template - try multiple approaches
+        // Get document template - try tenant-specific templates first, then global, then default
         console.log('📝 [SIGNATURES] Looking for template:', normalizedEntityType, normalizedDocType);
-        
-        let templates: any = await prisma.$queryRaw`
-            SELECT id, content, name
-            FROM document_templates
-            WHERE template_type = ${normalizedEntityType}
-              AND document_type = ${normalizedDocType}
-              AND is_active = true
-            ORDER BY version DESC
-            LIMIT 1
-        `;
 
-        // If no exact match, try to find any active template for this entity type
+        const tenantId = (session.user as any)?.currentTenantId;
+
+        // Support aliasing between AGREEMENT and CONTRACT to reduce mismatch
+        const docAliases = new Set<string>([normalizedDocType]);
+        if (normalizedDocType === 'AGREEMENT') docAliases.add('CONTRACT');
+        if (normalizedDocType === 'CONTRACT') docAliases.add('AGREEMENT');
+
+        let templates: any = [];
+
+        // 1) Tenant-scoped exact match (by template_type + document_type)
+        if (tenantId) {
+            templates = await prisma.$queryRaw`
+                SELECT id, content, name
+                FROM document_templates
+                WHERE tenant_id = ${tenantId}
+                  AND template_type = ${normalizedEntityType}
+                  AND document_type = ANY(${Array.from(docAliases)}::text[])
+                  AND is_active = true
+                ORDER BY version DESC
+                LIMIT 1
+            `;
+        }
+
+        // 2) Tenant-scoped any active template for this entity type
+        if ((!templates || templates.length === 0) && tenantId) {
+            templates = await prisma.$queryRaw`
+                SELECT id, content, name
+                FROM document_templates
+                WHERE tenant_id = ${tenantId}
+                  AND template_type = ${normalizedEntityType}
+                  AND is_active = true
+                ORDER BY version DESC
+                LIMIT 1
+            `;
+        }
+
+        // 3) Global exact match (no tenant filter)
         if (!templates || templates.length === 0) {
-            console.log('📝 [SIGNATURES] No exact template match, trying any template for entity type');
+            templates = await prisma.$queryRaw`
+                SELECT id, content, name
+                FROM document_templates
+                WHERE template_type = ${normalizedEntityType}
+                  AND document_type = ANY(${Array.from(docAliases)}::text[])
+                  AND is_active = true
+                ORDER BY version DESC
+                LIMIT 1
+            `;
+        }
+
+        // 4) Global any active for this entity type
+        if (!templates || templates.length === 0) {
             templates = await prisma.$queryRaw`
                 SELECT id, content, name
                 FROM document_templates
@@ -160,7 +198,7 @@ export async function POST(
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
 
-        const tenantId = (session.user as any)?.currentTenantId;
+        // tenantId already resolved above
         const userId = (session.user as any)?.id;
 
         // Get event details for email

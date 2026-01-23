@@ -339,6 +339,11 @@ export default function SignaturesPage() {
                         </button>
                         {sig.status === 'COMPLETED' && (
                           <button
+                            onClick={() => {
+                              const url = `/api/signatures/${sig.id}/download`;
+                              // open in new tab to trigger browser download/redirect
+                              window.open(url, '_blank');
+                            }}
                             className="text-green-600 hover:text-green-700 text-sm"
                             title="Download"
                           >

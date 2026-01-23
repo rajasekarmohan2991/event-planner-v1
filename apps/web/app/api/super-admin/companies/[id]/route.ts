@@ -32,28 +32,59 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Fetch real company data
-    // ...
-    const company = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        plan: true,
-        status: true,
-        billingEmail: true,
-        emailFromAddress: true,
-        createdAt: true,
-        maxEvents: true,
-        maxUsers: true,
-        maxStorage: true,
-        trialEndsAt: true,
-        subscriptionStartedAt: true,
-        subscriptionEndsAt: true,
-        // Ensure we select fields that definitely exist or handle error if schema mismatch
+    // Fetch company with a robust strategy: try full select first, fallback to minimal fields if
+    // the database schema is missing optional columns.
+    let company: any | null = null
+    try {
+      company = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          plan: true,
+          status: true,
+          billingEmail: true,
+          emailFromAddress: true,
+          createdAt: true,
+          maxEvents: true,
+          maxUsers: true,
+          maxStorage: true,
+          trialEndsAt: true,
+          subscriptionStartedAt: true,
+          subscriptionEndsAt: true,
+        }
+      })
+    } catch (e: any) {
+      console.warn('Prisma select failed due to schema mismatch, using minimal fallback select', e?.message)
+      // Fallback: only select guaranteed columns to avoid "column does not exist" errors
+      const rows = await prisma.$queryRaw<any[]>`
+        SELECT id, name, slug, status
+        FROM tenants
+        WHERE id = ${tenantId}
+        LIMIT 1
+      `
+      if (rows && rows.length > 0) {
+        const r = rows[0]
+        company = {
+          id: String(r.id),
+          name: r.name,
+          slug: r.slug,
+          status: r.status,
+          // Provide sensible fallbacks for optional fields
+          plan: 'FREE',
+          billingEmail: null,
+          emailFromAddress: null,
+          createdAt: null,
+          maxEvents: null,
+          maxUsers: null,
+          maxStorage: null,
+          trialEndsAt: null,
+          subscriptionStartedAt: null,
+          subscriptionEndsAt: null,
+        }
       }
-    })
+    }
 
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
