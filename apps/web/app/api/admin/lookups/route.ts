@@ -52,8 +52,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Otherwise, return all categories with value counts
-      // Otherwise, return all categories with value counts
-      const categories = await prisma.$queryRawUnsafe<any[]>(
+      const rawCategories = await prisma.$queryRawUnsafe<any[]>(
         `SELECT 
           lg.id, lg.name, lg.label, lg.description, lg.is_active,
           COUNT(lo.id)::int as value_count
@@ -63,7 +62,18 @@ export async function GET(req: NextRequest) {
          ORDER BY lg.label`
       )
 
-      return NextResponse.json({ categories: categories })
+      // Map to match frontend expectations: code = name (internal), name = label (display)
+      const categories = rawCategories.map(cat => ({
+        id: cat.id,
+        code: cat.name,  // Internal identifier (e.g., "approval_status")
+        name: cat.label, // Display name (e.g., "Approval Status")
+        description: cat.description,
+        is_global: true,
+        is_system: cat.is_active,
+        value_count: cat.value_count
+      }))
+
+      return NextResponse.json({ categories })
     } catch (dbError: any) {
       // If table doesn't exist, run schema migration
       if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
