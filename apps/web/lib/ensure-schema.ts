@@ -15,6 +15,7 @@ export async function ensureSchema() {
           BEGIN
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'US';
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE';
+              ALTER TABLE tenants ADD COLUMN IF NOT EXISTS finance_mode TEXT DEFAULT 'legacy';
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_vendor_management BOOLEAN DEFAULT false;
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_sponsor_management BOOLEAN DEFAULT false;
               ALTER TABLE tenants ADD COLUMN IF NOT EXISTS module_exhibitor_management BOOLEAN DEFAULT false;
@@ -1029,6 +1030,7 @@ export async function ensureSchema() {
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(50) DEFAULT 'NET_30';
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP;
             ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sent_to TEXT;
+            ALTER TABLE invoices ADD COLUMN IF NOT EXISTS finance_version TEXT DEFAULT 'v1';
         EXCEPTION WHEN undefined_table THEN NULL; END $$;
     `)
 
@@ -1886,6 +1888,46 @@ export async function ensureSchema() {
         `)
 
         console.log('✅ Subscription Plans table created successfully')
+
+        // ============ FINANCE MIGRATION TABLES ============
+        console.log('📝 Creating Invoice Tax Snapshots table for finance migration...')
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS invoice_tax_snapshots (
+                id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+                invoice_id VARCHAR(255) NOT NULL,
+                line_item_id VARCHAR(255),
+                tax_id VARCHAR(255),
+                tax_source VARCHAR(50) NOT NULL,
+                tax_name VARCHAR(255) NOT NULL,
+                tax_type VARCHAR(50) NOT NULL,
+                tax_rate DOUBLE PRECISION NOT NULL,
+                base_amount DOUBLE PRECISION NOT NULL,
+                tax_amount DOUBLE PRECISION NOT NULL,
+                is_compound BOOLEAN DEFAULT false,
+                snapshot_date TIMESTAMP DEFAULT NOW(),
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        `)
+
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoice_tax_snapshots_invoice ON invoice_tax_snapshots(invoice_id);`)
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_invoice_tax_snapshots_tax ON invoice_tax_snapshots(tax_id);`)
+
+        // Add finance_settings enhanced columns
+        console.log('📝 Adding enhanced finance settings columns...')
+        await prisma.$executeRawUnsafe(`
+            DO $$ BEGIN
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS supported_currencies TEXT[] DEFAULT ARRAY['USD'];
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS invoice_sequence INTEGER DEFAULT 1;
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS receipt_sequence INTEGER DEFAULT 1;
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS auto_apply_tax BOOLEAN DEFAULT true;
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS tax_calculation_mode VARCHAR(20) DEFAULT 'exclusive';
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS allow_tax_override BOOLEAN DEFAULT false;
+                ALTER TABLE finance_settings ADD COLUMN IF NOT EXISTS require_approval BOOLEAN DEFAULT false;
+            EXCEPTION WHEN undefined_table THEN NULL;
+            END $$;
+        `)
+
+        console.log('✅ Finance Migration tables created successfully')
         console.log('✅ Self-healing schema update complete (including provider portal system).')
         return true
     } catch (error: any) {
