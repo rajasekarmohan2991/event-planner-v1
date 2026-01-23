@@ -24,7 +24,7 @@ interface UserNavProps {
 function UserNav({ user }: UserNavProps) {
   const { data: session, status } = useSession();
   const currentUser = user || session?.user;
-  const gender = (currentUser as any)?.gender as ('MALE'|'FEMALE'|'OTHER'|undefined);
+  const gender = (currentUser as any)?.gender as ('MALE' | 'FEMALE' | 'OTHER' | undefined);
 
   // While auth is resolving on the client, do not flash Sign In/Up
   if (status === 'loading') {
@@ -95,9 +95,7 @@ function UserNav({ user }: UserNavProps) {
           <DropdownMenuItem asChild>
             <Link href="/profile">Profile</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings">Settings</Link>
-          </DropdownMenuItem>
+
         </DropdownMenuGroup>
         {/* Sign out removed per request */}
       </DropdownMenuContent>
