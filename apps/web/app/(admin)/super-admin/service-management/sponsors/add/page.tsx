@@ -1,44 +1,75 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Save, Building2, Mail, Phone, Globe, MapPin, Award, CreditCard } from 'lucide-react'
+import { ArrowLeft, Award, Calendar, Building2 } from 'lucide-react'
+
+const INDUSTRIES = [
+  'Technology', 'Finance', 'Healthcare', 'Education', 'Retail',
+  'Media', 'Manufacturing', 'Real Estate', 'Automotive', 'Energy',
+  'Hospitality', 'Fashion', 'Food & Beverage', 'Sports', 'Other'
+]
+
+interface Event {
+  id: string
+  name: string
+  tenantName: string
+}
 
 export default function AddSponsorPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  const [events, setEvents] = useState<Event[]>([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
 
   const [formData, setFormData] = useState({
-    company_name: '',
-    email: '',
-    phone: '',
+    name: '',
+    industry: '',
     website: '',
-    default_tier: 'GOLD',
+    logo: '',
     description: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    postal_code: '',
-    tax_id: '',
-    bank_name: '',
-    account_number: '',
-    account_holder_name: '',
-    ifsc_code: '',
-    commission_rate: '10'
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    eventId: ''
   })
+
+  // Fetch all events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        // Fetch all events with their tenant info
+        const res = await fetch('/api/super-admin/events')
+        if (res.ok) {
+          const data = await res.json()
+          setEvents(data.events || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch events:', error)
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+    fetchEvents()
+  }, [])
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.company_name || !formData.email) {
-      toast({ title: 'Company name and email are required', variant: 'destructive' })
+
+    if (!formData.name || !formData.eventId) {
+      toast({ title: 'Please fill required fields (Name and Event)', variant: 'destructive' })
       return
     }
 
@@ -47,74 +78,147 @@ export default function AddSponsorPage() {
       const res = await fetch('/api/super-admin/service-management/sponsors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          industry: formData.industry || null,
+          website: formData.website || null,
+          logo: formData.logo || null,
+          description: formData.description || null,
+          contactName: formData.contactName || null,
+          contactEmail: formData.contactEmail || null,
+          contactPhone: formData.contactPhone || null,
+          eventId: formData.eventId
+        })
       })
 
       if (res.ok) {
         toast({ title: 'Sponsor created successfully!' })
         router.push('/super-admin/service-management/sponsors')
       } else {
-        const error = await res.json()
-        toast({ title: error.error || 'Failed to create sponsor', variant: 'destructive' })
+        const data = await res.json()
+        toast({ title: data.error || 'Failed to add sponsor', variant: 'destructive' })
       }
     } catch (error) {
-      toast({ title: 'Failed to create sponsor', variant: 'destructive' })
+      toast({ title: 'Failed to add sponsor', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Sponsors
-      </Button>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Add New Sponsor</h1>
-        <p className="text-gray-600 mt-1">Register a new sponsor company on the platform</p>
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900">
+            <Award className="h-6 w-6 text-purple-600" />
+            Add New Sponsor
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Register a new sponsor company for an event
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Company Information */}
+        {/* Link to Event (Required) */}
+        <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-700">
+              <Calendar className="h-5 w-5" />
+              Link to Event *
+            </CardTitle>
+            <CardDescription>
+              Select which event this sponsor is associated with
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="eventId">Select Event *</Label>
+              <Select value={formData.eventId} onValueChange={(v) => handleChange('eventId', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={loadingEvents ? "Loading events..." : "Select an event"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.map(event => (
+                    <SelectItem key={event.id} value={event.id}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        {event.name}
+                        {event.tenantName && (
+                          <span className="text-xs text-gray-400">({event.tenantName})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Sponsors are linked to specific events
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sponsor Information */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Company Information
-            </CardTitle>
+            <CardTitle>Sponsor Information</CardTitle>
             <CardDescription>Basic details about the sponsor company</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Company Name *</label>
+            <div className="space-y-2">
+              <Label htmlFor="name">Company Name *</Label>
               <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="Enter company name"
-                value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                 required
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Default Sponsorship Tier</label>
-              <select
-                className="w-full px-3 py-2 border rounded-lg"
-                value={formData.default_tier}
-                onChange={(e) => setFormData({ ...formData, default_tier: e.target.value })}
-              >
-                <option value="PLATINUM">Platinum</option>
-                <option value="GOLD">Gold</option>
-                <option value="SILVER">Silver</option>
-                <option value="BRONZE">Bronze</option>
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="industry">Industry</Label>
+              <Select value={formData.industry} onValueChange={(v) => handleChange('industry', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIES.map(ind => (
+                    <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Description</label>
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                value={formData.website}
+                onChange={(e) => handleChange('website', e.target.value)}
+                placeholder="https://www.company.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="logo">Logo URL</Label>
+              <Input
+                id="logo"
+                value={formData.logo}
+                onChange={(e) => handleChange('logo', e.target.value)}
+                placeholder="https://example.com/logo.png"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="description">Description</Label>
               <Textarea
-                placeholder="Brief description of the sponsor company"
+                id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Brief description of the sponsor company..."
                 rows={3}
               />
             </div>
@@ -124,150 +228,36 @@ export default function AddSponsorPage() {
         {/* Contact Information */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Contact Information
-            </CardTitle>
+            <CardTitle>Contact Information</CardTitle>
+            <CardDescription>Primary contact person for this sponsorship</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Email *</label>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contactName">Contact Name</Label>
               <Input
+                id="contactName"
+                value={formData.contactName}
+                onChange={(e) => handleChange('contactName', e.target.value)}
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">Contact Email</Label>
+              <Input
+                id="contactEmail"
                 type="email"
-                placeholder="contact@company.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                value={formData.contactEmail}
+                onChange={(e) => handleChange('contactEmail', e.target.value)}
+                placeholder="john@company.com"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Phone</label>
+            <div className="space-y-2">
+              <Label htmlFor="contactPhone">Contact Phone</Label>
               <Input
+                id="contactPhone"
+                value={formData.contactPhone}
+                onChange={(e) => handleChange('contactPhone', e.target.value)}
                 placeholder="+1 234 567 8900"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Website</label>
-              <Input
-                placeholder="https://www.company.com"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Street Address</label>
-              <Input
-                placeholder="123 Business Street"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">City</label>
-              <Input
-                placeholder="City"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">State/Province</label>
-              <Input
-                placeholder="State"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Country</label>
-              <Input
-                placeholder="Country"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Postal Code</label>
-              <Input
-                placeholder="12345"
-                value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Information
-            </CardTitle>
-            <CardDescription>Bank details for receiving payments</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Tax ID / GST Number</label>
-              <Input
-                placeholder="Tax identification number"
-                value={formData.tax_id}
-                onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Commission Rate (%)</label>
-              <Input
-                type="number"
-                placeholder="10"
-                value={formData.commission_rate}
-                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Bank Name</label>
-              <Input
-                placeholder="Bank name"
-                value={formData.bank_name}
-                onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Account Number</label>
-              <Input
-                placeholder="Account number"
-                value={formData.account_number}
-                onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Account Holder Name</label>
-              <Input
-                placeholder="Name on account"
-                value={formData.account_holder_name}
-                onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">IFSC Code</label>
-              <Input
-                placeholder="IFSC code"
-                value={formData.ifsc_code}
-                onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value })}
               />
             </div>
           </CardContent>
@@ -279,7 +269,6 @@ export default function AddSponsorPage() {
             Cancel
           </Button>
           <Button type="submit" disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
             {saving ? 'Creating...' : 'Create Sponsor'}
           </Button>
         </div>

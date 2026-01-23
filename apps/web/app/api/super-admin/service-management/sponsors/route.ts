@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
+
+  // Polyfill for BigInt serialization
+  (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
 
 // GET - List all sponsors (platform-wide)
 export async function GET(req: NextRequest) {
@@ -14,33 +18,86 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    try {
-      const sponsors = await prisma.$queryRaw<any[]>`
-        SELECT 
-          sp.id,
-          sp.company_name,
-          sp.email,
-          sp.phone,
-          sp.city,
-          sp.country,
-          sp.verification_status as status,
-          sp.total_revenue as total_amount,
-          sp.created_at,
-          COALESCE(sp.provider_settings->>'default_tier', 'GOLD') as tier
-        FROM service_providers sp
-        WHERE sp.provider_type = 'SPONSOR'
-        ORDER BY sp.created_at DESC
-      `
-
-      return NextResponse.json({ sponsors })
-    } catch (dbError: any) {
-      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
-        console.log('Service providers table missing, running schema migration...')
-        await ensureSchema()
-        return NextResponse.json({ sponsors: [], message: 'Tables created, please refresh' })
+    // Fetch sponsors from Prisma model with event info
+    const sponsors = await prisma.sponsor.findMany({
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            tenantId: true
+          }
+        },
+        packages: {
+          select: {
+            id: true,
+            name: true,
+            price: true
+          }
+        },
+        assets: {
+          select: {
+            id: true,
+            type: true,
+            status: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-      throw dbError
-    }
+    })
+
+    // Get tenant info for each sponsor's event
+    const sponsorsWithDetails = await Promise.all(
+      sponsors.map(async (sponsor) => {
+        let linkedCompany = null
+        if (sponsor.event?.tenantId) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: sponsor.event.tenantId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true
+            }
+          })
+          linkedCompany = tenant
+        }
+
+        // Calculate stats
+        const packagesCount = sponsor.packages.length
+        const totalValue = sponsor.packages.reduce((sum, p) => sum + Number(p.price || 0), 0)
+        const assetsCount = sponsor.assets.length
+
+        return {
+          id: sponsor.id,
+          name: sponsor.name,
+          industry: sponsor.industry,
+          website: sponsor.website,
+          logo: sponsor.logo,
+          description: sponsor.description,
+          contactName: sponsor.contactName,
+          contactEmail: sponsor.contactEmail,
+          contactPhone: sponsor.contactPhone,
+          status: sponsor.status,
+          createdAt: sponsor.createdAt,
+          // Event info
+          eventId: sponsor.eventId?.toString(),
+          eventName: sponsor.event?.name,
+          // Stats
+          packagesCount,
+          totalValue,
+          assetsCount,
+          // Linked Event Management Company
+          linkedCompany,
+          // Packages preview
+          packages: sponsor.packages.slice(0, 3)
+        }
+      })
+    )
+
+    return NextResponse.json({ sponsors: sponsorsWithDetails })
   } catch (error: any) {
     console.error('Error fetching sponsors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -57,39 +114,40 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const {
-      company_name, email, phone, website, description,
-      address, city, state, country, postal_code,
-      default_tier, tax_id, bank_name, account_number, 
-      account_holder_name, ifsc_code, commission_rate
+      name,
+      industry,
+      website,
+      logo,
+      description,
+      contactName,
+      contactEmail,
+      contactPhone,
+      eventId // Required: Link to an event
     } = body
 
-    if (!company_name || !email) {
-      return NextResponse.json({ error: 'Company name and email are required' }, { status: 400 })
+    if (!name || !eventId) {
+      return NextResponse.json({ error: 'Name and Event are required' }, { status: 400 })
     }
 
-    const providerSettings = JSON.stringify({ default_tier: default_tier || 'GOLD' })
+    // Create sponsor using Prisma model
+    const sponsor = await prisma.sponsor.create({
+      data: {
+        name,
+        industry,
+        website,
+        logo,
+        description,
+        contactName,
+        contactEmail,
+        contactPhone,
+        eventId: BigInt(eventId)
+      }
+    })
 
-    const result = await prisma.$queryRaw<any[]>`
-      INSERT INTO service_providers (
-        tenant_id, provider_type, company_name, email, phone, website,
-        description, address, city, state, country, postal_code,
-        tax_id, bank_name, account_number, account_holder_name, ifsc_code,
-        commission_rate, provider_settings, verification_status, created_at, updated_at
-      ) VALUES (
-        'platform', 'SPONSOR', ${company_name}, ${email}, ${phone || null}, ${website || null},
-        ${description || null}, ${address || null}, ${city || null}, ${state || null}, 
-        ${country || null}, ${postal_code || null}, ${tax_id || null},
-        ${bank_name || null}, ${account_number || null}, ${account_holder_name || null},
-        ${ifsc_code || null}, ${parseFloat(commission_rate) || 10},
-        ${providerSettings}::jsonb, 'PENDING', NOW(), NOW()
-      )
-      RETURNING id
-    `
-
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Sponsor created successfully',
-      sponsorId: result[0]?.id 
+      sponsor: { ...sponsor, id: sponsor.id, eventId: sponsor.eventId.toString() }
     })
   } catch (error: any) {
     console.error('Error creating sponsor:', error)

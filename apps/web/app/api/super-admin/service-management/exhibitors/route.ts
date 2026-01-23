@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
-// GET - List all exhibitors (platform-wide)
+// GET - List all exhibitors (platform-wide using existing Exhibitor model)
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -14,33 +13,82 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    try {
-      const exhibitors = await prisma.$queryRaw<any[]>`
-        SELECT 
-          sp.id,
-          sp.company_name,
-          sp.email,
-          sp.phone,
-          sp.city,
-          sp.country,
-          sp.verification_status as status,
-          sp.total_revenue,
-          sp.created_at,
-          COALESCE(sp.provider_settings->>'industry', 'General') as industry
-        FROM service_providers sp
-        WHERE sp.provider_type = 'EXHIBITOR'
-        ORDER BY sp.created_at DESC
-      `
-
-      return NextResponse.json({ exhibitors })
-    } catch (dbError: any) {
-      if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
-        console.log('Service providers table missing, running schema migration...')
-        await ensureSchema()
-        return NextResponse.json({ exhibitors: [], message: 'Tables created, please refresh' })
+    // Fetch exhibitors from existing Prisma Exhibitor model
+    const exhibitors = await prisma.exhibitor.findMany({
+      include: {
+        booths: {
+          select: {
+            id: true,
+            boothNumber: true,
+            type: true,
+            status: true,
+            priceInr: true
+          }
+        },
+        products: {
+          select: {
+            id: true,
+            name: true,
+            category: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-      throw dbError
-    }
+    })
+
+    // Get tenant info for each exhibitor's event
+    const exhibitorsWithDetails = await Promise.all(
+      exhibitors.map(async (exhibitor) => {
+        let linkedCompany = null
+        if (exhibitor.tenantId) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: exhibitor.tenantId },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true
+            }
+          })
+          linkedCompany = tenant
+        }
+
+        // Calculate stats
+        const boothsCount = exhibitor.booths.length
+        const productsCount = exhibitor.products.length
+        const totalRevenue = exhibitor.booths.reduce((sum, b) => sum + (b.priceInr || 0), 0)
+
+        return {
+          id: exhibitor.id,
+          name: exhibitor.name,
+          company: exhibitor.company,
+          contactName: exhibitor.contactName,
+          contactEmail: exhibitor.contactEmail,
+          contactPhone: exhibitor.contactPhone,
+          website: exhibitor.website,
+          companyDescription: exhibitor.companyDescription,
+          status: exhibitor.status,
+          paymentStatus: exhibitor.paymentStatus,
+          boothNumber: exhibitor.boothNumber,
+          boothType: exhibitor.boothType,
+          createdAt: exhibitor.createdAt,
+          // Event info
+          eventId: exhibitor.eventId,
+          // Stats
+          boothsCount,
+          productsCount,
+          totalRevenue,
+          // Linked Event Management Company
+          linkedCompany,
+          // Products preview
+          products: exhibitor.products.slice(0, 3)
+        }
+      })
+    )
+
+    return NextResponse.json({ exhibitors: exhibitorsWithDetails })
   } catch (error: any) {
     console.error('Error fetching exhibitors:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -57,39 +105,45 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const {
-      company_name, email, phone, website, description, industry,
-      address, city, state, country, postal_code,
-      tax_id, bank_name, account_number, account_holder_name, ifsc_code,
-      commission_rate
+      name,
+      company,
+      contactName,
+      contactEmail,
+      contactPhone,
+      website,
+      companyDescription,
+      productsServices,
+      boothType,
+      eventId, // Required: Link to an event
+      tenantId // Optional: Link to a tenant/company
     } = body
 
-    if (!company_name || !email) {
-      return NextResponse.json({ error: 'Company name and email are required' }, { status: 400 })
+    if (!name || !eventId) {
+      return NextResponse.json({ error: 'Name and Event are required' }, { status: 400 })
     }
 
-    const providerSettings = JSON.stringify({ industry: industry || 'General' })
+    // Create exhibitor using Prisma model
+    const exhibitor = await prisma.exhibitor.create({
+      data: {
+        name,
+        company,
+        contactName,
+        contactEmail,
+        contactPhone,
+        website,
+        companyDescription,
+        productsServices,
+        boothType,
+        eventId,
+        tenantId: tenantId || null,
+        status: 'PENDING_CONFIRMATION'
+      }
+    })
 
-    const result = await prisma.$queryRaw<any[]>`
-      INSERT INTO service_providers (
-        tenant_id, provider_type, company_name, email, phone, website,
-        description, address, city, state, country, postal_code,
-        tax_id, bank_name, account_number, account_holder_name, ifsc_code,
-        commission_rate, provider_settings, verification_status, created_at, updated_at
-      ) VALUES (
-        'platform', 'EXHIBITOR', ${company_name}, ${email}, ${phone || null}, ${website || null},
-        ${description || null}, ${address || null}, ${city || null}, ${state || null}, 
-        ${country || null}, ${postal_code || null}, ${tax_id || null},
-        ${bank_name || null}, ${account_number || null}, ${account_holder_name || null},
-        ${ifsc_code || null}, ${parseFloat(commission_rate) || 18},
-        ${providerSettings}::jsonb, 'PENDING', NOW(), NOW()
-      )
-      RETURNING id
-    `
-
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Exhibitor created successfully',
-      exhibitorId: result[0]?.id 
+      exhibitor
     })
   } catch (error: any) {
     console.error('Error creating exhibitor:', error)

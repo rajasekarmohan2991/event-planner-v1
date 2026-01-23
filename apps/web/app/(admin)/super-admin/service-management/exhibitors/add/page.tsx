@@ -1,44 +1,105 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Save, Building2, Mail, Phone, Globe, MapPin, Percent, CreditCard } from 'lucide-react'
+import { ArrowLeft, Store, Calendar, Building2 } from 'lucide-react'
+
+const BOOTH_TYPES = [
+  'Standard', 'Premium', 'Island', 'Corner', 'Inline',
+  'Peninsula', 'Custom'
+]
+
+interface Event {
+  id: string
+  name: string
+  tenantName: string
+  tenantId: string
+}
+
+interface Tenant {
+  id: string
+  name: string
+  slug: string
+}
 
 export default function AddExhibitorPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [saving, setSaving] = useState(false)
+  const [events, setEvents] = useState<Event[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
+  const [loadingTenants, setLoadingTenants] = useState(true)
 
   const [formData, setFormData] = useState({
-    company_name: '',
-    email: '',
-    phone: '',
+    name: '',
+    company: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
     website: '',
-    industry: '',
-    description: '',
-    address: '',
-    city: '',
-    state: '',
-    country: '',
-    postal_code: '',
-    tax_id: '',
-    bank_name: '',
-    account_number: '',
-    account_holder_name: '',
-    ifsc_code: '',
-    commission_rate: '18'
+    companyDescription: '',
+    productsServices: '',
+    boothType: '',
+    eventId: '',
+    tenantId: '' // Optional link to Event Management Company
   })
+
+  // Fetch all events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch('/api/super-admin/events')
+        if (res.ok) {
+          const data = await res.json()
+          setEvents(data.events || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch events:', error)
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+    fetchEvents()
+  }, [])
+
+  // Fetch all tenants
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const res = await fetch('/api/super-admin/companies')
+        if (res.ok) {
+          const data = await res.json()
+          const companies = (data.companies || []).filter(
+            (c: any) => c.slug !== 'super-admin' && c.slug !== 'default-tenant'
+          )
+          setTenants(companies)
+        }
+      } catch (error) {
+        console.error('Failed to fetch tenants:', error)
+      } finally {
+        setLoadingTenants(false)
+      }
+    }
+    fetchTenants()
+  }, [])
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.company_name || !formData.email) {
-      toast({ title: 'Company name and email are required', variant: 'destructive' })
+
+    if (!formData.name || !formData.eventId) {
+      toast({ title: 'Please fill required fields (Name and Event)', variant: 'destructive' })
       return
     }
 
@@ -47,81 +108,176 @@ export default function AddExhibitorPage() {
       const res = await fetch('/api/super-admin/service-management/exhibitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          company: formData.company || null,
+          contactName: formData.contactName || null,
+          contactEmail: formData.contactEmail || null,
+          contactPhone: formData.contactPhone || null,
+          website: formData.website || null,
+          companyDescription: formData.companyDescription || null,
+          productsServices: formData.productsServices || null,
+          boothType: formData.boothType || null,
+          eventId: formData.eventId,
+          tenantId: formData.tenantId || null
+        })
       })
 
       if (res.ok) {
         toast({ title: 'Exhibitor created successfully!' })
         router.push('/super-admin/service-management/exhibitors')
       } else {
-        const error = await res.json()
-        toast({ title: error.error || 'Failed to create exhibitor', variant: 'destructive' })
+        const data = await res.json()
+        toast({ title: data.error || 'Failed to add exhibitor', variant: 'destructive' })
       }
     } catch (error) {
-      toast({ title: 'Failed to create exhibitor', variant: 'destructive' })
+      toast({ title: 'Failed to add exhibitor', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Exhibitors
-      </Button>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Add New Exhibitor</h1>
-        <p className="text-gray-600 mt-1">Register a new exhibitor company on the platform</p>
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900">
+            <Store className="h-6 w-6 text-green-600" />
+            Add New Exhibitor
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Register a new exhibitor company for an event
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Company Information */}
-        <Card>
+        {/* Link to Event (Required) */}
+        <Card className="border-2 border-dashed border-green-300 bg-green-50/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Company Information
+            <CardTitle className="flex items-center gap-2 text-green-700">
+              <Calendar className="h-5 w-5" />
+              Link to Event *
             </CardTitle>
-            <CardDescription>Basic details about the exhibitor company</CardDescription>
+            <CardDescription>
+              Select which event this exhibitor is associated with
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Company Name *</label>
+            <div className="space-y-2">
+              <Label htmlFor="eventId">Select Event *</Label>
+              <Select value={formData.eventId} onValueChange={(v) => handleChange('eventId', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={loadingEvents ? "Loading events..." : "Select an event"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {events.map(event => (
+                    <SelectItem key={event.id} value={event.id}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        {event.name}
+                        {event.tenantName && (
+                          <span className="text-xs text-gray-400">({event.tenantName})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenantId">Link to Event Management Company (Optional)</Label>
+              <Select value={formData.tenantId} onValueChange={(v) => handleChange('tenantId', v)}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={loadingTenants ? "Loading..." : "Select company (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Linked Company</SelectItem>
+                  {tenants.map(tenant => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-500" />
+                        {tenant.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Exhibitor Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Exhibitor Information</CardTitle>
+            <CardDescription>Basic details about the exhibitor</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Exhibitor Name *</Label>
               <Input
-                placeholder="Enter company name"
-                value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                placeholder="Enter exhibitor name"
                 required
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Industry</label>
-              <select
-                className="w-full px-3 py-2 border rounded-lg"
-                value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-              >
-                <option value="">Select Industry</option>
-                <option value="Technology">Technology</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Finance">Finance</option>
-                <option value="Education">Education</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Retail">Retail</option>
-                <option value="Food & Beverage">Food & Beverage</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Other">Other</option>
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="company">Company Name</Label>
+              <Input
+                id="company"
+                value={formData.company}
+                onChange={(e) => handleChange('company', e.target.value)}
+                placeholder="Enter company name"
+              />
             </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Description</label>
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                value={formData.website}
+                onChange={(e) => handleChange('website', e.target.value)}
+                placeholder="https://www.company.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="boothType">Booth Type</Label>
+              <Select value={formData.boothType} onValueChange={(v) => handleChange('boothType', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select booth type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOOTH_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="companyDescription">Company Description</Label>
               <Textarea
-                placeholder="Brief description of the exhibitor company"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                id="companyDescription"
+                value={formData.companyDescription}
+                onChange={(e) => handleChange('companyDescription', e.target.value)}
+                placeholder="Brief description of the company..."
                 rows={3}
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="productsServices">Products/Services</Label>
+              <Textarea
+                id="productsServices"
+                value={formData.productsServices}
+                onChange={(e) => handleChange('productsServices', e.target.value)}
+                placeholder="List the products or services they will showcase..."
+                rows={2}
               />
             </div>
           </CardContent>
@@ -130,150 +286,36 @@ export default function AddExhibitorPage() {
         {/* Contact Information */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Contact Information
-            </CardTitle>
+            <CardTitle>Contact Information</CardTitle>
+            <CardDescription>Primary contact person for this exhibitor</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Email *</label>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contactName">Contact Name</Label>
               <Input
+                id="contactName"
+                value={formData.contactName}
+                onChange={(e) => handleChange('contactName', e.target.value)}
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">Contact Email</Label>
+              <Input
+                id="contactEmail"
                 type="email"
-                placeholder="contact@company.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                value={formData.contactEmail}
+                onChange={(e) => handleChange('contactEmail', e.target.value)}
+                placeholder="john@company.com"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Phone</label>
+            <div className="space-y-2">
+              <Label htmlFor="contactPhone">Contact Phone</Label>
               <Input
+                id="contactPhone"
+                value={formData.contactPhone}
+                onChange={(e) => handleChange('contactPhone', e.target.value)}
                 placeholder="+1 234 567 8900"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Website</label>
-              <Input
-                placeholder="https://www.company.com"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium">Street Address</label>
-              <Input
-                placeholder="123 Business Street"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">City</label>
-              <Input
-                placeholder="City"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">State/Province</label>
-              <Input
-                placeholder="State"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Country</label>
-              <Input
-                placeholder="Country"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Postal Code</label>
-              <Input
-                placeholder="12345"
-                value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Information
-            </CardTitle>
-            <CardDescription>Bank details for receiving payments</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Tax ID / GST Number</label>
-              <Input
-                placeholder="Tax identification number"
-                value={formData.tax_id}
-                onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Commission Rate (%)</label>
-              <Input
-                type="number"
-                placeholder="18"
-                value={formData.commission_rate}
-                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Bank Name</label>
-              <Input
-                placeholder="Bank name"
-                value={formData.bank_name}
-                onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Account Number</label>
-              <Input
-                placeholder="Account number"
-                value={formData.account_number}
-                onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Account Holder Name</label>
-              <Input
-                placeholder="Name on account"
-                value={formData.account_holder_name}
-                onChange={(e) => setFormData({ ...formData, account_holder_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">IFSC Code</label>
-              <Input
-                placeholder="IFSC code"
-                value={formData.ifsc_code}
-                onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value })}
               />
             </div>
           </CardContent>
@@ -285,7 +327,6 @@ export default function AddExhibitorPage() {
             Cancel
           </Button>
           <Button type="submit" disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
             {saving ? 'Creating...' : 'Create Exhibitor'}
           </Button>
         </div>
