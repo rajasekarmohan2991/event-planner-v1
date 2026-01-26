@@ -138,7 +138,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Dynamic Banner Carousel */}
-          <BannerCarousel />
+          <BannerCarousel events={trendingEvents} />
 
           <div className="relative z-20">
             {/* Search and Filters */}
