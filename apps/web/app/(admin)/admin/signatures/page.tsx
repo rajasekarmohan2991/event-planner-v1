@@ -158,10 +158,10 @@ export default function SignaturesPage() {
         {/* DocuSign Status */}
         {docuSignStatus && (
           <div className={`p-4 rounded-lg mb-4 ${docuSignStatus.connection === 'success'
-              ? 'bg-green-50 border border-green-200'
-              : docuSignStatus.configured
-                ? 'bg-red-50 border border-red-200'
-                : 'bg-yellow-50 border border-yellow-200'
+            ? 'bg-green-50 border border-green-200'
+            : docuSignStatus.configured
+              ? 'bg-red-50 border border-red-200'
+              : 'bg-yellow-50 border border-yellow-200'
             }`}>
             <div className="flex items-start gap-3">
               {docuSignStatus.connection === 'success' ? (
@@ -339,10 +339,37 @@ export default function SignaturesPage() {
                         </button>
                         {sig.status === 'COMPLETED' && (
                           <button
-                            onClick={() => {
-                              const url = `/api/signatures/${sig.id}/download`;
-                              // open in new tab to trigger browser download/redirect
-                              window.open(url, '_blank');
+                            onClick={async () => {
+                              try {
+                                toast({ title: "Downloading...", description: "Preparing your document" });
+                                const res = await fetch(`/api/signatures/${sig.id}/download`);
+                                if (!res.ok) throw new Error('Download failed');
+
+                                const blob = await res.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                // Try to get filename from Content-Disposition header if possible, or fallback
+                                const contentDisposition = res.headers.get('Content-Disposition');
+                                let filename = `${sig.documentTitle || 'document'}.html`;
+                                if (contentDisposition) {
+                                  const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                                  if (match && match[1]) filename = match[1];
+                                }
+                                a.download = filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                toast({ title: "Success", description: "Document downloaded" });
+                              } catch (e) {
+                                console.error(e);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to download document. Please try again.",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                             className="text-green-600 hover:text-green-700 text-sm"
                             title="Download"

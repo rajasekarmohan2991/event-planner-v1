@@ -10,7 +10,7 @@ export default function SignatureCompletePage() {
   const [signature, setSignature] = useState<any>(null);
 
   useEffect(() => {
-    const id = searchParams.get('id');
+    const id = searchParams?.get('id');
     if (id) {
       fetchSignature(id);
     }
@@ -40,7 +40,7 @@ export default function SignatureCompletePage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Document Signed Successfully!
         </h1>
-        
+
         <p className="text-gray-600 mb-6">
           Thank you for signing the document. A confirmation has been recorded.
         </p>
@@ -60,18 +60,49 @@ export default function SignatureCompletePage() {
         )}
 
         <div className="space-y-3">
-          {signature?.signedDocumentUrl && (
-            <a
-              href={signature.signedDocumentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Download className="h-5 w-5" />
-              Download Signed Document
-            </a>
-          )}
-          
+          <button
+            onClick={async () => {
+              try {
+                // Use provided URL or fallback to internal API
+                const downloadUrl = signature.signedDocumentUrl || `/api/signatures/${signature.id}/download`;
+
+                // If it's an external URL (e.g. DocuSign/S3), just open it
+                if (downloadUrl.startsWith('http')) {
+                  window.open(downloadUrl, '_blank');
+                  return;
+                }
+
+                // Internal API download via fetch/blob
+                const res = await fetch(downloadUrl);
+                if (!res.ok) throw new Error('Download failed');
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                const contentDisposition = res.headers.get('Content-Disposition');
+                let filename = `${signature.documentTitle || 'document'}.html`;
+                if (contentDisposition) {
+                  const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                  if (match && match[1]) filename = match[1];
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              } catch (e) {
+                console.error(e);
+                alert('Failed to download document');
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Download className="h-5 w-5" />
+            Download Signed Document
+          </button>
+
           <button
             onClick={() => router.push('/')}
             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
