@@ -36,11 +36,11 @@ export async function PATCH(
         const newActiveState = !currentValue.is_active
 
         // Update the active state
-        await prisma.$executeRawUnsafe(`
-      UPDATE lookup_values
-      SET is_active = ${newActiveState}, updated_at = NOW()
-      WHERE id = '${valueId}'
-    `)
+        await prisma.$queryRaw`
+            UPDATE lookup_values
+            SET is_active = ${newActiveState}, updated_at = NOW()
+            WHERE id = ${valueId}
+        `
 
         return NextResponse.json({
             success: true,

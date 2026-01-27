@@ -34,27 +34,27 @@ export async function PUT(
       `
 
             if (current && current.length > 0) {
-                await prisma.$executeRawUnsafe(`
-          UPDATE lookup_values
-          SET is_default = FALSE
-          WHERE category_id = '${current[0].category_id}' AND id != '${valueId}'
-        `)
+                await prisma.$queryRaw`
+                    UPDATE lookup_values
+                    SET is_default = FALSE
+                    WHERE category_id = ${current[0].category_id} AND id != ${valueId}
+                `
             }
         }
 
         // Update the value
-        await prisma.$executeRawUnsafe(`
-      UPDATE lookup_values
-      SET 
-        value = '${value}',
-        label = '${label}',
-        description = ${description ? `'${description}'` : 'NULL'},
-        sort_order = ${sortOrder || 0},
-        is_active = ${isActive !== undefined ? isActive : true},
-        is_default = ${isDefault || false},
-        updated_at = NOW()
-      WHERE id = '${valueId}'
-    `)
+        await prisma.$queryRaw`
+            UPDATE lookup_values
+            SET 
+                value = ${value},
+                label = ${label},
+                description = ${description || null},
+                sort_order = ${sortOrder || 0},
+                is_active = ${isActive !== undefined ? isActive : true},
+                is_default = ${isDefault || false},
+                updated_at = NOW()
+            WHERE id = ${valueId}
+        `
 
         // Fetch updated value
         const updated = await prisma.$queryRaw<any[]>`
@@ -101,9 +101,9 @@ export async function DELETE(
         }
 
         // Delete the value (allow deleting any value including system values)
-        await prisma.$executeRawUnsafe(`
-      DELETE FROM lookup_values WHERE id = '${valueId}'
-    `)
+        await prisma.$queryRaw`
+            DELETE FROM lookup_values WHERE id = ${valueId}
+        `
 
         return NextResponse.json({
             success: true,
