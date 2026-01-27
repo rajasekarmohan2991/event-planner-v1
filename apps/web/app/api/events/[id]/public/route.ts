@@ -75,8 +75,7 @@ export async function GET(
       registrationCount: registrationCount,
       priceInr: safeEvent.priceInr || 0,
       sessions: (sessions || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
-      speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
-      faqs: safeEvent.faqs
+      speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
     })
 
   } catch (error: any) {

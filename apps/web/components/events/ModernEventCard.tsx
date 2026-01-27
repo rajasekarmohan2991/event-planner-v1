@@ -4,6 +4,7 @@ import { Calendar, MapPin, Users, Edit, Trash2, Clock, Ticket, Heart } from 'luc
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/use-toast'
 import { getEventIcon } from '@/lib/event-icons'
+import EventDetailsModal from './EventDetailsModal'
 
 interface EventCardProps {
   event: {
@@ -28,6 +29,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
   const [isHovered, setIsHovered] = useState(false)
   const [interested, setInterested] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const router = useRouter()
   const { data: session } = useSession()
   const { toast } = useToast()
@@ -359,7 +361,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    router.push(`/events/${event.id}/register`)
+                    setShowDetailsModal(true)
                   }}
                   className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
                 >
@@ -375,6 +377,13 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
       {/* Status Progress Bar */}
       <div className={`h-1 ${statusConfig.color} transition-all duration-500 ${isHovered ? 'opacity-100' : 'opacity-60'
         }`} />
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        eventId={event.id}
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+      />
     </div>
   )
 }

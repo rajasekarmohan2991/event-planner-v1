@@ -17,7 +17,7 @@ function slugify(input: string) {
 export default function EventSettingsPage({ params }: { params: { id: string } }) {
   const { status } = useSession()
   const router = useRouter()
-  const [active, setActive] = useState<'general' | 'registration' | 'payments' | 'notifications' | 'integrations' | 'promote' | 'engagement' | 'faqs'>('general')
+  const [active, setActive] = useState<'general' | 'registration' | 'payments' | 'notifications' | 'integrations' | 'promote' | 'engagement'>('general')
   const [eventName, setEventName] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
@@ -31,7 +31,6 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
   const [integrations, setIntegrations] = useState<any>({ webhookUrl: '', mapKey: '', streamUrl: '', streamEnabled: false })
   const [promote, setPromote] = useState<any>({ emailCampaigns: false, socialMedia: false })
   const [engagement, setEngagement] = useState<any>({ polls: false, qna: false })
-  const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>([])
 
   useEffect(() => {
     let aborted = false
@@ -49,10 +48,7 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
           }
           const data = await res.json().catch(() => ({}))
           console.log('📊 Settings: Event data', data)
-          if (!aborted) {
-            setEventName(data?.name || data?.title || '')
-            if (data?.faqs) setFaqs(Array.isArray(data.faqs) ? data.faqs : [])
-          }
+          if (!aborted) setEventName(data?.name || data?.title || '')
         } catch (e: any) {
           console.error('❌ Settings: Error', e)
           if (!aborted) setError(e?.message || 'Unable to load event')
@@ -115,11 +111,7 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
       if (active === 'integrations') { url = `/api/events/${params.id}/settings/integrations`; body = integrations }
       if (active === 'promote') { url = `/api/events/${params.id}/settings/promote`; body = promote }
       if (active === 'engagement') { url = `/api/events/${params.id}/settings/engagement`; body = engagement }
-      if (active === 'faqs') {
-        url = `/api/events/${params.id}`;
-        body = { faqs };
-      }
-      const res = await fetch(url, { method: active === 'faqs' ? 'PUT' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) throw new Error('Save failed')
       toast({ title: 'Settings saved' })
     } catch (e: any) {
@@ -180,11 +172,11 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
       {/* Tabs */}
       <div className="rounded border">
         <div className="flex flex-wrap gap-1 border-b p-2 text-sm">
-          {['general', 'registration', 'payments', 'notifications', 'integrations', 'promote', 'engagement', 'faqs'].map((t) => (
+          {['general', 'registration', 'payments', 'notifications', 'integrations', 'promote', 'engagement'].map((t) => (
             <button key={t}
               onClick={() => setActive(t as any)}
               className={`px-3 py-1.5 rounded-md ${active === t ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}`}
-            >{t === 'faqs' ? 'FAQs' : t[0].toUpperCase() + t.slice(1)}</button>
+            >{t[0].toUpperCase() + t.slice(1)}</button>
           ))}
           <div className="ml-auto">
             <button onClick={saveActiveTab} disabled={saving} className={`px-3 py-1.5 rounded-md text-sm ${saving ? 'bg-indigo-100 text-indigo-700 animate-pulse' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>{saving ? 'Saving…' : 'Save'}</button>
@@ -327,67 +319,6 @@ export default function EventSettingsPage({ params }: { params: { id: string } }
               <div>
                 <label className="text-sm">Engagement Message</label>
                 <textarea className="mt-1 w-full rounded border px-3 py-2 text-sm" rows={3} value={engagement.message || ''} onChange={e => setEngagement({ ...engagement, message: e.target.value })} placeholder="Welcome message for attendees..." />
-              </div>
-            </div>
-          )}
-
-          {active === 'faqs' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="text-sm font-medium text-slate-700">Frequently Asked Questions</div>
-                <button
-                  onClick={() => setFaqs([...faqs, { question: '', answer: '' }])}
-                  className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-100"
-                >
-                  + Add Question
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {faqs.length === 0 && (
-                  <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed rounded-lg">
-                    No FAQs added yet. Click "+ Add Question" to get started.
-                  </div>
-                )}
-                {faqs.map((faq, index) => (
-                  <div key={index} className="p-4 border rounded-lg bg-slate-50 relative group">
-                    <button
-                      onClick={() => setFaqs(faqs.filter((_, i) => i !== index))}
-                      className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      Delete
-                    </button>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-500 uppercase">Question</label>
-                        <input
-                          className="mt-1 w-full rounded border px-3 py-2 text-sm"
-                          value={faq.question}
-                          onChange={e => {
-                            const newFaqs = [...faqs];
-                            newFaqs[index].question = e.target.value;
-                            setFaqs(newFaqs);
-                          }}
-                          placeholder="What is this event about?"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-slate-500 uppercase">Answer</label>
-                        <textarea
-                          className="mt-1 w-full rounded border px-3 py-2 text-sm"
-                          rows={3}
-                          value={faq.answer}
-                          onChange={e => {
-                            const newFaqs = [...faqs];
-                            newFaqs[index].answer = e.target.value;
-                            setFaqs(newFaqs);
-                          }}
-                          placeholder="Provide a clear answer..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}
