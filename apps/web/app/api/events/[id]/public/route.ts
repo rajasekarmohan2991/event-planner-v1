@@ -43,6 +43,32 @@ export async function GET(
 
     const event = events[0]
 
+    // Fetch Sessions and Speakers
+    const sessions = await prisma.$queryRaw<any[]>`
+      SELECT 
+        s.id::text,
+        s.title,
+        s.description,
+        s.start_time as "startTime",
+        s.end_time as "endTime",
+        s.room,
+        s.track
+      FROM sessions s
+      WHERE s.event_id = ${eventIdBigInt}
+      ORDER BY s.start_time ASC
+    `
+
+    const speakers = await prisma.$queryRaw<any[]>`
+      SELECT 
+        sp.id::text,
+        sp.name,
+        sp.title,
+        sp.bio,
+        sp.photo_url as "photoUrl"
+      FROM speakers sp
+      WHERE sp.event_id = ${eventIdBigInt}
+    `
+
     // Get registration count
     const registrationCount = await prisma.$queryRaw<any[]>`
       SELECT COUNT(*)::int as count
@@ -52,6 +78,8 @@ export async function GET(
     `
 
     event.registrationCount = registrationCount[0]?.count || 0
+    event.sessions = sessions
+    event.speakers = speakers
 
     return NextResponse.json(event)
 
