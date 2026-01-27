@@ -3,12 +3,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-    // Polyfill for BigInt serialization
-    ; (BigInt.prototype as any).toJSON = function () {
-        return this.toString()
-    }
+// Polyfill for BigInt serialization
+; (BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+}
 
 // GET - List sponsors for events belonging to this company
 export async function GET(req: NextRequest) {

@@ -1187,6 +1187,25 @@ model TeamInvite {
   @@map("team_invites")
 }
 
+model EventTeamInvitation {
+  id        BigInt   @id @default(autoincrement())
+  eventId   BigInt   @map("event_id")
+  tenantId  String?  @map("tenant_id")
+  email     String
+  role      String?  @default("STAFF")
+  token     String?
+  invitedBy BigInt?  @map("invited_by")
+  status    String?  @default("PENDING")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([token])
+  @@map("event_team_invitations")
+}
+
 // ==============================
 // Social Feed
 // ==============================
