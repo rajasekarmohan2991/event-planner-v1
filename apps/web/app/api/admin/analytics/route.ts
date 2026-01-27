@@ -30,12 +30,12 @@ export async function GET(req: NextRequest) {
     const isSuperAdmin = userRole === 'SUPER_ADMIN'
 
     // Helper for tenant filter
-    const whereTenant = isSuperAdmin 
-      ? Prisma.sql`1=1` 
+    const whereTenant = isSuperAdmin
+      ? Prisma.sql`1=1`
       : Prisma.sql`tenant_id = ${tenantId || 'default-tenant'}`
-    
-    const whereTenantEvents = isSuperAdmin 
-      ? Prisma.sql`1=1` 
+
+    const whereTenantEvents = isSuperAdmin
+      ? Prisma.sql`1=1`
       : Prisma.sql`e.tenant_id = ${tenantId || 'default-tenant'}`
 
     // Get analytics data using raw SQL queries
@@ -51,12 +51,12 @@ export async function GET(req: NextRequest) {
       prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE ${whereTenant}`,
       prisma.$queryRaw`SELECT COUNT(*)::int as count FROM tenants`, // Tenants count is global usually, or restricted? Keep global for now or 1 for tenant.
       prisma.$queryRaw`SELECT COUNT(*)::int as count FROM users`, // Users count might be global
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM registrations r JOIN events e ON r.event_id = e.id WHERE ${whereTenantEvents}`,
+      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM registrations r JOIN events e ON r.event_id = e.id WHERE ${whereTenantEvents} AND r.status = 'APPROVED'`,
       prisma.$queryRaw`
-        SELECT COALESCE(SUM(CAST((r.data_json::jsonb->>'finalAmount')::numeric AS int)), 0)::int as revenue 
+        SELECT COALESCE(SUM(r.price_inr), 0)::int as revenue 
         FROM registrations r 
         JOIN events e ON r.event_id = e.id 
-        WHERE ${whereTenantEvents} AND (r.data_json::jsonb->>'status' = 'CONFIRMED' OR r.data_json::jsonb->>'status' = 'APPROVED')
+        WHERE ${whereTenantEvents} AND r.status = 'APPROVED'
       `,
       prisma.$queryRaw`
         SELECT 
@@ -68,17 +68,14 @@ export async function GET(req: NextRequest) {
           e.event_manager_email as "adminEmail",
           COALESCE(e.expected_attendees, 0)::int as seats,
           COALESCE(t.name, 'Unknown Company') as "companyName",
-          COUNT(DISTINCT r.id)::int as registrations,
-          COUNT(DISTINCT rr.id)::int as rsvps,
+          (SELECT COUNT(*)::int FROM registrations r WHERE r.event_id = e.id AND r.status = 'APPROVED') as registrations,
+          (SELECT COUNT(*)::int FROM rsvp_responses rr WHERE rr.event_id = e.id) as rsvps,
           COALESCE(e.price_inr, 0)::int as price,
-          COALESCE(SUM(CAST(e.price_inr as numeric)), 0)::int as revenue
+          (SELECT COALESCE(SUM(r.price_inr), 0)::int FROM registrations r WHERE r.event_id = e.id AND r.status = 'APPROVED') as revenue
         FROM events e
-        LEFT JOIN registrations r ON e.id = r.event_id
         LEFT JOIN tenants t ON e.tenant_id = t.id
-        LEFT JOIN rsvp_responses rr ON e.id = rr.event_id
         WHERE ${whereTenantEvents}
-        GROUP BY e.id, e.name, e.starts_at, e.ends_at, e.status, e.event_manager_email, e.expected_attendees, t.name, e.price_inr
-        ORDER BY e.created_at DESC
+        ORDER BY (SELECT COUNT(*)::int FROM registrations r WHERE r.event_id = e.id AND r.status = 'APPROVED') DESC
         LIMIT 10
       `,
       prisma.$queryRaw`
@@ -87,7 +84,9 @@ export async function GET(req: NextRequest) {
           COUNT(*)::int as count
         FROM registrations r
         JOIN events e ON r.event_id = e.id
-        WHERE r.created_at >= NOW() - INTERVAL '6 months' AND ${whereTenantEvents}
+        WHERE r.created_at >= NOW() - INTERVAL '6 months' 
+          AND ${whereTenantEvents} 
+          AND r.status = 'APPROVED'
         GROUP BY TO_CHAR(r.created_at, 'Mon YYYY'), DATE_TRUNC('month', r.created_at)
         ORDER BY DATE_TRUNC('month', r.created_at)
       `
@@ -145,7 +144,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Error fetching analytics:', error)
-    
+
     // Return default analytics data on error
     return NextResponse.json({
       overview: {
