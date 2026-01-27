@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     // Set statement timeout to prevent long-running queries (20 seconds)
     await prisma.$executeRaw`SET statement_timeout = '20s'`
-    
+
     // Ensure database schema is up to date
     await ensureSchema()
     // Check authentication
@@ -86,17 +86,18 @@ export async function GET(req: NextRequest) {
       `.catch(err => { console.error('Error totalRevenue:', err); return [{ revenue: 0 }] }),
 
       prisma.$queryRaw`
-        WITH event_stats AS (
+        WITH event_regs AS (
           SELECT 
-            e.id,
-            COUNT(DISTINCT r.id) FILTER (WHERE UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')) as reg_count,
-            COALESCE(SUM(r.price_inr) FILTER (WHERE UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')), 0) as total_revenue
-          FROM events e
-          LEFT JOIN registrations r ON r.event_id = e.id
+            r.event_id,
+            COUNT(r.id) FILTER (WHERE UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')) as reg_count,
+            SUM(r.price_inr) FILTER (WHERE UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')) as total_revenue
+          FROM registrations r
+          JOIN events e ON r.event_id = e.id
           WHERE ${whereTenantEvents}
-          GROUP BY e.id
-          ORDER BY reg_count DESC
-          LIMIT 10
+          GROUP BY r.event_id
+        ),
+        top_events AS (
+          SELECT * FROM event_regs ORDER BY reg_count DESC LIMIT 10
         )
         SELECT 
           e.id::text,
@@ -107,14 +108,14 @@ export async function GET(req: NextRequest) {
           e.event_manager_email as "adminEmail",
           COALESCE(e.expected_attendees, 0)::int as seats,
           COALESCE(t.name, 'Unknown Company') as "companyName",
-          COALESCE(es.reg_count, 0)::int as registrations,
-          (SELECT COUNT(*)::int FROM rsvps rr WHERE rr.event_id::text = e.id::text LIMIT 1000) as rsvps,
+          COALESCE(te.reg_count, 0)::int as registrations,
+          (SELECT COUNT(*)::int FROM rsvps rr WHERE rr.event_id = e.id::text LIMIT 1000) as rsvps,
           COALESCE(e.price_inr, 0)::int as price,
-          COALESCE(es.total_revenue, 0)::int as revenue
-        FROM event_stats es
-        JOIN events e ON e.id = es.id
+          COALESCE(te.total_revenue, 0)::int as revenue
+        FROM top_events te
+        JOIN events e ON e.id = te.event_id
         LEFT JOIN tenants t ON e.tenant_id = t.id
-        ORDER BY es.reg_count DESC
+        ORDER BY te.reg_count DESC
       `.catch(err => { console.error('Error topEvents:', err); return [] }),
 
       prisma.$queryRaw`
@@ -122,8 +123,9 @@ export async function GET(req: NextRequest) {
           TO_CHAR(r.created_at, 'Mon YYYY') as month,
           COUNT(*)::int as count
         FROM registrations r
+        JOIN events e ON r.event_id = e.id
         WHERE r.created_at >= NOW() - INTERVAL '6 months' 
-          AND ${isSuperAdmin ? Prisma.sql`1=1` : Prisma.sql`r.tenant_id = ${tenantId || 'default-tenant'}`}
+          AND ${isSuperAdmin ? Prisma.sql`1=1` : Prisma.sql`e.tenant_id = ${tenantId || 'default-tenant'}`}
           AND UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')
         GROUP BY TO_CHAR(r.created_at, 'Mon YYYY'), DATE_TRUNC('month', r.created_at)
         ORDER BY DATE_TRUNC('month', r.created_at)
