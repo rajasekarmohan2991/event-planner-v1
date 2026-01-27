@@ -20,51 +20,30 @@ export async function PUT(
         const params = 'then' in context.params ? await context.params : context.params
         const valueId = params.id
         const body = await req.json()
-        const { value, label, description, sortOrder, isActive, isDefault } = body
+        const { value, label, description, sortOrder, isActive } = body
 
         // Validate required fields
         if (!value || !label) {
             return NextResponse.json({ error: 'Value and label are required' }, { status: 400 })
         }
 
-        // If setting as default, unset other defaults in same category
-        if (isDefault) {
-            const current = await prisma.$queryRaw<any[]>`
-        SELECT category_id FROM lookup_values WHERE id = ${valueId} LIMIT 1
-      `
-
-            if (current && current.length > 0) {
-                await prisma.$executeRaw`
-                    UPDATE lookup_values
-                    SET is_default = FALSE
-                    WHERE category_id = ${current[0].category_id} AND id != ${valueId}
-                `
-            }
-        }
-
         // Update the value
-        await prisma.$executeRaw`
-            UPDATE lookup_values
-            SET 
-                value = ${value},
-                label = ${label},
-                description = ${description || null},
-                sort_order = ${sortOrder || 0},
-                is_active = ${isActive !== undefined ? isActive : true},
-                is_default = ${isDefault || false},
-                updated_at = NOW()
-            WHERE id = ${valueId}
-        `
-
-        // Fetch updated value
-        const updated = await prisma.$queryRaw<any[]>`
-      SELECT * FROM lookup_values WHERE id = ${valueId} LIMIT 1
-    `
+        const updated = await prisma.lookup.update({
+            where: { id: valueId },
+            data: {
+                code: value, // Map value from form to code in DB
+                label,
+                description: description || null,
+                sortOrder: sortOrder || 0,
+                isActive: isActive !== undefined ? isActive : true,
+                // isDefault not supported in schema, usually handled by metadata if needed
+            }
+        })
 
         return NextResponse.json({
             success: true,
             message: 'Lookup value updated',
-            value: updated[0]
+            value: updated
         })
 
     } catch (error: any) {
@@ -92,22 +71,26 @@ export async function DELETE(
         const valueId = params.id
 
         // Check if value exists
-        const value = await prisma.$queryRaw<any[]>`
-      SELECT id, label FROM lookup_values WHERE id = ${valueId} LIMIT 1
-    `
+        const value = await prisma.lookup.findUnique({
+            where: { id: valueId }
+        })
 
-        if (!value || value.length === 0) {
+        if (!value) {
             return NextResponse.json({ error: 'Lookup value not found' }, { status: 404 })
         }
 
-        // Delete the value (allow deleting any value including system values)
-        await prisma.$executeRaw`
-            DELETE FROM lookup_values WHERE id = ${valueId}
-        `
+        if (value.isSystem) {
+            return NextResponse.json({ error: 'System values cannot be deleted' }, { status: 400 })
+        }
+
+        // Delete the value
+        await prisma.lookup.delete({
+            where: { id: valueId }
+        })
 
         return NextResponse.json({
             success: true,
-            message: `${value[0].label} deleted successfully`
+            message: `${value.label} deleted successfully`
         })
 
     } catch (error: any) {

@@ -20,35 +20,30 @@ export async function PATCH(
         const params = 'then' in context.params ? await context.params : context.params
         const valueId = params.id
 
-        // Get current value
-        const current = await prisma.$queryRaw<any[]>`
-      SELECT id, value, label, is_active, is_system
-      FROM lookup_values
-      WHERE id = ${valueId}
-      LIMIT 1
-    `
+        // Get current value to toggle
+        const current = await prisma.lookup.findUnique({
+            where: { id: valueId }
+        })
 
-        if (!current || current.length === 0) {
+        if (!current) {
             return NextResponse.json({ error: 'Lookup value not found' }, { status: 404 })
         }
 
-        const currentValue = current[0]
-        const newActiveState = !currentValue.is_active
+        const newActiveState = !current.isActive
 
         // Update the active state
-        await prisma.$executeRaw`
-            UPDATE lookup_values
-            SET is_active = ${newActiveState}, updated_at = NOW()
-            WHERE id = ${valueId}
-        `
+        const updated = await prisma.lookup.update({
+            where: { id: valueId },
+            data: { isActive: newActiveState }
+        })
 
         return NextResponse.json({
             success: true,
-            message: `${currentValue.label} ${newActiveState ? 'activated' : 'deactivated'}`,
+            message: `${updated.label} ${newActiveState ? 'activated' : 'deactivated'}`,
             value: {
-                id: valueId,
-                label: currentValue.label,
-                isActive: newActiveState
+                id: updated.id,
+                label: updated.label,
+                isActive: updated.isActive
             }
         })
 
