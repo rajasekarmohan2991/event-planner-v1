@@ -787,6 +787,14 @@ model EventVendor {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   tenantId        String?  @map("tenant_id")
+  
+  // Budget & Bank Details
+  budget          Decimal? @map("budget") @db.Decimal(10, 2)
+  bankName        String?  @map("bank_name")
+  accountNumber   String?  @map("account_number")
+  ifscCode        String?  @map("ifsc_code")
+  accountHolderName String? @map("account_holder_name")
+  upiId           String?  @map("upi_id")
 
   @@index([eventId, category])
   @@index([paymentStatus])

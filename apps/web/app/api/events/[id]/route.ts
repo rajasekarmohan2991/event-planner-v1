@@ -246,7 +246,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions as any)
-  const accessToken = (session as any)?.accessToken as string | undefined
+  // Check auth if needed, though public routes might not need it? 
+  // Original code checked session but allowed proceed (lines 248-249 don't return 401).
 
   // Validate that ID is numeric
   if (isNaN(Number(params.id))) {
@@ -255,48 +256,54 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }, { status: 400 })
   }
 
-  const eventId = parseInt(params.id)
+  const eventId = BigInt(params.id)
 
-
-  // Use Prisma directly for better performance (Java API was failing/slow)
   try {
-    const event = await prisma.$queryRaw`
-      SELECT 
-        id::text,
-        name,
-        description,
-        event_mode as "eventMode",
-        status,
-        venue,
-        address,
-        city,
-        starts_at as "startsAt",
-        ends_at as "endsAt",
-        budget_inr as "budgetInr",
-        expected_attendees as "expectedAttendees",
-        terms_and_conditions as "termsAndConditions",
-        disclaimer,
-        event_manager_name as "eventManagerName",
-        event_manager_contact as "eventManagerContact",
-        event_manager_email as "eventManagerEmail",
-        price_inr as "priceInr",
-        banner_url as "bannerUrl",
-        category,
-        created_at as "createdAt",
-        updated_at as "updatedAt",
-        (SELECT id FROM floor_plans WHERE "eventId" = events.id AND status = 'PUBLISHED' LIMIT 1) as "floorPlanId"
-      FROM events
-      WHERE id = ${eventId}::bigint
-      LIMIT 1
-    ` as any[]
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        floorPlans: {
+          where: { status: 'PUBLISHED' },
+          take: 1,
+          select: { id: true }
+        }
+      }
+    })
 
-    if (!event || event.length === 0) {
+    if (!event) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
 
-    return NextResponse.json(event[0])
+    // Map Prisma result to match expected API response
+    const mappedEvent = {
+      id: event.id.toString(),
+      name: event.name,
+      description: event.description,
+      eventMode: event.eventMode,
+      status: event.status,
+      venue: event.venue,
+      address: event.address,
+      city: event.city,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      budgetInr: event.budgetInr,
+      expectedAttendees: event.expectedAttendees,
+      termsAndConditions: event.termsAndConditions,
+      disclaimer: event.disclaimer,
+      eventManagerName: event.eventManagerName,
+      eventManagerContact: event.eventManagerContact,
+      eventManagerEmail: event.eventManagerEmail,
+      priceInr: event.priceInr,
+      bannerUrl: event.bannerUrl,
+      category: event.category,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+      floorPlanId: event.floorPlans[0]?.id || null
+    }
+
+    return NextResponse.json(mappedEvent)
   } catch (err: any) {
-    console.error('Prisma fallback also failed:', err)
+    console.error('Error fetching event:', err)
     return NextResponse.json({ message: err?.message || 'Failed to fetch event' }, { status: 500 })
   }
 }
