@@ -12,39 +12,50 @@ export async function GET(
 
   try {
     // 1. Fetch Event with Tenant info
-    const event = await prisma.event.findUnique({
+    const eventPromise = prisma.event.findUnique({
       where: { id: BigInt(eventId) },
       include: {
         tenant: {
           select: {
             id: true,
             name: true,
-            logo: true, // Assuming field is 'logo' based on previous schema view, or 'logoUrl' if mapped
+            logo: true,
             _count: {
               select: { events: true }
             }
           }
         },
-        sessions: {
-          orderBy: { startTime: 'asc' }
-        },
         speakers: true,
-        _count: {
-          select: {
-            registrations: {
-              where: { status: { in: ['APPROVED', 'PENDING'] } }
-            }
-          }
-        }
       }
     })
+
+    const [event, registrationCount, sessions] = await Promise.all([
+      eventPromise,
+      prisma.registration.count({
+        where: {
+          eventId: BigInt(eventId),
+          status: { in: ['APPROVED', 'PENDING'] }
+        }
+      }),
+      prisma.eventSession.findMany({
+        where: { eventId: BigInt(eventId) },
+        include: {
+          speakers: { include: { speaker: true } }
+        },
+        orderBy: { startTime: 'asc' }
+      })
+    ])
 
     if (!event) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
 
+    const safeEvent = {
+      ...event,
+      totalSeats: 0, // Placeholder if needed or fetched from floorPlan configs
+    }
+
     // Transform response
-    const safeEvent = event as any // Temporary cast to handle dynamic includes until types are auto-generated
     return NextResponse.json({
       id: safeEvent.id.toString(),
       name: safeEvent.name,
@@ -55,18 +66,17 @@ export async function GET(
       venue: safeEvent.venue,
       eventMode: safeEvent.eventMode,
       status: safeEvent.status,
-      bannerUrl: safeEvent.banner,
+      bannerUrl: safeEvent.bannerUrl,
       category: safeEvent.category,
       tenantId: safeEvent.tenantId,
       organizerName: safeEvent.tenant?.name,
       organizerLogo: safeEvent.tenant?.logo,
       organizerEventsCount: safeEvent.tenant?._count?.events || 0,
-      registrationCount: safeEvent._count?.registrations || 0,
-      sessions: (safeEvent.sessions || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
+      registrationCount: registrationCount,
+      priceInr: safeEvent.priceInr || 0,
+      sessions: (sessions || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
       speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
     })
-
-    return NextResponse.json(event)
 
   } catch (error: any) {
     console.error('❌ Error fetching public event:', error)

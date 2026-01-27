@@ -257,19 +257,34 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
 
                 <div className="border-t pt-6 space-y-4">
                   <h4 className="font-black text-xs uppercase tracking-widest text-slate-400">Order Summary</h4>
-                  <div className="flex justify-between items-center font-bold text-slate-700">
-                    <span>1 x {type.toUpperCase()} Registration</span>
-                    <span>{type === 'virtual' ? 'Free' : `₹${type === 'vip' ? (eventData?.priceInr || 0) * 3 : (eventData?.priceInr || 0)}`}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm text-slate-400 font-medium">
-                    <span>Processing Fee</span>
-                    <span>₹0.00</span>
-                  </div>
-                </div>
+                  {(() => {
+                    const price = type === 'virtual' ? 0 : (type === 'vip' ? (eventData?.priceInr || 0) * 3 : (eventData?.priceInr || 0))
+                    const processingFee = Math.round(price * 0.025) // 2.5%
+                    const tax = Math.round((price + processingFee) * 0.18) // 18% GST
+                    const total = price + processingFee + tax
 
-                <div className="border-t pt-6 flex justify-between items-center">
-                  <span className="text-xl font-bold text-slate-900">Total</span>
-                  <span className="text-3xl font-black text-indigo-600">{type === 'virtual' ? '₹0.00' : `₹${type === 'vip' ? (eventData?.priceInr || 0) * 3 : (eventData?.priceInr || 0)}.00`}</span>
+                    return (
+                      <>
+                        <div className="flex justify-between items-center font-bold text-slate-700">
+                          <span>1 x {type.toUpperCase()} Registration</span>
+                          <span>{price > 0 ? `₹${price}` : 'Free'}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm text-slate-400 font-medium">
+                          <span>Processing Fee (2.5%)</span>
+                          <span>{price > 0 ? `₹${processingFee}` : '₹0.00'}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm text-slate-400 font-medium">
+                          <span>Taxes (18% GST)</span>
+                          <span>{price > 0 ? `₹${tax}` : '₹0.00'}</span>
+                        </div>
+
+                        <div className="border-t pt-6 flex justify-between items-center">
+                          <span className="text-xl font-bold text-slate-900">Total</span>
+                          <span className="text-3xl font-black text-indigo-600">{price > 0 ? `₹${total}.00` : '₹0.00'}</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               </div>
             </div>
