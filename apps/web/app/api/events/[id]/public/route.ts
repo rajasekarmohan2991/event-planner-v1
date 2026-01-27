@@ -11,75 +11,59 @@ export async function GET(
   const eventId = params.id
 
   try {
-    const eventIdBigInt = BigInt(eventId)
+    // 1. Fetch Event with Tenant info
+    const event = await prisma.event.findUnique({
+      where: { id: BigInt(eventId) },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            logo: true, // Assuming field is 'logo' based on previous schema view, or 'logoUrl' if mapped
+            _count: {
+              select: { events: true }
+            }
+          }
+        },
+        sessions: {
+          orderBy: { startTime: 'asc' }
+        },
+        speakers: true,
+        _count: {
+          select: {
+            registrations: {
+              where: { status: { in: ['APPROVED', 'PENDING'] } }
+            }
+          }
+        }
+      }
+    })
 
-    // Fetch event with tenant information from database
-    const events = await prisma.$queryRaw<any[]>`
-      SELECT 
-        e.id::text,
-        e.name,
-        e.description,
-        e.starts_at as "startsAt",
-        e.ends_at as "endsAt",
-        e.city,
-        e.venue,
-        e.event_mode as "eventMode",
-        e.status,
-        e.banner_url as "bannerUrl",
-        e.category,
-        e.tenant_id::text as "tenantId",
-        t.name as "organizerName",
-        t.logo_url as "organizerLogo",
-        (SELECT COUNT(*)::int FROM events WHERE tenant_id = e.tenant_id AND status IN ('PUBLISHED', 'LIVE', 'UPCOMING')) as "organizerEventsCount"
-      FROM events e
-      LEFT JOIN tenants t ON e.tenant_id = t.id
-      WHERE e.id = ${eventIdBigInt}
-      LIMIT 1
-    `
-
-    if (!events || events.length === 0) {
+    if (!event) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
 
-    const event = events[0]
-
-    // Fetch Sessions and Speakers
-    const sessions = await prisma.$queryRaw<any[]>`
-      SELECT 
-        s.id::text,
-        s.title,
-        s.description,
-        s.start_time as "startTime",
-        s.end_time as "endTime",
-        s.room,
-        s.track
-      FROM sessions s
-      WHERE s.event_id = ${eventIdBigInt}
-      ORDER BY s.start_time ASC
-    `
-
-    const speakers = await prisma.$queryRaw<any[]>`
-      SELECT 
-        sp.id::text,
-        sp.name,
-        sp.title,
-        sp.bio,
-        sp.photo_url as "photoUrl"
-      FROM speakers sp
-      WHERE sp.event_id = ${eventIdBigInt}
-    `
-
-    // Get registration count
-    const registrationCount = await prisma.$queryRaw<any[]>`
-      SELECT COUNT(*)::int as count
-      FROM registrations
-      WHERE event_id = ${eventIdBigInt}
-      AND status IN ('APPROVED', 'PENDING')
-    `
-
-    event.registrationCount = registrationCount[0]?.count || 0
-    event.sessions = sessions
-    event.speakers = speakers
+    // Transform response
+    return NextResponse.json({
+      id: event.id.toString(),
+      name: event.name,
+      description: event.description,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      city: event.city,
+      // venue: event.venue, // Warning: Venue might be a relation or string, assume relation check later or string
+      eventMode: event.eventMode,
+      status: event.status,
+      bannerUrl: event.banner,
+      category: event.category,
+      tenantId: event.tenantId,
+      organizerName: event.tenant?.name,
+      organizerLogo: event.tenant?.logo,
+      organizerEventsCount: event.tenant?._count.events || 0,
+      registrationCount: event._count.registrations,
+      sessions: event.sessions.map(s => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
+      speakers: event.speakers.map(s => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
+    })
 
     return NextResponse.json(event)
 
