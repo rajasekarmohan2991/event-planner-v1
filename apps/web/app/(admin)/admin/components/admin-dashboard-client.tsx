@@ -43,11 +43,27 @@ export function AdminDashboardClient() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Add timeout to prevent hanging requests
+        const fetchWithTimeout = (url: string, timeout = 25000) => {
+          return Promise.race([
+            fetch(url),
+            new Promise<Response>((_, reject) => 
+              setTimeout(() => reject(new Error('Request timeout')), timeout)
+            )
+          ]);
+        };
+
         const [statsRes, activitiesRes, analyticsRes, companyRes] = await Promise.all([
-          fetch('/api/admin/dashboard/stats'),
-          fetch('/api/admin/activities/recent'),
-          fetch('/api/admin/analytics'),
-          fetch('/api/company/settings')
+          fetchWithTimeout('/api/admin/dashboard/stats'),
+          fetchWithTimeout('/api/admin/activities/recent'),
+          fetchWithTimeout('/api/admin/analytics').catch(err => {
+            console.warn('Analytics fetch failed:', err);
+            return { ok: false, json: async () => null } as Response;
+          }),
+          fetchWithTimeout('/api/company/settings').catch(err => {
+            console.warn('Company settings fetch failed:', err);
+            return { ok: false, json: async () => null } as Response;
+          })
         ]);
 
         if (!statsRes.ok || !activitiesRes.ok) {
@@ -70,7 +86,7 @@ export function AdminDashboardClient() {
         console.error('Error fetching dashboard data:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load dashboard data',
+          description: 'Failed to load dashboard data. Please try refreshing.',
           variant: 'destructive',
         });
       } finally {
