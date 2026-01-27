@@ -303,7 +303,7 @@ export default function UserDashboard() {
                   {filteredEvents.map(event => (
                     <Link
                       key={event.id}
-                      href={`/event/${event.id}`}
+                      href={`/events/${event.id}`}
                       className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-2"
                     >
                       <div className="relative h-48 bg-gradient-to-br from-purple-400 to-pink-400 overflow-hidden">

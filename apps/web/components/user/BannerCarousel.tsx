@@ -86,7 +86,7 @@ export function BannerCarousel({ events = [] }: BannerCarouselProps) {
             subtitle: (event.category || 'EVENT').toUpperCase(),
             description: event.description || `Join us for ${event.name}`,
             cta: "Book Now",
-            ctaLink: `/event/${event.id}`,
+            ctaLink: `/events/${event.id}`,
             bgGradient: theme.bg,
             accentColor: theme.accent,
             buttonColor: theme.btn,

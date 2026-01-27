@@ -184,7 +184,7 @@ export default function BookEventPage({ params }: { params: { id: string } }) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50 py-12">
             <div className={`mx-auto px-6 ${hasFloorPlan ? 'max-w-6xl' : 'max-w-2xl'}`}>
-                <Link href={`/event/${params.id}`} className="text-purple-600 hover:text-purple-700 inline-flex items-center gap-2 mb-6">
+                <Link href={`/events/${params.id}`} className="text-purple-600 hover:text-purple-700 inline-flex items-center gap-2 mb-6">
                     <ArrowLeft className="w-4 h-4" />
                     Back to Event
                 </Link>
