@@ -196,6 +196,8 @@ export function AdminDashboardClient() {
             icon={Building2}
             description={`${companySettings.plan} Plan • ${companySettings.subdomain}`}
             href="/company"
+            backgroundImage={companySettings.bannerUrl}
+            logoImage={companySettings.logoUrl}
           />
         ) : (
           <StatsCard

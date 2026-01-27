@@ -67,7 +67,9 @@ export function StatsCard({
   description,
   className,
   href,
-}: StatsCardProps) {
+  backgroundImage,
+  logoImage
+}: StatsCardProps & { backgroundImage?: string | null; logoImage?: string | null }) {
   const router = useRouter();
   const style = getCardStyle(title);
 
@@ -76,6 +78,55 @@ export function StatsCard({
       router.push(href);
     }
   };
+
+  if (backgroundImage) {
+    return (
+      <Card
+        className={cn(
+          style.bg,
+          'rounded-2xl border-none shadow-md hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group overflow-hidden relative min-h-[160px] flex flex-col justify-end',
+          href && 'cursor-pointer',
+          className
+        )}
+        onClick={handleClick}
+      >
+        <div className="absolute inset-0 z-0">
+          <img
+            src={backgroundImage}
+            alt="Background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        </div>
+
+        <div className="relative z-10 p-5">
+          <div className="flex items-center gap-4">
+            {logoImage ? (
+              <div className="h-12 w-12 rounded-xl bg-white p-1 shadow-lg shrink-0 overflow-hidden flex items-center justify-center">
+                <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                <Icon className="h-5 w-5" />
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">
+                {title}
+              </CardTitle>
+              <div className="text-2xl font-bold text-white truncate leading-tight">
+                {value}
+              </div>
+              <p className="text-white/70 text-xs font-medium mt-1 truncate">
+                {description}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -92,9 +143,15 @@ export function StatsCard({
         <CardTitle className={cn('text-sm font-semibold tracking-wide uppercase', style.descColor)}>
           {title}
         </CardTitle>
-        <div className={cn('p-2.5 rounded-xl transition-all shadow-sm', style.iconBg)}>
-          <Icon className={cn('h-5 w-5', style.iconColor)} />
-        </div>
+        {logoImage ? (
+          <div className="h-10 w-10 rounded-full overflow-hidden shadow-sm border border-gray-100">
+            <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className={cn('p-2.5 rounded-xl transition-all shadow-sm', style.iconBg)}>
+            <Icon className={cn('h-5 w-5', style.iconColor)} />
+          </div>
+        )}
       </CardHeader>
       <CardContent className="pb-5 px-5">
         <div className={cn('text-3xl font-bold mb-1 tracking-tight', style.textColor)}>{value}</div>

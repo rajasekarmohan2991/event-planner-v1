@@ -56,6 +56,11 @@ export default function SuperAdminSettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
+  // Company Banner state
+  const [companyBanner, setCompanyBanner] = useState<string | null>(null)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     // Fetch currency settings
     fetch('/api/super-admin/settings/currency')
@@ -75,6 +80,14 @@ export default function SuperAdminSettingsPage() {
         if (data.logo) setCompanyLogo(data.logo)
       })
       .catch(err => console.error('Failed to fetch logo', err))
+
+    // Fetch company banner
+    fetch('/api/super-admin/settings/banner')
+      .then(res => res.json())
+      .then(data => {
+        if (data.banner) setCompanyBanner(data.banner)
+      })
+      .catch(err => console.error('Failed to fetch banner', err))
   }, [])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,6 +149,68 @@ export default function SuperAdminSettingsPage() {
       }
     } catch (error) {
       toast({ title: 'Failed to remove logo', variant: 'destructive' })
+    }
+  }
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Max size is 5MB', variant: 'destructive' })
+      return
+    }
+
+    setUploadingBanner(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', 'banner')
+
+      const res = await fetch('/api/uploads', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const bannerUrl = data.url || data.secure_url
+
+        // Save banner URL to settings
+        await fetch('/api/super-admin/settings/banner', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ banner: bannerUrl })
+        })
+
+        setCompanyBanner(bannerUrl)
+        toast({ title: 'Banner uploaded successfully!' })
+      } else {
+        throw new Error('Upload failed')
+      }
+    } catch (error) {
+      toast({ title: 'Failed to upload banner', variant: 'destructive' })
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
+  const handleDeleteBanner = async () => {
+    if (!window.confirm('Are you sure you want to remove the company banner?')) return
+
+    try {
+      const res = await fetch('/api/super-admin/settings/banner', {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        setCompanyBanner(null)
+        toast({ title: 'Banner removed successfully' })
+      } else {
+        throw new Error('Failed to delete banner')
+      }
+    } catch (error) {
+      toast({ title: 'Failed to remove banner', variant: 'destructive' })
     }
   }
 
@@ -302,6 +377,79 @@ export default function SuperAdminSettingsPage() {
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Company Banner */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-pink-50 text-pink-600 rounded-lg">
+                    <Image className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Company Banner</h3>
+                    <p className="text-xs text-gray-500">Upload banner for company card</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                {companyBanner ? (
+                  <div className="relative w-full h-32 group">
+                    <div className="w-full h-full rounded-lg border border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                      <img src={companyBanner} alt="Company Banner" className="w-full h-full object-cover" />
+                    </div>
+                    {/* Overlay Actions */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-3">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-9 w-9 hover:scale-105 transition-transform"
+                        onClick={() => bannerInputRef.current?.click()}
+                        title="Change Banner"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-9 w-9 hover:scale-105 transition-transform bg-red-600 hover:bg-red-700 text-white border-0"
+                        onClick={handleDeleteBanner}
+                        title="Remove Banner"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                    <Image className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-700">{companyBanner ? 'Banner Uploaded' : 'No Banner Uploaded'}</p>
+                  <p className="text-xs text-gray-500">Recommended: Wide image, 800x300px</p>
+                  <p className="text-xs text-gray-500">Max size: 5MB (JPG, PNG)</p>
+                </div>
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerUpload}
+                  className="hidden"
+                />
+                {!companyBanner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={uploadingBanner}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadingBanner ? 'Uploading...' : 'Upload Banner'}
                   </Button>
                 )}
               </div>

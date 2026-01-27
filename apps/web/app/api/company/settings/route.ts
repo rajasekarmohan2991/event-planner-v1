@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any)
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
       }) || await prisma.tenant.findFirst({
         orderBy: { createdAt: 'asc' }
       })
-      
+
       if (defaultTenant) {
         tenantId = defaultTenant.id
       }
     }
-    
+
     if (!tenantId) {
       return NextResponse.json({ error: 'No tenant context found' }, { status: 400 })
     }
@@ -52,6 +52,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
+    // Fetch branding from system settings
+    let logoUrl = null
+    let bannerUrl = null
+    try {
+      const settings = await prisma.$queryRaw<any[]>`
+        SELECT key, value FROM system_settings WHERE key IN ('company_logo', 'company_banner')
+      `
+      const logoSetting = settings.find((s: any) => s.key === 'company_logo')
+      const bannerSetting = settings.find((s: any) => s.key === 'company_banner')
+      logoUrl = logoSetting?.value || null
+      bannerUrl = bannerSetting?.value || null
+    } catch (e) {
+      // Ignore if table doesn't exist
+    }
+
     const settings = {
       companyName: tenant.name,
       companySlug: tenant.slug,
@@ -61,7 +76,9 @@ export async function GET(req: NextRequest) {
       dateFormat: tenant.dateFormat || 'MM/DD/YYYY',
       status: tenant.status,
       createdAt: tenant.createdAt,
-      subdomain: tenant.subdomain
+      subdomain: tenant.subdomain,
+      logoUrl,
+      bannerUrl
     }
 
     return NextResponse.json(settings)
@@ -77,14 +94,14 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any)
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const userRole = (session.user as any).role
     const tenantId = (session.user as any).currentTenantId
-    
+
     // Allow TENANT_ADMIN to update settings as well
     if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(userRole)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -98,7 +115,7 @@ export async function PATCH(req: NextRequest) {
       }) || await prisma.tenant.findFirst({
         orderBy: { createdAt: 'asc' }
       })
-      
+
       if (defaultTenant) {
         targetTenantId = defaultTenant.id
       }
