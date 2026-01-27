@@ -98,9 +98,9 @@ const getNavigation = (userRole?: string, pathname?: string) => {
         { name: 'Tax Settings', href: '/super-admin/tax-templates', icon: Globe },
         { name: 'Signature Templates', href: '/super-admin/signatures/templates', icon: FileText },
         { name: 'Digital Signatures', href: '/admin/signatures', icon: FileText },
-        { name: 'System Settings', href: '/super-admin/settings', icon: Settings },
         { name: 'Subscription Plans', href: '/super-admin/subscription-plans', icon: CreditCard },
-        { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity }
+        { name: 'Run Diagnostics', href: '/super-admin/diagnostics', icon: Activity },
+        { name: 'System Settings', href: '/super-admin/settings', icon: Settings }
       )
     } else {
       // Global Super Admin View: Only Companies and Settings
