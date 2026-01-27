@@ -487,6 +487,12 @@ export default function CompanyDetailsPage() {
       <div className="space-y-8">
         {/* Stats Cards - Subtle Modern Style */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/** Safety: derive safe denominators to avoid NaN/Infinity on first render or missing plan limits */}
+          {(() => {
+            (company as any)._safeMaxEvents = Number.isFinite(company.maxEvents as any) && (company.maxEvents as any) > 0 ? (company.maxEvents as any) : 1
+            (company as any)._safeMaxUsers = Number.isFinite(company.maxUsers as any) && (company.maxUsers as any) > 0 ? (company.maxUsers as any) : 1
+            return null
+          })()}
           {/* Total Events Card */}
           {/* Total Events Card */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-blue-100 h-full hover:shadow-md transition-all duration-200">
@@ -568,19 +574,19 @@ export default function CompanyDetailsPage() {
                   <div className="h-2.5 w-full bg-indigo-100/60 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (company.events.length / company.maxEvents) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (company.events.length / (company as any)._safeMaxEvents) * 100)}%` }}
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-gray-700">Team Members</span>
-                    <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers}</span>
+                    <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers ?? '∞'}</span>
                   </div>
                   <div className="h-2.5 w-full bg-fuchsia-100/60 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (company.members.length / company.maxUsers) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (company.members.length / (company as any)._safeMaxUsers) * 100)}%` }}
                     />
                   </div>
                 </div>
