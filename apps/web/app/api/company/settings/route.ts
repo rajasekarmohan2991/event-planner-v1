@@ -29,8 +29,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // If still no tenant, return default settings instead of error
     if (!tenantId) {
-      return NextResponse.json({ error: 'No tenant context found' }, { status: 400 })
+      return NextResponse.json({
+        companyName: 'Event Planner',
+        companySlug: 'default',
+        plan: 'FREE',
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+        dateFormat: 'DD/MM/YYYY',
+        status: 'ACTIVE',
+        subdomain: null,
+        logoUrl: null,
+        bannerUrl: null
+      })
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -48,8 +60,20 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // If tenant not found, return default settings
     if (!tenant) {
-      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
+      return NextResponse.json({
+        companyName: 'Event Planner',
+        companySlug: 'default',
+        plan: 'FREE',
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+        dateFormat: 'DD/MM/YYYY',
+        status: 'ACTIVE',
+        subdomain: null,
+        logoUrl: null,
+        bannerUrl: null
+      })
     }
 
     // Fetch branding from system settings

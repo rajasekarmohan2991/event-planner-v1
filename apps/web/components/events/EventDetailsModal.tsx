@@ -13,7 +13,7 @@ interface EventDetailsModalProps {
 export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDetailsModalProps) {
   const [event, setEvent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'agenda' | 'details'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'agenda' | 'details' | 'route' | 'faq'>('overview')
   const router = useRouter()
 
   useEffect(() => {
@@ -63,7 +63,12 @@ export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDet
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
   }
 
+  const isEventEnded = event?.endsAt && new Date(event.endsAt) < new Date()
+
   const handleRegister = () => {
+    if (isEventEnded) {
+      return // Don't allow registration for ended events
+    }
     onClose()
     router.push(`/events/${eventId}/register`)
   }
@@ -139,6 +144,28 @@ export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDet
           >
             <CheckCircle className="w-4 h-4 inline mr-2" />
             Details
+          </button>
+          <button
+            onClick={() => setActiveTab('route')}
+            className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
+              activeTab === 'route'
+                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white dark:bg-slate-900'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <MapPin className="w-4 h-4 inline mr-2" />
+            Route
+          </button>
+          <button
+            onClick={() => setActiveTab('faq')}
+            className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
+              activeTab === 'faq'
+                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white dark:bg-slate-900'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <Info className="w-4 h-4 inline mr-2" />
+            FAQ
           </button>
         </div>
 
@@ -278,6 +305,17 @@ export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDet
               {/* Details Tab */}
               {activeTab === 'details' && (
                 <div className="space-y-6">
+                  {isEventEnded && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                      <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-semibold">
+                        <Clock className="w-5 h-5" />
+                        This event has ended
+                      </div>
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                        Registration is no longer available for this event.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl">
                       <Calendar className="w-5 h-5 text-indigo-600 mt-0.5" />
@@ -335,6 +373,123 @@ export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDet
                   </div>
                 </div>
               )}
+
+              {/* Route Tab */}
+              {activeTab === 'route' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">How to Reach</h3>
+                  
+                  {event?.venue || event?.city ? (
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-3">
+                          <MapPin className="w-5 h-5 text-red-600" />
+                          <h4 className="font-semibold text-gray-900 dark:text-white">Venue Address</h4>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          {event?.venue || event?.city}
+                        </p>
+                        {(event?.latitude && event?.longitude) && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            Open in Google Maps
+                          </a>
+                        )}
+                      </div>
+
+                      {event?.directions && (
+                        <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Directions</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
+                            {event.directions}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Transportation Tips</h4>
+                        <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
+                          <li>• Parking available on-site</li>
+                          <li>• Public transport accessible</li>
+                          <li>• Ride-sharing services recommended</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Location details will be shared soon
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FAQ Tab */}
+              {activeTab === 'faq' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Frequently Asked Questions</h3>
+                  
+                  {event?.faqs && event.faqs.length > 0 ? (
+                    <div className="space-y-3">
+                      {event.faqs.map((faq: any, index: number) => (
+                        <details key={index} className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                          <summary className="p-4 cursor-pointer font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                            {faq.question}
+                          </summary>
+                          <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                            {faq.answer}
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <details className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                        <summary className="p-4 cursor-pointer font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                          What should I bring to the event?
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                          Please bring a valid ID and your registration confirmation. Additional requirements will be communicated via email.
+                        </div>
+                      </details>
+
+                      <details className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                        <summary className="p-4 cursor-pointer font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                          Is parking available?
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                          Yes, free parking is available at the venue. Please arrive early as spaces are limited.
+                        </div>
+                      </details>
+
+                      <details className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                        <summary className="p-4 cursor-pointer font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                          Can I get a refund?
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                          Refund policy varies by event. Please contact the organizer for specific refund terms.
+                        </div>
+                      </details>
+
+                      <details className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
+                        <summary className="p-4 cursor-pointer font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                          Is food provided?
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                          Refreshments and meals will be provided as per the event schedule. Dietary preferences can be specified during registration.
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -351,17 +506,26 @@ export default function EventDetailsModal({ eventId, isOpen, onClose }: EventDet
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="px-6 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
-              >
+                className="px-6 py-3 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-all">
                 Close
               </button>
-              <button
-                onClick={handleRegister}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-              >
-                <Users className="w-5 h-5" />
-                Register Now
-              </button>
+              {isEventEnded ? (
+                <button
+                  disabled
+                  className="px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed flex items-center gap-2 opacity-60"
+                >
+                  <Clock className="w-5 h-5" />
+                  Event Ended
+                </button>
+              ) : (
+                <button
+                  onClick={handleRegister}
+                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                >
+                  <Users className="w-5 h-5" />
+                  Register Now
+                </button>
+              )}
             </div>
           </div>
         </div>
