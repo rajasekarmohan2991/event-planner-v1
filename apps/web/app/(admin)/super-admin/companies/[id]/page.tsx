@@ -378,16 +378,20 @@ export default function CompanyDetailsPage() {
               </div>
               <div className="flex flex-col justify-center space-y-4">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-gray-900">{analytics.overview.totalRegistrations || 24}</div>
+                  <div className="text-4xl font-bold text-gray-900">{analytics.overview.totalRegistrations}</div>
                   <div className="text-sm text-gray-600">Tickets Sold</div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/70 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">8</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {stats?.ticketStats?.male || 0}
+                    </div>
                     <div className="text-xs text-gray-600">Male</div>
                   </div>
                   <div className="bg-white/70 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-pink-600">3</div>
+                    <div className="text-2xl font-bold text-pink-600">
+                      {stats?.ticketStats?.female || 0}
+                    </div>
                     <div className="text-xs text-gray-600">Female</div>
                   </div>
                 </div>
