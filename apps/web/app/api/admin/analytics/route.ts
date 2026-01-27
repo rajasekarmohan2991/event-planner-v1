@@ -88,16 +88,20 @@ export async function GET(req: NextRequest) {
         prisma.user.count().catch(() => 0), 2500, 0
       ),
       // Registrations & Revenue (Combined for efficiency if possible, or separate)
+      // Registrations & Revenue (Safe Prisma Aggregation)
       timeout(
-        prisma.$queryRaw`
-            SELECT 
-                COUNT(*)::int as count, 
-                COALESCE(SUM(price_inr), 0)::int as revenue 
-            FROM registrations r
-            JOIN events e ON r.event_id = e.id
-            WHERE ${isSuperAdmin ? Prisma.sql`1=1` : Prisma.sql`e.tenant_id = ${tenantId}`}
-            AND r.status IN ('APPROVED', 'CONFIRMED', 'SUCCESS')
-         `.catch(() => [{ count: 0, revenue: 0 }]), 2500, [{ count: 0, revenue: 0 }]
+        prisma.registration.aggregate({
+          _count: { id: true },
+          _sum: { priceInr: true },
+          where: {
+            ...(isSuperAdmin ? {} : { tenantId }),
+            status: { in: ['APPROVED', 'PENDING'] }
+          }
+        }).then(agg => ({
+          count: agg._count?.id || 0,
+          revenue: agg._sum?.priceInr || 0
+        })).catch(() => ({ count: 0, revenue: 0 })),
+        2500, { count: 0, revenue: 0 }
       )
     ]);
 
