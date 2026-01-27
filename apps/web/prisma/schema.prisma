@@ -1975,6 +1975,8 @@ model SignatureRequest {
   // Document Type
   documentType    String   @map("document_type") // TERMS_AND_CONDITIONS, DISCLAIMER, EXHIBITOR_AGREEMENT, VENDOR_AGREEMENT, SPONSOR_AGREEMENT, SPEAKER_AGREEMENT, ATTENDEE_WAIVER
   documentTitle   String   @map("document_title")
+  documentContent String?  @db.Text @map("document_content")
+  documentTemplateId String? @map("document_template_id")
   
   // Signer Details
   signerEmail     String   @map("signer_email")
@@ -2001,6 +2003,8 @@ model SignatureRequest {
   signerIp        String?  @map("signer_ip")
   userAgent       String?  @map("user_agent")
   
+  // Custom Signing (Manual)
+  signatureToken  String?  @unique @map("signature_token")
   // Custom Fields
   customFields    Json?    @map("custom_fields")
   
