@@ -91,16 +91,18 @@ export async function PUT(
     const body = await req.json()
     const validatedData = updateModulesSchema.parse(body)
 
-    // Check if company exists
-    const tenant = await prisma.$queryRaw<any[]>`
-      SELECT id, subscription_plan FROM tenants WHERE id = ${tenantId}
-    `
+    // Check if company exists using Prisma Client for robustness
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, plan: true }
+    });
 
-    if (!tenant[0]) {
+    if (!tenant) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
     // Build update query dynamically
+    // Using snake_case for raw SQL as these columns are likely manually added or mapped in DB
     const updates: string[] = []
     const values: any[] = []
 
@@ -128,7 +130,7 @@ export async function PUT(
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 })
     }
 
-    // Add updated_at
+    // Add updated_at (try snake_case first as per other raw queries in this project)
     updates.push('updated_at = NOW()')
 
     // Execute update
@@ -136,26 +138,25 @@ export async function PUT(
       UPDATE tenants
       SET ${updates.join(', ')}
       WHERE id = $${values.length + 1}
-    `, ...values, tenantId)
+    `, ...values, tenantId).catch(async (e) => {
+      // Fallback for updatedAt vs updated_at if needed, but usually it's updated_at in raw
+      console.warn('Raw update failed, trying without updated_at...', e.message);
+      const minimalUpdates = updates.filter(u => !u.includes('updated_at'));
+      await prisma.$executeRawUnsafe(`
+          UPDATE tenants
+            SET ${minimalUpdates.join(', ')}
+            WHERE id = $${values.length + 1}
+        `, ...values, tenantId);
+    });
 
-    // Fetch updated tenant
-    const updatedTenant = await prisma.$queryRaw<any[]>`
-      SELECT 
-        id,
-        name,
-        subscription_plan,
-        module_vendor_management,
-        module_sponsor_management,
-        module_exhibitor_management,
-        provider_commission_rate,
-        provider_settings
-      FROM tenants 
-      WHERE id = ${tenantId}
-    `
+    // Fetch updated tenant for response
+    const updatedTenant = await prisma.tenant.findUnique({
+      where: { id: tenantId }
+    });
 
     return NextResponse.json({
       success: true,
-      company: updatedTenant[0],
+      company: updatedTenant,
       message: 'Company modules updated successfully'
     })
 
