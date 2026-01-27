@@ -250,9 +250,14 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="w-8 h-8 animate-spin mr-3" />
-          <span>Loading seat map...</span>
+        <CardContent className="flex flex-col items-center justify-center p-12 min-h-[300px]">
+          <Loader2 className="w-12 h-12 animate-spin text-purple-600 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">Loading Seat Map</h3>
+          {triedGenerateRef.current ? (
+            <p className="text-slate-500 animate-pulse">Generating seating arrangement... this may take a moment.</p>
+          ) : (
+            <p className="text-slate-500">Fetching latest availability...</p>
+          )}
         </CardContent>
       </Card>
     )
