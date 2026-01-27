@@ -1,4 +1,23 @@
-// Chair icon SVG component for seat visualization
+export type SeatStatus = 'AVAILABLE' | 'RESERVED' | 'BOOKED' | 'BLOCKED' | 'SELECTED'
+
+interface SeatIconProps {
+    x?: number
+    y?: number
+    rotation?: number
+    status?: SeatStatus
+    label?: string
+    size?: number
+    onClick?: () => void
+}
+
+const SEAT_COLORS: Record<SeatStatus, { fill: string; stroke: string }> = {
+    AVAILABLE: { fill: '#ffffff', stroke: '#22c55e' }, // White with Green border
+    SELECTED: { fill: '#9333ea', stroke: '#7e22ce' }, // Purple
+    RESERVED: { fill: '#f59e0b', stroke: '#d97706' }, // Amber
+    BOOKED: { fill: '#e2e8f0', stroke: '#94a3b8' },   // Slate 200 (Gray)
+    BLOCKED: { fill: '#cbd5e1', stroke: '#64748b' }   // Slate 300
+}
+
 export function ChairIcon({
     x = 0,
     y = 0,
@@ -7,89 +26,73 @@ export function ChairIcon({
     label = '',
     size = 20,
     onClick
-}: {
-    x?: number
-    y?: number
-    rotation?: number
-    status?: 'AVAILABLE' | 'RESERVED' | 'BOOKED' | 'BLOCKED'
-    label?: string
-    size?: number
-    onClick?: () => void
-}) {
-    const colors = {
-        AVAILABLE: '#10b981', // green
-        RESERVED: '#f59e0b', // orange
-        BOOKED: '#ef4444', // red
-        BLOCKED: '#6b7280' // gray
-    }
-
-    const color = colors[status] || colors.AVAILABLE
+}: SeatIconProps) {
+    const colors = SEAT_COLORS[status] || SEAT_COLORS.AVAILABLE
+    const isInteractive = status === 'AVAILABLE' || status === 'SELECTED'
+    const opacity = status === 'BLOCKED' ? 0.5 : 1
 
     return (
         <g
             transform={`translate(${x}, ${y}) rotate(${rotation}, ${size / 2}, ${size / 2})`}
             onClick={onClick}
-            style={{ cursor: onClick ? 'pointer' : 'default' }}
-            className="seat-icon"
+            style={{
+                cursor: isInteractive && onClick ? 'pointer' : 'default',
+                opacity
+            }}
+            className="seat-icon transition-colors duration-200"
         >
-            {/* Chair seat */}
-            <rect
-                x={size * 0.2}
-                y={size * 0.3}
-                width={size * 0.6}
-                height={size * 0.5}
-                rx={size * 0.1}
-                fill={color}
-                stroke="#000"
-                strokeWidth="1"
-                opacity={status === 'AVAILABLE' ? 0.8 : 0.6}
+            {/* Shadow/Glow for selected */}
+            {status === 'SELECTED' && (
+                <circle cx={size / 2} cy={size / 2} r={size * 0.8} fill={colors.fill} opacity={0.3} filter="blur(4px)" />
+            )}
+
+            {/* Chair Back */}
+            <path
+                d={`M${size * 0.15},${size * 0.1} Q${size * 0.5},${size * 0.05} ${size * 0.85},${size * 0.1} L${size * 0.85},${size * 0.6} Q${size * 0.5},${size * 0.65} ${size * 0.15},${size * 0.6} Z`}
+                fill={colors.fill}
+                stroke={colors.stroke}
+                strokeWidth={1.5}
             />
 
-            {/* Chair back */}
+            {/* Chair Seat */}
             <rect
-                x={size * 0.25}
-                y={size * 0.1}
-                width={size * 0.5}
-                height={size * 0.25}
-                rx={size * 0.1}
-                fill={color}
-                stroke="#000"
-                strokeWidth="1"
-                opacity={status === 'AVAILABLE' ? 0.8 : 0.6}
+                x={size * 0.1}
+                y={size * 0.55}
+                width={size * 0.8}
+                height={size * 0.4}
+                rx={size * 0.15}
+                fill={colors.fill}
+                stroke={colors.stroke}
+                strokeWidth={1.5}
             />
 
-            {/* Seat label */}
+            {/* Armrests (optional detail for premium feel) */}
+            <path
+                d={`M${size * 0.1},${size * 0.6} L${size * 0.1},${size * 0.8} M${size * 0.9},${size * 0.6} L${size * 0.9},${size * 0.8}`}
+                stroke={colors.stroke}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+            />
+
+            {/* Label */}
             {label && (
                 <text
                     x={size / 2}
-                    y={size * 0.6}
+                    y={size * 1.4}
                     textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#fff"
-                    fontSize={size * 0.35}
-                    fontWeight="bold"
+                    fill="#64748b"
+                    fontSize={size * 0.5}
+                    fontWeight="600"
                     pointerEvents="none"
+                    style={{ userSelect: 'none' }}
                 >
                     {label}
                 </text>
-            )}
-
-            {/* Status indicator (small dot) */}
-            {status !== 'AVAILABLE' && (
-                <circle
-                    cx={size * 0.85}
-                    cy={size * 0.15}
-                    r={size * 0.12}
-                    fill={status === 'BOOKED' ? '#dc2626' : '#f59e0b'}
-                    stroke="#fff"
-                    strokeWidth="0.5"
-                />
             )}
         </g>
     )
 }
 
-// Round table seat icon (chair positioned around table)
 export function TableSeatIcon({
     x = 0,
     y = 0,
@@ -98,53 +101,42 @@ export function TableSeatIcon({
     label = '',
     size = 15,
     onClick
-}: {
-    x?: number
-    y?: number
-    rotation?: number
-    status?: 'AVAILABLE' | 'RESERVED' | 'BOOKED' | 'BLOCKED'
-    label?: string
-    size?: number
-    onClick?: () => void
-}) {
-    const colors = {
-        AVAILABLE: '#10b981',
-        RESERVED: '#f59e0b',
-        BOOKED: '#ef4444',
-        BLOCKED: '#6b7280'
-    }
-
-    const color = colors[status] || colors.AVAILABLE
+}: SeatIconProps) {
+    const colors = SEAT_COLORS[status] || SEAT_COLORS.AVAILABLE
+    const isInteractive = status === 'AVAILABLE' || status === 'SELECTED'
 
     return (
         <g
             transform={`translate(${x}, ${y}) rotate(${rotation}, 0, 0)`}
             onClick={onClick}
-            style={{ cursor: onClick ? 'pointer' : 'default' }}
+            style={{ cursor: isInteractive && onClick ? 'pointer' : 'default' }}
             className="table-seat-icon"
         >
-            {/* Simple circle for table seat */}
+            {/* Glow for selected */}
+            {status === 'SELECTED' && (
+                <circle cx={0} cy={0} r={size * 1.2} fill={colors.fill} opacity={0.3} filter="blur(3px)" />
+            )}
+
             <circle
                 cx={0}
                 cy={0}
                 r={size}
-                fill={color}
-                stroke="#000"
-                strokeWidth="1.5"
-                opacity={status === 'AVAILABLE' ? 0.9 : 0.6}
+                fill={colors.fill}
+                stroke={colors.stroke}
+                strokeWidth={2}
             />
-
-            {/* Seat label */}
             {label && (
                 <text
                     x={0}
                     y={0}
+                    dy={size * 0.1}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="#fff"
-                    fontSize={size * 0.6}
+                    fill={status === 'SELECTED' ? '#fff' : '#64748b'}
+                    fontSize={size * 0.7}
                     fontWeight="bold"
                     pointerEvents="none"
+                    style={{ userSelect: 'none' }}
                 >
                     {label}
                 </text>

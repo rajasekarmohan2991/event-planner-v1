@@ -214,6 +214,29 @@ export default function FloorPlannerV3() {
     }
   }
 
+  // Zoom and Pan State
+  const [stageScale, setStageScale] = useState(1)
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
+
+  const handleWheel = (e: any) => {
+    e.evt.preventDefault()
+    const scaleBy = 1.1
+    const stage = e.target.getStage()
+    const oldScale = stage.scaleX()
+    const mousePointTo = {
+      x: stage.getPointerPosition().x / oldScale - stage.x() / oldScale,
+      y: stage.getPointerPosition().y / oldScale - stage.y() / oldScale,
+    }
+
+    const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy
+    setStageScale(newScale)
+
+    setStagePos({
+      x: -(mousePointTo.x - stage.getPointerPosition().x / newScale) * newScale,
+      y: -(mousePointTo.y - stage.getPointerPosition().y / newScale) * newScale,
+    })
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-indigo-50 to-purple-50">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -232,7 +255,8 @@ export default function FloorPlannerV3() {
         )}
 
         <div className="grid lg:grid-cols-[360px_1fr] gap-4">
-          <div className="bg-white rounded-lg border p-4 space-y-4">
+          <div className="bg-white rounded-lg border p-4 space-y-4 max-h-[800px] overflow-y-auto">
+            {/* Sidebar content - kept same */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Template</label>
               <select value={planType} onChange={e => setPlanType(e.target.value as PlanType)} className="w-full border rounded px-3 py-2">
@@ -271,14 +295,17 @@ export default function FloorPlannerV3() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Canvas</label>
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-medium">Controls</label>
+                <Button variant="ghost" size="sm" onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }) }}>Reset View</Button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} />
                   Show grid
                 </label>
                 <div>
-                  <input type="number" min={5} max={100} value={gridSize} onChange={e => setGridSize(parseInt(e.target.value)||20)} className="w-full border rounded px-3 py-2" />
+                  <input type="number" min={5} max={100} value={gridSize} onChange={e => setGridSize(parseInt(e.target.value) || 20)} className="w-full border rounded px-3 py-2" />
                 </div>
               </div>
             </div>
@@ -319,19 +346,19 @@ export default function FloorPlannerV3() {
                       <div key={i} className="grid grid-cols-5 gap-2 items-center">
                         <div>
                           <label className="block text-xs text-gray-500">Start Row Index</label>
-                          <input type="number" min={0} value={band.startRowIndex} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, startRowIndex: parseInt(e.target.value)||0 } : b))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={0} value={band.startRowIndex} onChange={e => setRowBands(bs => bs.map((b, idx) => idx === i ? { ...b, startRowIndex: parseInt(e.target.value) || 0 } : b))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">End Row Index</label>
-                          <input type="number" min={-1} placeholder="-1 for no end" value={band.endRowIndex ?? ''} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, endRowIndex: e.target.value==='' ? null : (parseInt(e.target.value)||0) } : b))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={-1} placeholder="-1 for no end" value={band.endRowIndex ?? ''} onChange={e => setRowBands(bs => bs.map((b, idx) => idx === i ? { ...b, endRowIndex: e.target.value === '' ? null : (parseInt(e.target.value) || 0) } : b))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Base Price</label>
-                          <input type="number" min={0} value={band.basePrice} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, basePrice: parseFloat(e.target.value)||0 } : b))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={0} value={band.basePrice} onChange={e => setRowBands(bs => bs.map((b, idx) => idx === i ? { ...b, basePrice: parseFloat(e.target.value) || 0 } : b))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Seat Type</label>
-                          <input type="text" value={band.seatType || 'STANDARD'} onChange={e => setRowBands(bs => bs.map((b, idx) => idx===i ? { ...b, seatType: e.target.value } : b))} className="w-full border rounded px-2 py-1" />
+                          <input type="text" value={band.seatType || 'STANDARD'} onChange={e => setRowBands(bs => bs.map((b, idx) => idx === i ? { ...b, seatType: e.target.value } : b))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" onClick={() => setRowBands(bs => bs.filter((_, idx) => idx !== i))}>Delete</Button>
@@ -363,12 +390,13 @@ export default function FloorPlannerV3() {
                   <div className="space-y-2">
                     {rings.map((r, idx) => (
                       <div key={idx} className="grid grid-cols-6 gap-2">
-                        <input type="number" value={r.radius} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, radius: parseInt(e.target.value)||0 }: x))} className="border rounded px-2 py-1" />
-                        <input type="number" value={r.sectors} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, sectors: parseInt(e.target.value)||1 }: x))} className="border rounded px-2 py-1" />
-                        <input type="number" value={r.seatsPerSector} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, seatsPerSector: parseInt(e.target.value)||1 }: x))} className="border rounded px-2 py-1" />
-                        <input type="number" value={r.basePrice} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, basePrice: parseFloat(e.target.value)||0 }: x))} className="border rounded px-2 py-1" />
-                        <input type="text" value={r.name} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, name: e.target.value }: x))} className="border rounded px-2 py-1" />
-                        <input type="text" value={r.seatType || 'STANDARD'} onChange={e => setRings(rs => rs.map((x,i)=> i===idx? { ...x, seatType: e.target.value || 'STANDARD' }: x))} className="border rounded px-2 py-1" />
+                        <input type="number" value={r.radius} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, radius: parseInt(e.target.value) || 0 } : x))} className="border rounded px-2 py-1" />
+                        <input type="number" value={r.sectors} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, sectors: parseInt(e.target.value) || 1 } : x))} className="border rounded px-2 py-1" />
+                        <input type="number" value={r.seatsPerSector} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, seatsPerSector: parseInt(e.target.value) || 1 } : x))} className="border rounded px-2 py-1" />
+                        <input type="number" value={r.basePrice} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, basePrice: parseFloat(e.target.value) || 0 } : x))} className="border rounded px-2 py-1" />
+                        <input type="text" value={r.name} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))} className="border rounded px-2 py-1" />
+                        <input type="text" value={r.seatType || 'STANDARD'} onChange={e => setRings(rs => rs.map((x, i) => i === idx ? { ...x, seatType: e.target.value || 'STANDARD' } : x))} className="border rounded px-2 py-1" />
+                        <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setRings(rs => rs.filter((_, i) => i !== idx))}>x</Button>
                       </div>
                     ))}
                   </div>
@@ -381,11 +409,11 @@ export default function FloorPlannerV3() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-sm font-medium mb-1">Default Seats/Table</label>
-                    <input type="number" min={1} max={12} value={banquetDefaultSeats} onChange={e => setBanquetDefaultSeats(parseInt(e.target.value)||1)} className="w-full border rounded px-3 py-2" />
+                    <input type="number" min={1} max={12} value={banquetDefaultSeats} onChange={e => setBanquetDefaultSeats(parseInt(e.target.value) || 1)} className="w-full border rounded px-3 py-2" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Default Base Price</label>
-                    <input type="number" min={0} value={banquetDefaultPrice} onChange={e => setBanquetDefaultPrice(parseFloat(e.target.value)||0)} className="w-full border rounded px-3 py-2" />
+                    <input type="number" min={0} value={banquetDefaultPrice} onChange={e => setBanquetDefaultPrice(parseFloat(e.target.value) || 0)} className="w-full border rounded px-3 py-2" />
                   </div>
                 </div>
                 <div>
@@ -405,53 +433,53 @@ export default function FloorPlannerV3() {
                       <div key={t.id} className="flex items-center gap-2 text-sm">
                         <button className="px-2 py-1 border rounded" onClick={() => setSelectedId(t.id)}>{t.id}</button>
                         <label className="inline-flex items-center gap-1">
-                          <input type="checkbox" checked={(t as any).locked || false} onChange={e => setTables(ts => ts.map(x => x.id===t.id? { ...x, locked: e.target.checked } as any : x))} />
+                          <input type="checkbox" checked={(t as any).locked || false} onChange={e => setTables(ts => ts.map(x => x.id === t.id ? { ...x, locked: e.target.checked } as any : x))} />
                           Lock
                         </label>
                         <button className="px-2 py-1 border rounded" onClick={() => setTables(ts => {
-                          const i = ts.findIndex(x => x.id===t.id)
+                          const i = ts.findIndex(x => x.id === t.id)
                           if (i <= 0) return ts
                           const copy = ts.slice()
-                          const tmp = copy[i-1]; copy[i-1] = copy[i]; copy[i]=tmp
+                          const tmp = copy[i - 1]; copy[i - 1] = copy[i]; copy[i] = tmp
                           return copy
                         })}>Up</button>
                         <button className="px-2 py-1 border rounded" onClick={() => setTables(ts => {
-                          const i = ts.findIndex(x => x.id===t.id)
-                          if (i < 0 || i >= ts.length-1) return ts
+                          const i = ts.findIndex(x => x.id === t.id)
+                          if (i < 0 || i >= ts.length - 1) return ts
                           const copy = ts.slice()
-                          const tmp = copy[i+1]; copy[i+1] = copy[i]; copy[i]=tmp
+                          const tmp = copy[i + 1]; copy[i + 1] = copy[i]; copy[i] = tmp
                           return copy
                         })}>Down</button>
-                        <button className="px-2 py-1 border rounded" onClick={() => setTables(ts => ts.filter(x => x.id!==t.id))}>Delete</button>
+                        <button className="px-2 py-1 border rounded" onClick={() => setTables(ts => ts.filter(x => x.id !== t.id))}>Delete</button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {selectedId && tables.find(t => t.id===selectedId) && (
+                {selectedId && tables.find(t => t.id === selectedId) && (
                   <div className="space-y-2 border-t pt-3">
                     <div className="text-sm font-medium">Selected Table Properties</div>
-                    {tables.filter(t => t.id===selectedId).map(t => (
+                    {tables.filter(t => t.id === selectedId).map(t => (
                       <div key={t.id} className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs text-gray-500">Seats</label>
-                          <input type="number" min={1} max={20} value={t.seats} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, seats: parseInt(e.target.value)||1 } : x))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={1} max={20} value={t.seats} onChange={(e) => setTables(ts => ts.map(x => x.id === t.id ? { ...x, seats: parseInt(e.target.value) || 1 } : x))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Radius</label>
-                          <input type="number" min={8} max={100} value={t.radius} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, radius: parseInt(e.target.value)||8 } : x))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={8} max={100} value={t.radius} onChange={(e) => setTables(ts => ts.map(x => x.id === t.id ? { ...x, radius: parseInt(e.target.value) || 8 } : x))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Base Price</label>
-                          <input type="number" min={0} value={t.basePrice} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, basePrice: parseFloat(e.target.value)||0 } : x))} className="w-full border rounded px-2 py-1" />
+                          <input type="number" min={0} value={t.basePrice} onChange={(e) => setTables(ts => ts.map(x => x.id === t.id ? { ...x, basePrice: parseFloat(e.target.value) || 0 } : x))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Section</label>
-                          <input type="text" value={t.section} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, section: e.target.value } : x))} className="w-full border rounded px-2 py-1" />
+                          <input type="text" value={t.section} onChange={(e) => setTables(ts => ts.map(x => x.id === t.id ? { ...x, section: e.target.value } : x))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500">Seat Type</label>
-                          <input type="text" value={t.seatType || 'STANDARD'} onChange={(e)=> setTables(ts => ts.map(x=> x.id===t.id ? { ...x, seatType: e.target.value || 'STANDARD' } : x))} className="w-full border rounded px-2 py-1" />
+                          <input type="text" value={t.seatType || 'STANDARD'} onChange={(e) => setTables(ts => ts.map(x => x.id === t.id ? { ...x, seatType: e.target.value || 'STANDARD' } : x))} className="w-full border rounded px-2 py-1" />
                         </div>
                         <div className="flex items-end">
                           <Button variant="outline" onClick={() => setTables(ts => [...ts, { ...t, id: `t${Date.now()}` }])}>Duplicate</Button>
@@ -464,10 +492,22 @@ export default function FloorPlannerV3() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg border p-2">
-            <Stage width={width} height={height} className="w-full h-full" onMouseDown={onStageMouseDown}>
+          <div className="bg-white rounded-lg border p-2 relative overflow-hidden active:cursor-grab">
+            <Stage
+              width={width}
+              height={height}
+              className="w-full h-full bg-slate-50"
+              onMouseDown={onStageMouseDown}
+              draggable={true}
+              onWheel={handleWheel}
+              scaleX={stageScale}
+              scaleY={stageScale}
+              x={stagePos.x}
+              y={stagePos.y}
+              onDragEnd={(e) => setStagePos(e.target.position())}
+            >
               <Layer>
-                <Rect x={0} y={0} width={width} height={height} fill="#f8fafc" stroke="#e5e7eb"/>
+                <Rect x={0} y={0} width={width} height={height} fill="#f8fafc" stroke="#e5e7eb" />
                 {showGrid && (
                   <Group listening={false}>
                     {Array.from({ length: Math.floor(width / gridSize) + 1 }).map((_, i) => (
@@ -516,10 +556,10 @@ export default function FloorPlannerV3() {
                           const node = shapeRefs.current[t.id]
                           const scaleX = node.scaleX() || 1
                           // adjust radius based on uniform scaleX
-                          setTables(ts => ts.map(x => x.id===t.id ? { ...x, radius: Math.max(8, x.radius * scaleX) } : x))
+                          setTables(ts => ts.map(x => x.id === t.id ? { ...x, radius: Math.max(8, x.radius * scaleX) } : x))
                           node.scaleX(1); node.scaleY(1)
                           const rot = node.rotation() || 0
-                          setTables(ts => ts.map(x => x.id===t.id ? { ...(x as any), rotation: rot } : x))
+                          setTables(ts => ts.map(x => x.id === t.id ? { ...(x as any), rotation: rot } : x))
                         }}
                       >
                         <Circle x={0} y={0} radius={t.radius} fill="#6366f1" opacity={0.15} stroke="#4338ca" />
@@ -532,7 +572,7 @@ export default function FloorPlannerV3() {
                         <Text x={-20} y={-8} text={t.id.toUpperCase()} fontSize={12} fill="#334155" />
                       </Group>
                     ))}
-                    {selectedId && shapeRefs.current[selectedId] && !((tables.find(x=>x.id===selectedId) as any)?.locked) && (
+                    {selectedId && shapeRefs.current[selectedId] && !((tables.find(x => x.id === selectedId) as any)?.locked) && (
                       <Transformer
                         ref={transformerRef}
                         rotateEnabled={true}

@@ -53,8 +53,13 @@ export default function LoginClient() {
       lottieSrc="/animations/signin.json"
       animationPlacement="left"
       disableBackgroundAnimations
-      title="Welcome"
-      subtitle="Sign in to your account to continue"
+      title="All-in-One Event Planning"
+      subtitle={
+        <span className="block mt-2 font-light">
+          <span className="block font-medium text-gray-800 mb-1">Ticketing & Check-in made simple.</span>
+          Create beautiful events, sell tickets, track RSVPs, and manage check-ins in one modern dashboard.
+        </span>
+      }
     >
       <div className="w-full">
         <LoginForm />
