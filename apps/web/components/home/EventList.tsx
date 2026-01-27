@@ -493,15 +493,24 @@ export default function EventList() {
                             View Website
                           </a>
                           {!isAdmin && ['LIVE', 'UPCOMING', 'PUBLISHED'].includes(x.status) && (
-                            <button
-                              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 ml-2"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/events/${x.id}/register`)
-                              }}
-                            >
-                              Register
-                            </button>
+                            new Date(x.endsAt) < new Date() ? (
+                              <button
+                                className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-semibold rounded cursor-not-allowed border border-red-200 ml-2"
+                                disabled
+                              >
+                                Ended
+                              </button>
+                            ) : (
+                              <button
+                                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700 ml-2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push(`/events/${x.id}/register`)
+                                }}
+                              >
+                                Register
+                              </button>
+                            )
                           )}
                         </div>
                       </div>

@@ -88,7 +88,21 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
     }
   }
 
+  // Determine if event is expired
+  const isExpired = event.endsAt && new Date(event.endsAt) < new Date()
+
   const getStatusConfig = (status?: string) => {
+    // Override status if expired, unless explicitly CANCELLED or TRASHED
+    if (isExpired && status !== 'CANCELLED' && status !== 'TRASHED') {
+      return {
+        color: 'bg-gradient-to-r from-gray-400 to-gray-500',
+        textColor: 'text-gray-700',
+        bgColor: 'bg-gray-100',
+        label: 'Ended',
+        pulse: false
+      }
+    }
+
     switch (status) {
       case 'UPCOMING':
       case 'PUBLISHED':
@@ -132,6 +146,16 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
           pulse: false
         }
       default:
+        // Handle case where status is active but might be expired
+        if (isExpired) {
+          return {
+            color: 'bg-gradient-to-r from-gray-400 to-gray-500',
+            textColor: 'text-gray-700',
+            bgColor: 'bg-gray-100',
+            label: 'Ended',
+            pulse: false
+          }
+        }
         return {
           color: 'bg-gradient-to-r from-indigo-500 to-purple-500',
           textColor: 'text-indigo-700',
@@ -197,10 +221,10 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
           <img
             src={event.bannerUrl}
             alt={event.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${isExpired ? 'grayscale' : ''}`}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center relative">
+          <div className={`w-full h-full flex items-center justify-center relative ${isExpired ? 'grayscale' : ''}`}>
             {/* AI-Generated Icon based on Event Category */}
             {(() => {
               const iconConfig = getEventIcon(event.category);
@@ -217,9 +241,13 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
                   </div>
 
                   {/* Decorative elements */}
-                  <div className="absolute top-4 left-4 w-2 h-2 bg-white/40 rounded-full animate-pulse" />
-                  <div className="absolute bottom-6 right-6 w-3 h-3 bg-white/30 rounded-full animate-pulse delay-150" />
-                  <div className="absolute top-1/2 right-8 w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse delay-300" />
+                  {!isExpired && (
+                    <>
+                      <div className="absolute top-4 left-4 w-2 h-2 bg-white/40 rounded-full animate-pulse" />
+                      <div className="absolute bottom-6 right-6 w-3 h-3 bg-white/30 rounded-full animate-pulse delay-150" />
+                      <div className="absolute top-1/2 right-8 w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse delay-300" />
+                    </>
+                  )}
                 </>
               );
             })()}
@@ -229,9 +257,9 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
         {/* Countdown/Time Indicator */}
         {event.startsAt && (
           <div className="absolute bottom-2 right-2">
-            <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+            <div className={`text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm ${isExpired ? 'bg-gray-800/80' : 'bg-black/70'}`}>
               <Clock className="w-3 h-3 inline mr-1" />
-              {new Date(event.startsAt) > new Date() ? 'Upcoming' : 'Started'}
+              {isExpired ? 'Event Ended' : (new Date(event.startsAt) > new Date() ? 'Upcoming' : 'Started')}
             </div>
           </div>
         )}
@@ -241,7 +269,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
       <div className="p-5 space-y-4">
         {/* Title */}
         <div>
-          <h3 className="font-semibold text-lg text-gray-900 group-hover:text-indigo-600 transition-colors duration-300 line-clamp-2">
+          <h3 className={`font-semibold text-lg text-gray-900 transition-colors duration-300 line-clamp-2 ${isExpired ? 'text-gray-500' : 'group-hover:text-indigo-600'}`}>
             {event.name || 'Untitled Event'}
           </h3>
         </div>
@@ -277,7 +305,7 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
             <span className="text-sm font-medium">
               {event.registrationCount || 0} registered
             </span>
-            {(event.registrationCount || 0) > 0 && (
+            {(event.registrationCount || 0) > 0 && !isExpired && (
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             )}
           </div>
@@ -306,10 +334,11 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
             {/* I am interested Button */}
             <button
               onClick={handleInterested}
-              disabled={isLoading || interested}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 border ${interested
-                ? 'bg-pink-50 text-pink-600 border-pink-200'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
+              disabled={isLoading || interested || isExpired}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 border ${isExpired ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' :
+                interested
+                  ? 'bg-pink-50 text-pink-600 border-pink-200'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
                 }`}
             >
               <Heart className={`w-4 h-4 ${interested ? 'fill-current' : ''}`} />
@@ -318,16 +347,26 @@ export default function ModernEventCard({ event, onEdit, onDelete }: EventCardPr
 
             {/* Register Button for LIVE events */}
             {['LIVE', 'UPCOMING', 'PUBLISHED'].includes(event.status || '') && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  router.push(`/events/${event.id}/register`)
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Register
-              </button>
+              isExpired ? (
+                <button
+                  disabled
+                  className="px-4 py-2 bg-red-50 text-red-600 text-sm font-semibold rounded-lg border border-red-200 cursor-not-allowed flex items-center gap-2"
+                >
+                  <Clock className="w-4 h-4" />
+                  Ended
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/events/${event.id}/register`)
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  Register
+                </button>
+              )
             )}
           </div>
         </div>

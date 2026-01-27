@@ -181,12 +181,21 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
                                 </div>
                             </div>
 
-                            <Link
-                                href={`/book/${params.id}`}
-                                className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-4 px-6 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
-                            >
-                                Book Now
-                            </Link>
+                            {new Date(event.endsAt) < new Date() ? (
+                                <button
+                                    disabled
+                                    className="block w-full bg-red-100 text-red-600 text-center py-4 px-6 rounded-xl font-semibold text-lg cursor-not-allowed shadow-none border border-red-200"
+                                >
+                                    Event Ended
+                                </button>
+                            ) : (
+                                <Link
+                                    href={`/book/${params.id}`}
+                                    className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-4 px-6 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
+                                >
+                                    Book Now
+                                </Link>
+                            )}
 
                             <p className="text-center text-xs text-gray-500 mt-4">
                                 Secure checkout • Powered by Ayphen
