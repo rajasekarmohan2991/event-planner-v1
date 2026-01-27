@@ -12,8 +12,6 @@ export async function GET(req: NextRequest) {
     // Set statement timeout to prevent long-running queries (20 seconds)
     await prisma.$executeRaw`SET statement_timeout = '20s'`
 
-    // Ensure database schema is up to date
-    await ensureSchema()
     // Check authentication
     const session = await getServerSession(authOptions as any)
     if (!session || !(session as any).user) {
