@@ -5,6 +5,21 @@ import { getRecentActivities } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
 
+// Helper to enforce timeouts on promises
+function timeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => {
+      timer = setTimeout(() => {
+        resolve(fallback)
+      }, ms)
+    })
+  ]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Check authentication
@@ -30,8 +45,12 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get real activities from database
-    const activities = await getRecentActivities(limit, offset)
+    // Get real activities from database with fail-safe timeout
+    const activities = await timeout(
+      getRecentActivities(limit, offset),
+      3000, // 3s max wait
+      []
+    )
 
     return NextResponse.json(activities)
 

@@ -2,15 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma, { Prisma } from '@/lib/prisma'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
+// Helper to enforce timeouts on promises
+function timeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => {
+      timer = setTimeout(() => {
+        resolve(fallback)
+      }, ms)
+    })
+  ]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
 export async function GET(req: NextRequest) {
   try {
-    // Ensure database schema is up to date
-    await ensureSchema()
-    // Check authentication
+    // 1. Auth Check (Fast)
     const session = await getServerSession(authOptions as any)
     if (!session || !(session as any).user) {
       return NextResponse.json(
@@ -19,8 +31,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Check authorization - SUPER_ADMIN, ADMIN, and EVENT_MANAGER
-    const userRole = (session as any).user.role as string
+    const { user } = session as any
+    const userRole = user.role as string
+
     if (!['SUPER_ADMIN', 'ADMIN', 'EVENT_MANAGER'].includes(userRole)) {
       return NextResponse.json(
         { message: 'Forbidden' },
@@ -33,130 +46,110 @@ export async function GET(req: NextRequest) {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
     // Get tenant ID from session
-    const tenantId = (session as any).user.currentTenantId
+    const tenantId = user.currentTenantId
+    const isSuperAdmin = userRole === 'SUPER_ADMIN'
 
-    console.log(`Fetching Dashboard Stats for Role=${userRole}, Tenant=${tenantId}`)
+    // 2. Prepare Queries
+    const whereTenant = isSuperAdmin
+      ? Prisma.sql`1=1`
+      : Prisma.sql`tenant_id = ${tenantId || 'default-tenant'}`
 
-    let totalEvents = 0
-    let upcomingEvents = 0
-    let totalUsers = 0
-    let recentRegistrations = 0
-    let totalCompanies = 0
+    const whereTenantORM = isSuperAdmin
+      ? {}
+      : { tenantId: tenantId || 'default-tenant' }
 
-    if (userRole === 'SUPER_ADMIN') {
-      // SUPER_ADMIN gets global stats
-      // Use raw SQL for more reliable counts
-      const [
-        eventsResult,
-        upcomingResult,
-        usersCount,
-        tenantsCount,
-        regResult
-      ] = await Promise.all([
-        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events`.catch(() => [{ count: 0 }]),
-        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE starts_at >= ${now}`.catch(() => [{ count: 0 }]),
-        prisma.user.count().catch(() => 0),
-        prisma.tenant.count().catch(() => 0),
-        prisma.$queryRaw`
-          SELECT COUNT(*)::int as count
-          FROM registrations
-          WHERE created_at >= ${sevenDaysAgo}
-        `.catch(() => [{ count: 0 }])
-      ]) as any[]
 
-      const regCount = (regResult[0]?.count || 0)
-
-      totalEvents = eventsResult[0]?.count || 0
-      upcomingEvents = upcomingResult[0]?.count || 0
-      totalUsers = usersCount
-      recentRegistrations = Number(regCount)
-
-      // Exclude self (Super Admin tenant) if count > 0
-      totalCompanies = Math.max(0, tenantsCount - 1)
-
-    } else {
-      // Others get tenant-scoped stats
-      const targetTenantId = tenantId || 'default-tenant'
-
-      const [
-        eventsCount,
-        upcomingCount,
-        usersCount,
-        regResult
-      ] = await Promise.all([
-        prisma.event.count({ where: { tenantId: targetTenantId } }),
-        prisma.event.count({ where: { tenantId: targetTenantId, startsAt: { gte: now } } }),
-        prisma.tenantMember.count({ where: { tenantId: targetTenantId } }),
-        prisma.$queryRaw`
-          SELECT COUNT(*)::int as count
-          FROM registrations
-          WHERE tenant_id = ${targetTenantId} AND created_at >= ${sevenDaysAgo}
-        `
-      ])
-
-      const regCount = (regResult as any)[0]?.count || 0
-
-      totalEvents = eventsCount
-      upcomingEvents = upcomingCount
-      totalUsers = usersCount
-      recentRegistrations = Number(regCount)
-      totalCompanies = 0 // Regular admins don't manage companies
-    }
-
-    // Fetch total tickets
-    const targetTenantIdForTickets = userRole === 'SUPER_ADMIN' ? undefined : (tenantId || 'default-tenant')
-    const totalTicketsResult = await prisma.$queryRaw<any[]>`
-        SELECT COALESCE(SUM(quantity), 0)::int as count 
-        FROM tickets 
-        WHERE ${userRole === 'SUPER_ADMIN' ? Prisma.sql`1=1` : Prisma.sql`tenant_id = ${targetTenantIdForTickets}`}
-    `.catch(() => [{ count: 0 }])
-    const totalTickets = totalTicketsResult[0]?.count || 0
-
-    // Fetch RSVP stats (Global or Tenant scoped)
-    const rsvpWhere = userRole === 'SUPER_ADMIN' ? {} : { tenantId: tenantId || 'default-tenant' }
-    const rsvpGroups = await prisma.rSVP.groupBy({
-      by: ['status'],
-      _count: {
-        status: true
-      },
-      where: rsvpWhere
-    })
-
-    const rsvpStats = {
-      total: rsvpGroups.reduce((acc: number, curr: any) => acc + curr._count.status, 0),
-      going: rsvpGroups.find((g: any) => g.status === 'GOING')?._count.status || 0,
-      interested: rsvpGroups.find((g: any) => g.status === 'INTERESTED')?._count.status || 0,
-      notGoing: rsvpGroups.find((g: any) => g.status === 'NOT_GOING')?._count.status || 0,
-    }
-
-    console.log('Stats computed:', {
-      totalEvents,
-      upcomingEvents,
-      totalUsers,
-      totalCompanies,
-      rsvpStats
-    })
-
-    return NextResponse.json({
+    // 3. Execute Parallel Fail-Safe Queries (Max 3s timeout)
+    const [
       totalEvents,
       upcomingEvents,
       totalUsers,
       recentRegistrations,
       totalTickets,
-      totalCompanies, // Added for super admin dashboard
+      totalCompanies,
+      rsvpStats
+    ] = await Promise.all([
+      // Total Events
+      timeout(
+        prisma.event.count({ where: whereTenantORM }).catch(() => 0),
+        3000, 0
+      ),
+      // Upcoming Events
+      timeout(
+        prisma.event.count({
+          where: { ...whereTenantORM, startsAt: { gte: now } }
+        }).catch(() => 0),
+        3000, 0
+      ),
+      // Users (Super Admin views all, others view tenant members)
+      timeout(
+        isSuperAdmin
+          ? prisma.user.count().catch(() => 0)
+          : prisma.tenantMember.count({ where: { tenantId } }).catch(() => 0),
+        3000, 0
+      ),
+      // Recent Registrations
+      timeout(
+        prisma.$queryRaw`
+                SELECT COUNT(*)::int as count 
+                FROM registrations 
+                WHERE created_at >= ${sevenDaysAgo} 
+                AND ${isSuperAdmin ? Prisma.sql`1=1` : Prisma.sql`tenant_id = ${tenantId}`}
+            `.then((res: any) => res[0]?.count || 0).catch(() => 0),
+        3000, 0
+      ),
+      // Total Tickets
+      timeout(
+        prisma.$queryRaw`
+                SELECT COALESCE(SUM(quantity), 0)::int as count 
+                FROM tickets 
+                WHERE ${isSuperAdmin ? Prisma.sql`1=1` : Prisma.sql`tenant_id = ${tenantId}`}
+            `.then((res: any) => res[0]?.count || 0).catch(() => 0),
+        3000, 0
+      ),
+      // Total Companies (Super Admin only)
+      timeout(
+        isSuperAdmin
+          ? prisma.tenant.count().then(c => Math.max(0, c - 1)).catch(() => 0)
+          : Promise.resolve(0),
+        3000, 0
+      ),
+      // RSVP Stats
+      timeout(
+        prisma.rSVP.groupBy({
+          by: ['status'],
+          _count: { status: true },
+          where: whereTenantORM
+        }).then(groups => ({
+          total: groups.reduce((acc, curr) => acc + curr._count.status, 0),
+          going: groups.find(g => g.status === 'GOING')?._count.status || 0,
+          interested: groups.find(g => g.status === 'INTERESTED')?._count.status || 0,
+          notGoing: groups.find(g => g.status === 'NOT_GOING')?._count.status || 0,
+        })).catch(() => ({ total: 0, going: 0, interested: 0, notGoing: 0 })),
+        3000, { total: 0, going: 0, interested: 0, notGoing: 0 }
+      )
+    ])
+
+    return NextResponse.json({
+      totalEvents,
+      upcomingEvents,
+      totalUsers,
+      recentRegistrations: Number(recentRegistrations),
+      totalTickets,
+      totalCompanies,
       rsvpStats
     })
 
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error)
-
-    // Return safe defaults on error
     return NextResponse.json({
       totalEvents: 0,
       upcomingEvents: 0,
       totalUsers: 0,
       recentRegistrations: 0,
       totalTickets: 0,
+      totalCompanies: 0,
+      rsvpStats: { total: 0, going: 0, interested: 0, notGoing: 0 }
     })
   }
 }
