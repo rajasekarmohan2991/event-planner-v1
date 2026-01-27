@@ -55,6 +55,8 @@ export async function GET(
       totalSeats: 0, // Placeholder if needed or fetched from floorPlan configs
     }
 
+    const isEnded = safeEvent.endsAt ? new Date(safeEvent.endsAt) < new Date() : false
+
     // Transform response
     return NextResponse.json({
       id: safeEvent.id.toString(),
@@ -62,8 +64,11 @@ export async function GET(
       description: safeEvent.description,
       startsAt: safeEvent.startsAt,
       endsAt: safeEvent.endsAt,
+      isEnded,
       city: safeEvent.city,
       venue: safeEvent.venue,
+      latitude: safeEvent.latitude,
+      longitude: safeEvent.longitude,
       eventMode: safeEvent.eventMode,
       status: safeEvent.status,
       bannerUrl: safeEvent.bannerUrl,
