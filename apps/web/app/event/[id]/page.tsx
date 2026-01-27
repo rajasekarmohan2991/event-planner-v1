@@ -3,7 +3,29 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, ArrowLeft, Ticket, Clock, CheckCircle } from 'lucide-react'
+import { Calendar, MapPin, Users, ArrowLeft, Ticket, Clock, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+
+interface Session {
+    id: string
+    title: string
+    description: string
+    startTime: string
+    endTime: string
+    room?: string
+    track?: string
+}
+
+interface Speaker {
+    id: string
+    name: string
+    title: string
+    photoUrl: string
+}
+
+interface FAQ {
+    question: string
+    answer: string
+}
 
 interface EventData {
     id: string
@@ -18,7 +40,11 @@ interface EventData {
     priceInr: number
     bannerUrl: string
     organizerName: string
+    organizerLogo?: string
     expectedAttendees: number
+    sessions: Session[]
+    speakers: Speaker[]
+    faqs?: FAQ[]
 }
 
 export default function PublicEventPage({ params }: { params: { id: string } }) {
@@ -26,11 +52,21 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
     const [event, setEvent] = useState<EventData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [openFaqs, setOpenFaqs] = useState<number[]>([])
+
+    const toggleFaq = (index: number) => {
+        setOpenFaqs(prev =>
+            prev.includes(index)
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        )
+    }
 
     useEffect(() => {
         const fetchEvent = async () => {
             try {
-                const res = await fetch(`/api/events/${params.id}`)
+                // Use the public API which includes sessions and speakers
+                const res = await fetch(`/api/events/${params.id}/public`)
                 if (res.ok) {
                     const data = await res.json()
                     setEvent(data)
@@ -75,131 +111,233 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
         )
     }
 
+    const formatTime = (dateStr: string) => {
+        return new Date(dateStr).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        })
+    }
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
+        <div className="min-h-screen bg-white">
             {/* Hero Banner */}
-            <div className="relative h-64 md:h-80 bg-gradient-to-br from-purple-600 to-pink-600">
+            <div className="relative h-64 md:h-80 bg-gradient-to-br from-purple-900 to-indigo-900">
                 {event.bannerUrl && (
                     <img
                         src={event.bannerUrl}
                         alt={event.name}
-                        className="absolute inset-0 w-full h-full object-cover opacity-50"
+                        className="absolute inset-0 w-full h-full object-cover opacity-60"
                     />
                 )}
-                <div className="absolute inset-0 bg-black/30"></div>
-                <div className="relative max-w-4xl mx-auto px-6 h-full flex flex-col justify-end pb-8">
-                    <Link href="/dashboard/user" className="text-white/80 hover:text-white mb-4 inline-flex items-center gap-2">
+                <div className="absolute inset-0 bg-black/20"></div>
+                <div className="relative max-w-5xl mx-auto px-6 h-full flex flex-col justify-end pb-12">
+                    <Link href="/dashboard/user" className="text-white/80 hover:text-white mb-6 inline-flex items-center gap-2 text-sm font-medium">
                         <ArrowLeft className="w-4 h-4" />
                         Back to Events
                     </Link>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">{event.name}</h1>
+                    <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{event.name}</h1>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-6 py-8">
-                <div className="grid md:grid-cols-3 gap-8">
+            <div className="max-w-5xl mx-auto px-6 py-12">
+                <div className="grid lg:grid-cols-3 gap-12">
                     {/* Main Content */}
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-12">
                         {/* Event Details */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">About This Event</h2>
-                            <p className="text-gray-600 whitespace-pre-wrap">{event.description}</p>
-                        </div>
+                        <section>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6">About This Event</h2>
+                            <div className="prose prose-purple max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">
+                                {event.description || "No description provided for this event."}
+                            </div>
+                        </section>
 
                         {/* Event Info Cards */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white rounded-xl shadow p-4">
-                                <div className="flex items-center gap-3">
-                                    <Calendar className="w-8 h-8 text-purple-500" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="bg-gray-50 rounded-2xl p-6 transition-colors hover:bg-gray-100">
+                                <div className="flex items-start gap-4">
+                                    <div className="bg-purple-100 p-3 rounded-xl">
+                                        <Calendar className="w-6 h-6 text-purple-600" />
+                                    </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Date & Time</p>
-                                        <p className="font-semibold text-gray-900">
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Date & Time</p>
+                                        <p className="font-bold text-gray-900">
                                             {new Date(event.startsAt).toLocaleDateString('en-US', {
                                                 weekday: 'short',
                                                 month: 'short',
-                                                day: 'numeric'
+                                                day: 'numeric',
+                                                year: 'numeric'
                                             })}
+                                        </p>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            {formatTime(event.startsAt)} – {formatTime(event.endsAt)}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow p-4">
-                                <div className="flex items-center gap-3">
-                                    <MapPin className="w-8 h-8 text-pink-500" />
+                            <div className="bg-gray-50 rounded-2xl p-6 transition-colors hover:bg-gray-100">
+                                <div className="flex items-start gap-4">
+                                    <div className="bg-pink-100 p-3 rounded-xl">
+                                        <MapPin className="w-6 h-6 text-pink-600" />
+                                    </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Location</p>
-                                        <p className="font-semibold text-gray-900">{event.city}</p>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Location</p>
+                                        <p className="font-bold text-gray-900">
+                                            {event.eventMode === 'ONLINE' ? 'Online event' : (event.venue || event.city || 'TBD')}
+                                        </p>
+                                        {event.eventMode !== 'ONLINE' && event.city && (
+                                            <p className="text-sm text-gray-600 mt-1">{event.city}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow p-4">
-                                <div className="flex items-center gap-3">
-                                    <Users className="w-8 h-8 text-blue-500" />
+                            <div className="bg-gray-50 rounded-2xl p-6 transition-colors hover:bg-gray-100">
+                                <div className="flex items-start gap-4">
+                                    <div className="bg-blue-100 p-3 rounded-xl">
+                                        <Users className="w-6 h-6 text-blue-600" />
+                                    </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Expected</p>
-                                        <p className="font-semibold text-gray-900">{event.expectedAttendees || '50+'} attendees</p>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Capacity</p>
+                                        <p className="font-bold text-gray-900">{event.expectedAttendees || 'Unlimited'} Attendees</p>
+                                        <p className="text-sm text-gray-600 mt-1">Confirmed participants</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow p-4">
-                                <div className="flex items-center gap-3">
-                                    <Ticket className="w-8 h-8 text-green-500" />
+                            <div className="bg-gray-50 rounded-2xl p-6 transition-colors hover:bg-gray-100">
+                                <div className="flex items-start gap-4">
+                                    <div className="bg-green-100 p-3 rounded-xl">
+                                        <Ticket className="w-6 h-6 text-green-600" />
+                                    </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Category</p>
-                                        <p className="font-semibold text-gray-900">{event.category}</p>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Category</p>
+                                        <p className="font-bold text-gray-900 uppercase tracking-wide">{event.category || 'General'}</p>
+                                        <p className="text-sm text-gray-600 mt-1">Event type</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Agenda Section */}
+                        {event.sessions && event.sessions.length > 0 && (
+                            <section className="pt-8">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-8">Agenda</h2>
+                                <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                                    {event.sessions.map((session, index) => (
+                                        <div key={session.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group select-none">
+                                            {/* Dot */}
+                                            <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-300 group-hover:bg-purple-500 text-slate-500 group-hover:text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-colors duration-200">
+                                                <Clock className="w-5 h-5" />
+                                            </div>
+                                            {/* Card */}
+                                            <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md hover:border-purple-200">
+                                                <div className="flex items-center justify-between space-x-2 mb-2">
+                                                    <div className="font-bold text-purple-600">
+                                                        {formatTime(session.startTime)} – {formatTime(session.endTime)}
+                                                    </div>
+                                                </div>
+                                                <div className="text-slate-900 font-bold text-lg mb-1">{session.title}</div>
+                                                <div className="text-slate-500 text-sm line-clamp-2 md:line-clamp-none">
+                                                    {session.description || "Experience an engaging session exploring key insights and industry best practices."}
+                                                </div>
+                                                {session.room && (
+                                                    <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-400">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {session.room}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* FAQ Section */}
+                        {event.faqs && event.faqs.length > 0 && (
+                            <section className="pt-8">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-8">Frequently asked questions</h2>
+                                <div className="space-y-4">
+                                    {event.faqs.map((faq, index) => (
+                                        <div
+                                            key={index}
+                                            className="border border-gray-200 rounded-2xl overflow-hidden bg-white hover:border-purple-200 transition-colors"
+                                        >
+                                            <button
+                                                onClick={() => toggleFaq(index)}
+                                                className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
+                                            >
+                                                <span className="font-bold text-gray-900">{faq.question}</span>
+                                                {openFaqs.includes(index) ? (
+                                                    <ChevronUp className="w-5 h-5 text-purple-500" />
+                                                ) : (
+                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </button>
+                                            {openFaqs.includes(index) && (
+                                                <div className="px-6 pb-6 text-gray-600 leading-relaxed">
+                                                    {faq.answer}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
 
                     {/* Sidebar - Registration Card */}
-                    <div className="md:col-span-1">
-                        <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
-                            <div className="text-center mb-6">
-                                <p className="text-sm text-gray-500">Price</p>
-                                <p className="text-3xl font-bold text-purple-600">
-                                    {event.priceInr && event.priceInr > 0 ? `₹${event.priceInr}` : 'FREE'}
-                                </p>
+                    <div className="lg:col-span-1">
+                        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 sticky top-8">
+                            <div className="mb-8">
+                                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Ticket Price</p>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-4xl font-black text-purple-600">
+                                        {event.priceInr && event.priceInr > 0 ? `₹${event.priceInr}` : 'Free'}
+                                    </span>
+                                    {event.priceInr > 0 && <span className="text-gray-400 font-medium">/ person</span>}
+                                </div>
                             </div>
 
-                            <div className="space-y-3 mb-6">
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    <span>Instant confirmation</span>
+                            <div className="space-y-4 mb-8">
+                                <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                                    <span className="font-medium">Instant confirmation</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    <span>E-ticket on email</span>
+                                <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                                    <span className="font-medium">E-ticket sent to your email</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                    <span>{event.eventMode === 'IN_PERSON' ? 'In-person event' : 'Virtual event'}</span>
+                                <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <Clock className="w-5 h-5 text-purple-500 shrink-0" />
+                                    <span className="font-medium">
+                                        {event.eventMode === 'ONLINE' ? 'Virtual access link' : 'On-site registration'}
+                                    </span>
                                 </div>
                             </div>
 
                             {new Date(event.endsAt) < new Date() ? (
                                 <button
                                     disabled
-                                    className="block w-full bg-red-100 text-red-600 text-center py-4 px-6 rounded-xl font-semibold text-lg cursor-not-allowed shadow-none border border-red-200"
+                                    className="w-full bg-gray-100 text-gray-400 py-4 px-6 rounded-2xl font-bold text-lg cursor-not-allowed border border-gray-200"
                                 >
                                     Event Ended
                                 </button>
                             ) : (
                                 <Link
                                     href={`/book/${params.id}`}
-                                    className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-4 px-6 rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
+                                    className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-center py-4 px-6 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-purple-200 active:scale-[0.98] transition-all"
                                 >
-                                    Book Now
+                                    Reserve a spot
                                 </Link>
                             )}
 
-                            <p className="text-center text-xs text-gray-500 mt-4">
-                                Secure checkout • Powered by Ayphen
-                            </p>
+                            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+                                <Ticket className="w-3 h-3" />
+                                Secure checkout by Ayphen
+                            </div>
                         </div>
                     </div>
                 </div>

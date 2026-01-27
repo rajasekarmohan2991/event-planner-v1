@@ -296,6 +296,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       priceInr: event.priceInr,
       bannerUrl: event.bannerUrl,
       category: event.category,
+      faqs: event.faqs,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
       floorPlanId: event.floorPlans[0]?.id || null
@@ -380,6 +381,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
         latitude = COALESCE(${sanitizeNum(incoming.latitude)}, latitude),
         longitude = COALESCE(${sanitizeNum(incoming.longitude)}, longitude),
+        faqs = COALESCE(${incoming.faqs ? JSON.stringify(incoming.faqs) : null}::jsonb, faqs),
         updated_at = NOW()
       WHERE id = ${eventId}
     `

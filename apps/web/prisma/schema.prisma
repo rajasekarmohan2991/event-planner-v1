@@ -1327,6 +1327,9 @@ model Event {
   eventManagerContact String?  @map("event_manager_contact")
   eventManagerEmail  String?   @map("event_manager_email")
   
+  // FAQs
+  faqs               Json?     @map("faqs") // Array of { question, answer }
+
   // Multi-day event configuration
   daysConfig         Json?     @map("days_config") // Stores array of {date, title, startTime, endTime}
 
