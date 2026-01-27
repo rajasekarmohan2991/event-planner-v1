@@ -13,6 +13,7 @@ interface Tenant {
     billingEmail: string;
     createdAt: string;
     logo?: string | null;
+    banner?: string | null;
     _count: { members: number };
     eventCount?: number;
 }
@@ -74,8 +75,13 @@ export default function CompanyListClient({ initialCompanies }: CompanyListClien
             }}
             className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 overflow-hidden flex flex-col"
         >
-            {/* Banner Image (Gradient) */}
-            <div className={`h-20 bg-gradient-to-r ${getGradient(company.name)} relative`}>
+            {/* Banner Image */}
+            <div className={`h-20 relative overflow-hidden`}>
+                {company.banner ? (
+                    <img src={company.banner} alt={`${company.name} banner`} className="w-full h-full object-cover" />
+                ) : (
+                    <div className={`w-full h-full bg-gradient-to-r ${getGradient(company.name)}`} />
+                )}
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-300" />
             </div>
 
@@ -83,7 +89,7 @@ export default function CompanyListClient({ initialCompanies }: CompanyListClien
             <div className="p-4 pt-0 flex-1 flex flex-col relative">
                 {/* Avatar overlapping banner */}
                 <div className="flex justify-between items-end mb-3 -mt-8 px-2">
-                    <div className="w-16 h-16 bg-white rounded-xl shadow-md overflow-hidden flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white rounded-xl shadow-md overflow-hidden flex items-center justify-center relative z-10">
                         {company.logo ? (
                             <img
                                 src={company.logo}
