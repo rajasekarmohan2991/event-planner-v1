@@ -84,13 +84,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const hasSeatInventory = seatCount > 0
 
     if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
-      console.log('[Availability] Self-healing: Generating missing seats for event', eventId)
-      try {
-        // Use tenantId from floor plan if available (most reliable), else from context
-        await generateSeats(eventId, floorPlan.layoutData, floorPlan.tenantId || tenantId)
-      } catch (genErr) {
-        console.error('[Availability] Generation failed:', genErr)
-      }
+      // Return empty seats but include floor plan. Frontend will trigger generation asynchronously.
+      console.log('[Availability] Seats missing but floor plan exists. Signaling frontend to generate.')
     } else if (!hasFloorPlan && !hasSeatInventory) {
       // No floor plan or seats exist AND generation not possible - return empty
       return NextResponse.json({
