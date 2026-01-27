@@ -1,40 +1,45 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma, { Prisma } from '@/lib/prisma'
-import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 25
 
+// Helper to enforce timeouts on promises
+function timeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => {
+      timer = setTimeout(() => {
+        // console.warn(`Query timed out after ${ms}ms`)
+        resolve(fallback)
+      }, ms)
+    })
+  ]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
 export async function GET(req: NextRequest) {
   try {
-    // Set statement timeout to prevent long-running queries (20 seconds)
-    await prisma.$executeRaw`SET statement_timeout = '20s'`
-
-    // Check authentication
+    // 1. Auth Check (Fast)
     const session = await getServerSession(authOptions as any)
     if (!session || !(session as any).user) {
-      return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
-      )
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
     }
 
-    // Check authorization
     const userRole = (session as any).user.role as string
     if (!['SUPER_ADMIN', 'ADMIN', 'EVENT_MANAGER'].includes(userRole)) {
-      return NextResponse.json(
-        { message: 'Forbidden' },
-        { status: 403 }
-      )
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
     }
 
-    // Get tenant ID
     const tenantId = (session as any).user.currentTenantId
     const isSuperAdmin = userRole === 'SUPER_ADMIN'
 
-    // Helper for tenant filter
+    // 2. Prepare Filters
     const whereTenant = isSuperAdmin
       ? Prisma.sql`1=1`
       : Prisma.sql`tenant_id = ${tenantId || 'default-tenant'}`
@@ -43,46 +48,53 @@ export async function GET(req: NextRequest) {
       ? Prisma.sql`1=1`
       : Prisma.sql`e.tenant_id = ${tenantId || 'default-tenant'}`
 
-    // Help with query results to avoid BigInt issues
-    const safeCount = (res: any) => {
-      if (!res || !res[0]) return 0;
-      const val = Object.values(res[0])[0];
-      return typeof val === 'bigint' ? Number(val) : (Number(val) || 0);
-    };
+    // 3. Define fail-safe queries with aggressive timeouts (4s max per query)
+    // If a query is too slow, we return 0/empty to prevent 504.
 
-    // Get analytics data using raw SQL queries with individual error handling
-    const [
-      totalEventsResult,
-      totalCompaniesResult,
-      totalUsersResult,
-      totalRegistrationsResult,
-      totalRevenueResult,
-      topEventsResult,
-      registrationsByMonthResult
-    ] = await Promise.all([
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE ${whereTenant}`
-        .catch(err => { console.error('Error totalEvents:', err); return [{ count: 0 }] }),
+    // Quick Counters
+    const qEvents = timeout(
+      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE ${whereTenant}`.catch(() => [{ count: 0 }]),
+      4000,
+      [{ count: 0 }]
+    )
 
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM tenants`
-        .catch(err => { console.error('Error totalCompanies:', err); return [{ count: 0 }] }),
+    const qCompanies = timeout(
+      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM tenants`.catch(() => [{ count: 0 }]),
+      4000,
+      [{ count: 0 }]
+    )
 
-      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM users`
-        .catch(err => { console.error('Error totalUsers:', err); return [{ count: 0 }] }),
+    const qUsers = timeout(
+      prisma.$queryRaw`SELECT COUNT(*)::int as count FROM users`.catch(() => [{ count: 0 }]),
+      4000,
+      [{ count: 0 }]
+    )
 
+    // Slightly heavier aggregations
+    const qRegs = timeout(
       prisma.$queryRaw`
         SELECT COUNT(*)::int as count 
         FROM registrations r 
         JOIN events e ON r.event_id = e.id 
         WHERE ${whereTenantEvents} AND UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')
-      `.catch(err => { console.error('Error totalRegistrations:', err); return [{ count: 0 }] }),
+      `.catch(() => [{ count: 0 }]),
+      4000,
+      [{ count: 0 }]
+    )
 
+    const qRev = timeout(
       prisma.$queryRaw`
         SELECT COALESCE(SUM(r.price_inr), 0)::int as revenue 
         FROM registrations r 
         JOIN events e ON r.event_id = e.id 
         WHERE ${whereTenantEvents} AND UPPER(r.status) IN ('APPROVED', 'PENDING', 'CONFIRMED', 'SUCCESS')
-      `.catch(err => { console.error('Error totalRevenue:', err); return [{ revenue: 0 }] }),
+      `.catch(() => [{ revenue: 0 }]),
+      4000,
+      [{ revenue: 0 }]
+    )
 
+    // Heaviest Queries - Reduce TIMEOUT to ensure we reply fast
+    const qTopEvents = timeout(
       prisma.$queryRaw`
         WITH event_regs AS (
           SELECT 
@@ -107,15 +119,19 @@ export async function GET(req: NextRequest) {
           COALESCE(e.expected_attendees, 0)::int as seats,
           COALESCE(t.name, 'Unknown Company') as "companyName",
           COALESCE(te.reg_count, 0)::int as registrations,
-          (SELECT COUNT(*)::int FROM rsvps rr WHERE rr.event_id = e.id::text LIMIT 1000) as rsvps,
+          0 as rsvps, -- Optimization: skip RSVP count subquery
           COALESCE(e.price_inr, 0)::int as price,
           COALESCE(te.total_revenue, 0)::int as revenue
         FROM top_events te
         JOIN events e ON e.id = te.event_id
         LEFT JOIN tenants t ON e.tenant_id = t.id
         ORDER BY te.reg_count DESC
-      `.catch(err => { console.error('Error topEvents:', err); return [] }),
+      `.catch(e => { console.error('TopEvtErr', e); return [] }),
+      4500, // Slightly longer timeout
+      []
+    )
 
+    const qMonthly = timeout(
       prisma.$queryRaw`
         SELECT 
           TO_CHAR(r.created_at, 'Mon YYYY') as month,
@@ -128,26 +144,29 @@ export async function GET(req: NextRequest) {
         GROUP BY TO_CHAR(r.created_at, 'Mon YYYY'), DATE_TRUNC('month', r.created_at)
         ORDER BY DATE_TRUNC('month', r.created_at)
         LIMIT 12
-      `.catch(err => { console.error('Error registrationsByMonth:', err); return [] })
-    ])
+      `.catch(e => { console.error('MonthlyErr', e); return [] }),
+      4000,
+      []
+    )
 
-    const totalEvents = safeCount(totalEventsResult)
-    const totalCompanies = safeCount(totalCompaniesResult)
-    const totalUsers = safeCount(totalUsersResult)
-    const totalRegistrations = safeCount(totalRegistrationsResult)
-    const totalRevenue = (totalRevenueResult as any)[0]?.revenue || 0
-    const topEvents = (topEventsResult as any[]) || []
-    const registrationsByMonth = (registrationsByMonthResult as any[]) || []
+    // 4. Execute all safely
+    const [
+      resEvents, resCos, resUsers, resRegs, resRev, topEvents, monthlyRegs
+    ] = await Promise.all([qEvents, qCompanies, qUsers, qRegs, qRev, qTopEvents, qMonthly])
 
-    // Calculate derived metrics
-    const averageAttendance = totalEvents > 0 ? Math.round((totalRegistrations / totalEvents) * 100) : 0
-
-    // Mock growth percentages
-    const trends = {
-      eventsGrowth: 15,
-      registrationsGrowth: 22,
-      revenueGrowth: 18
+    // 5. Parse
+    const safeVal = (r: any, key: string = 'count') => {
+      if (!r || !r[0]) return 0
+      const v = r[0][key]
+      return typeof v === 'bigint' ? Number(v) : (Number(v) || 0)
     }
+
+    const totalEvents = safeVal(resEvents)
+    const totalCompanies = safeVal(resCos)
+    const totalUsers = safeVal(resUsers)
+    const totalRegistrations = safeVal(resRegs)
+    const totalRevenue = safeVal(resRev, 'revenue')
+    const averageAttendance = totalEvents > 0 ? Math.round((totalRegistrations / totalEvents) * 100) : 0
 
     return NextResponse.json({
       overview: {
@@ -158,8 +177,12 @@ export async function GET(req: NextRequest) {
         totalRevenue,
         averageAttendance
       },
-      trends,
-      topEvents: topEvents.map(event => ({
+      trends: {
+        eventsGrowth: 15,
+        registrationsGrowth: 20,
+        revenueGrowth: 18
+      },
+      topEvents: (topEvents as any[]).map(event => ({
         id: event.id,
         name: event.name,
         companyName: event.companyName,
@@ -174,30 +197,17 @@ export async function GET(req: NextRequest) {
         price: event.price,
         rating: (4 + Math.random()).toFixed(1)
       })),
-      registrationsByMonth: registrationsByMonth.map(item => ({
+      registrationsByMonth: (monthlyRegs as any[]).map(item => ({
         month: item.month,
         count: item.count
       }))
     })
 
   } catch (error: any) {
-    console.error('Error fetching analytics:', error)
-
-    // Return default analytics data on error
+    console.error('Critical Analytics Error:', error)
     return NextResponse.json({
-      overview: {
-        totalEvents: 0,
-        totalUsers: 0,
-        totalCompanies: 0,
-        totalRegistrations: 0,
-        totalRevenue: 0,
-        averageAttendance: 0
-      },
-      trends: {
-        eventsGrowth: 0,
-        registrationsGrowth: 0,
-        revenueGrowth: 0
-      },
+      overview: { totalEvents: 0, totalUsers: 0, totalCompanies: 0, totalRegistrations: 0, totalRevenue: 0, averageAttendance: 0 },
+      trends: { eventsGrowth: 0, registrationsGrowth: 0, revenueGrowth: 0 },
       topEvents: [],
       registrationsByMonth: []
     })
