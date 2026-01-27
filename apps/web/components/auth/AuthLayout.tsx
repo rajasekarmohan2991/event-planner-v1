@@ -218,7 +218,7 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
             )}
             <motion.div className="text-center mb-8" variants={itemVariants}>
               <motion.div
-                className="mx-auto w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl mb-6 flex items-center justify-center shadow-lg shadow-indigo-500/20"
+                className="mx-auto w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-xl mb-6 flex items-center justify-center shadow-lg shadow-rose-500/20"
                 variants={itemVariants}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
