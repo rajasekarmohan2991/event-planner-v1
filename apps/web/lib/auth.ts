@@ -474,8 +474,10 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Fetch tenant role if user has a current tenant
-      if (token.id && token.currentTenantId) {
+      // Fetch tenant role if user has a current tenant AND (role is missing OR trigger is update/signIn)
+      const shouldFetchTenantRole = token.id && token.currentTenantId && (!token.tenantRole || trigger === 'update' || trigger === 'signIn')
+
+      if (shouldFetchTenantRole) {
         try {
           const tenantMember = await prisma.tenantMember.findUnique({
             where: {

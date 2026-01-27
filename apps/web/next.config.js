@@ -10,7 +10,6 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
-    isrMemoryCacheSize: 0, // Disable ISR to prevent build timeouts
   },
   // Proxy specific API routes to Render backend
   async rewrites() {
