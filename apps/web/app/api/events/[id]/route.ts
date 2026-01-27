@@ -283,7 +283,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         banner_url as "bannerUrl",
         category,
         created_at as "createdAt",
-        updated_at as "updatedAt"
+        updated_at as "updatedAt",
+        (SELECT id FROM floor_plans WHERE "eventId" = events.id AND status = 'PUBLISHED' LIMIT 1) as "floorPlanId"
       FROM events
       WHERE id = ${eventId}::bigint
       LIMIT 1
