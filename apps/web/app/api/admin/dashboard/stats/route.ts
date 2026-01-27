@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import prisma, { Prisma } from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
+    // Ensure database schema is up to date
+    await ensureSchema()
     // Check authentication
     const session = await getServerSession(authOptions as any)
     if (!session || !(session as any).user) {
@@ -50,15 +53,15 @@ export async function GET(req: NextRequest) {
         tenantsCount,
         regResult
       ] = await Promise.all([
-        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events`.catch(() => [{count: 0}]),
-        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE starts_at >= ${now}`.catch(() => [{count: 0}]),
+        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events`.catch(() => [{ count: 0 }]),
+        prisma.$queryRaw`SELECT COUNT(*)::int as count FROM events WHERE starts_at >= ${now}`.catch(() => [{ count: 0 }]),
         prisma.user.count().catch(() => 0),
         prisma.tenant.count().catch(() => 0),
         prisma.$queryRaw`
-          SELECT COUNT(*)::int as count 
-          FROM registrations 
+          SELECT COUNT(*)::int as count
+          FROM registrations
           WHERE created_at >= ${sevenDaysAgo}
-        `.catch(() => [{count: 0}])
+        `.catch(() => [{ count: 0 }])
       ]) as any[]
 
       const regCount = (regResult[0]?.count || 0)
@@ -85,8 +88,8 @@ export async function GET(req: NextRequest) {
         prisma.event.count({ where: { tenantId: targetTenantId, startsAt: { gte: now } } }),
         prisma.tenantMember.count({ where: { tenantId: targetTenantId } }),
         prisma.$queryRaw`
-          SELECT COUNT(*)::int as count 
-          FROM registrations 
+          SELECT COUNT(*)::int as count
+          FROM registrations
           WHERE tenant_id = ${targetTenantId} AND created_at >= ${sevenDaysAgo}
         `
       ])
@@ -99,6 +102,15 @@ export async function GET(req: NextRequest) {
       recentRegistrations = Number(regCount)
       totalCompanies = 0 // Regular admins don't manage companies
     }
+
+    // Fetch total tickets
+    const targetTenantIdForTickets = userRole === 'SUPER_ADMIN' ? undefined : (tenantId || 'default-tenant')
+    const totalTicketsResult = await prisma.$queryRaw<any[]>`
+        SELECT COALESCE(SUM(quantity), 0)::int as count 
+        FROM tickets 
+        WHERE ${userRole === 'SUPER_ADMIN' ? Prisma.sql`1=1` : Prisma.sql`tenant_id = ${targetTenantIdForTickets}`}
+    `.catch(() => [{ count: 0 }])
+    const totalTickets = totalTicketsResult[0]?.count || 0
 
     // Fetch RSVP stats (Global or Tenant scoped)
     const rsvpWhere = userRole === 'SUPER_ADMIN' ? {} : { tenantId: tenantId || 'default-tenant' }
@@ -130,7 +142,7 @@ export async function GET(req: NextRequest) {
       upcomingEvents,
       totalUsers,
       recentRegistrations,
-      totalTickets: 0, // Will implement when tickets table is properly set up
+      totalTickets,
       totalCompanies, // Added for super admin dashboard
       rsvpStats
     })

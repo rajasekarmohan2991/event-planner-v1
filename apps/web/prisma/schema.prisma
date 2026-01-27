@@ -168,6 +168,16 @@ model Tenant {
   // Feature Flags
   features        Json?
   metadata        Json?
+
+  // Modules & Settings
+  moduleVendorManagement    Boolean? @default(false) @map("module_vendor_management")
+  moduleSponsorManagement   Boolean? @default(false) @map("module_sponsor_management")
+  moduleExhibitorManagement Boolean? @default(false) @map("module_exhibitor_management")
+  providerCommissionRate    Float?   @default(15.0) @map("provider_commission_rate")
+  providerSettings          Json?    @default("{}") @map("provider_settings")
+  
+  // Branding
+  banner          String?
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -550,6 +560,7 @@ model RSVP {
   @@unique([eventId, userId])
   @@index([eventId, status])
   @@index([tenantId])
+  @@map("rsvps")
 }
 
 // RSVP Settings per event

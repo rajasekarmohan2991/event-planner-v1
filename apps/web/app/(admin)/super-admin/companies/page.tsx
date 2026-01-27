@@ -14,7 +14,7 @@ export default async function SuperAdminCompaniesPage() {
   }
 
   // Optimize: Fetch data in parallel
-  const [companies, systemLogoResult] = await Promise.all([
+  const [companies, systemSettingsResult] = await Promise.all([
     prisma.tenant.findMany({
       select: {
         id: true,
@@ -25,6 +25,7 @@ export default async function SuperAdminCompaniesPage() {
         billingEmail: true,
         emailFromAddress: true,
         logo: true,
+        banner: true,
         createdAt: true,
         _count: {
           select: {
@@ -46,10 +47,11 @@ export default async function SuperAdminCompaniesPage() {
         createdAt: 'desc'
       }
     }),
-    prisma.$queryRaw<any[]>`SELECT value FROM system_settings WHERE key = 'company_logo' LIMIT 1`.catch(() => [])
+    prisma.$queryRaw<any[]>`SELECT key, value FROM system_settings WHERE key IN ('company_logo', 'company_banner')`.catch(() => [])
   ]);
 
-  const systemLogo = systemLogoResult?.[0]?.value || null;
+  const systemLogo = systemSettingsResult?.find((s: any) => s.key === 'company_logo')?.value || null;
+  const systemBanner = systemSettingsResult?.find((s: any) => s.key === 'company_banner')?.value || null;
 
   // Process data to match plain object structure for client component
   // We need to map it carefully to avoid passing Date objects if using older Next.js serialization,
@@ -66,8 +68,13 @@ export default async function SuperAdminCompaniesPage() {
       fallbackEmail = emailMatch[1];
     }
 
+    const isSuperAdmin = c.slug === 'super-admin' || c.slug === 'default-tenant';
+
     // Use system logo for Super Admin company
-    const companyLogo = (c.slug === 'super-admin' || c.slug === 'default-tenant') ? (systemLogo || c.logo) : c.logo;
+    const companyLogo = isSuperAdmin ? (systemLogo || c.logo) : c.logo;
+
+    // Use company banner first, then system banner for Super Admin company
+    const companyBanner = c.banner || (isSuperAdmin ? systemBanner : null);
 
     return {
       id: c.id,
@@ -78,6 +85,7 @@ export default async function SuperAdminCompaniesPage() {
       billingEmail: fallbackEmail,
       createdAt: c.createdAt.toISOString(),
       logo: companyLogo,
+      banner: companyBanner,
       _count: {
         members: c._count.members
       },

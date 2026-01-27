@@ -23,22 +23,21 @@ export async function GET(
     }
 
     const tenantId = params.id
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        moduleVendorManagement: true,
+        moduleSponsorManagement: true,
+        moduleExhibitorManagement: true,
+        providerCommissionRate: true,
+        providerSettings: true
+      }
+    })
 
-    const tenant = await prisma.$queryRaw<any[]>`
-      SELECT 
-        id,
-        name,
-        subscription_plan,
-        module_vendor_management,
-        module_sponsor_management,
-        module_exhibitor_management,
-        provider_commission_rate,
-        provider_settings
-      FROM tenants 
-      WHERE id = ${tenantId}
-    `
-
-    if (!tenant[0]) {
+    if (!tenant) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
@@ -50,13 +49,13 @@ export async function GET(
         COUNT(*) FILTER (WHERE provider_type = 'EXHIBITOR') as exhibitor_count,
         COUNT(*) FILTER (WHERE verification_status = 'VERIFIED') as verified_count,
         COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending_count,
-        SUM(total_revenue) as total_revenue
+        COALESCE(SUM(total_revenue), 0) as total_revenue
       FROM service_providers
       WHERE tenant_id = ${tenantId}
     `
 
     return NextResponse.json({
-      company: tenant[0],
+      company: tenant,
       statistics: stats[0] || {
         vendor_count: 0,
         sponsor_count: 0,
@@ -130,23 +129,16 @@ export async function PUT(
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 })
     }
 
-    // Add updated_at (try snake_case first as per other raw queries in this project)
-    updates.push('updated_at = NOW()')
-
-    // Execute update
-    await prisma.$executeRawUnsafe(`
-      UPDATE tenants
-      SET ${updates.join(', ')}
-      WHERE id = $${values.length + 1}
-    `, ...values, tenantId).catch(async (e) => {
-      // Fallback for updatedAt vs updated_at if needed, but usually it's updated_at in raw
-      console.warn('Raw update failed, trying without updated_at...', e.message);
-      const minimalUpdates = updates.filter(u => !u.includes('updated_at'));
-      await prisma.$executeRawUnsafe(`
-          UPDATE tenants
-            SET ${minimalUpdates.join(', ')}
-            WHERE id = $${values.length + 1}
-        `, ...values, tenantId);
+    // Execute update using Prisma Client
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        moduleVendorManagement: validatedData.moduleVendorManagement,
+        moduleSponsorManagement: validatedData.moduleSponsorManagement,
+        moduleExhibitorManagement: validatedData.moduleExhibitorManagement,
+        providerCommissionRate: validatedData.providerCommissionRate,
+        updatedAt: new Date()
+      }
     });
 
     // Fetch updated tenant for response
