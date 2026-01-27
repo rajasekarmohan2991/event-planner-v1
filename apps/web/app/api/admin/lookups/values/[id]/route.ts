@@ -13,7 +13,7 @@ export async function PUT(
     try {
         const session = await getServerSession(authOptions as any)
 
-        if (!session || (session.user as any)?.role !== 'SUPER_ADMIN') {
+        if (!session || (session as any).user?.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
@@ -34,7 +34,7 @@ export async function PUT(
       `
 
             if (current && current.length > 0) {
-                await prisma.$queryRaw`
+                await prisma.$executeRaw`
                     UPDATE lookup_values
                     SET is_default = FALSE
                     WHERE category_id = ${current[0].category_id} AND id != ${valueId}
@@ -43,7 +43,7 @@ export async function PUT(
         }
 
         // Update the value
-        await prisma.$queryRaw`
+        await prisma.$executeRaw`
             UPDATE lookup_values
             SET 
                 value = ${value},
@@ -84,7 +84,7 @@ export async function DELETE(
     try {
         const session = await getServerSession(authOptions as any)
 
-        if (!session || (session.user as any)?.role !== 'SUPER_ADMIN') {
+        if (!session || (session as any).user?.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
@@ -101,7 +101,7 @@ export async function DELETE(
         }
 
         // Delete the value (allow deleting any value including system values)
-        await prisma.$queryRaw`
+        await prisma.$executeRaw`
             DELETE FROM lookup_values WHERE id = ${valueId}
         `
 

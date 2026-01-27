@@ -13,7 +13,7 @@ export async function PATCH(
     try {
         const session = await getServerSession(authOptions as any)
 
-        if (!session || (session.user as any)?.role !== 'SUPER_ADMIN') {
+        if (!session || (session as any).user?.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         }
 
@@ -36,7 +36,7 @@ export async function PATCH(
         const newActiveState = !currentValue.is_active
 
         // Update the active state
-        await prisma.$queryRaw`
+        await prisma.$executeRaw`
             UPDATE lookup_values
             SET is_active = ${newActiveState}, updated_at = NOW()
             WHERE id = ${valueId}
