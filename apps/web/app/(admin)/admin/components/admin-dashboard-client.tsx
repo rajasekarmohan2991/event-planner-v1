@@ -189,6 +189,23 @@ export function AdminDashboardClient() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {companySettings ? (
+          <StatsCard
+            title="My Company"
+            value={companySettings.companyName}
+            icon={Building2}
+            description={`${companySettings.plan} Plan • ${companySettings.subdomain}`}
+            href="/company"
+          />
+        ) : (
+          <StatsCard
+            title="Total Registered Companies"
+            value={analytics?.overview?.totalCompanies || 0}
+            icon={Building2}
+            description="Active tenant companies"
+            href="/super-admin/companies"
+          />
+        )}
         <StatsCard
           title="Total Events"
           value={analytics?.overview?.totalEvents || stats.totalEvents}
@@ -210,23 +227,6 @@ export function AdminDashboardClient() {
           description={`Going: ${stats.rsvpStats?.going || 0} • Interest: ${stats.rsvpStats?.interested || 0}`}
           href="/admin/events"
         />
-        {companySettings ? (
-          <StatsCard
-            title="My Company"
-            value={companySettings.companyName}
-            icon={Building2}
-            description={`${companySettings.plan} Plan • ${companySettings.subdomain}`}
-            href="/company"
-          />
-        ) : (
-          <StatsCard
-            title="Total Registered Companies"
-            value={analytics?.overview?.totalCompanies || 0}
-            icon={Building2}
-            description="Active tenant companies"
-            href="/super-admin/companies"
-          />
-        )}
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
