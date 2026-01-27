@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const eventId = BigInt(params.id)
 
-    const sponsors = await (prisma as any).sponsor.findMany({
+    const sponsors = await prisma.sponsor.findMany({
       where: {
         eventId: eventId
       },
@@ -26,22 +26,37 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       take: size,
     })
 
-    const total = await (prisma as any).sponsor.count({
+    const total = await prisma.sponsor.count({
       where: {
         eventId: eventId
       }
     })
 
-    // Map to ComprehensiveSponsor format if needed
-    // The frontend expects keys like 'logoUrl', 'contactData', etc.
-    // JSON fields are returned as objects by Prisma, so they should be fine.
-    // We just need to map 'logo' -> 'logoUrl'
-    const mappedSponsors = sponsors.map((s: any) => ({
-      ...s,
+    // Map to ComprehensiveSponsor format
+    const mappedSponsors = sponsors.map((s) => ({
       id: s.id,
+      name: s.name,
+      industry: s.industry,
+      website: s.website,
+      description: s.description,
       eventId: s.eventId.toString(),
-      logoUrl: s.logo, // Map DB 'logo' to Frontend 'logoUrl'
-      // JSON fields are already objects
+      logoUrl: s.logo,
+      tier: s.tier,
+      contactName: s.contactName,
+      contactEmail: s.contactEmail,
+      contactPhone: s.contactPhone,
+      contactData: s.contactData,
+      paymentData: s.paymentData,
+      brandingOnline: s.brandingOnline,
+      brandingOffline: s.brandingOffline,
+      eventPresence: s.eventPresence,
+      giveawayData: s.giveawayData,
+      legalData: s.legalData,
+      timelineData: s.timelineData,
+      postEventData: s.postEventData,
+      status: s.status,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt
     }))
 
     return NextResponse.json({
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       pagination: { page, size, total, totalPages: Math.ceil(total / size) }
     })
   } catch (e: any) {
-    console.error('❌ Sponsors error:', e.message)
+    console.error('❌ Sponsors error:', e)
     return NextResponse.json({ message: 'Failed to load sponsors', error: e.message }, { status: 500 })
   }
 }
@@ -93,7 +108,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       contactPhone: raw.contactData?.phone || null,
     }
 
-    const result = await (prisma as any).sponsor.create({
+    const result = await prisma.sponsor.create({
       data: sponsorData
     })
 

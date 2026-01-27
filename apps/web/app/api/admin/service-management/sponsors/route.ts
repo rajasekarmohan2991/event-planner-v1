@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         const eventIds = tenantEvents.map(e => e.id)
 
         // Fetch sponsors for these events
-        const sponsors = await (prisma as any).sponsor.findMany({
+        const sponsors = await prisma.sponsor.findMany({
             where: {
                 eventId: { in: eventIds }
             },
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
             }
         })
 
-        const sponsorsWithStats = sponsors.map((sponsor: any) => {
+        const sponsorsWithStats = sponsors.map((sponsor) => {
             const totalPackages = sponsor.packages.length
             const totalValue = sponsor.packages.reduce((sum: number, p: any) => sum + Number(p.price || 0), 0)
             const totalAssets = sponsor.assets.length
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create sponsor
-        const sponsor = await (prisma as any).sponsor.create({
+        const sponsor = await prisma.sponsor.create({
             data: {
                 name,
                 industry,
