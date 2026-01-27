@@ -63,35 +63,27 @@ export function BrandLogo({
     )
   }
 
-  // Default Ayphen logo with transparent background styling
+  // Default Ayphen logo with Red branding
   return (
-    <div className={cn("flex flex-col items-start relative", className)}>
-      <div className="relative h-14 w-48">
-        <Image
-          src="/logo.png"
-          alt="Ayphen Logo"
-          width={180}
-          height={60}
-          className={cn(
-            "absolute top-0 left-0 h-full w-auto max-w-none object-contain object-left-top",
-            // Remove white background using mix-blend-mode
-            "mix-blend-darken"
-          )}
-          style={{
-            clipPath: 'polygon(0 0, 100% 0, 100% 65%, 38% 65%, 38% 100%, 0 100%)',
-            background: 'transparent'
-          }}
-          priority
-        />
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/20 group-hover:scale-105 transition-transform duration-300">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
+          <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd" />
+        </svg>
       </div>
-      {showSubtitle && (
+      <div className="flex flex-col justify-center">
         <span className={cn(
-          "text-[0.65rem] font-bold tracking-[0.2em] uppercase leading-none ml-[5.2rem] -mt-4 relative z-10",
-          isDark ? "text-slate-300" : "text-slate-600"
+          "text-lg font-extrabold tracking-tight leading-none",
+          isDark ? "text-white" : "text-slate-900"
         )}>
-          Event Planner
+          Ayphen
         </span>
-      )}
+        {showSubtitle && (
+          <span className="text-[0.65rem] font-bold tracking-[0.15em] uppercase text-rose-600 leading-tight">
+            Event Planner
+          </span>
+        )}
+      </div>
     </div>
   )
 }
