@@ -44,25 +44,26 @@ export async function GET(
     }
 
     // Transform response
+    const safeEvent = event as any // Temporary cast to handle dynamic includes until types are auto-generated
     return NextResponse.json({
-      id: event.id.toString(),
-      name: event.name,
-      description: event.description,
-      startsAt: event.startsAt,
-      endsAt: event.endsAt,
-      city: event.city,
-      // venue: event.venue, // Warning: Venue might be a relation or string, assume relation check later or string
-      eventMode: event.eventMode,
-      status: event.status,
-      bannerUrl: event.banner,
-      category: event.category,
-      tenantId: event.tenantId,
-      organizerName: event.tenant?.name,
-      organizerLogo: event.tenant?.logo,
-      organizerEventsCount: event.tenant?._count.events || 0,
-      registrationCount: event._count.registrations,
-      sessions: event.sessions.map(s => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
-      speakers: event.speakers.map(s => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
+      id: safeEvent.id.toString(),
+      name: safeEvent.name,
+      description: safeEvent.description,
+      startsAt: safeEvent.startsAt,
+      endsAt: safeEvent.endsAt,
+      city: safeEvent.city,
+      venue: safeEvent.venue,
+      eventMode: safeEvent.eventMode,
+      status: safeEvent.status,
+      bannerUrl: safeEvent.banner,
+      category: safeEvent.category,
+      tenantId: safeEvent.tenantId,
+      organizerName: safeEvent.tenant?.name,
+      organizerLogo: safeEvent.tenant?.logo,
+      organizerEventsCount: safeEvent.tenant?._count?.events || 0,
+      registrationCount: safeEvent._count?.registrations || 0,
+      sessions: (safeEvent.sessions || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
+      speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
     })
 
     return NextResponse.json(event)

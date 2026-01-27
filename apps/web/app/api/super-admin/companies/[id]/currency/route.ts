@@ -17,16 +17,17 @@ export async function GET(
 
     try {
         // Get company currency
-        const company: any[] = await prisma.$queryRawUnsafe(`
-            SELECT currency FROM tenants WHERE id = $1
-        `, params.id);
+        const company = await prisma.tenant.findUnique({
+            where: { id: params.id },
+            select: { currency: true }
+        });
 
-        if (company.length === 0) {
+        if (!company) {
             return NextResponse.json({ message: 'Company not found' }, { status: 404 });
         }
 
         return NextResponse.json({
-            currency: company[0].currency || 'USD',
+            currency: company.currency || 'USD',
             availableCurrencies: AVAILABLE_CURRENCIES.map(c => ({
                 code: c.code,
                 name: c.name,
@@ -64,11 +65,10 @@ export async function PATCH(
         }
 
         // Update company currency
-        await prisma.$executeRawUnsafe(`
-            UPDATE tenants 
-            SET currency = $1, updated_at = NOW()
-            WHERE id = $2
-        `, currency, params.id);
+        await prisma.tenant.update({
+            where: { id: params.id },
+            data: { currency }
+        });
 
         console.log(`Updated company ${params.id} currency to ${currency}`);
 
