@@ -84,8 +84,76 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const hasSeatInventory = seatCount > 0
 
     if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
-      // Return empty seats but include floor plan. Frontend will trigger generation asynchronously.
-      console.log('[Availability] Seats missing but floor plan exists. Signaling frontend to generate.')
+      // Auto-generate seats from floor plan
+      console.log('[Availability] Seats missing but floor plan exists. Auto-generating seats...')
+      try {
+        await generateSeats(eventId, floorPlan.layoutData, tenantId || floorPlan.tenantId)
+        console.log('[Availability] Seats generated successfully. Re-fetching...')
+        
+        // Re-fetch seats after generation
+        const seatsAfterGen = await prisma.$queryRawUnsafe(`
+          SELECT 
+            si.id::text,
+            si.event_id::text as "eventId",
+            si.section,
+            si.row_number as "rowNumber",
+            si.seat_number as "seatNumber",
+            si.seat_type as "seatType",
+            si.seat_type as "ticketClass",
+            si.base_price::numeric as "basePrice",
+            si.x_coordinate::numeric as "xCoordinate",
+            si.y_coordinate::numeric as "yCoordinate",
+            si.is_available as "isAvailable",
+            true as "available",
+            NULL as "reservationStatus",
+            NULL as "reservedBy",
+            NULL as "expiresAt"
+          FROM seat_inventory si
+          WHERE si.event_id = ${eventId}::bigint
+            AND si.is_available = true
+          ORDER BY si.section, si.row_number, si.seat_number
+        `)
+        
+        const groupedSeatsAfterGen = (seatsAfterGen as any[]).reduce((acc, seat) => {
+          const section = seat.section || 'General'
+          const row = seat.rowNumber
+          if (!acc[section]) acc[section] = {}
+          if (!acc[section][row]) acc[section][row] = []
+          acc[section][row].push(seat)
+          return acc
+        }, {} as Record<string, Record<string, any[]>>)
+        
+        return NextResponse.json({
+          seats: seatsAfterGen,
+          groupedSeats: groupedSeatsAfterGen,
+          floorPlan: {
+            id: floorPlan.id,
+            planName: floorPlan.name,
+            layoutData: floorPlan.layoutData,
+            totalSeats: floorPlan.totalCapacity,
+            sections: floorPlan.layoutData
+          },
+          totalSeats: (seatsAfterGen as any[]).length,
+          availableSeats: (seatsAfterGen as any[]).length
+        })
+      } catch (genError: any) {
+        console.error('[Availability] Seat generation failed:', genError)
+        // Return floor plan info even if generation fails
+        return NextResponse.json({
+          seats: [],
+          groupedSeats: {},
+          floorPlan: {
+            id: floorPlan.id,
+            planName: floorPlan.name,
+            layoutData: floorPlan.layoutData,
+            totalSeats: floorPlan.totalCapacity,
+            sections: floorPlan.layoutData
+          },
+          totalSeats: 0,
+          availableSeats: 0,
+          error: 'Seats could not be generated automatically. Please contact the event organizer.'
+        })
+      }
     } else if (!hasFloorPlan && !hasSeatInventory) {
       // No floor plan or seats exist AND generation not possible - return empty
       return NextResponse.json({
