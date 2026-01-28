@@ -20,7 +20,7 @@
     --popover: 0 0% 100%;              /* #ffffff - White popover */
     --popover-foreground: 224 71% 4%;  /* #020617 - Popover text */
     
-    --primary: 262 83% 58%;            /* #8b5cf6 - Vibrant purple (Eventbrite-like) */
+    --primary: 343 88% 50%;            /* #e11d48 - Vibrant Rose (Ayphen-like) */
     --primary-foreground: 0 0% 100%;   /* #ffffff - White on primary */
     
     --secondary: 220 14% 96%;          /* #f1f5f9 - Light gray */
@@ -29,8 +29,8 @@
     --muted: 220 14% 96%;              /* #f1f5f9 - Muted background */
     --muted-foreground: 220 9% 46%;    /* #64748b - Muted text */
     
-    --accent: 262 83% 96%;             /* #f3e8ff - Light purple accent */
-    --accent-foreground: 262 83% 40%;  /* #7c3aed - Purple accent text */
+    --accent: 343 88% 96%;             /* #fff1f2 - Light rose accent */
+    --accent-foreground: 343 88% 40%;  /* #be123c - Rose accent text */
     
     --destructive: 0 84% 60%;          /* #ef4444 - Red */
     --destructive-foreground: 0 0% 100%; /* #ffffff */
@@ -43,15 +43,15 @@
     
     --border: 220 13% 91%;             /* #e2e8f0 - Light border */
     --input: 220 13% 91%;              /* #e2e8f0 - Input border */
-    --ring: 262 83% 58%;               /* #8b5cf6 - Focus ring */
-    --radius: 0.75rem;
+    --ring: 343 88% 50%;               /* #e11d48 - Focus ring */
+    --radius: 1rem;                    /* More rounded corners */
     
     /* Sidebar specific */
     --sidebar-bg: 0 0% 100%;           /* White sidebar */
     --sidebar-border: 220 13% 91%;     /* Light border */
     --sidebar-text: 220 9% 46%;        /* Gray text */
-    --sidebar-text-active: 262 83% 58%; /* Purple active */
-    --sidebar-hover: 262 83% 96%;      /* Light purple hover */
+    --sidebar-text-active: 343 88% 50%; /* Rose active */
+    --sidebar-hover: 343 88% 96%;      /* Light rose hover */
   }
 
   .dark {

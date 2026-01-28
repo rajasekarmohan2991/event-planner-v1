@@ -20,12 +20,12 @@ export default function Sidebar() {
     <aside className="w-64 border-r bg-white/80 backdrop-blur-sm shadow-sm flex flex-col min-h-[calc(100vh-4rem)]">
       <div className="flex-1 flex flex-col">
         <nav className="px-2 space-y-1 text-sm">
-          <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-indigo-50 text-indigo-700 font-medium">
-            <Home className="h-4 w-4"/>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-rose-50 text-rose-700 font-bold transition-all shadow-sm">
+            <Home className="h-5 w-5"/>
             Events
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors">
-            <UserCircle className="h-4 w-4"/>
+          <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors font-medium">
+            <UserCircle className="h-5 w-5"/>
             Attendee Profiles
           </Link>
         </nav>

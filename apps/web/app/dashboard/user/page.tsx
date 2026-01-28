@@ -124,15 +124,15 @@ export default function UserDashboard() {
 
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Welcome Message */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, <span className="text-rose-600">{session?.user?.name}</span>! 👋
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                Welcome back, <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">{session?.user?.name}</span>! 👋
               </h1>
-              <p className="text-gray-500">Find your next amazing experience.</p>
+              <p className="text-slate-500 font-medium mt-1">Find your next amazing experience.</p>
             </div>
-            <Link href="/dashboard/user/tickets" className="hidden md:inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-              <Ticket className="w-4 h-4" />
+            <Link href="/dashboard/user/tickets" className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+              <Ticket className="w-5 h-5 text-rose-500" />
               My Tickets
             </Link>
           </div>
@@ -142,72 +142,78 @@ export default function UserDashboard() {
 
           <div className="relative z-20">
             {/* Search and Filters */}
-            <div className="bg-white rounded-3xl shadow-2xl p-8 mb-12">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl">
-                  <Filter className="w-6 h-6 text-white" />
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-rose-100/50 border border-rose-50 p-8 mb-16">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-4 bg-rose-50 rounded-2xl">
+                  <Filter className="w-6 h-6 text-rose-600" />
                 </div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Filter Events
+                <h2 className="text-3xl font-black text-slate-900">
+                  Find Events
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Search */}
                 <div>
-                  <label className="block text-sm font-semibold mb-3 text-gray-700">
-                    Search Events
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Search
                   </label>
                   <div className="relative">
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by name or description..."
-                      className="w-full px-4 py-3.5 pl-11 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all bg-white shadow-sm"
+                      placeholder="Event name..."
+                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all bg-slate-50/50 hover:bg-white text-slate-700 font-medium placeholder:text-slate-400"
                     />
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   </div>
                 </div>
 
                 {/* City Filter */}
                 <div>
-                  <label className="block text-sm font-semibold mb-3 text-gray-700">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
                     City
                   </label>
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white transition-all shadow-sm"
-                  >
-                    <option value="all">All Cities</option>
-                    {[...new Set(upcomingEvents.map(e => e.city))].filter(Boolean).map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 bg-slate-50/50 hover:bg-white transition-all text-slate-700 font-medium appearance-none cursor-pointer"
+                    >
+                      <option value="all">All Cities</option>
+                      {[...new Set(upcomingEvents.map(e => e.city))].filter(Boolean).map(city => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Price Filter */}
                 <div>
-                  <label className="block text-sm font-semibold mb-3 text-gray-700">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
                     Price
                   </label>
-                  <select
-                    value={priceFilter}
-                    onChange={(e) => setPriceFilter(e.target.value)}
-                    className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-white transition-all shadow-sm"
-                  >
-                    <option value="all">All Events</option>
-                    <option value="free">Free Only</option>
-                    <option value="paid">Paid Only</option>
-                  </select>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    <select
+                      value={priceFilter}
+                      onChange={(e) => setPriceFilter(e.target.value)}
+                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 bg-slate-50/50 hover:bg-white transition-all text-slate-700 font-medium appearance-none cursor-pointer"
+                    >
+                      <option value="all">Any Price</option>
+                      <option value="free">Free Events</option>
+                      <option value="paid">Paid Events</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* Results Count */}
-              <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Showing <strong className="text-purple-600">{filteredEvents.length}</strong> of <strong className="text-gray-900">{upcomingEvents.length}</strong> events
+              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-500">
+                  Found <strong className="text-rose-600">{filteredEvents.length}</strong> events
                 </p>
                 {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
                   <button
@@ -217,7 +223,7 @@ export default function UserDashboard() {
                       setPriceFilter('all')
                       setSelectedCategory(null)
                     }}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    className="text-sm text-rose-600 hover:text-rose-700 font-bold bg-rose-50 px-4 py-2 rounded-xl transition-colors"
                   >
                     Clear Filters
                   </button>
@@ -226,29 +232,28 @@ export default function UserDashboard() {
             </div>
 
             {/* Browse by Category */}
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Explore Categories
-                </span>
+            <div className="mb-16">
+              <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-rose-500" />
+                Explore Categories
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 {categories.map(category => (
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id === 'all' ? null : category.id)}
-                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
-                      ? `bg-gradient-to-br ${category.color} shadow-xl scale-105`
-                      : 'bg-white hover:bg-gray-50 shadow-md hover:shadow-lg'
+                    className={`group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
+                      ? `bg-gradient-to-br ${category.color} shadow-lg shadow-rose-200/50 scale-105 ring-4 ring-white`
+                      : 'bg-white hover:bg-slate-50 border border-slate-100 shadow-sm hover:shadow-md'
                       }`}
                   >
                     <div className="text-center">
-                      <div className="text-4xl mb-2">{category.icon}</div>
-                      <p className={`text-xs font-semibold ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
+                      <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">{category.icon}</div>
+                      <p className={`text-xs font-bold uppercase tracking-wide ${(selectedCategory === category.id || (category.id === 'all' && !selectedCategory))
                         ? 'text-white'
-                        : 'text-gray-700'
+                        : 'text-slate-600'
                         }`}>
-                        {category.name}
+                        {category.name.split(' ')[0]}
                       </p>
                     </div>
                   </button>
@@ -257,121 +262,101 @@ export default function UserDashboard() {
             </div>
 
             {/* Events Grid */}
-            <div className="mb-12" id="events-section">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name} Events` : 'All Events'}
+            <div className="mb-20" id="events-section">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black text-slate-900">
+                  {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name}` : 'Upcoming Events'}
                 </h2>
-                {filteredEvents.length > 0 && (
-                  <Link href="/events" className="text-purple-600 hover:text-purple-700 font-semibold flex items-center gap-2">
-                    See All
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                )}
               </div>
 
               {filteredEvents.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                  <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 text-lg mb-2">
-                    {upcomingEvents.length === 0
-                      ? 'No events available yet'
-                      : 'No events match your filters'}
+                <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-16 text-center">
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="w-10 h-10 text-slate-300" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No events found</h3>
+                  <p className="text-slate-500 mb-8 max-w-sm mx-auto">
+                    We couldn't find any events matching your criteria. Try adjusting your filters.
                   </p>
-                  {upcomingEvents.length === 0 && (
-                    <p className="text-gray-500 text-sm">
-                      Create your first event or check back later!
-                    </p>
-                  )}
-                  {upcomingEvents.length > 0 && filteredEvents.length === 0 && (
-                    <button
-                      onClick={() => {
-                        setSelectedCategory(null)
-                        setSearchQuery('')
-                        setSelectedCity('all')
-                      }}
-                      className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                    >
-                      Clear Filters
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedCategory(null)
+                      setSearchQuery('')
+                      setSelectedCity('all')
+                    }}
+                    className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all hover:shadow-lg"
+                  >
+                    Clear All Filters
+                  </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {filteredEvents.map(event => (
                     <Link
                       key={event.id}
                       href={`/events/${event.id}`}
-                      className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-2"
+                      className="group bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-rose-100/50 transition-all duration-500 overflow-hidden border border-slate-100 hover:border-rose-100 hover:-translate-y-2"
                     >
-                      <div className="relative h-48 bg-gradient-to-br from-purple-400 to-pink-400 overflow-hidden">
+                      <div className="relative h-64 bg-slate-100 overflow-hidden">
                         {event.bannerUrl ? (
                           <Image
                             src={event.bannerUrl}
                             alt={event.name}
                             fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="object-cover group-hover:scale-110 transition-transform duration-700"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Calendar className="w-16 h-16 text-white/50" />
+                          <div className="w-full h-full flex items-center justify-center bg-rose-50">
+                            <Sparkles className="w-12 h-12 text-rose-200" />
                           </div>
                         )}
-                        <div className="absolute top-4 right-4">
-                          <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-purple-600">
+                        <div className="absolute top-4 right-4 z-10">
+                          <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm">
                             {new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </div>
                         </div>
                         {event.category && (
-                          <div className="absolute bottom-4 left-4">
-                            <div className="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white">
+                          <div className="absolute bottom-4 left-4 z-10">
+                            <div className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white border border-white/10">
                               {event.category}
                             </div>
                           </div>
                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </div>
 
-                      <div className="p-5">
-                        <h3 className="font-bold text-lg mb-2 text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-2">
+                      <div className="p-6">
+                        <h3 className="font-bold text-xl mb-3 text-slate-900 group-hover:text-rose-600 transition-colors line-clamp-2 leading-tight">
                           {event.name}
                         </h3>
 
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Calendar className="w-4 h-4 mr-2 text-purple-500" />
-                            {new Date(event.startsAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        <div className="space-y-3 mb-6">
+                          <div className="flex items-center text-sm text-slate-500 font-medium">
+                            <Calendar className="w-4 h-4 mr-2.5 text-rose-400" />
+                            {new Date(event.startsAt).toLocaleDateString('en-US', { weekday: 'long' })}
                           </div>
 
                           {event.city && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <MapPin className="w-4 h-4 mr-2 text-pink-500" />
+                            <div className="flex items-center text-sm text-slate-500 font-medium">
+                              <MapPin className="w-4 h-4 mr-2.5 text-purple-400" />
                               {event.city}
-                            </div>
-                          )}
-
-                          {event.registrationCount !== undefined && (
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Users className="w-4 h-4 mr-2 text-blue-500" />
-                              {event.registrationCount} attending
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="flex items-center text-lg font-bold text-purple-600">
+                        <div className="flex items-center justify-between pt-5 border-t border-slate-50">
+                          <div className="flex items-center text-lg font-black text-slate-900">
                             {event.priceInr && event.priceInr > 0 ? (
                               <>
-                                <IndianRupee className="w-4 h-4" />
+                                <span className="text-xs text-slate-400 font-bold mr-1 self-start mt-1">₹</span>
                                 {event.priceInr}
                               </>
                             ) : (
-                              <span className="text-green-600">FREE</span>
+                              <span className="text-emerald-500 text-sm font-bold uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-lg">Free</span>
                             )}
                           </div>
-                          <div className="text-sm text-purple-600 font-semibold group-hover:translate-x-1 transition-transform">
-                            View Details →
+                          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
+                            <TrendingUp className="w-4 h-4" />
                           </div>
                         </div>
                       </div>
