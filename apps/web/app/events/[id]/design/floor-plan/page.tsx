@@ -105,6 +105,13 @@ export default function FloorPlanDesignerPage() {
         }
     }, [eventId])
 
+    // Regenerate seats when objects change (position, size, etc.)
+    useEffect(() => {
+        floorPlan.objects.forEach(obj => {
+            generateSeatsForObject(obj)
+        })
+    }, [floorPlan.objects])
+
     const loadEventAndTickets = async () => {
         try {
             // Fetch Tickets to prepopulate prices
@@ -369,18 +376,25 @@ export default function FloorPlanDesignerPage() {
     const addObject = () => {
         // Handle STAGE, EXIT, ENTRY types (no seats)
         if (newObject.type === 'STAGE' || newObject.type === 'EXIT' || newObject.type === 'ENTRY') {
+            const gateColors = {
+                STAGE: { fill: '#f1f5f9', stroke: '#94a3b8' },
+                EXIT: { fill: '#fee2e2', stroke: '#dc2626' },
+                ENTRY: { fill: '#d1fae5', stroke: '#059669' }
+            }
+            const gateConfig = gateColors[newObject.type as keyof typeof gateColors]
+            
             const obj: FloorPlanObject = {
-                id: `stage-${Date.now()}`,
-                type: 'STAGE',
+                id: `${newObject.type.toLowerCase()}-${Date.now()}`,
+                type: newObject.type, // Use actual type (STAGE, EXIT, or ENTRY)
                 x: 100,
-                y: 50,
-                width: 400,
-                height: 100,
+                y: newObject.type === 'STAGE' ? 50 : 400,
+                width: newObject.type === 'STAGE' ? 400 : 80,
+                height: newObject.type === 'STAGE' ? 100 : 40,
                 rotation: 0,
                 totalSeats: 0,
-                fillColor: '#f1f5f9',
-                strokeColor: '#94a3b8',
-                label: newObject.label || 'STAGE',
+                fillColor: gateConfig.fill,
+                strokeColor: gateConfig.stroke,
+                label: newObject.label || newObject.type,
                 isTemporary: true
             }
             setFloorPlan(prev => ({
@@ -1030,23 +1044,12 @@ export default function FloorPlanDesignerPage() {
                                                                             label={seat.label} size={15}
                                                                         />
                                                                     ) : (
-                                                                        <>
-                                                                            <ChairIcon
-                                                                                x={seat.x} y={seat.y}
-                                                                                rotation={seat.rotation}
-                                                                                status={seat.status}
-                                                                                label={seat.label} size={20}
-                                                                            />
-                                                                            {/* Render Seat Number for Clarity */}
-                                                                            <text
-                                                                                x={seat.x + 12} y={seat.y + 12}
-                                                                                textAnchor="middle" dominantBaseline="middle"
-                                                                                fontSize="9" fontWeight="600" fill="#374151" 
-                                                                                pointerEvents="none"
-                                                                            >
-                                                                                {seat.displayNumber}
-                                                                            </text>
-                                                                        </>
+                                                                        <ChairIcon
+                                                                            x={seat.x} y={seat.y}
+                                                                            rotation={seat.rotation}
+                                                                            status={seat.status}
+                                                                            label={seat.displayNumber} size={20}
+                                                                        />
                                                                     )}
                                                                 </g>
                                                             ))}
