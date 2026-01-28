@@ -86,6 +86,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
       // Auto-generate seats from floor plan
       console.log('[Availability] Seats missing but floor plan exists. Auto-generating seats...')
+      console.log('[Availability] Floor plan data:', JSON.stringify(floorPlan.layoutData).substring(0, 200))
+      console.log('[Availability] Tenant ID:', tenantId || floorPlan.tenantId)
+      
+      // Check if layoutData is empty or invalid
+      if (!floorPlan.layoutData || (typeof floorPlan.layoutData === 'object' && Object.keys(floorPlan.layoutData).length === 0)) {
+        console.error('[Availability] Floor plan layoutData is empty or invalid')
+        return NextResponse.json({
+          seats: [],
+          groupedSeats: {},
+          floorPlan: {
+            id: floorPlan.id,
+            planName: floorPlan.name,
+            layoutData: floorPlan.layoutData,
+            totalSeats: floorPlan.totalCapacity,
+            sections: floorPlan.layoutData
+          },
+          totalSeats: 0,
+          availableSeats: 0,
+          error: 'Floor plan exists but has no layout data. Please configure the floor plan in the event design section.'
+        })
+      }
+      
       try {
         await generateSeats(eventId, floorPlan.layoutData, tenantId || floorPlan.tenantId)
         console.log('[Availability] Seats generated successfully. Re-fetching...')
