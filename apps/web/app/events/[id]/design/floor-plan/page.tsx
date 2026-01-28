@@ -445,8 +445,8 @@ export default function FloorPlanDesignerPage() {
         }
 
         const generatedSeats: any[] = []
-        const seatSize = 20
-        const seatSpacing = 5
+        const seatSize = 24
+        const seatSpacing = 8
         const gaps = new Set(obj.gaps || [])
 
         if (obj.type === 'GRID') {
@@ -1032,10 +1032,9 @@ export default function FloorPlanDesignerPage() {
                                                                             />
                                                                             {/* Render Seat Number for Clarity */}
                                                                             <text
-                                                                                x={seat.x + 10} y={seat.y + 10}
+                                                                                x={seat.x + 12} y={seat.y + 12}
                                                                                 textAnchor="middle" dominantBaseline="middle"
-                                                                                fontSize="10" fontWeight="bold" fill="#1a1a1a" 
-                                                                                stroke="white" strokeWidth="0.5"
+                                                                                fontSize="9" fontWeight="600" fill="#374151" 
                                                                                 pointerEvents="none"
                                                                             >
                                                                                 {seat.displayNumber}
