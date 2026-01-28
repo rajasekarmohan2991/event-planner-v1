@@ -9,11 +9,24 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const eventId = params.id
+  console.log(`🔍 [PublicAPI] Request for EventID: ${eventId}`)
+
+  if (!eventId || eventId === 'undefined' || eventId === 'null') {
+    return NextResponse.json({ message: 'Invalid Event ID' }, { status: 400 })
+  }
+
+  let idBigInt: bigint
+  try {
+    idBigInt = BigInt(eventId)
+  } catch (e) {
+    console.error(`❌ [PublicAPI] ID is not a valid BigInt: ${eventId}`)
+    return NextResponse.json({ message: 'Invalid Event ID format' }, { status: 400 })
+  }
 
   try {
     // 1. Fetch Event with Tenant info
     const eventPromise = prisma.event.findUnique({
-      where: { id: BigInt(eventId) },
+      where: { id: idBigInt },
       include: {
         tenant: {
           select: {
@@ -33,12 +46,12 @@ export async function GET(
       eventPromise,
       prisma.registration.count({
         where: {
-          eventId: BigInt(eventId),
+          eventId: idBigInt,
           status: { in: ['APPROVED', 'PENDING'] }
         }
       }),
       prisma.eventSession.findMany({
-        where: { eventId: BigInt(eventId) },
+        where: { eventId: idBigInt },
         include: {
           speakers: { include: { speaker: true } }
         },
@@ -47,6 +60,7 @@ export async function GET(
     ])
 
     if (!event) {
+      console.warn(`⚠️ [PublicAPI] Event not found for ID: ${eventId} (BigInt: ${idBigInt})`)
       return NextResponse.json({ message: 'Event not found' }, { status: 404 })
     }
 
