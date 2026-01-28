@@ -73,14 +73,36 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         // Generate secure token
         const token = crypto.randomBytes(32).toString('hex')
 
+        // Explicitly ensure table exists (Double check)
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS event_team_invitations (
+            id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL,
+            tenant_id TEXT,
+            email TEXT NOT NULL,
+            role TEXT DEFAULT 'STAFF',
+            token TEXT,
+            invited_by BIGINT,
+            status TEXT DEFAULT 'PENDING',
+            expires_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(event_id, email)
+          );
+        `)
+
         // Create or update invitation
-        console.log(`[TEAM INVITE] Inserting invitation to database...`)
+        console.log(`[TEAM INVITE] Inserting invitation for ${email}...`)
+
+        // Ensure tenantId is null if undefined
+        const safeTenantId = tenantId || null
+
         await prisma.$executeRaw`
           INSERT INTO event_team_invitations 
           (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
           VALUES (
             ${eventId}, 
-            ${tenantId}, 
+            ${safeTenantId}, 
             ${email}, 
             ${dbRole}, 
             ${token}, 
@@ -96,7 +118,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             updated_at = NOW(),
             expires_at = NOW() + INTERVAL '7 days'
         `
-        console.log(`[TEAM INVITE] Database insert successful for ${email}`)
+        console.log(`[TEAM INVITE] Database insert COMPLETED for ${email}`)
 
         // Send invitation email with approve/reject links
         const approveUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventId.toString()}/team/approve?token=${token}`
