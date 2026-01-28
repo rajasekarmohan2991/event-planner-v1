@@ -41,7 +41,7 @@ export async function GET(
             const isCheckedIn = r.checkInStatus === 'CHECKED_IN' || data.checkedIn === true
             
             return {
-                id: r.id,
+                id: String(r.id),
                 eventId: r.eventId.toString(),
                 firstName: data.firstName || '',
                 lastName: data.lastName || '',
