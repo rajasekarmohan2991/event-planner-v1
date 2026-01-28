@@ -105,22 +105,62 @@ export async function GET(req: NextRequest) {
       )
     ]);
 
-    const regStats = (regsData as any)[0] || { count: 0, revenue: 0 };
+    // regsData is already the result object, not an array
+    const regStats = regsData as { count: number, revenue: number };
 
     const overview = {
       totalEvents: events,
       totalCompanies: companies,
       totalUsers: users,
-      totalRegistrations: Number(regStats.count),
-      totalRevenue: Number(regStats.revenue),
-      averageAttendance: events > 0 ? Math.round(Number(regStats.count) / events) : 0
+      totalRegistrations: Number(regStats?.count || 0),
+      totalRevenue: Number(regStats?.revenue || 0),
+      averageAttendance: events > 0 ? Math.round(Number(regStats?.count || 0) / events) : 0
     };
+
+    // Fetch top events for the dashboard
+    let topEvents: any[] = []
+    try {
+      const eventsWithRegs = await timeout(
+        prisma.event.findMany({
+          where: isSuperAdmin ? {} : { tenantId },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            startDate: true,
+            endDate: true,
+            priceInr: true,
+            seats: true,
+            _count: {
+              select: { registrations: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        }).catch(() => []),
+        3000,
+        []
+      )
+
+      topEvents = (eventsWithRegs as any[]).map((e: any) => ({
+        id: String(e.id),
+        name: e.name,
+        status: e.status,
+        startDate: e.startDate,
+        endDate: e.endDate,
+        price: e.priceInr || 0,
+        seats: e.seats || 0,
+        registrations: e._count?.registrations || 0
+      }))
+    } catch (e) {
+      console.warn('Top events fetch failed:', e)
+    }
 
     return NextResponse.json({
       overview,
       trends: { eventsGrowth: 15, registrationsGrowth: 22, revenueGrowth: 18 },
-      topEvents: [], // Disable expensive top events query for now
-      registrationsByMonth: [] // Disable expensive histogram for now
+      topEvents,
+      registrationsByMonth: []
     })
 
   } catch (error: any) {
