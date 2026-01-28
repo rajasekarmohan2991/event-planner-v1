@@ -36,12 +36,13 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
         const safeRow = String(rowLabel || '1').substring(0, 10)
         const safeType = (seatType || 'Standard').substring(0, 50)
 
-        // Add to batch
+        // Add to batch - seatNumber now includes row label (e.g., A1, A2, B1, B2)
+        const fullSeatLabel = `${safeRow}${seatNum}`
         seatBatch.push({
             eventId: BigInt(eventId),
             section: safeSection,
             rowNumber: safeRow,
-            seatNumber: String(seatNum),
+            seatNumber: fullSeatLabel,
             seatType: safeType,
             basePrice,
             xCoordinate: xCoord,

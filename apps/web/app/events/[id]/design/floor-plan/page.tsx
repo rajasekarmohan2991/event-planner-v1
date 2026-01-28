@@ -497,8 +497,8 @@ export default function FloorPlanDesignerPage() {
                     generatedSeats.push({
                         id: `${obj.id}-${row}-${col}`,
                         label: seatLabel,
-                        displayNumber: `${seatNumber}`,
-                        x: obj.x + (col * (seatSize + seatSpacing)) + 30, // Offset for Row Label
+                        displayNumber: seatLabel, // Show full label like A1, A2, B1, B2
+                        x: obj.x + (col * (seatSize + seatSpacing)), // No offset needed
                         y: obj.y + (row * (seatSize + seatSpacing)),
                         rotation: 0,
                         status: 'AVAILABLE',
@@ -983,26 +983,7 @@ export default function FloorPlanDesignerPage() {
                                                                     />
                                                                 )}
 
-                                                                {/* Row Labels for Grid */}
-                                                                {obj.type === 'GRID' && Array.from({ length: obj.rows || 0 }).map((_, i) => {
-                                                                    const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                                                                    let rowLabel = labelsStr[i % 26]
-                                                                    if (i >= 26) rowLabel += Math.floor(i / 26)
-                                                                    return (
-                                                                        <text
-                                                                            key={`row-${i}`}
-                                                                            x="15"
-                                                                            y={i * 25 + 15} // Approx row height matching seat spacing
-                                                                            fontSize="12"
-                                                                            fontWeight="bold"
-                                                                            fill="#64748b"
-                                                                            textAnchor="middle"
-                                                                            dominantBaseline="middle"
-                                                                        >
-                                                                            {rowLabel}
-                                                                        </text>
-                                                                    )
-                                                                })}
+                                                                {/* Row Labels removed - seat labels now show A1, A2, B1, B2 format directly */}
 
                                                                 <text
                                                                     x={obj.width / 2}
