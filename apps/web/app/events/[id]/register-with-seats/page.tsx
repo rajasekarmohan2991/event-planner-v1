@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { SeatSelector } from '@/components/events/SeatSelector'
 import { IndianRupee, Clock, CheckCircle, CreditCard, Smartphone } from 'lucide-react'
@@ -238,7 +238,7 @@ export default function RegisterWithSeatsPage() {
     }
   }, [selectedSeats, step, eventId])
 
-  const handleSeatsSelected = (seats: Seat[], price: number) => {
+  const handleSeatsSelected = useCallback((seats: Seat[], price: number) => {
     setSelectedSeats(seats)
     // Price from selector is already calculated, just use it
     const numPrice = Number(price) || 0
@@ -248,7 +248,7 @@ export default function RegisterWithSeatsPage() {
     setConvenienceFee(conv)
     setTaxAmount(tax)
     setTotalPrice(discounted + conv + tax)
-  }
+  }, [promoDiscount])
 
   const calculateTotalPrice = (seats: Seat[], attendees: number, discount: any = null) => {
     const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(attendees) || 1)
