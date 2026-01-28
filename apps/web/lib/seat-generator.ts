@@ -180,6 +180,26 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
                     const sectionName = obj.section || 'General'
                     await insertSeat(sectionName, label, 1, seatType, price, obj.x, obj.y)
                 }
+                // Handle GRID type (theater-style seating from canvas designer)
+                else if (obj.type === 'GRID') {
+                    const rows = Number(obj.rows || 10)
+                    const cols = Number(obj.cols || 10)
+                    const sectionName = obj.section || obj.label || 'Grid'
+                    const seatSize = 24
+                    const seatSpacing = 8
+                    const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    
+                    for (let r = 0; r < rows; r++) {
+                        let rowLabel = labelsStr[r % 26]
+                        if (r >= 26) rowLabel += Math.floor(r / 26)
+                        
+                        for (let c = 0; c < cols; c++) {
+                            const x = obj.x + (c * (seatSize + seatSpacing))
+                            const y = obj.y + (r * (seatSize + seatSpacing))
+                            await insertSeat(sectionName, rowLabel, c + 1, seatType, price, x, y)
+                        }
+                    }
+                }
             }
         } else {
             // Standard Sections V1/V2 (Legacy)
