@@ -558,7 +558,6 @@ export default function RegisterWithSeatsPage() {
             <SeatSelector
               key={eventId} // specific stable key to prevent reconciliation errors
               eventId={eventId}
-              ticketClassId={ticketClass?.id}
               onSeatSelect={handleSeatsSelected}
               maxSeats={ticketClass?.maxPurchase || 10}
             />
