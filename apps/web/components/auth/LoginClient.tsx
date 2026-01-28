@@ -53,7 +53,8 @@ export default function LoginClient() {
       lottieSrc="/animations/signin.json"
       animationPlacement="left"
       disableBackgroundAnimations
-      title="All-in-One Event Planning"
+      title="Welcome"
+      hideIcon={true}
       subtitle={
         <span className="block mt-2 font-light">
           <span className="block font-medium text-gray-800 mb-1">Ticketing & Check-in made simple.</span>

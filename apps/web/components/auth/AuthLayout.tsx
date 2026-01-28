@@ -22,6 +22,7 @@ interface AuthLayoutProps {
   animationPlacement?: 'left' | 'form'
   backgroundOnly?: boolean
   disableBackgroundAnimations?: boolean
+  hideIcon?: boolean
 }
 
 // Animation variants
@@ -57,7 +58,7 @@ const itemVariants = {
 
 const Lottie = dynamic(() => import('@/components/media/Lottie'), { ssr: false, loading: () => null })
 
-export function AuthLayout({ children, animationType = 'login', lottieSrc, backgroundImageUrl, title, subtitle, animationPlacement = 'left', backgroundOnly = false, disableBackgroundAnimations = false }: AuthLayoutProps) {
+export function AuthLayout({ children, animationType = 'login', lottieSrc, backgroundImageUrl, title, subtitle, animationPlacement = 'left', backgroundOnly = false, disableBackgroundAnimations = false, hideIcon = false }: AuthLayoutProps) {
   const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(true)
 
@@ -217,17 +218,19 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
               </motion.div>
             )}
             <motion.div className="text-center mb-8" variants={itemVariants}>
-              <motion.div
-                className="mx-auto w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-xl mb-6 flex items-center justify-center shadow-lg shadow-rose-500/20"
-                variants={itemVariants}
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 10 }}
-              >
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </motion.div>
+              {!hideIcon && (
+                <motion.div
+                  className="mx-auto w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-xl mb-6 flex items-center justify-center shadow-lg shadow-rose-500/20"
+                  variants={itemVariants}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                >
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </motion.div>
+              )}
               <motion.h1
                 className="text-3xl font-bold text-gray-900 mb-2"
                 variants={itemVariants}
