@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { getEvents, cancelEvent, trashEvent, restoreEvent, purgeEvent } from "@/lib/api/events"
 import { toast } from "@/components/ui/use-toast"
-import { PlayCircle, Radio, FileClock, Archive, CheckCircle, Ban, LayoutGrid, List as ListIcon, Pencil, Trash2, ArrowUp, ArrowDown, X, Filter } from "lucide-react"
+import { PlayCircle, Radio, FileClock, Archive, CheckCircle, Ban, LayoutGrid, List as ListIcon, Pencil, Trash2, ArrowUp, ArrowDown, X, Filter, Clock } from "lucide-react"
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import { getEventBadgeQuery, getEventBadgeSeed } from '@/lib/media/eventBadge'
 import ModernEventCard from '@/components/events/ModernEventCard'
@@ -22,6 +22,8 @@ type EventItem = {
   longitude?: number
   bannerUrl?: string
   priceInr?: number
+  registrationCount?: number
+  capacity?: number
 }
 
 const STATUS_TABS = [
@@ -53,8 +55,6 @@ export default function EventList() {
   // Track which thumbnails failed to load so we can show animation instead
   const [thumbFailed, setThumbFailed] = useState<Record<string | number, boolean>>({})
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
-  // Preview modal state
-  const [previewTarget, setPreviewTarget] = useState<EventItem | null>(null)
   const searchParams = useSearchParams()
   const sp = searchParams ?? new URLSearchParams()
   const router = useRouter()
@@ -115,8 +115,6 @@ export default function EventList() {
     }
   }
 
-  const filtered = events || []
-
   const formatPrice = (amount?: number) => {
     if (amount === undefined || amount === null || isNaN(amount) || amount <= 0) return 'Free'
     try {
@@ -126,125 +124,26 @@ export default function EventList() {
     }
   }
 
-  const statusStyle = (status?: string) => {
-    switch (status) {
-      case 'LIVE':
-        return { cls: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500', Icon: Radio }
-      case 'DRAFT':
-        return { cls: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400', Icon: FileClock }
-      case 'COMPLETED':
-        return { cls: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500', Icon: CheckCircle }
-      case 'CANCELLED':
-        return { cls: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500', Icon: Ban }
-      case 'TRASHED':
-        return { cls: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400', Icon: Archive }
-      default:
-        return { cls: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500', Icon: PlayCircle }
-    }
-  }
+  // Segregation Logic
+  const filtered = events || []
 
-  const MT_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY as string | undefined
-  const MT_STYLE = (process.env.NEXT_PUBLIC_MAPTILER_STYLE as string | undefined) || 'streets'
+  const isEnded = (e: any) => e.endsAt && new Date(e.endsAt) < new Date()
 
-  const getThumbSrc = (x: EventItem) => {
-    // Prefer server-provided coords
-    if (typeof x.latitude === 'number' && typeof x.longitude === 'number') {
-      const lat = x.latitude
-      const lon = x.longitude
-      if (MT_KEY) {
-        // MapTiler Static Maps (no marker to keep URL simple and reliable)
-        return `https://api.maptiler.com/maps/${encodeURIComponent(MT_STYLE)}/static/${lon},${lat},12/384x256.png?key=${encodeURIComponent(MT_KEY)}`
-      }
-      // Internal proxy to OSM static map
-      return `/api/map/static?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&zoom=12&w=384&h=256`
-    }
-    // Fallback: city-based coords from client cache/API
-    if (x.city && x.city.trim().length > 0) {
-      const key = x.city.trim().toLowerCase()
-      const coords = cityCoords[key]
-      if (coords) {
-        const { lat, lon } = coords
-        if (MT_KEY) {
-          return `https://api.maptiler.com/maps/${encodeURIComponent(MT_STYLE)}/static/${lon},${lat},12/384x256.png?key=${encodeURIComponent(MT_KEY)}`
-        }
-        return `/api/map/static?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&zoom=12&w=384&h=256`
-      }
-    }
-    if (x.bannerUrl) return x.bannerUrl
-    // No deterministic image available -> return empty to trigger animation path
-    return ''
-  }
+  const upcomingEvents = filtered.filter(e => !isEnded(e))
+  const endedEvents = filtered.filter(e => isEnded(e))
 
-  const getMapLink = (x: EventItem) => {
-    // Prefer precise coordinates when available
-    if (typeof x.latitude === 'number' && typeof x.longitude === 'number') {
-      const lat = x.latitude
-      const lon = x.longitude
-      // Google Maps exact coordinates
-      return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-    }
-    // Else, use cached geocoded city coordinates if present
-    if (x.city && x.city.trim().length > 0) {
-      const key = x.city.trim().toLowerCase()
-      const coords = cityCoords[key]
-      if (coords) {
-        const { lat, lon } = coords
-        return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-      }
-      // Fallback to a Google Maps text search
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.city)}`
-    }
-    // Last resort: open Google Maps home
-    return 'https://www.google.com/maps'
-  }
-
-  // Geocode unique city names via our API (server-side cached) and cache in state
-  useEffect(() => {
-    const cities = Array.from(new Set(
-      (filtered || [])
-        .filter(e => (typeof e.latitude !== 'number' || typeof e.longitude !== 'number'))
-        .map(e => (e.city || '').trim())
-        .filter(Boolean)
-    ))
-    const missing = cities.filter(c => !cityCoords[c.toLowerCase()])
-    if (missing.length === 0) return
-    let aborted = false
-      ; (async () => {
-        const updates: Record<string, { lat: number; lon: number }> = {}
-
-        await Promise.all(missing.map(async (city) => {
-          try {
-            // Check database cache first
-            const cacheRes = await fetch(`/api/geocoding-cache?city=${encodeURIComponent(city)}`)
-            if (cacheRes.ok) {
-              const cached = await cacheRes.json()
-              updates[city.toLowerCase()] = { lat: cached.lat, lon: cached.lon }
-              return
-            }
-
-            // Fetch from external API
-            const res = await fetch(`/api/geo/city?q=${encodeURIComponent(city)}`)
-            if (res.ok) {
-              const data = await res.json()
-              const coords = { lat: Number(data.lat), lon: Number(data.lon) }
-              updates[city.toLowerCase()] = coords
-
-              // Save to database cache (fire and forget)
-              fetch('/api/geocoding-cache', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ city, ...coords })
-              }).catch(() => { })
-            }
-          } catch { }
-        }))
-
-        if (!aborted && Object.keys(updates).length) {
-          setCityCoords(prev => ({ ...prev, ...updates }))
-        }
-      })()
-    return () => { aborted = true }
-  }, [filtered, cityCoords])
+  const renderEventGrid = (items: EventItem[]) => (
+    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+      {items.map((x: any) => (
+        <ModernEventCard
+          key={x.id}
+          event={x}
+          onEdit={isAdmin ? (id) => router.push(`/events/${id}/info`) : undefined}
+          onDelete={isAdmin ? (event) => setConfirm({ open: true, type: event.status === 'TRASHED' ? 'delete' as any : 'trash', target: event }) : undefined}
+        />
+      ))}
+    </div>
+  )
 
   if (!events || loading) return <div className="animate-pulse h-24 bg-rose-50/50 rounded-2xl" />
 
@@ -292,6 +191,17 @@ export default function EventList() {
               </div>
               {/* Sort controls */}
               <div className="flex items-center gap-2">
+                <div className="bg-white border rounded-lg flex overflow-hidden">
+                  <button onClick={() => setViewMode('grid')} className={`p-2 ${viewMode === 'grid' ? 'bg-rose-50 text-rose-500' : 'text-slate-400 hover:text-slate-600'}`}>
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <div className="w-px bg-slate-100" />
+                  <button onClick={() => setViewMode('list')} className={`p-2 ${viewMode === 'list' ? 'bg-rose-50 text-rose-500' : 'text-slate-400 hover:text-slate-600'}`}>
+                    <ListIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all"
@@ -320,8 +230,8 @@ export default function EventList() {
             {STATUS_TABS.map(tab => (
               <button
                 key={tab.key}
-                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === tab.key 
-                  ? 'bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-200' 
+                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === tab.key
+                  ? 'bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-200'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                 onClick={() => { setActiveTab(tab.key); setPage(1); }}
                 type="button"
@@ -339,7 +249,7 @@ export default function EventList() {
           </div>
         )}
 
-        <div id="events-list" className={viewMode === 'grid' ? "grid sm:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"} tabIndex={-1}>
+        <div id="events-list" className="min-h-[400px]" tabIndex={-1}>
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 rounded-[2rem] border border-slate-100 p-12 bg-white text-center shadow-sm">
               <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-2">
@@ -351,87 +261,62 @@ export default function EventList() {
               </div>
             </div>
           ) : viewMode === 'grid' ? (
-            filtered.map((x: any) => (
-              <ModernEventCard
-                key={x.id}
-                event={x}
-                onEdit={isAdmin ? (id) => router.push(`/events/${id}/info`) : undefined}
-                onDelete={isAdmin ? (event) => setConfirm({ open: true, type: event.status === 'TRASHED' ? 'delete' as any : 'trash', target: event }) : undefined}
-              />
-            ))
-          ) : (
-            filtered.map((x: any) => (
-              <div
-                key={x.id}
-                className="group p-4 border rounded-xl bg-white hover:border-rose-200 hover:shadow-lg hover:shadow-rose-100/50 transition-all cursor-pointer"
-                onClick={() => router.push(`/events/${x.id}`)}
-              >
-                {/* List view logic preserved but styled updated */}
-                <div className="flex items-start gap-6">
-                  {/* Thumbnail */}
-                  <div className="w-48 h-32 rounded-lg overflow-hidden border bg-slate-50 flex items-center justify-center relative shrink-0">
-                    {(() => {
-                      const src = getThumbSrc(x)
-                      const failed = thumbFailed[x.id]
-                      const shouldAnimate = failed || !src
-                      if (shouldAnimate) {
-                        return (
-                          <div className="w-full h-full grid place-items-center">
-                            <div className="w-full h-full">
-                              <AvatarIcon seed={getEventBadgeSeed(x)} query={getEventBadgeQuery(x)} size={160} className="!w-full !h-full object-cover" squared />
-                            </div>
-                          </div>
-                        )
-                      }
-                      const mapHref = getMapLink(x)
-                      return (
-                        <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="block w-full h-full">
-                          <img
-                            src={src}
-                            alt={x.city ? `Map of ${x.city}` : 'Event banner'}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            loading="lazy"
-                            onError={() => setThumbFailed(prev => ({ ...prev, [x.id]: true }))}
-                          />
-                        </a>
-                      )
-                    })()}
+            // Segregated Grid View
+            activeTab === 'ALL' ? (
+              <div className="space-y-12">
+                {upcomingEvents.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      <Radio className="w-5 h-5 text-rose-500" /> Upcoming & Live
+                    </h3>
+                    {renderEventGrid(upcomingEvents)}
                   </div>
-                  <div className="flex-1 min-w-0 py-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 space-y-1">
-                        <Link href={`/events/${x.id}`} className="text-lg font-bold text-slate-900 hover:text-rose-600 truncate block transition-colors">
-                          {x.name || "Untitled Event"}
-                        </Link>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-                          <span className="flex items-center gap-1.5"><FileClock className="w-4 h-4 text-rose-400"/> {formatDateRange(x.startsAt, x.endsAt) || 'Dates TBA'}</span>
-                          <span className="flex items-center gap-1.5"><Radio className="w-4 h-4 text-purple-400"/> {x.eventMode === 'IN_PERSON' ? 'In-Person' : x.eventMode === 'VIRTUAL' ? 'Virtual' : 'Hybrid'}</span>
-                          <span className="flex items-center gap-1.5 text-slate-400">|</span>
-                          <span className="font-medium text-emerald-600">{x.registrationCount || 0} Registered</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-3">
-                        <div className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-                          {formatPrice(x.priceInr)}
-                        </div>
-                        {(() => {
-                          const s = statusStyle(x.status); const I = s.Icon; return (
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${s.cls}`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${s.dot} animate-pulse`} />
-                              {x.status}
-                            </span>
-                          )
-                        })()}
-                      </div>
+                )}
+
+                {endedEvents.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-slate-500 flex items-center gap-2 pt-8 border-t border-slate-100">
+                      <Clock className="w-5 h-5 text-slate-400" /> Past Events
+                    </h3>
+                    {renderEventGrid(endedEvents)}
+                  </div>
+                )}
+
+                {/* Fallback if logic mismatch */}
+                {upcomingEvents.length === 0 && endedEvents.length === 0 && renderEventGrid(filtered)}
+              </div>
+            ) : (
+              renderEventGrid(filtered)
+            )
+          ) : (
+            // List View (Simpler, no distinct separation implemented yet to keep consistent, or just stick to standard list)
+            <div className="space-y-4">
+              {filtered.map((x: any) => (
+                <div
+                  key={x.id}
+                  className="group p-4 border rounded-xl bg-white hover:border-rose-200 hover:shadow-lg hover:shadow-rose-100/50 transition-all cursor-pointer"
+                  onClick={() => router.push(`/events/${x.id}/public`)}
+                >
+                  <div className="flex items-start gap-6">
+                    <div className="w-48 h-32 rounded-lg overflow-hidden border bg-slate-50 flex items-center justify-center relative shrink-0">
+                      {x.bannerUrl ? (
+                        <img src={x.bannerUrl} alt={x.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <AvatarIcon seed={getEventBadgeSeed(x)} query={getEventBadgeQuery(x)} squared size={192} className="!w-full !h-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg text-slate-900">{x.name}</h4>
+                      <p className="text-slate-500 text-sm mt-1">{formatDateRange(x.startsAt, x.endsAt)}</p>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination and Confirm Modal - Preserved */}
         <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-6">
           <div className="text-sm font-medium text-slate-500">Page {page} of {totalPages}</div>
           <div className="flex items-center gap-3">
@@ -477,18 +362,10 @@ export default function EventList() {
               <button
                 onClick={async () => {
                   if (!confirm.target) return
-
-                  // Check authentication
                   if (!accessToken) {
-                    toast({
-                      title: 'Authentication required',
-                      description: 'Please log out and log back in to refresh your session.',
-                      variant: 'destructive' as any
-                    })
-                    setConfirm({ open: false, type: null, target: null })
+                    toast({ title: 'Authentication required', description: 'Please log out and log back in.', variant: 'destructive' as any })
                     return
                   }
-
                   try {
                     if (confirm.type === 'cancel') {
                       await cancelEvent(String(confirm.target.id), accessToken)
@@ -503,11 +380,7 @@ export default function EventList() {
                     setConfirm({ open: false, type: null, target: null })
                     load(page)
                   } catch (err: any) {
-                    toast({
-                      title: confirm.type === 'cancel' ? 'Cancel failed' : 'Trash failed',
-                      description: err?.message || 'Operation failed',
-                      variant: 'destructive' as any
-                    })
+                    toast({ title: 'Failed', description: err?.message || 'Operation failed', variant: 'destructive' as any })
                   }
                 }}
                 className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 ${confirm.type === 'cancel' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-200'
