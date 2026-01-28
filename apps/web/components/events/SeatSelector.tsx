@@ -108,10 +108,8 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
     return () => clearInterval(id)
   }, [eventId, ticketClassId, ticketClassFilter, autoRefresh])
 
-  useEffect(() => {
-    const totalPrice = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
-    onSeatSelect(selectedSeats, totalPrice)
-  }, [selectedSeats, onSeatSelect])
+  // Removed useEffect sync to prevent infinite loops
+  // onSeatSelect is now called directly in handlers
 
   const fetchSeats = async (silent = false) => {
     try {
@@ -165,6 +163,11 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
         }
         if (removed.length > 0) {
           setSelectedSeats(stillValid)
+
+          // Notify parent of update
+          const newPrice = stillValid.reduce((sum, seat) => sum + Number(seat.basePrice || 0), 0)
+          onSeatSelect(stillValid, newPrice)
+
           toast({ title: 'Seats updated', description: `${removed.length} seat(s) became unavailable and were removed from your selection.` })
         }
       }
@@ -193,9 +196,11 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
 
     const isSelected = selectedSeats.find(s => s.id === seat.id)
 
+    let newSelectedSeats: Seat[] = []
+
     if (isSelected) {
       // Deselect seat
-      setSelectedSeats(prev => prev.filter(s => s.id !== seat.id))
+      newSelectedSeats = selectedSeats.filter(s => s.id !== seat.id)
     } else {
       // Select seat
       if (selectedSeats.length >= maxSeats) {
@@ -206,8 +211,14 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
         })
         return
       }
-      setSelectedSeats(prev => [...prev, seat])
+      newSelectedSeats = [...selectedSeats, seat]
     }
+
+    setSelectedSeats(newSelectedSeats)
+
+    // Notify parent
+    const newPrice = newSelectedSeats.reduce((sum, s) => sum + Number(s.basePrice || 0), 0)
+    onSeatSelect(newSelectedSeats, newPrice)
   }
 
   const getSeatColor = (seat: Seat) => {
@@ -236,6 +247,7 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
 
   const clearSelection = () => {
     setSelectedSeats([])
+    onSeatSelect([], 0)
   }
 
   // Helpers to render a sector similar to the reference screenshot
