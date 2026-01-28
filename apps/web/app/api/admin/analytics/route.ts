@@ -62,17 +62,21 @@ export async function GET(req: NextRequest) {
     const tenantId = (session as any).user.currentTenantId
     const isSuperAdmin = userRole === 'SUPER_ADMIN'
 
-    // 3. Define fail-safe queries with very short timeouts (2.5s)
-    const FILTER = isSuperAdmin
-      ? Prisma.sql`1=1`
-      : Prisma.sql`tenant_id = ${tenantId || 'default'}`
+    // 3. Define fail-safe aggregation queries
+
+    // Revenue from Orders (Completed/Paid)
+    // Note: totalInr is used for revenue
+    const revenueSql = isSuperAdmin
+      ? Prisma.sql`SELECT COALESCE(SUM("totalInr"), 0) as revenue FROM "Order" WHERE status = 'PAID' OR "paymentStatus" = 'COMPLETED'`
+      : Prisma.sql`SELECT COALESCE(SUM("totalInr"), 0) as revenue FROM "Order" WHERE "tenantId" = ${tenantId} AND (status = 'PAID' OR "paymentStatus" = 'COMPLETED')`
 
     // Use Promise.all with individual fail-safes
     const [
       events,
       companies,
       users,
-      regsData
+      regCount,
+      revenueResult
     ] = await Promise.all([
       // Events Count
       timeout(
@@ -87,37 +91,34 @@ export async function GET(req: NextRequest) {
       timeout(
         prisma.user.count().catch(() => 0), 2500, 0
       ),
-      // Registrations & Revenue (Combined for efficiency if possible, or separate)
-      // Registrations & Revenue (Safe Prisma Aggregation)
+      // Registrations Count
       timeout(
-        prisma.registration.aggregate({
-          _count: { id: true },
-          _sum: { priceInr: true },
+        prisma.registration.count({
           where: {
             ...(isSuperAdmin ? {} : { tenantId }),
-            status: { in: ['APPROVED', 'PENDING'] }
+            status: { in: ['APPROVED', 'PENDING', 'CONFIRMED'] }
           }
-        }).then(agg => ({
-          count: agg._count?.id || 0,
-          revenue: agg._sum?.priceInr || 0
-        })).catch(() => ({ count: 0, revenue: 0 })),
-        2500, { count: 0, revenue: 0 }
+        }).catch(() => 0), 2500, 0
+      ),
+      // Revenue from Orders
+      timeout(
+        prisma.$queryRaw<any[]>(revenueSql).catch(() => [{ revenue: 0 }]),
+        2500, [{ revenue: 0 }]
       )
     ]);
 
-    // regsData is already the result object, not an array
-    const regStats = regsData as { count: number, revenue: number };
+    const totalRevenue = Number(revenueResult[0]?.revenue || 0)
 
     const overview = {
       totalEvents: events,
       totalCompanies: companies,
       totalUsers: users,
-      totalRegistrations: Number(regStats?.count || 0),
-      totalRevenue: Number(regStats?.revenue || 0),
-      averageAttendance: events > 0 ? Math.round(Number(regStats?.count || 0) / events) : 0
+      totalRegistrations: regCount,
+      totalRevenue: totalRevenue,
+      averageAttendance: events > 0 ? Math.round(regCount / events) : 0
     };
 
-    // Fetch top events for the dashboard
+    // Fetch top events by registration count
     let topEvents: any[] = []
     try {
       const eventsWithRegs = await timeout(
@@ -131,12 +132,15 @@ export async function GET(req: NextRequest) {
             endDate: true,
             priceInr: true,
             seats: true,
+            adminEmail: true,
             _count: {
               select: { registrations: true }
             }
           },
-          orderBy: { createdAt: 'desc' },
-          take: 10
+          orderBy: {
+            registrations: { _count: 'desc' }
+          },
+          take: 5
         }).catch(() => []),
         3000,
         []
@@ -150,7 +154,8 @@ export async function GET(req: NextRequest) {
         endDate: e.endDate,
         price: e.priceInr || 0,
         seats: e.seats || 0,
-        registrations: e._count?.registrations || 0
+        registrations: e._count?.registrations || 0,
+        adminEmail: e.adminEmail
       }))
     } catch (e) {
       console.warn('Top events fetch failed:', e)

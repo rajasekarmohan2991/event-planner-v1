@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       categoryId,
       value,
       label,
-      description || null,
+      description || '',
       sortOrder,
       isActive,
       isDefault,
