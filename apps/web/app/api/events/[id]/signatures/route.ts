@@ -124,12 +124,22 @@ export async function POST(
             return NextResponse.json({ error: `Invalid document type: ${normalizedDocType}` }, { status: 400 });
         }
 
-        // Get document template - logic simplified for brevity, assuming templates fetched via prisma or default
-        const tenantId = (session.user as any)?.currentTenantId;
-
-        // (Template fetching logic omitted - using default or fetching via Prisma if needed, maintaining existing logic structure where possible)
-        // For robustness, reusing default content generation logic if template fetch is complex to port 1:1 without more context.
-        // Assuming template fetching was strictly for content generation.
+        // Fetch event to get tenantId and name
+        const event = await prisma.event.findUnique({ 
+            where: { id: eventId }, 
+            select: { name: true, tenantId: true } 
+        });
+        
+        if (!event) {
+            return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+        }
+        
+        const eventName = event.name || 'Event';
+        const tenantId = event.tenantId;
+        
+        if (!tenantId) {
+            return NextResponse.json({ error: 'Event has no tenant associated' }, { status: 400 });
+        }
 
         let documentContent = `
             <h1>${normalizedDocType} Agreement</h1>
@@ -142,12 +152,6 @@ export async function POST(
         const signatureToken = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);
-
-        const userId = (session.user as any)?.id;
-
-        // Fetch event name
-        const event = await prisma.event.findUnique({ where: { id: eventId }, select: { name: true } });
-        const eventName = event?.name || 'Event';
 
         documentContent = documentContent.replace(/{eventName}/g, eventName);
         documentContent = documentContent.replace(/{signerName}/g, signerName);
