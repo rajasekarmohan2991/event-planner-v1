@@ -341,8 +341,8 @@ export default function FloorPlanDesignerPage() {
 
     // Add object to canvas
     const addObject = () => {
-        // Handle STAGE type
-        if (newObject.type === 'STAGE') {
+        // Handle STAGE, EXIT, ENTRY types (no seats)
+        if (newObject.type === 'STAGE' || newObject.type === 'EXIT' || newObject.type === 'ENTRY') {
             const obj: FloorPlanObject = {
                 id: `stage-${Date.now()}`,
                 type: 'STAGE',
@@ -434,8 +434,8 @@ export default function FloorPlanDesignerPage() {
 
     // Generate individual seats for an object
     const generateSeatsForObject = (obj: FloorPlanObject) => {
-        // Skip for STAGE
-        if (obj.type === 'STAGE') {
+        // Skip for STAGE, EXIT, ENTRY (no seats)
+        if (obj.type === 'STAGE' || obj.type === 'EXIT' || obj.type === 'ENTRY') {
             setSeats(prev => {
                 const newSeats = new Map(prev)
                 newSeats.set(obj.id, [])
@@ -869,7 +869,14 @@ export default function FloorPlanDesignerPage() {
                                                     const objectSeats = seats.get(obj.id) || []
                                                     const isSelected = selectedObject?.id === obj.id
 
-                                                    if (obj.type === 'STAGE') {
+                                                    if (obj.type === 'STAGE' || obj.type === 'EXIT' || obj.type === 'ENTRY') {
+                                                        const colors = {
+                                                            STAGE: { fill: obj.fillColor || '#94a3b8', stroke: obj.strokeColor || '#64748b', text: 'MAIN STAGE' },
+                                                            EXIT: { fill: '#fee2e2', stroke: '#dc2626', text: 'EXIT' },
+                                                            ENTRY: { fill: '#d1fae5', stroke: '#059669', text: 'ENTRY' }
+                                                        }
+                                                        const config = colors[obj.type as keyof typeof colors]
+                                                        
                                                         return (
                                                             <g key={obj.id}
                                                                 transform={`translate(${obj.x}, ${obj.y})`}
@@ -877,24 +884,43 @@ export default function FloorPlanDesignerPage() {
                                                                 onMouseDown={(e) => handleObjectMouseDown(obj, e)}
                                                                 style={{ cursor: 'move' }}
                                                             >
-                                                                <path
-                                                                    d={`M0,0 L${obj.width},0 L${obj.width * 0.9},${obj.height} L${obj.width * 0.1},${obj.height} Z`}
-                                                                    fill={obj.fillColor}
-                                                                    stroke={isSelected ? '#000' : obj.strokeColor}
-                                                                    strokeWidth={isSelected ? 2 : 1}
-                                                                    opacity={0.5}
-                                                                />
+                                                                {obj.type === 'STAGE' ? (
+                                                                    <path
+                                                                        d={`M0,0 L${obj.width},0 L${obj.width * 0.9},${obj.height} L${obj.width * 0.1},${obj.height} Z`}
+                                                                        fill={config.fill}
+                                                                        stroke={isSelected ? '#3b82f6' : config.stroke}
+                                                                        strokeWidth={isSelected ? 3 : 1}
+                                                                        opacity={0.5}
+                                                                    />
+                                                                ) : (
+                                                                    <rect
+                                                                        width={obj.width}
+                                                                        height={obj.height}
+                                                                        fill={config.fill}
+                                                                        stroke={isSelected ? '#3b82f6' : config.stroke}
+                                                                        strokeWidth={isSelected ? 3 : 2}
+                                                                        rx={8}
+                                                                    />
+                                                                )}
+                                                                {/* Resize handles */}
+                                                                {isSelected && (
+                                                                    <>
+                                                                        <circle cx={obj.width} cy={obj.height} r="6" fill="#3b82f6" stroke="white" strokeWidth="2" style={{ cursor: 'nwse-resize' }} />
+                                                                        <circle cx={obj.width} cy={0} r="6" fill="#3b82f6" stroke="white" strokeWidth="2" style={{ cursor: 'nesw-resize' }} />
+                                                                        <circle cx={0} cy={obj.height} r="6" fill="#3b82f6" stroke="white" strokeWidth="2" style={{ cursor: 'nesw-resize' }} />
+                                                                    </>
+                                                                )}
                                                                 <text
                                                                     x={obj.width / 2}
                                                                     y={obj.height / 2}
                                                                     textAnchor="middle"
                                                                     dominantBaseline="middle"
-                                                                    fill="#475569"
+                                                                    fill="#1f2937"
                                                                     fontWeight="bold"
-                                                                    fontSize="14"
+                                                                    fontSize="16"
                                                                     pointerEvents="none"
                                                                 >
-                                                                    {obj.label}
+                                                                    {obj.label || config.text}
                                                                 </text>
                                                             </g>
                                                         )
@@ -1008,7 +1034,9 @@ export default function FloorPlanDesignerPage() {
                                                                             <text
                                                                                 x={seat.x + 10} y={seat.y + 10}
                                                                                 textAnchor="middle" dominantBaseline="middle"
-                                                                                fontSize="8" fill="white" pointerEvents="none"
+                                                                                fontSize="10" fontWeight="bold" fill="#1a1a1a" 
+                                                                                stroke="white" strokeWidth="0.5"
+                                                                                pointerEvents="none"
                                                                             >
                                                                                 {seat.displayNumber}
                                                                             </text>
@@ -1195,6 +1223,8 @@ export default function FloorPlanDesignerPage() {
                                     <SelectItem value="ROUND_TABLE">Round Table</SelectItem>
                                     <SelectItem value="STAGE">Stage</SelectItem>
                                     <SelectItem value="STANDING">Standing Area</SelectItem>
+                                    <SelectItem value="EXIT">Exit Gate</SelectItem>
+                                    <SelectItem value="ENTRY">Entry Gate</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
