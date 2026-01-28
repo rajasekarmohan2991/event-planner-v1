@@ -13,6 +13,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!session) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     try {
+        // Check if table exists first using raw query
+        const tableExists = await prisma.$queryRaw<any[]>`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'ticket_groups'
+            ) as exists
+        `
+        
+        if (!tableExists[0]?.exists) {
+            // Return empty array if table doesn't exist yet
+            return NextResponse.json([])
+        }
+
         const groups = await prisma.ticketGroup.findMany({
             where: { eventId: String(eventId) },
             orderBy: { createdAt: 'asc' }
@@ -22,19 +35,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     } catch (e: any) {
         console.error('Error fetching ticket groups:', e)
 
-        // Retry if table missing
-        if (e.message?.includes('does not exist') || e.code === 'P20210' || e.code === 'P2010') {
-            try {
-                console.log('Sanitizing schema for ticket groups...')
-                await ensureSchema()
-                const groups = await prisma.ticketGroup.findMany({
-                    where: { eventId: String(eventId) },
-                    orderBy: { createdAt: 'asc' }
-                })
-                return NextResponse.json(safeJson(groups))
-            } catch (retryErr) {
-                console.error('Retry failed:', retryErr)
-            }
+        // If table doesn't exist, return empty array instead of error
+        if (e.message?.includes('does not exist') || e.code === 'P2021' || e.code === 'P2010' || e.message?.includes('ticket_groups')) {
+            return NextResponse.json([])
         }
 
         return NextResponse.json({ message: 'Failed to load ticket groups', error: e?.message }, { status: 500 })

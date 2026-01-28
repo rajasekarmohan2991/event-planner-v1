@@ -22,6 +22,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // We use params.id directly as string because Order.eventId is String in schema
     const eventIdStr = params.id
 
+    // Check if Order table exists first
+    const tableExists = await prisma.$queryRaw<any[]>`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'Order'
+      ) as exists
+    `
+    
+    if (!tableExists[0]?.exists) {
+      return NextResponse.json({
+        payments: [],
+        pagination: { page, size, total: 0, totalPages: 0 }
+      })
+    }
+
     const [paymentsRaw, totalResult] = await Promise.all([
       prisma.$queryRaw<any[]>`
         SELECT 
@@ -41,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           o."email" as "orderEmail",
           r.data_json as "regDataJson"
         FROM "Order" o
-        LEFT JOIN registrations r ON (o."meta"->>'registrationId') = r.id
+        LEFT JOIN registrations r ON (o."meta"->>'registrationId')::text = r.id::text
         WHERE o."eventId" = ${eventIdStr}
         ORDER BY o."createdAt" DESC
         LIMIT ${size} OFFSET ${offset}
@@ -102,8 +117,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })
   } catch (e: any) {
     console.error('Error fetching payments:', e)
+    
+    // If table doesn't exist, return empty array
+    if (e.message?.includes('does not exist') || e.code === 'P2021' || e.message?.includes('Order')) {
+      return NextResponse.json({
+        payments: [],
+        pagination: { page: 0, size: 50, total: 0, totalPages: 0 }
+      })
+    }
+    
     return NextResponse.json({
-      message: e?.message || 'Failed to fetch payments'
-    }, { status: 500 })
+      payments: [],
+      pagination: { page: 0, size: 50, total: 0, totalPages: 0 },
+      error: e?.message || 'Failed to fetch payments'
+    })
   }
 }

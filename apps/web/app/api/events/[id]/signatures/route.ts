@@ -19,7 +19,24 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const eventId = BigInt(params.id);
+        let eventId: bigint;
+        try {
+            eventId = BigInt(params.id);
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid event ID' }, { status: 400 });
+        }
+
+        // Check if table exists first
+        const tableExists = await prisma.$queryRaw<any[]>`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'signature_requests'
+            ) as exists
+        `
+        
+        if (!tableExists[0]?.exists) {
+            return NextResponse.json({ signatures: [] }, { status: 200 });
+        }
 
         const signatures = await prisma.signatureRequest.findMany({
             where: { eventId: eventId },
@@ -42,10 +59,16 @@ export async function GET(
         }));
 
         return NextResponse.json({ signatures: formattedSignatures }, { status: 200 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching signature requests:', error);
+        
+        // If table doesn't exist, return empty array
+        if (error.message?.includes('does not exist') || error.code === 'P2021' || error.message?.includes('signature_requests')) {
+            return NextResponse.json({ signatures: [] }, { status: 200 });
+        }
+        
         return NextResponse.json(
-            { error: 'Failed to fetch signature requests' },
+            { error: 'Failed to fetch signature requests', details: error.message },
             { status: 500 }
         );
     }
