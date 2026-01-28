@@ -388,31 +388,108 @@ export async function PUT(
                 // Delete existing seats for this event
                 await prisma.$executeRawUnsafe(`DELETE FROM seat_inventory WHERE event_id = $1`, eventId)
 
-                // Generate VIP seats
-                for (let i = 1; i <= vipCapacity; i++) {
-                    await prisma.$executeRawUnsafe(`
-                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
-                        VALUES ($1, 'VIP', $2, $3, 'VIP', $4, true, NOW())
-                    `, eventId, `V${Math.ceil(i / 10)}`, String(i), Number(body.vipPrice) || 0)
-                }
+                const objects = body.objects || (body.layoutData?.objects) || [];
 
-                // Generate Premium seats
-                for (let i = 1; i <= premiumCapacity; i++) {
-                    await prisma.$executeRawUnsafe(`
-                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
-                        VALUES ($1, 'Premium', $2, $3, 'PREMIUM', $4, true, NOW())
-                    `, eventId, `P${Math.ceil(i / 10)}`, String(i), Number(body.premiumPrice) || 0)
-                }
+                if (objects.length > 0) {
+                    console.log('📐 [FloorPlan PUT] Using Smart Generation from', objects.length, 'visual objects');
 
-                // Generate General seats
-                for (let i = 1; i <= generalCapacity; i++) {
-                    await prisma.$executeRawUnsafe(`
-                        INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
-                        VALUES ($1, 'General', $2, $3, 'GENERAL', $4, true, NOW())
-                    `, eventId, `G${Math.ceil(i / 10)}`, String(i), Number(body.generalPrice) || 0)
-                }
+                    for (const obj of objects) {
+                        const seatSize = 20;
+                        const seatSpacing = 5;
+                        const gaps = new Set(obj.gaps || []);
+                        const pricingTier = obj.pricingTier || 'GENERAL';
 
-                console.log(`✅ [FloorPlan PUT] Generated ${vipCapacity + premiumCapacity + generalCapacity} seats`)
+                        // Map tier to type and price
+                        let seatType = 'STANDARD';
+                        let basePrice = Number(body.generalPrice) || 0;
+
+                        if (pricingTier === 'VIP') {
+                            seatType = 'VIP';
+                            basePrice = Number(body.vipPrice) || 0;
+                        } else if (pricingTier === 'PREMIUM') {
+                            seatType = 'PREMIUM';
+                            basePrice = Number(body.premiumPrice) || 0;
+                        } else {
+                            // GENERAL -> STANDARD mapping
+                            seatType = 'STANDARD';
+                            basePrice = Number(body.generalPrice) || 0;
+                        }
+
+                        if (obj.type === 'GRID') {
+                            const rows = obj.rows || 10;
+                            const cols = obj.cols || 10;
+                            const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+                            for (let r = 0; r < rows; r++) {
+                                // Determine Row Label (A, B, ... AA)
+                                let rowLabel = labelsStr[r % 26];
+                                if (r >= 26) rowLabel += Math.floor(r / 26);
+
+                                for (let c = 0; c < cols; c++) {
+                                    if (gaps.has(`${r}-${c}`)) continue; // Skip gaps
+
+                                    const seatNum = c + 1;
+                                    const x = obj.x + (c * (seatSize + seatSpacing)) + 30;
+                                    const y = obj.y + (r * (seatSize + seatSpacing));
+
+                                    // Insert Seat
+                                    await prisma.$executeRawUnsafe(`
+                                        INSERT INTO seat_inventory (
+                                            event_id, section, row_number, seat_number, seat_type, 
+                                            base_price, x_coordinate, y_coordinate, is_available, created_at
+                                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW())
+                                    `, eventId, pricingTier, rowLabel, String(seatNum), seatType, basePrice, x, y);
+                                }
+                            }
+                        } else if (obj.type === 'ROUND_TABLE') {
+                            const numSeats = obj.totalSeats || 8;
+                            const tableRadius = (obj.width / 2);
+                            const seatRadiusFromTable = 15;
+
+                            for (let i = 0; i < numSeats; i++) {
+                                const angle = (i * 360) / numSeats;
+                                const radian = (angle * Math.PI) / 180;
+                                const x = obj.x + tableRadius + (tableRadius + seatRadiusFromTable) * Math.cos(radian);
+                                const y = obj.y + tableRadius + (tableRadius + seatRadiusFromTable) * Math.sin(radian);
+
+                                await prisma.$executeRawUnsafe(`
+                                     INSERT INTO seat_inventory (
+                                        event_id, section, row_number, seat_number, seat_type, 
+                                        base_price, x_coordinate, y_coordinate, is_available, created_at
+                                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW())
+                                `, eventId, pricingTier, `T${i + 1}`, String(i + 1), seatType, basePrice, x, y);
+                            }
+                        }
+                    }
+                    console.log('✅ [FloorPlan PUT] Smart Generation Complete');
+                } else {
+                    console.log('⚠️ [FloorPlan PUT] No visual objects found, falling back to Capacity-based generation');
+
+                    // Generate VIP seats
+                    for (let i = 1; i <= vipCapacity; i++) {
+                        await prisma.$executeRawUnsafe(`
+                            INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                            VALUES ($1, 'VIP', $2, $3, 'VIP', $4, true, NOW())
+                        `, eventId, `V${Math.ceil(i / 10)}`, String(i), Number(body.vipPrice) || 0)
+                    }
+
+                    // Generate Premium seats
+                    for (let i = 1; i <= premiumCapacity; i++) {
+                        await prisma.$executeRawUnsafe(`
+                            INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                            VALUES ($1, 'Premium', $2, $3, 'PREMIUM', $4, true, NOW())
+                        `, eventId, `P${Math.ceil(i / 10)}`, String(i), Number(body.premiumPrice) || 0)
+                    }
+
+                    // Generate General seats
+                    for (let i = 1; i <= generalCapacity; i++) {
+                        await prisma.$executeRawUnsafe(`
+                            INSERT INTO seat_inventory (event_id, section, row_number, seat_number, seat_type, base_price, is_available, created_at)
+                            VALUES ($1, 'General', $2, $3, 'GENERAL', $4, true, NOW())
+                        `, eventId, `G${Math.ceil(i / 10)}`, String(i), Number(body.generalPrice) || 0)
+                    }
+                    console.log(`✅ [FloorPlan PUT] Generated seats from capacity counts`);
+                }
             } catch (seatError: any) {
                 console.warn('⚠️ [FloorPlan PUT] Seat generation failed:', seatError.message)
             }
@@ -431,14 +508,14 @@ export async function PUT(
     } catch (error: any) {
         console.error('❌ [FloorPlan PUT] Fatal Error:', error)
         console.error('❌ [FloorPlan PUT] Error stack:', error.stack)
-        
+
         // Attempt self-repair
         if (error.message?.includes('relation') || error.message?.includes('does not exist') || error.message?.includes('column')) {
             console.log('🔧 [FloorPlan PUT] Attempting schema repair...')
             await ensureSchema()
             return NextResponse.json({ message: 'Database schema repaired. Please retry.' }, { status: 503 })
         }
-        
+
         return NextResponse.json({
             message: 'Failed to update floor plan',
             error: error.message,
