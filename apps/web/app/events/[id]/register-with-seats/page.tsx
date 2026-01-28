@@ -242,24 +242,32 @@ export default function RegisterWithSeatsPage() {
     setSelectedSeats(seats)
     // Auto-set number of attendees to match selected seats count
     setNumberOfAttendees(seats.length || 1)
-    // Price from selector is already calculated, just use it
-    const numPrice = Number(price) || 0
-    const discounted = promoDiscount ? Number(promoDiscount.finalAmount) : numPrice
-    const conv = Math.round(discounted * 0.02) + 15
-    const tax = Math.round((discounted + conv) * 0.18)
+    // Calculate price correctly - each seat is one ticket
+    const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0)
+    const discounted = promoDiscount ? Number(promoDiscount.finalAmount) : seatsTotal
+    // Convenience fee: 2% of base + ₹15 flat
+    const conv = Math.round(seatsTotal * 0.02) + 15
+    // Tax: 18% GST on base price
+    const tax = Math.round(seatsTotal * 0.18)
     setConvenienceFee(conv)
     setTaxAmount(tax)
     setTotalPrice(discounted + conv + tax)
   }, [promoDiscount])
 
   const calculateTotalPrice = (seats: Seat[], attendees: number, discount: any = null) => {
-    const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(attendees) || 1)
+    // Each seat is one ticket - don't multiply by attendees (attendees = seats.length)
+    const seatsTotal = seats.reduce((sum, seat) => sum + Number(seat.basePrice), 0)
+    // Apply discount if available
     const discounted = discount ? Number(discount.finalAmount) : seatsTotal
-    const conv = Math.round(discounted * 0.02) + 15
-    const tax = Math.round((discounted + conv) * 0.18)
+    // Convenience fee: 2% of base + ₹15 flat
+    const conv = Math.round(seatsTotal * 0.02) + 15
+    // Tax: 18% GST on (base price only, not on convenience fee)
+    const tax = Math.round(seatsTotal * 0.18)
     setConvenienceFee(conv)
     setTaxAmount(tax)
-    setTotalPrice(Math.round((discounted + conv + tax) * 100) / 100)
+    // Total = discounted base + convenience + tax
+    const total = discounted + conv + tax
+    setTotalPrice(Math.round(total * 100) / 100)
   }
 
   // Recalculate when attendees or promo changes
@@ -274,8 +282,8 @@ export default function RegisterWithSeatsPage() {
     setValidatingPromo(true)
     setPromoError("")
     try {
-      // Calculate base total for promo code application (in rupees, not paise)
-      const baseTotal = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice), 0) * (Number(numberOfAttendees) || 1)
+      // Calculate base total for promo code application - sum of all seat prices
+      const baseTotal = selectedSeats.reduce((sum, seat) => sum + Number(seat.basePrice), 0)
 
       const res = await fetch(`/api/events/${eventId}/promo-codes/apply`, {
         method: 'POST',
@@ -645,7 +653,7 @@ export default function RegisterWithSeatsPage() {
                 />
                 <p className="text-xs text-blue-700 mt-1">
                   {selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) > 0 ? (
-                    <>Price per person: ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)} × {numberOfAttendees} = ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) * Number(numberOfAttendees)}</>
+                    <>Total for {selectedSeats.length} seat(s): ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)}</>
                   ) : (
                     <>Free Event - Platform fee applies</>
                   )}
@@ -775,7 +783,7 @@ export default function RegisterWithSeatsPage() {
                 )}
                 {promoDiscount && (
                   <p className="text-xs text-green-700 mt-1 font-semibold">
-                    ✓ Promo applied! Discount: ₹{Math.round(((selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) * Number(numberOfAttendees)) - (Number(promoDiscount.finalAmount) * Number(numberOfAttendees))) * 100) / 100}
+                    ✓ Promo applied! Discount: ₹{Math.round((selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) - Number(promoDiscount.finalAmount)) * 100) / 100}
                   </p>
                 )}
               </div>
@@ -856,11 +864,12 @@ export default function RegisterWithSeatsPage() {
                 <span className="text-2xl font-bold text-indigo-900">₹{totalPrice}</span>
               </div>
               <div className="text-xs text-indigo-700 mt-2">
-                {selectedSeats.length} seat(s) × {numberOfAttendees} attendee(s)
+                {selectedSeats.length} seat(s)
                 {promoDiscount && ` - Promo: ${promoDiscount.code}`}
                 <div className="mt-2 text-gray-700">
-                  <div>Convenience fee: ₹{convenienceFee}</div>
-                  <div>Tax (GST): ₹{taxAmount}</div>
+                  <div>Base: ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)}</div>
+                  <div>Convenience fee (2% + ₹15): ₹{convenienceFee}</div>
+                  <div>Tax (18% GST): ₹{taxAmount}</div>
                 </div>
               </div>
             </div>

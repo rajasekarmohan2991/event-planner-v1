@@ -39,23 +39,23 @@ export default function RegistrationListPage({ params }: { params: { id: string 
     const load = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/events/${params.id}/registrations`, { 
+        const res = await fetch(`/api/events/${params.id}/registrations`, {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache'
           }
         })
-        
+
         if (!res.ok) {
           console.error('Failed to fetch registrations:', res.status)
           if (!aborted) { setRows([]); setTotal(0) }
           return
         }
-        
+
         const data = await res.json()
         console.log('📋 Registration list data:', data)
-        
+
         if (!aborted) {
           // Handle new response format with registrations array
           if (data.registrations && Array.isArray(data.registrations)) {
@@ -136,7 +136,9 @@ export default function RegistrationListPage({ params }: { params: { id: string 
                     <User className="h-5 w-5 text-indigo-600" />
                     <div>
                       <h3 className="font-semibold text-gray-900">
-                        {registration.firstName || registration.dataJson?.firstName || ''} {registration.lastName || registration.dataJson?.lastName || ''}
+                        {registration.firstName || registration.dataJson?.firstName || registration.lastName || registration.dataJson?.lastName
+                          ? `${registration.firstName || registration.dataJson?.firstName || ''} ${registration.lastName || registration.dataJson?.lastName || ''}`
+                          : (registration.email?.split('@')[0] || registration.dataJson?.email?.split('@')[0] || 'Guest')}
                       </h3>
                       <p className="text-xs text-gray-500">ID: {registration.id}</p>
                     </div>
@@ -167,13 +169,13 @@ export default function RegistrationListPage({ params }: { params: { id: string 
                 {/* QR Code */}
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-center mb-3">
-                    <img 
-                      src={getQRCodeImageUrl(registration)} 
-                      alt="QR Code" 
+                    <img
+                      src={getQRCodeImageUrl(registration)}
+                      alt="QR Code"
                       className="w-32 h-32 border-2 border-indigo-200 rounded-lg"
                     />
                   </div>
-                  
+
                   {/* Actions */}
                   <div className="flex gap-2">
                     <button
@@ -204,12 +206,12 @@ export default function RegistrationListPage({ params }: { params: { id: string 
           <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Event Ticket</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                {selectedReg.firstName || selectedReg.dataJson?.firstName || ''} {selectedReg.lastName || selectedReg.dataJson?.lastName || ''}
-              </p>
-              <img 
-                src={getQRCodeImageUrl(selectedReg)} 
-                alt="QR Code" 
+              {selectedReg.firstName || selectedReg.dataJson?.firstName || selectedReg.lastName || selectedReg.dataJson?.lastName
+                ? `${selectedReg.firstName || selectedReg.dataJson?.firstName || ''} ${selectedReg.lastName || selectedReg.dataJson?.lastName || ''}`
+                : (selectedReg.email?.split('@')[0] || selectedReg.dataJson?.email?.split('@')[0] || 'Guest')}
+              <img
+                src={getQRCodeImageUrl(selectedReg)}
+                alt="QR Code"
                 className="w-64 h-64 mx-auto border-4 border-indigo-600 rounded-lg mb-4"
               />
               <div className="text-left bg-gray-50 p-4 rounded-lg mb-4">
