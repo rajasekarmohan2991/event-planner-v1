@@ -568,7 +568,19 @@ export default function RegisterWithSeatsPage() {
             <SeatSelector
               key={eventId} // specific stable key to prevent reconciliation errors
               eventId={eventId}
-              onSeatSelect={handleSeatsSelected}
+              ticketClassId={ticketClass?.id}
+              onSeatSelect={(seats, price) => {
+                // Override seat prices with ticket class price if available
+                if (ticketClass?.priceInRupees) {
+                  const seatsWithTicketPrice = seats.map(s => ({
+                    ...s,
+                    basePrice: ticketClass.priceInRupees
+                  }))
+                  handleSeatsSelected(seatsWithTicketPrice, seatsWithTicketPrice.length * ticketClass.priceInRupees)
+                } else {
+                  handleSeatsSelected(seats, price)
+                }
+              }}
               maxSeats={ticketClass?.maxPurchase || 10}
             />
 
