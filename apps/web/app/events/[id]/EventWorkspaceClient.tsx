@@ -33,6 +33,25 @@ export default function EventWorkspaceClient({
 
     const isPublic = pathname?.includes('/public') || pathname?.includes('/register')
 
+    // All useState hooks must be called before any conditional returns (React rules of hooks)
+    const [eventMode, setEventMode] = useState<string>('IN_PERSON')
+    
+    // Submenu state - must be declared before any early returns
+    const regBase = `${base}/registrations`
+    const reportsBase = `${base}/reports`
+    const eventDayBase = `${base}/event-day`
+    const sessionsBase = `${base}/sessions`
+    
+    const isOnRegistrations = pathname?.startsWith(regBase)
+    const isOnReports = pathname?.startsWith(reportsBase)
+    const isOnEventDay = pathname?.startsWith(eventDayBase)
+    const isOnSessions = pathname?.startsWith(sessionsBase)
+    
+    const [regOpen, setRegOpen] = useState<boolean>(!!isOnRegistrations)
+    const [reportsOpen, setReportsOpen] = useState<boolean>(!!isOnReports)
+    const [eventOpen, setEventOpen] = useState<boolean>(!!isOnEventDay)
+    const [sessionsOpen, setSessionsOpen] = useState<boolean>(!!isOnSessions)
+
     // Protect Dashboard Routes: If not public and not authenticated, redirect to login
     useEffect(() => {
         if (!isPublic && status === 'unauthenticated') {
@@ -41,16 +60,8 @@ export default function EventWorkspaceClient({
         }
     }, [isPublic, status, pathname])
 
-    // If public route, render children directly (bypass Admin Layout & 404 checks from layout)
-    // This allows the Public/Register pages to handle their own data fetching and 404 states.
-    if (isPublic) {
-        return <>{children}</>
-    }
-
-    const [eventMode, setEventMode] = useState<string>('IN_PERSON')
-
     useEffect(() => {
-        if (eventId) {
+        if (eventId && !isPublic) {
             fetch(`/api/events/${eventId}`)
                 .then(res => res.json())
                 .then(data => {
@@ -58,9 +69,15 @@ export default function EventWorkspaceClient({
                 })
                 .catch(e => console.error(e))
         }
-    }, [eventId])
+    }, [eventId, isPublic])
 
     const isVirtual = eventMode === 'VIRTUAL'
+
+    // If public route, render children directly (bypass Admin Layout & 404 checks from layout)
+    // This allows the Public/Register pages to handle their own data fetching and 404 states.
+    if (isPublic) {
+        return <>{children}</>
+    }
 
     const items = [
         { href: `${base}`, label: 'Dashboard', icon: LayoutGrid },
@@ -77,7 +94,7 @@ export default function EventWorkspaceClient({
         { href: `${base}/settings`, label: 'Settings', icon: SettingsIcon },
     ]
 
-    const regBase = `${base}/registrations`
+    // Registration submenu items
     const regSetup: { label: string; href: string }[] = [
         { label: 'Ticket Class', href: `${regBase}/ticket-class` },
         { label: 'Payments', href: `${regBase}/payments` },
@@ -88,29 +105,16 @@ export default function EventWorkspaceClient({
         { label: 'Registration Approval', href: `${regBase}/approvals` },
         { label: 'Registration', href: `${regBase}/list` },
     ]
-    const isOnRegistrations = pathname?.startsWith(regBase)
-    const [regOpen, setRegOpen] = useState<boolean>(!!isOnRegistrations)
 
-    // Reports submenu
-    const reportsBase = `${base}/reports`
+    // Reports submenu items
     const reportsItems: { label: string; href: string }[] = [
         { label: 'RSVP', href: `${reportsBase}/rsvp` },
     ]
-    const isOnReports = pathname?.startsWith(reportsBase)
-    const [reportsOpen, setReportsOpen] = useState<boolean>(!!isOnReports)
 
-    // Event Day submenu
-    const eventDayBase = `${base}/event-day`
+    // Event Day submenu items
     const eventDayItems: { label: string; href: string }[] = [
         { label: 'Check In', href: `${eventDayBase}/check-in` },
     ]
-    const isOnEventDay = pathname?.startsWith(eventDayBase)
-    const [eventOpen, setEventOpen] = useState<boolean>(!!isOnEventDay)
-
-    // Sessions submenu
-    const sessionsBase = `${base}/sessions`
-    const isOnSessions = pathname?.startsWith(sessionsBase)
-    const [sessionsOpen, setSessionsOpen] = useState<boolean>(!!isOnSessions)
 
     if (!eventExists) {
         return (
