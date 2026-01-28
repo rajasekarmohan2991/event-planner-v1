@@ -203,18 +203,26 @@ const createTestAccount = async () => {
 // Create transporter with priority: ENV > DB (KeyValue) > Ethereal
 const createTransporter = async () => {
   // 1) ENV-configured SMTP
-  if (process.env.EMAIL_SERVER_HOST) {
-    const port = parseInt(process.env.EMAIL_SERVER_PORT || '587')
-    const sec = String(process.env.EMAIL_SERVER_SECURE || '').toLowerCase()
-    const secure = sec === 'true' || sec === '1' || sec === 'yes' || port === 465
+  // 1) ENV-configured SMTP (Support EMAIL_SERVER_* and SMTP_*)
+  const host = process.env.EMAIL_SERVER_HOST || process.env.SMTP_HOST
+
+  if (host) {
+    const port = parseInt(process.env.EMAIL_SERVER_PORT || process.env.SMTP_PORT || '587')
+    const secEnv = (process.env.EMAIL_SERVER_SECURE || process.env.SMTP_SECURE || '').toLowerCase()
+    const secure = secEnv === 'true' || secEnv === '1' || secEnv === 'yes' || port === 465
+
+    const user = process.env.EMAIL_SERVER_USER || process.env.SMTP_USER
+    const pass = process.env.EMAIL_SERVER_PASSWORD || process.env.SMTP_PASSWORD || process.env.SMTP_PASS
+
+    console.log('📧 configuring SMTP transporter:', { host, port, secure, hasUser: !!user })
+
     return nodemailer.createTransport({
-      host: process.env.EMAIL_SERVER_HOST,
+      host,
       port,
       secure,
-      auth: {
-        user: process.env.EMAIL_SERVER_USER,
-        pass: process.env.EMAIL_SERVER_PASSWORD,
-      },
+      auth: user && pass ? { user, pass } : undefined,
+      debug: true, // Enable debug output
+      logger: true // Log to console
     })
   }
 
