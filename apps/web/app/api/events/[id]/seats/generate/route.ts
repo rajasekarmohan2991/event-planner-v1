@@ -100,18 +100,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const genResult = await generateSeats(eventId, plan, tenantId)
     const totalSeatsGenerated = genResult.count
 
-    // Save pricing rules if provided
-    if (pricingRules && Array.isArray(pricingRules)) {
-      console.log('[API] Saving pricing rules:', pricingRules.length)
-      for (const rule of pricingRules) {
-        await prisma.$executeRaw`
-          INSERT INTO seat_pricing_rules (
-            event_id, section, row_pattern, seat_type, base_price, multiplier
-          ) VALUES (
-            ${eventId}::bigint, ${rule.section || null}, ${rule.rowPattern || null}, 
-            ${rule.seatType || null}, ${rule.basePrice}, ${rule.multiplier || 1.0}
-          )
-        `
+    // Save pricing rules if provided (wrapped in try-catch to not fail the whole request)
+    if (pricingRules && Array.isArray(pricingRules) && pricingRules.length > 0) {
+      try {
+        console.log('[API] Saving pricing rules:', pricingRules.length)
+        for (const rule of pricingRules) {
+          if (rule.basePrice != null) {
+            await prisma.$executeRaw`
+              INSERT INTO seat_pricing_rules (
+                event_id, section, row_pattern, seat_type, base_price, multiplier
+              ) VALUES (
+                ${eventId}::bigint, ${rule.section || null}, ${rule.rowPattern || null}, 
+                ${rule.seatType || null}, ${Number(rule.basePrice) || 0}, ${Number(rule.multiplier) || 1.0}
+              )
+            `
+          }
+        }
+      } catch (priceError) {
+        console.warn('[API] Pricing rules save failed (non-critical):', priceError)
       }
     }
 

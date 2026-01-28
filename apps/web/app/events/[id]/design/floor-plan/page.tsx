@@ -105,11 +105,14 @@ export default function FloorPlanDesignerPage() {
         }
     }, [eventId])
 
-    // Regenerate seats when objects change (position, size, etc.)
+    // Regenerate seats when objects change (position, size, etc.) - debounced for performance
     useEffect(() => {
-        floorPlan.objects.forEach(obj => {
-            generateSeatsForObject(obj)
-        })
+        const timeout = setTimeout(() => {
+            floorPlan.objects.forEach(obj => {
+                generateSeatsForObject(obj)
+            })
+        }, 100) // 100ms debounce
+        return () => clearTimeout(timeout)
     }, [floorPlan.objects])
 
     const loadEventAndTickets = async () => {
