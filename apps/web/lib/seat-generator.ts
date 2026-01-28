@@ -1,8 +1,19 @@
 
 import prisma from '@/lib/prisma'
 
-export async function generateSeats(eventId: number, plan: any, tenantId: string | null) {
+export async function generateSeats(eventId: number, plan: any, tenantId: string | null, pricingRules?: any[]) {
     console.log('[SeatGenerator] Starting optimized generation for event', eventId)
+    
+    // Build pricing lookup from rules
+    const pricingLookup: Record<string, number> = {}
+    if (pricingRules && Array.isArray(pricingRules)) {
+        for (const rule of pricingRules) {
+            if (rule.seatType && rule.basePrice != null) {
+                pricingLookup[rule.seatType.toUpperCase()] = Number(rule.basePrice)
+            }
+        }
+    }
+    console.log('[SeatGenerator] Pricing lookup:', pricingLookup)
 
     // Delete existing seats using Prisma Client
     await prisma.seatInventory.deleteMany({
@@ -150,10 +161,11 @@ export async function generateSeats(eventId: number, plan: any, tenantId: string
             // NEW: Canvas Designer Format (objects array)
             console.log('[SeatGenerator] Generating from Canvas Objects')
             for (const obj of plan.objects) {
-                // Common props
-                const price = Number(obj.price || obj.basePrice || 0)
-                const seatType = obj.pricingTier || obj.seatType || 'STANDARD'
+                // Common props - use pricingTier to lookup price from pricingRules
+                const seatType = obj.pricingTier || obj.seatType || 'GENERAL'
+                const price = pricingLookup[seatType.toUpperCase()] || Number(obj.price || obj.basePrice || 0)
                 const label = obj.label || obj.name || 'T'
+                console.log(`[SeatGenerator] Object ${obj.label}: type=${seatType}, price=${price}`)
 
                 // Handle Round/Rect/Dining Tables
                 if (['ROUND_TABLE', 'RECT_TABLE', 'DINING_TABLE'].includes(obj.type)) {

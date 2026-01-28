@@ -240,6 +240,8 @@ export default function RegisterWithSeatsPage() {
 
   const handleSeatsSelected = useCallback((seats: Seat[], price: number) => {
     setSelectedSeats(seats)
+    // Auto-set number of attendees to match selected seats count
+    setNumberOfAttendees(seats.length || 1)
     // Price from selector is already calculated, just use it
     const numPrice = Number(price) || 0
     const discounted = promoDiscount ? Number(promoDiscount.finalAmount) : numPrice
@@ -629,19 +631,24 @@ export default function RegisterWithSeatsPage() {
 
             {/* Registration Form */}
             <form className="space-y-4">
-              {/* Number of Attendees */}
+              {/* Number of Attendees - auto-set from selected seats */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <label className="block text-sm font-semibold text-blue-900 mb-2">Number of Attendees *</label>
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max={Math.max(selectedSeats.length, 10)}
                   value={numberOfAttendees}
-                  onChange={(e) => setNumberOfAttendees(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setNumberOfAttendees(Math.max(1, Math.min(parseInt(e.target.value) || 1, selectedSeats.length || 10)))}
                   className="w-32 px-3 py-2 border rounded-md text-center font-bold"
+                  disabled={selectedSeats.length > 0}
                 />
                 <p className="text-xs text-blue-700 mt-1">
-                  Price per person: ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)} × {numberOfAttendees} = ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) * Number(numberOfAttendees)}
+                  {selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) > 0 ? (
+                    <>Price per person: ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0)} × {numberOfAttendees} = ₹{selectedSeats.reduce((sum, s) => sum + Number(s.basePrice), 0) * Number(numberOfAttendees)}</>
+                  ) : (
+                    <>Free Event - Platform fee applies</>
+                  )}
                 </p>
               </div>
 

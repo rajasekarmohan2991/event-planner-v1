@@ -114,7 +114,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
       
       try {
-        await generateSeats(eventId, floorPlan.layoutData, tenantId || floorPlan.tenantId)
+        // Try to get pricing from floor plan layout or use defaults
+        const layoutData = floorPlan.layoutData || {}
+        const pricingRules = [
+          { seatType: 'VIP', basePrice: layoutData.vipPrice || 500 },
+          { seatType: 'PREMIUM', basePrice: layoutData.premiumPrice || 300 },
+          { seatType: 'GENERAL', basePrice: layoutData.generalPrice || 100 }
+        ]
+        await generateSeats(eventId, floorPlan.layoutData, tenantId || floorPlan.tenantId, pricingRules)
         console.log('[Availability] Seats generated successfully. Re-fetching...')
         
         // Re-fetch seats after generation

@@ -96,8 +96,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     })
 
-    // Generate Seats using Optimized Library
-    const genResult = await generateSeats(eventId, plan, tenantId)
+    // Generate Seats using Optimized Library - pass pricingRules for correct pricing
+    const genResult = await generateSeats(eventId, plan, tenantId, pricingRules)
     const totalSeatsGenerated = genResult.count
 
     // Save pricing rules if provided (wrapped in try-catch to not fail the whole request)
