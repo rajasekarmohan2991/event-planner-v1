@@ -17,9 +17,9 @@ function buildSafeDatabaseUrl() {
     const u = new URL(raw)
     // Disable prepared statements in pooled environments (Supabase uses PgBouncer)
     if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true')
-    // CRITICAL: Set connection limit to 10 for serverless (Vercel/Supabase)
-    // Each serverless function should use only 10 connections to avoid pool exhaustion
-    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '10')
+    // CRITICAL: Set connection limit to 5 for serverless (Vercel/Supabase)
+    // Each serverless function should use only 5 connections to avoid pool exhaustion
+    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '5')
     // Add connection timeout (increased)
     if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '15')
     // Add pool timeout
