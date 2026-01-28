@@ -26,24 +26,96 @@ export async function POST(
         let analysis: any;
 
         if (image) {
-            // SIMULATED Vision API Analysis
-            // In a real implementation with keys, we would call:
-            // const visionResponse = await googleAI.analyzeImage(image, "Extract seating layout JSON...");
+            // Analyze image using OpenAI Vision API if available
+            const openaiKey = process.env.OPENAI_API_KEY
+            
+            if (openaiKey) {
+                try {
+                    const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${openaiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: `You are an expert at analyzing venue floor plan images. Analyze the image and return ONLY a JSON object with these fields:
+- layoutType: "THEATER" (rows of seats facing stage), "BANQUET" (round tables), "CLASSROOM" (rows of tables), or "MIXED"
+- hasStage: boolean
+- hasDanceFloor: boolean
+- totalRows: number (for theater/grid layouts)
+- seatsPerRow: number (for theater/grid layouts)
+- hasLeftSection: boolean (if seats are split into left/right sections)
+- hasRightSection: boolean
+- hasCenterAisle: boolean
+- roundTables: number (for banquet layouts)
+- seatsPerTable: number
+- vipSection: boolean
+- estimatedCapacity: number
+Return ONLY valid JSON, no markdown or explanation.`
+                                },
+                                {
+                                    role: 'user',
+                                    content: [
+                                        { type: 'text', text: prompt || 'Analyze this venue floor plan image and extract the seating layout details.' },
+                                        { type: 'image_url', image_url: { url: image } }
+                                    ]
+                                }
+                            ],
+                            max_tokens: 500
+                        })
+                    })
 
-            // For now, return a "Perfect" layout simulation based on image
-            analysis = {
-                eventType: 'Venue Digitization',
-                totalGuests: 250,
-                roundTables: 12,
-                seatsPerTable: 8,
-                gridSeating: true,
-                gridRows: 8,
-                gridCols: 14, // Split into 2 blocks
-                vipSection: true,
-                vipTables: 4,
-                hasStage: true,
-                hasDanceFloor: true,
-                isFromImage: true
+                    if (visionResponse.ok) {
+                        const visionData = await visionResponse.json()
+                        const content = visionData.choices?.[0]?.message?.content || '{}'
+                        
+                        // Parse the JSON response
+                        let parsed
+                        try {
+                            // Remove any markdown code blocks if present
+                            const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+                            parsed = JSON.parse(cleanContent)
+                        } catch (e) {
+                            console.error('Failed to parse vision response:', content)
+                            parsed = {}
+                        }
+
+                        console.log('🔍 Vision API Analysis:', parsed)
+
+                        // Convert vision analysis to our format
+                        analysis = {
+                            eventType: 'Venue Digitization',
+                            totalGuests: parsed.estimatedCapacity || 200,
+                            roundTables: parsed.layoutType === 'BANQUET' ? (parsed.roundTables || 10) : 0,
+                            seatsPerTable: parsed.seatsPerTable || 8,
+                            gridSeating: parsed.layoutType === 'THEATER' || parsed.layoutType === 'CLASSROOM' || parsed.layoutType === 'MIXED',
+                            gridRows: parsed.totalRows || 10,
+                            gridCols: parsed.seatsPerRow || 10,
+                            hasSplitSections: parsed.hasLeftSection && parsed.hasRightSection,
+                            vipSection: parsed.vipSection || false,
+                            vipTables: parsed.vipSection ? Math.ceil((parsed.roundTables || 0) * 0.3) : 0,
+                            hasStage: parsed.hasStage || false,
+                            hasDanceFloor: parsed.hasDanceFloor || false,
+                            isFromImage: true,
+                            detectedLayout: parsed.layoutType
+                        }
+                    } else {
+                        console.error('Vision API error:', await visionResponse.text())
+                        // Fallback to prompt-based analysis
+                        analysis = analyzeImageFallback(prompt)
+                    }
+                } catch (visionError) {
+                    console.error('Vision API call failed:', visionError)
+                    analysis = analyzeImageFallback(prompt)
+                }
+            } else {
+                // No OpenAI key - use fallback based on prompt hints
+                console.log('⚠️ No OPENAI_API_KEY - using fallback image analysis')
+                analysis = analyzeImageFallback(prompt)
             }
         } else {
             // Text Analysis
@@ -315,6 +387,57 @@ function generateModernLayout(analysis: any, eventId: string) {
         version: 1,
         suggestions
     }
+}
+
+// Fallback image analysis when no OpenAI key is available
+function analyzeImageFallback(prompt: string) {
+    // Default to theater-style seating for images (most common venue layout)
+    // User can provide hints in the additional instructions
+    const analysis: any = {
+        eventType: 'Venue Digitization',
+        totalGuests: 200,
+        roundTables: 0, // Default to NO round tables for image uploads
+        seatsPerTable: 8,
+        gridSeating: true, // Default to grid/theater seating
+        gridRows: 10,
+        gridCols: 20, // Split into 2 sections of 10 each
+        hasSplitSections: true,
+        vipSection: true,
+        vipTables: 0,
+        hasStage: true,
+        hasDanceFloor: false,
+        isFromImage: true,
+        detectedLayout: 'THEATER'
+    }
+
+    // Check prompt for hints
+    if (prompt) {
+        const lowerPrompt = prompt.toLowerCase()
+        
+        // If user mentions round tables, switch to banquet
+        if (lowerPrompt.includes('round table') || lowerPrompt.includes('banquet') || lowerPrompt.includes('dinner')) {
+            analysis.gridSeating = false
+            analysis.roundTables = 12
+            analysis.hasDanceFloor = true
+            analysis.detectedLayout = 'BANQUET'
+        }
+        
+        // If user mentions theater/auditorium, keep grid
+        if (lowerPrompt.includes('theater') || lowerPrompt.includes('auditorium') || lowerPrompt.includes('cinema') || lowerPrompt.includes('rows')) {
+            analysis.gridSeating = true
+            analysis.roundTables = 0
+            analysis.detectedLayout = 'THEATER'
+        }
+        
+        // Extract row/column hints
+        const rowsMatch = lowerPrompt.match(/(\d+)\s*rows?/i)
+        if (rowsMatch) analysis.gridRows = parseInt(rowsMatch[1])
+        
+        const colsMatch = lowerPrompt.match(/(\d+)\s*(cols?|columns?|seats?\s*per\s*row)/i)
+        if (colsMatch) analysis.gridCols = parseInt(colsMatch[1])
+    }
+
+    return analysis
 }
 
 // Analyze prompt (Keep existing logic mostly, minor improvements)
