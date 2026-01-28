@@ -8,12 +8,15 @@ import { RouteProtection } from '@/components/RoleBasedNavigation'
 import Image from 'next/image'
 import { useLocationDetection } from '@/hooks/useLocationDetection'
 import { BannerCarousel } from '@/components/user/BannerCarousel'
+import ModernEventCard from '@/components/events/ModernEventCard'
 
 interface Event {
   id: string
   name: string
   description: string
   startsAt: string
+  endsAt?: string
+  status?: string
   venue: string
   city: string
   registrationCount?: number
@@ -25,6 +28,7 @@ interface Event {
   organizerEventsCount?: number
   tenantId?: string
   priceInr?: number
+  eventMode?: string
 }
 
 const categories = [
@@ -265,7 +269,7 @@ export default function UserDashboard() {
             <div className="mb-20" id="events-section">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black text-slate-900">
-                  {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name}` : 'Upcoming Events'}
+                  {selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name}` : 'Explore Events'}
                 </h2>
               </div>
 
@@ -290,78 +294,49 @@ export default function UserDashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {filteredEvents.map(event => (
-                    <Link
-                      key={event.id}
-                      href={`/events/${event.id}`}
-                      className="group bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-rose-100/50 transition-all duration-500 overflow-hidden border border-slate-100 hover:border-rose-100 hover:-translate-y-2"
-                    >
-                      <div className="relative h-64 bg-slate-100 overflow-hidden">
-                        {event.bannerUrl ? (
-                          <Image
-                            src={event.bannerUrl}
-                            alt={event.name}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-rose-50">
-                            <Sparkles className="w-12 h-12 text-rose-200" />
-                          </div>
-                        )}
-                        <div className="absolute top-4 right-4 z-10">
-                          <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm">
-                            {new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
-                        </div>
-                        {event.category && (
-                          <div className="absolute bottom-4 left-4 z-10">
-                            <div className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white border border-white/10">
-                              {event.category}
+                <div className="space-y-16">
+                  {/* Segregation Logic */}
+                  {(() => {
+                    const now = new Date()
+                    const isPast = (e: Event) => {
+                      if (e.endsAt) return new Date(e.endsAt) < now
+                      return new Date(e.startsAt) < now
+                    }
+                    const liveEvents = filteredEvents.filter(e => !isPast(e))
+                    const pastEvents = filteredEvents.filter(e => isPast(e))
+
+                    return (
+                      <>
+                        {liveEvents.length > 0 && (
+                          <div className="space-y-6">
+                            <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              Upcoming & Live
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                              {liveEvents.map(event => (
+                                <ModernEventCard key={event.id} event={event} />
+                              ))}
                             </div>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      </div>
 
-                      <div className="p-6">
-                        <h3 className="font-bold text-xl mb-3 text-slate-900 group-hover:text-rose-600 transition-colors line-clamp-2 leading-tight">
-                          {event.name}
-                        </h3>
-
-                        <div className="space-y-3 mb-6">
-                          <div className="flex items-center text-sm text-slate-500 font-medium">
-                            <Calendar className="w-4 h-4 mr-2.5 text-rose-400" />
-                            {new Date(event.startsAt).toLocaleDateString('en-US', { weekday: 'long' })}
-                          </div>
-
-                          {event.city && (
-                            <div className="flex items-center text-sm text-slate-500 font-medium">
-                              <MapPin className="w-4 h-4 mr-2.5 text-purple-400" />
-                              {event.city}
+                        {pastEvents.length > 0 && (
+                          <div className="space-y-6">
+                            <h3 className="text-lg font-bold text-slate-400 flex items-center gap-2 border-t pt-8">
+                              <Clock className="w-4 h-4" />
+                              Past Events
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 opacity-80 hover:opacity-100 transition-opacity">
+                              {pastEvents.map(event => (
+                                <ModernEventCard key={event.id} event={event} />
+                              ))}
                             </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-5 border-t border-slate-50">
-                          <div className="flex items-center text-lg font-black text-slate-900">
-                            {event.priceInr && event.priceInr > 0 ? (
-                              <>
-                                <span className="text-xs text-slate-400 font-bold mr-1 self-start mt-1">₹</span>
-                                {event.priceInr}
-                              </>
-                            ) : (
-                              <span className="text-emerald-500 text-sm font-bold uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-lg">Free</span>
-                            )}
                           </div>
-                          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </div>
