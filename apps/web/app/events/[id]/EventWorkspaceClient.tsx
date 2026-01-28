@@ -28,8 +28,24 @@ export default function EventWorkspaceClient({
 }) {
     const pathname = usePathname()
     const router = useRouter()
-    const { data: sessionData } = useSession()
+    const { data: sessionData, status } = useSession()
     const base = `/events/${eventId}`
+
+    const isPublic = pathname?.includes('/public') || pathname?.includes('/register')
+
+    // Protect Dashboard Routes: If not public and not authenticated, redirect to login
+    useEffect(() => {
+        if (!isPublic && status === 'unauthenticated') {
+            // Use window.location to ensure full redirect if router fails
+            window.location.href = '/auth/login?callbackUrl=' + encodeURIComponent(pathname || '')
+        }
+    }, [isPublic, status, pathname])
+
+    // If public route, render children directly (bypass Admin Layout & 404 checks from layout)
+    // This allows the Public/Register pages to handle their own data fetching and 404 states.
+    if (isPublic) {
+        return <>{children}</>
+    }
 
     const [eventMode, setEventMode] = useState<string>('IN_PERSON')
 
@@ -98,11 +114,20 @@ export default function EventWorkspaceClient({
 
     if (!eventExists) {
         return (
-            <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-6">
-                <div className="max-w-md text-center space-y-3">
-                    <div className="text-2xl font-semibold">Event not found</div>
-                    <p className="text-sm text-muted-foreground">This event was permanently deleted or does not exist. You can return to your events list.</p>
-                    <a href="/" className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-600/90">Go to Events</a>
+            <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-6 bg-[#FFFBF0]">
+                <div className="max-w-md text-center space-y-6">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Event Not Found</h1>
+                        <p className="text-slate-500 text-lg">
+                            This event was permanently deleted or does not exist.
+                        </p>
+                    </div>
+                    <Link href="/dashboard/user" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white transition-all bg-amber-600 rounded-xl shadow-lg hover:bg-amber-700 hover:scale-105">
+                        Go to Events
+                    </Link>
                 </div>
             </div>
         )

@@ -13,9 +13,10 @@ export default async function EventWorkspaceLayout({
 }) {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
-    redirect('/auth/login')
-  }
+
+  // Public routes (public page, registration) should not be blocked by auth
+  // Auth checks for dashboard are now handled in EventWorkspaceClient or specific page logic
+
 
   const eventId = params.id
   let eventExists = false
@@ -25,8 +26,8 @@ export default async function EventWorkspaceLayout({
 
   try {
     const eventIdBigInt = BigInt(eventId)
-    const userRole = (session.user as any)?.role
-    const userTenantId = (session.user as any)?.tenantId || (session.user as any)?.currentTenantId
+    const userRole = (session?.user as any)?.role
+    const userTenantId = (session?.user as any)?.tenantId || (session?.user as any)?.currentTenantId
 
     // Fetch event with tenant info
     const events = await prisma.$queryRaw`
