@@ -31,6 +31,41 @@ export async function ensureSchema() {
       END $$;
     `)
 
+        // 0.5 Ensure Sponsors Table Exists
+        console.log('📝 Step 0.5: Creating sponsors table...')
+        try {
+            await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS sponsors (
+              id TEXT PRIMARY KEY,
+              event_id BIGINT NOT NULL,
+              name TEXT NOT NULL,
+              industry TEXT,
+              website TEXT,
+              logo TEXT,
+              description TEXT,
+              contact_name TEXT,
+              contact_email TEXT,
+              contact_phone TEXT,
+              status TEXT DEFAULT 'ACTIVE',
+              tier TEXT,
+              contact_data JSONB DEFAULT '{}',
+              payment_data JSONB DEFAULT '{}',
+              branding_online JSONB DEFAULT '{}',
+              branding_offline JSONB DEFAULT '{}',
+              event_presence JSONB DEFAULT '{}',
+              giveaway_data JSONB DEFAULT '{}',
+              legal_data JSONB DEFAULT '{}',
+              timeline_data JSONB DEFAULT '{}',
+              post_event_data JSONB DEFAULT '{}',
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_sponsors_event ON sponsors(event_id);
+          `)
+        } catch (e: any) {
+            console.error('❌ Failed to create sponsors table:', e.message)
+        }
+
         // 1. Sponsors Table Columns
         await prisma.$executeRawUnsafe(`
       DO $$ 
@@ -352,38 +387,42 @@ export async function ensureSchema() {
 
         // 10.1 Exhibitors Table
         console.log('📝 Step 10.1: Creating exhibitors table...')
-        await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS exhibitors (
-            id TEXT PRIMARY KEY,
-            event_id TEXT NOT NULL,
-            tenant_id TEXT,
-            name TEXT NOT NULL,
-            company TEXT,
-            contact_name TEXT,
-            contact_email TEXT,
-            contact_phone TEXT,
-            website TEXT,
-            notes TEXT,
-            first_name TEXT,
-            last_name TEXT,
-            job_title TEXT,
-            business_address TEXT,
-            company_description TEXT,
-            products_services TEXT,
-            booth_type TEXT,
-            booth_option TEXT,
-            booth_area TEXT,
-            electrical_access BOOLEAN DEFAULT FALSE,
-            display_tables BOOLEAN DEFAULT FALSE,
-            status TEXT DEFAULT 'PENDING_CONFIRMATION',
-            email_confirmed BOOLEAN DEFAULT FALSE,
-            payment_amount DECIMAL(10,2) DEFAULT 0,
-            payment_status TEXT DEFAULT 'PENDING',
-            paid_at TIMESTAMP,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-    `)
+        try {
+            await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS exhibitors (
+                id TEXT PRIMARY KEY,
+                event_id TEXT NOT NULL,
+                tenant_id TEXT,
+                name TEXT NOT NULL,
+                company TEXT,
+                contact_name TEXT,
+                contact_email TEXT,
+                contact_phone TEXT,
+                website TEXT,
+                notes TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                job_title TEXT,
+                business_address TEXT,
+                company_description TEXT,
+                products_services TEXT,
+                booth_type TEXT,
+                booth_option TEXT,
+                booth_area TEXT,
+                electrical_access BOOLEAN DEFAULT FALSE,
+                display_tables BOOLEAN DEFAULT FALSE,
+                status TEXT DEFAULT 'PENDING_CONFIRMATION',
+                email_confirmed BOOLEAN DEFAULT FALSE,
+                payment_amount DECIMAL(10,2) DEFAULT 0,
+                payment_status TEXT DEFAULT 'PENDING',
+                paid_at TIMESTAMP,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
+          `)
+        } catch (e: any) {
+            console.error('❌ Failed to create exhibitors table:', e.message)
+        }
 
         // 10.2 Exhibitor Registrations Table (for invoices)
         console.log('📝 Step 10.2: Creating exhibitor_registrations table...')
