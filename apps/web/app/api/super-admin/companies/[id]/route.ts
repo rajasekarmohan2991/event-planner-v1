@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { ensureSchema } from '@/lib/ensure-schema'
 
   // Polyfill for BigInt serialization
   ; (BigInt.prototype as any).toJSON = function () {
@@ -10,15 +11,16 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-import { ensureSchema } from '@/lib/ensure-schema'
-
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const params = 'then' in context.params ? await context.params : context.params
+    const tenantId = params.id
+
     const session = await getServerSession(authOptions as any) as any
-    // ... existing auth checks ...
+    // Checks
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
@@ -27,13 +29,12 @@ export async function GET(
     if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-    const tenantId = params.id
+
     if (userRole === 'ADMIN' && currentTenantId !== tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Fetch company with a robust strategy: try full select first, fallback to minimal fields if
-    // the database schema is missing optional columns.
+    // Fetch company with a robust strategy
     let company: any | null = null
     try {
       company = await prisma.tenant.findUnique({
@@ -57,7 +58,6 @@ export async function GET(
       })
     } catch (e: any) {
       console.warn('Prisma select failed due to schema mismatch, using minimal fallback select', e?.message)
-      // Fallback: only select guaranteed columns to avoid "column does not exist" errors
       const rows = await prisma.$queryRaw<any[]>`
         SELECT id, name, slug, status
         FROM tenants
@@ -71,7 +71,6 @@ export async function GET(
           name: r.name,
           slug: r.slug,
           status: r.status,
-          // Provide sensible fallbacks for optional fields
           plan: 'FREE',
           billingEmail: null,
           emailFromAddress: null,
@@ -90,8 +89,7 @@ export async function GET(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 })
     }
 
-    // ... rest of logic for members/events ...
-    // Fetch company members
+    // Fetch members
     const members = await prisma.tenantMember.findMany({
       where: { tenantId: tenantId },
       include: {
@@ -179,11 +177,12 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions as any) as any
+    const params = 'then' in context.params ? await context.params : context.params
 
+    const session = await getServerSession(authOptions as any) as any
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
@@ -194,20 +193,39 @@ export async function PATCH(
     }
 
     const body = await req.json()
-
-    // Only allow updating specific fields
     const { plan, status } = body
 
-    // Validate if plan exists (optional but good practice)
-    // For now we just update the string
+    // Use Raw SQL for updating to avoid schema mismatch issues
+    const updates: string[] = []
+    const values: any[] = []
+    let idx = 1
 
-    const updatedTenant = await prisma.tenant.update({
-      where: { id: params.id },
-      data: {
-        ...(plan && { plan }),
-        ...(status && { status })
+    if (plan !== undefined) {
+      updates.push(`plan = $${idx++}`)
+      values.push(plan)
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${idx++}`)
+      values.push(status)
+    }
+
+    if (updates.length > 0) {
+      values.push(params.id)
+      await prisma.$executeRawUnsafe(
+        `UPDATE tenants SET ${updates.join(', ')} WHERE id = $${idx}`,
+        ...values
+      )
+    }
+
+    // Fetch updated record to return
+    let updatedTenant = null
+    try {
+      const rows = await prisma.$queryRaw<any[]>`SELECT * FROM tenants WHERE id = ${params.id}`
+      if (rows && rows.length > 0) {
+        updatedTenant = rows[0]
+        updatedTenant.id = String(updatedTenant.id)
       }
-    })
+    } catch (e) { console.log('Fetch after update failed', e) }
 
     return NextResponse.json({
       success: true,
@@ -217,7 +235,6 @@ export async function PATCH(
   } catch (error: any) {
     console.error('Error updating company:', error)
 
-    // Auto-heal if columns are missing
     if (error.message?.includes('column') || error.message?.includes('exist') || error.code === 'P2010' || error.code === '42703') {
       try {
         await ensureSchema()
