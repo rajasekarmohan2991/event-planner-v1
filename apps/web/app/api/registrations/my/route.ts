@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions as any)
-    
+
     if (!session || !(session as any)?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         e.status as "eventStatus"
       FROM registrations r
       LEFT JOIN events e ON r.event_id = e.id
-      WHERE r.email = ${userEmail}
+      WHERE (r.user_id = ${userId ? BigInt(userId) : 0} OR LOWER(r.email) = LOWER(${userEmail}))
       ORDER BY r.created_at DESC
     `
 
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Error fetching user registrations:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to fetch registrations',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { status: 500 })

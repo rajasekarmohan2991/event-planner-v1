@@ -12,9 +12,19 @@ export async function GET(req: NextRequest) {
 
     console.log('🎫 [PUBLIC EVENTS] Fetching events, city filter:', city || 'all')
 
+    const statusParam = searchParams.get('status')
+
     // Build where clause
-    const whereClause: any = {
-      status: 'PUBLISHED' // Only show published events
+    const whereClause: any = {}
+
+    if (statusParam) {
+      if (statusParam.includes(',')) {
+        whereClause.status = { in: statusParam.split(',') }
+      } else {
+        whereClause.status = statusParam
+      }
+    } else {
+      whereClause.status = 'PUBLISHED'
     }
 
     if (city && city !== 'all') {

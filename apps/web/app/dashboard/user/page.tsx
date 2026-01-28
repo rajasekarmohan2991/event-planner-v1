@@ -58,20 +58,31 @@ export default function UserDashboard() {
 
     const fetchEvents = async () => {
       try {
-        const apiUrl = '/api/events/public?limit=50'
+        // 1. Fetch LIVE events for Carousel (Moving Bar)
+        const carouselRes = await fetch('/api/events/public?status=LIVE&limit=5', { credentials: 'include' })
+        let carouselEvents: Event[] = []
+        if (carouselRes.ok) {
+          const cData = await carouselRes.json()
+          carouselEvents = cData.events || []
+          setTrendingEvents(carouselEvents)
+        }
 
-        console.log('🎫 [USER DASHBOARD] Fetching all events (no city filter)')
-        console.log('🎫 [USER DASHBOARD] API URL:', apiUrl)
+        // 2. Fetch All Events for Grid
+        const apiUrl = '/api/events/public?limit=50&status=PUBLISHED,LIVE'
+
+        console.log('🎫 [USER DASHBOARD] Fetching events...')
 
         const res = await fetch(apiUrl, { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           console.log('🎫 [USER DASHBOARD] API Response:', data)
           const events = data.events || []
-          console.log('🎫 [USER DASHBOARD] Events count:', events.length)
-          console.log('🎫 [USER DASHBOARD] Total in DB:', data.debug?.totalInDb)
           setUpcomingEvents(events)
-          setTrendingEvents(events.slice(0, 4))
+
+          // Fallback: If no LIVE events found for carousel, use first few from main list
+          if (carouselEvents.length === 0) {
+            setTrendingEvents(events.slice(0, 4))
+          }
         } else {
           console.error('🎫 [USER DASHBOARD] API error:', res.status, res.statusText)
         }
