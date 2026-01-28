@@ -104,7 +104,7 @@ export default function SeatSelector({ eventId, onSeatsSelected, maxSeats = 10 }
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading seat map...</p>
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function SeatSelector({ eventId, onSeatsSelected, maxSeats = 10 }
               onClick={() => setSelectedSection(section)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectedSection === section
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-rose-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -200,8 +200,8 @@ export default function SeatSelector({ eventId, onSeatsSelected, maxSeats = 10 }
 
       {/* Selected Seats Summary */}
       {selectedSeats.length > 0 && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <h3 className="font-semibold text-indigo-900 mb-3">
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4">
+          <h3 className="font-semibold text-rose-900 mb-3">
             Selected Seats ({selectedSeats.length}/{maxSeats})
           </h3>
           
@@ -212,7 +212,7 @@ export default function SeatSelector({ eventId, onSeatsSelected, maxSeats = 10 }
                   {seat.section} - Row {seat.rowNumber}, Seat {seat.seatNumber}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-indigo-700 font-semibold">₹{seat.basePrice}</span>
+                  <span className="text-rose-700 font-semibold">₹{seat.basePrice}</span>
                   <button
                     onClick={() => handleSeatClick(seat)}
                     className="text-red-600 hover:text-red-700"
@@ -224,8 +224,8 @@ export default function SeatSelector({ eventId, onSeatsSelected, maxSeats = 10 }
             ))}
           </div>
 
-          <div className="pt-3 border-t border-indigo-200">
-            <div className="flex items-center justify-between text-lg font-bold text-indigo-900">
+          <div className="pt-3 border-t border-rose-200">
+            <div className="flex items-center justify-between text-lg font-bold text-rose-900">
               <span>Total Amount:</span>
               <div className="flex items-center gap-1">
                 <IndianRupee className="w-5 h-5" />

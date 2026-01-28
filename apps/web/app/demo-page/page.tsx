@@ -48,7 +48,7 @@ export default function DemoPage() {
 
                 {/* Floor Plans Section */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-                    <h2 className="text-2xl font-bold mb-4 text-indigo-600">
+                    <h2 className="text-2xl font-bold mb-4 text-rose-600">
                         📐 Floor Plans ({floorPlans.length})
                     </h2>
                     {floorPlans.length === 0 ? (
@@ -82,7 +82,7 @@ export default function DemoPage() {
                             <p className="text-gray-500 mb-4">No registrations yet</p>
                             <a
                                 href="/events/22/register"
-                                className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                                className="inline-block px-6 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
                             >
                                 Create Test Registration
                             </a>
@@ -131,7 +131,7 @@ export default function DemoPage() {
                 <div className="mt-8 flex gap-4 justify-center">
                     <a
                         href="/events/22/register"
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                        className="px-6 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 font-medium"
                     >
                         📝 New Registration
                     </a>

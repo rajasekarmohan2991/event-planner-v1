@@ -25,7 +25,7 @@ const iconSizes = {
 }
 
 const variantClasses = {
-  primary: 'bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_2px_2px_5px_rgba(99,102,241,0.15)]',
+  primary: 'bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_2px_2px_5px_rgba(225,29,72,0.15)]',
   secondary: 'bg-gradient-to-br from-slate-50 to-slate-100 text-slate-600 shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_2px_2px_5px_rgba(100,116,139,0.15)]',
   success: 'bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_2px_2px_5px_rgba(16,185,129,0.15)]',
   warning: 'bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_2px_2px_5px_rgba(245,158,11,0.15)]',

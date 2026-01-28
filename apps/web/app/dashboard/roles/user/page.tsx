@@ -78,11 +78,11 @@ export default function UserDashboard() {
             className="group rounded-xl border bg-white p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
           >
             <div className="flex items-center gap-3">
-              <div className="relative h-10 w-10 rounded-md bg-indigo-50 text-indigo-700 inline-flex items-center justify-center overflow-hidden">
+              <div className="relative h-10 w-10 rounded-md bg-rose-50 text-rose-700 inline-flex items-center justify-center overflow-hidden">
                 {/* Ping ring for motion */}
-                <span className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-indigo-200/60 animate-ping" />
+                <span className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-rose-200/60 animate-ping" />
                 {/* Rotating dashed circle (CSS-only) */}
-                <span className="absolute h-8 w-8 rounded-full border-2 border-dashed border-indigo-400 animate-spin" style={{ animationDuration: '2.2s' }} />
+                <span className="absolute h-8 w-8 rounded-full border-2 border-dashed border-rose-400 animate-spin" style={{ animationDuration: '2.2s' }} />
                 {/* Icon bounce */}
                 <Plus className="relative h-5 w-5 animate-bounce" style={{ animationDuration: '1.6s' }} />
               </div>
@@ -95,18 +95,18 @@ export default function UserDashboard() {
             className="group rounded-xl border bg-white p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
           >
             <div className="flex items-center gap-3">
-              <div className="relative h-10 w-10 rounded-md bg-violet-50 text-violet-700 inline-flex items-center justify-center overflow-hidden">
+              <div className="relative h-10 w-10 rounded-md bg-pink-50 text-pink-700 inline-flex items-center justify-center overflow-hidden">
                 {/* Ping ring for motion */}
-                <span className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-violet-200/60 animate-ping" />
+                <span className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-pink-200/60 animate-ping" />
                 {/* Rotating dashed circle (CSS-only) */}
-                <span className="absolute h-8 w-8 rounded-full border-2 border-dashed border-violet-400 animate-spin" style={{ animationDuration: '2.2s' }} />
+                <span className="absolute h-8 w-8 rounded-full border-2 border-dashed border-pink-400 animate-spin" style={{ animationDuration: '2.2s' }} />
                 {/* Icon bounce */}
                 <Users className="relative h-5 w-5 animate-bounce" style={{ animationDuration: '1.6s' }} />
               </div>
               <div className="font-semibold">Explore events</div>
             </div>
             <div className="mt-2 text-sm text-slate-600">Find events and register as an attendee.</div>
-            <div className="mt-3 inline-flex items-center gap-1 text-violet-700 text-sm group-hover:underline">Browse events</div>
+            <div className="mt-3 inline-flex items-center gap-1 text-pink-700 text-sm group-hover:underline">Browse events</div>
           </Link>
         </div>
 
@@ -117,7 +117,7 @@ export default function UserDashboard() {
               <h2 className="text-lg font-semibold">My Events</h2>
               <Link
                 href="/events"
-                className="text-sm text-indigo-600 hover:text-indigo-700"
+                className="text-sm text-rose-600 hover:text-rose-700"
               >
                 View all
               </Link>

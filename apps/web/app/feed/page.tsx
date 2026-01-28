@@ -145,7 +145,7 @@ export default function FeedPage() {
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder="What's on your mind?"
-              className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               rows={3}
             />
 
@@ -170,7 +170,7 @@ export default function FeedPage() {
             )}
 
             <div className="flex items-center justify-between mt-3">
-              <label className="cursor-pointer text-gray-600 hover:text-indigo-600 transition-colors">
+              <label className="cursor-pointer text-gray-600 hover:text-rose-600 transition-colors">
                 <ImageIcon className="w-5 h-5" />
                 <input
                   type="file"
@@ -197,7 +197,7 @@ export default function FeedPage() {
                   createPost()
                 }}
                 disabled={posting || (!newPostContent.trim() && selectedFiles.length === 0)}
-                className="relative z-50 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all pointer-events-auto"
+                className="relative z-50 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all pointer-events-auto"
                 style={{ pointerEvents: (posting || (!newPostContent.trim() && selectedFiles.length === 0)) ? 'none' : 'auto' }}
               >
                 <Send className="w-4 h-4" />
@@ -210,7 +210,7 @@ export default function FeedPage() {
         {/* Feed Posts */}
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600 mx-auto"></div>
           </div>
         ) : posts.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">
@@ -221,7 +221,7 @@ export default function FeedPage() {
             {posts.map(post => (
               <div key={post.id} className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center text-white font-semibold">
                     {post.authorName?.charAt(0) || 'U'}
                   </div>
                   <div>
@@ -258,7 +258,7 @@ export default function FeedPage() {
 
                   <button
                     onClick={() => toggleComments(post.id)}
-                    className="flex items-center gap-2 text-gray-600 hover:text-indigo-600"
+                    className="flex items-center gap-2 text-gray-600 hover:text-rose-600"
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span>{post.commentsCount}</span>
@@ -289,7 +289,7 @@ export default function FeedPage() {
                         value={newComment[post.id] || ''}
                         onChange={(e) => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
                         placeholder="Write a comment..."
-                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
                             addComment(post.id)
@@ -298,7 +298,7 @@ export default function FeedPage() {
                       />
                       <button
                         onClick={() => addComment(post.id)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                        className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
                       >
                         Send
                       </button>

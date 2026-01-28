@@ -6,10 +6,10 @@ import { CheckCircle, Calendar, Mail } from 'lucide-react'
 
 function RSVPSuccessContent() {
   const searchParams = useSearchParams()
-  const response = searchParams.get('response') || 'ATTENDING'
-  const eventName = searchParams.get('eventName') || 'the event'
-  const eventDate = searchParams.get('eventDate') || ''
-  const email = searchParams.get('email') || ''
+  const response = searchParams?.get('response') || 'ATTENDING'
+  const eventName = searchParams?.get('eventName') || 'the event'
+  const eventDate = searchParams?.get('eventDate') || ''
+  const email = searchParams?.get('email') || ''
 
   const responseMessages = {
     ATTENDING: {
@@ -38,7 +38,7 @@ function RSVPSuccessContent() {
   const config = responseMessages[response as keyof typeof responseMessages] || responseMessages.ATTENDING
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className={`${config.bgColor} ${config.borderColor} border-2 rounded-xl p-6 mb-6`}>
@@ -55,7 +55,7 @@ function RSVPSuccessContent() {
 
           <div className="space-y-4">
             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-              <Calendar className="w-5 h-5 text-indigo-600 mt-0.5" />
+              <Calendar className="w-5 h-5 text-rose-600 mt-0.5" />
               <div>
                 <p className="font-semibold text-gray-900">{eventName}</p>
                 {eventDate && (
@@ -66,7 +66,7 @@ function RSVPSuccessContent() {
 
             {email && (
               <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                <Mail className="w-5 h-5 text-indigo-600 mt-0.5" />
+                <Mail className="w-5 h-5 text-rose-600 mt-0.5" />
                 <div>
                   <p className="text-sm text-gray-600">Confirmation sent to:</p>
                   <p className="font-medium text-gray-900">{email}</p>
@@ -85,7 +85,7 @@ function RSVPSuccessContent() {
         <div className="mt-6 text-center">
           <a
             href="/"
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
+            className="text-rose-600 hover:text-rose-700 font-medium"
           >
             ← Back to Home
           </a>
@@ -98,8 +98,8 @@ function RSVPSuccessContent() {
 export default function RSVPSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
       </div>
     }>
       <RSVPSuccessContent />

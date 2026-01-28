@@ -16,7 +16,7 @@ interface NeumorphicButtonProps {
 }
 
 const variantStyles = {
-  primary: 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-[4px_4px_12px_rgba(99,102,241,0.3),-4px_-4px_12px_rgba(139,92,246,0.1)] hover:shadow-[6px_6px_16px_rgba(99,102,241,0.4),-6px_-6px_16px_rgba(139,92,246,0.2)]',
+  primary: 'bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-[4px_4px_12px_rgba(225,29,72,0.3),-4px_-4px_12px_rgba(244,63,94,0.1)] hover:shadow-[6px_6px_16px_rgba(225,29,72,0.4),-6px_-6px_16px_rgba(244,63,94,0.2)]',
   secondary: 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 shadow-[4px_4px_12px_rgba(100,116,139,0.2),-4px_-4px_12px_rgba(255,255,255,0.9)] hover:shadow-[6px_6px_16px_rgba(100,116,139,0.3),-6px_-6px_16px_rgba(255,255,255,1)]',
   success: 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-[4px_4px_12px_rgba(16,185,129,0.3),-4px_-4px_12px_rgba(52,211,153,0.1)] hover:shadow-[6px_6px_16px_rgba(16,185,129,0.4),-6px_-6px_16px_rgba(52,211,153,0.2)]',
   warning: 'bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-[4px_4px_12px_rgba(245,158,11,0.3),-4px_-4px_12px_rgba(251,191,36,0.1)] hover:shadow-[6px_6px_16px_rgba(245,158,11,0.4),-6px_-6px_16px_rgba(251,191,36,0.2)]',

@@ -204,11 +204,11 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* User Management */}
             <Link href="/admin/users">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-indigo-500">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-rose-500">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="p-3 bg-indigo-100 rounded-full">
-                      <Users className="h-6 w-6 text-indigo-600" />
+                    <div className="p-3 bg-rose-100 rounded-full">
+                      <Users className="h-6 w-6 text-rose-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">User Management</h3>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                         Manage user roles and permissions
                       </p>
                     </div>
-                    <div className="text-xs text-indigo-600 font-medium">
+                    <div className="text-xs text-rose-600 font-medium">
                       View & Edit Roles →
                     </div>
                   </div>
@@ -226,11 +226,11 @@ export default function DashboardPage() {
 
             {/* Role & Privileges */}
             <Link href="/admin/roles">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-purple-500">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-pink-500">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <Shield className="h-6 w-6 text-purple-600" />
+                    <div className="p-3 bg-pink-100 rounded-full">
+                      <Shield className="h-6 w-6 text-pink-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">Roles & Privileges</h3>
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                         Configure role-based access control
                       </p>
                     </div>
-                    <div className="text-xs text-purple-600 font-medium">
+                    <div className="text-xs text-pink-600 font-medium">
                       Manage Permissions →
                     </div>
                   </div>

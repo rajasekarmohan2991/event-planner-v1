@@ -139,9 +139,9 @@ export default function EventManagerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               href="/admin/events"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-rose-500 hover:bg-rose-50 transition-all"
             >
-              <Calendar className="w-8 h-8 text-indigo-600 mb-2" />
+              <Calendar className="w-8 h-8 text-rose-600 mb-2" />
               <h3 className="font-semibold">Manage Events</h3>
               <p className="text-sm text-gray-600 mt-1">View and edit all events</p>
             </Link>
