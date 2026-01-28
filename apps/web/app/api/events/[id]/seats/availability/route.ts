@@ -83,7 +83,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const hasFloorPlan = !!floorPlan
     const hasSeatInventory = seatCount > 0
 
-    if (hasFloorPlan && !hasSeatInventory && floorPlan?.layoutData) {
+    console.log('[Availability] Debug - hasFloorPlan:', hasFloorPlan)
+    console.log('[Availability] Debug - hasSeatInventory:', hasSeatInventory)
+    console.log('[Availability] Debug - floorPlan exists:', !!floorPlan)
+    console.log('[Availability] Debug - layoutData exists:', !!floorPlan?.layoutData)
+
+    if (hasFloorPlan && !hasSeatInventory) {
       // Auto-generate seats from floor plan
       console.log('[Availability] Seats missing but floor plan exists. Auto-generating seats...')
       console.log('[Availability] Floor plan data:', JSON.stringify(floorPlan.layoutData).substring(0, 200))
