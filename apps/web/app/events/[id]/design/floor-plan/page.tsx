@@ -322,7 +322,33 @@ export default function FloorPlanDesignerPage() {
 
             if (response.ok) {
                 const data = await response.json()
-                alert('Floor plan saved successfully!')
+                
+                // Trigger seat generation after saving floor plan
+                try {
+                    const genRes = await fetch(`/api/events/${eventId}/seats/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            floorPlan: { objects: floorPlan.objects },
+                            pricingRules: [
+                                { seatType: 'VIP', basePrice: floorPlan.vipPrice },
+                                { seatType: 'PREMIUM', basePrice: floorPlan.premiumPrice },
+                                { seatType: 'GENERAL', basePrice: floorPlan.generalPrice }
+                            ]
+                        })
+                    })
+                    
+                    if (genRes.ok) {
+                        const genData = await genRes.json()
+                        alert(`✅ Floor plan saved and ${genData.totalSeatsGenerated || 0} seats generated!`)
+                    } else {
+                        alert('Floor plan saved! Note: Seat generation may have failed - check event settings.')
+                    }
+                } catch (genError) {
+                    console.error('Seat generation error:', genError)
+                    alert('Floor plan saved! Note: Seat generation encountered an error.')
+                }
+                
                 if (data.floorPlan) {
                     setFloorPlan(prev => ({ ...prev, id: data.floorPlan.id }))
                 }
