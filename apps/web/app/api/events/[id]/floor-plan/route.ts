@@ -393,6 +393,10 @@ export async function PUT(
                 if (objects.length > 0) {
                     console.log('📐 [FloorPlan PUT] Using Smart Generation from', objects.length, 'visual objects');
 
+                    // Global counters per tier to prevent collisions (e.g. 2 General Grids causing Duplicate Row A)
+                    const rowCounters: Record<string, number> = {};
+                    const tableCounters: Record<string, number> = {};
+
                     for (const obj of objects) {
                         const seatSize = 20;
                         const seatSpacing = 5;
@@ -420,13 +424,30 @@ export async function PUT(
                             const cols = obj.cols || 10;
                             const labelsStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+                            // Initialize row counter for this tier if needed
+                            if (rowCounters[pricingTier] === undefined) rowCounters[pricingTier] = 0;
+                            const startRow = rowCounters[pricingTier];
+
                             for (let r = 0; r < rows; r++) {
+                                // Calculate effective row index
+                                const currentRowIndex = startRow + r;
+
                                 // Determine Row Label (A, B, ... AA)
-                                let rowLabel = labelsStr[r % 26];
-                                if (r >= 26) rowLabel += Math.floor(r / 26);
+                                let rowLabel = '';
+
+                                // Simple A-Z
+                                if (currentRowIndex < 26) {
+                                    rowLabel = labelsStr[currentRowIndex];
+                                } else {
+                                    // Excel style: AA, AB...
+                                    const first = Math.floor(currentRowIndex / 26) - 1;
+                                    const second = currentRowIndex % 26;
+                                    rowLabel = (first >= 0 ? labelsStr[first] : '') + labelsStr[second];
+                                }
 
                                 for (let c = 0; c < cols; c++) {
-                                    if (gaps.has(`${r}-${c}`)) continue; // Skip gaps
+                                    const key = `${r}-${c}`; // Gap keys are local to the grid (0-based)
+                                    if (gaps.has(key)) continue; // Skip gaps
 
                                     const seatNum = c + 1;
                                     const x = obj.x + (c * (seatSize + seatSpacing)) + 30;
@@ -438,13 +459,22 @@ export async function PUT(
                                             event_id, section, row_number, seat_number, seat_type, 
                                             base_price, x_coordinate, y_coordinate, is_available, created_at
                                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW())
+                                        ON CONFLICT DO NOTHING
                                     `, eventId, pricingTier, rowLabel, String(seatNum), seatType, basePrice, x, y);
                                 }
                             }
+                            // Update global counter
+                            rowCounters[pricingTier] += rows;
+
                         } else if (obj.type === 'ROUND_TABLE') {
                             const numSeats = obj.totalSeats || 8;
                             const tableRadius = (obj.width / 2);
                             const seatRadiusFromTable = 15;
+
+                            // Initialize table counter
+                            if (tableCounters[pricingTier] === undefined) tableCounters[pricingTier] = 0;
+                            tableCounters[pricingTier] += 1;
+                            const tableNum = tableCounters[pricingTier];
 
                             for (let i = 0; i < numSeats; i++) {
                                 const angle = (i * 360) / numSeats;
@@ -457,7 +487,8 @@ export async function PUT(
                                         event_id, section, row_number, seat_number, seat_type, 
                                         base_price, x_coordinate, y_coordinate, is_available, created_at
                                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW())
-                                `, eventId, pricingTier, `T${i + 1}`, String(i + 1), seatType, basePrice, x, y);
+                                    ON CONFLICT DO NOTHING
+                                `, eventId, pricingTier, `T${tableNum}`, String(i + 1), seatType, basePrice, x, y);
                             }
                         }
                     }
