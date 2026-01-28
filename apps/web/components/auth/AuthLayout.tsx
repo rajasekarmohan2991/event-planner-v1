@@ -232,8 +232,16 @@ export function AuthLayout({ children, animationType = 'login', lottieSrc, backg
                 </motion.div>
               )}
               <motion.h1
-                className="text-3xl font-bold text-gray-900 mb-2"
-                variants={itemVariants}
+                className="text-4xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 tracking-tight"
+                variants={{
+                  hidden: { opacity: 0, scale: 0.5, y: 20 },
+                  show: {
+                    opacity: 1,
+                    scale: [0.5, 1.05, 1],
+                    y: 0,
+                    transition: { type: "spring", stiffness: 200, damping: 12 }
+                  }
+                }}
               >
                 {title ?? (
                   animationType === 'login' ? 'Welcome Back' :
