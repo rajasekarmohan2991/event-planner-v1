@@ -41,7 +41,7 @@ export function ConfirmDialog({
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <button
-                className="px-3 py-1.5 text-sm rounded-md border bg-indigo-600 text-white hover:bg-indigo-600/90"
+                className="px-3 py-1.5 text-sm rounded-md border bg-rose-600 text-white hover:bg-rose-700"
                 onClick={async () => {
                   await onConfirm()
                   onOpenChange(false)

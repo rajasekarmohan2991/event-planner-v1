@@ -87,7 +87,7 @@ export function OptimizedAvatar({
     if (!src || error) {
         return (
             <div
-                className={`flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold ${className}`}
+                className={`flex items-center justify-center bg-gradient-to-br from-rose-500 to-pink-600 text-white font-semibold ${className}`}
                 style={{ width: size, height: size }}
             >
                 {alt.charAt(0).toUpperCase()}

@@ -18,11 +18,11 @@ interface StatCardProps {
 
 const variantStyles = {
   primary: {
-    bg: 'bg-gradient-to-br from-indigo-50 via-white to-indigo-50',
-    iconBg: 'bg-gradient-to-br from-indigo-100 to-indigo-200',
-    iconColor: 'text-indigo-600',
-    border: 'border-indigo-100',
-    shadow: 'shadow-[8px_8px_16px_rgba(99,102,241,0.1),-8px_-8px_16px_rgba(255,255,255,0.9)]'
+    bg: 'bg-gradient-to-br from-rose-50 via-white to-pink-50',
+    iconBg: 'bg-gradient-to-br from-rose-100 to-pink-200',
+    iconColor: 'text-rose-600',
+    border: 'border-rose-100',
+    shadow: 'shadow-[8px_8px_16px_rgba(225,29,72,0.1),-8px_-8px_16px_rgba(255,255,255,0.9)]'
   },
   secondary: {
     bg: 'bg-gradient-to-br from-slate-50 via-white to-slate-50',

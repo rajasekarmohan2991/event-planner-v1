@@ -118,7 +118,7 @@ export default function CurrencyConverter() {
                     <div className="text-sm text-gray-500 mb-1">
                         1 {fromCode} = {(convert(1, fromCode, toCode) || 1).toFixed(4)} {toCode}
                     </div>
-                    <div className="text-2xl font-bold text-indigo-600">
+                    <div className="text-2xl font-bold text-rose-600">
                         {formatCurrency(result, toCurrency)}
                     </div>
                 </div>

@@ -79,7 +79,7 @@ export default function SmtpConfigPage() {
         </div>
         <div className="flex gap-2">
           <button className="rounded border px-3 py-2 text-sm" onClick={load} disabled={loading}>Reload</button>
-          <button className="rounded bg-indigo-600 text-white px-3 py-2 text-sm" onClick={save} disabled={saving}>{saving? 'Saving…':'Save'}</button>
+          <button className="rounded bg-rose-600 text-white px-3 py-2 text-sm" onClick={save} disabled={saving}>{saving? 'Saving…':'Save'}</button>
         </div>
         <div className="text-xs text-slate-500">You can also use environment variables (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM). Saved values here take precedence.</div>
       </div>

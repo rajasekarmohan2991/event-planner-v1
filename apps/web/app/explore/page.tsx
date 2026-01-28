@@ -121,25 +121,25 @@ export default function ExplorePage() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 md:py-12">
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
           Browse Events
         </h1>
         <p className="text-muted-foreground mt-2">Discover amazing events in your city from multiple sources</p>
       </div>
 
       {/* Filters Section */}
-      <div className="mb-8 p-6 bg-white rounded-xl border shadow-sm">
+      <div className="mb-8 p-6 bg-white rounded-[2rem] border border-rose-50 shadow-sm shadow-rose-100/50">
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-5 w-5 text-indigo-600" />
-          <h2 className="font-semibold text-lg">Filter Events</h2>
+          <Filter className="h-5 w-5 text-rose-600" />
+          <h2 className="font-semibold text-lg text-slate-900">Filter Events</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">📍 City</label>
+            <label className="block text-sm font-medium mb-2 text-slate-600">📍 City</label>
             <select 
               value={selectedCity} 
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white"
             >
               <option value="Mumbai">Mumbai</option>
               <option value="Delhi">Delhi</option>
@@ -155,11 +155,11 @@ export default function ExplorePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">🎭 Category</label>
+            <label className="block text-sm font-medium mb-2 text-slate-600">🎭 Category</label>
             <select 
               value={selectedCategory} 
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white"
             >
               <option value="all">All Categories</option>
               <option value="music">🎵 Music</option>
@@ -177,11 +177,11 @@ export default function ExplorePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">💰 Price</label>
+            <label className="block text-sm font-medium mb-2 text-slate-600">💰 Price</label>
             <select 
               value={priceFilter} 
               onChange={(e) => setPriceFilter(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white"
             >
               <option value="all">All Events</option>
               <option value="free">Free Only</option>
@@ -190,15 +190,15 @@ export default function ExplorePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">🔗 Source</label>
-            <label className="flex items-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+            <label className="block text-sm font-medium mb-2 text-slate-600">🔗 Source</label>
+            <label className="flex items-center gap-3 px-4 py-2.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-rose-50 transition-colors">
               <input 
                 type="checkbox" 
                 checked={showEventbrite}
                 onChange={(e) => setShowEventbrite(e.target.checked)}
-                className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                className="w-5 h-5 text-rose-600 rounded focus:ring-2 focus:ring-rose-500"
               />
-              <span className="text-sm font-medium">Eventbrite Events</span>
+              <span className="text-sm font-medium text-slate-700">Eventbrite Events</span>
             </label>
           </div>
         </div>
@@ -207,54 +207,55 @@ export default function ExplorePage() {
       {/* Your Local Events Section */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Your Platform Events</span>
-          <span className="text-sm font-normal text-gray-500">({events.length})</span>
+          <span className="bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Your Platform Events</span>
+          <span className="text-sm font-normal text-slate-500">({events.length})</span>
         </h2>
         {loading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-80 rounded-xl border animate-pulse bg-slate-50" />
+              <div key={i} className="h-80 rounded-[2rem] border animate-pulse bg-slate-50" />
             ))}
           </div>
         ) : events.length === 0 ? (
-          <div className="rounded-xl border p-8 text-center bg-gray-50">
-            <p className="text-gray-600">No local events available right now.</p>
+          <div className="rounded-[2rem] border p-12 text-center bg-slate-50">
+            <p className="text-slate-600 font-medium">No local events available right now.</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((e: any) => (
-              <div key={e.id} className="group rounded-xl border bg-white overflow-hidden hover:shadow-lg transition-all duration-300">
-                <div className="h-48 bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+              <div key={e.id} className="group rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden hover:shadow-2xl hover:shadow-rose-100/50 transition-all duration-500 hover:-translate-y-1">
+                <div className="h-56 bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-white/20 backdrop-blur-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <lottie-player autoplay loop mode="normal" background="transparent" src="https://assets6.lottiefiles.com/packages/lf20_j1adxtyb.json" style={{ width: 240, height: 160 }} />
                 </div>
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-bold text-lg line-clamp-2" title={e.name}>{e.name || 'Untitled Event'}</h3>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-bold text-xl line-clamp-2 text-slate-900 group-hover:text-rose-600 transition-colors" title={e.name}>{e.name || 'Untitled Event'}</h3>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium whitespace-nowrap">LIVE</span>
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-bold uppercase tracking-wider border border-emerald-100">LIVE</span>
                       <PromoCodeBadge eventId={e.id} />
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-indigo-600" />
+                  <div className="space-y-3 text-sm text-slate-500 font-medium">
+                    <div className="flex items-center gap-2.5">
+                      <Calendar className="h-4 w-4 text-rose-500" />
                       <span>{new Date(e.startsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-indigo-600" />
+                    <div className="flex items-center gap-2.5">
+                      <MapPin className="h-4 w-4 text-rose-500" />
                       <span>{e.city || 'TBA'}</span>
                     </div>
                   </div>
-                  <div className="pt-3 flex items-center gap-3">
+                  <div className="pt-4 flex items-center gap-3">
                     <button
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white text-sm font-bold hover:shadow-lg hover:shadow-rose-200 transition-all active:scale-95"
                       onClick={() => router.push(`/events/${e.id}/attend`)}
                     >
                       <Ticket className="h-4 w-4" /> Register
                     </button>
                     <Link
                       href={`/events/${e.id}/public`}
-                      className="px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                      className="px-4 py-3 text-sm font-bold rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-slate-600 transition-all"
                     >
                       Details
                     </Link>

@@ -29,7 +29,7 @@ export default function AuthUnauthorizedPage() {
           
           <div className="space-y-3">
             <Link href="/dashboard" className="block">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+              <Button className="w-full bg-rose-600 hover:bg-rose-700">
                 <Home className="w-4 h-4 mr-2" />
                 Go to Dashboard
               </Button>

@@ -73,7 +73,7 @@ export default function SelectTenantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
@@ -87,8 +87,8 @@ export default function SelectTenantPage() {
         {tenants.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Building2 className="w-8 h-8 text-blue-600" />
+              <div className="mx-auto w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+                <Building2 className="w-8 h-8 text-rose-600" />
               </div>
               <CardTitle>No Organizations Yet</CardTitle>
               <CardDescription>
@@ -97,7 +97,7 @@ export default function SelectTenantPage() {
             </CardHeader>
             <CardContent>
               <Button 
-                className="w-full" 
+                className="w-full bg-rose-600 hover:bg-rose-700" 
                 size="lg"
                 onClick={() => router.push('/create-tenant')}
               >
@@ -112,7 +112,7 @@ export default function SelectTenantPage() {
               {tenants.map((tenant) => (
                 <Card 
                   key={tenant.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  className="hover:shadow-lg transition-shadow cursor-pointer hover:border-rose-200"
                   onClick={() => selectTenant(tenant.id)}
                 >
                   <CardHeader>
@@ -125,7 +125,7 @@ export default function SelectTenantPage() {
                             className="w-12 h-12 rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                          <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center">
                             <Building2 className="w-6 h-6 text-white" />
                           </div>
                         )}
@@ -137,9 +137,9 @@ export default function SelectTenantPage() {
                         </div>
                       </div>
                       {switching === tenant.id ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                        <Loader2 className="w-5 h-5 animate-spin text-rose-600" />
                       ) : (
-                        <ArrowRight className="w-5 h-5 text-gray-400" />
+                        <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-rose-500" />
                       )}
                     </div>
                   </CardHeader>
@@ -152,6 +152,7 @@ export default function SelectTenantPage() {
                 variant="outline" 
                 size="lg"
                 onClick={() => router.push('/create-tenant')}
+                className="hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Create New Organization
