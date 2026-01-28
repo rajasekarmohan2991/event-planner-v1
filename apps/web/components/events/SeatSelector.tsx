@@ -53,27 +53,33 @@ export function SeatSelector({ eventId, ticketClassId, onSeatSelect, maxSeats = 
   const useVisualMap = viewMode !== 'table' && hasCoordinates
 
   const mapDimensions = useMemo(() => {
-    if (!hasCoordinates) return { width: 1000, height: 800 }
+    let width = 1000
+    let height = 800
 
-    // Find bounds
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-    seats.forEach(s => {
-      const x = Number(s.xCoordinate || 0)
-      const y = Number(s.yCoordinate || 0)
-      if (x < minX) minX = x
-      if (x > maxX) maxX = x
-      if (y < minY) minY = y
-      if (y > maxY) maxY = y
-    })
+    if (hasCoordinates) {
+      // Find bounds
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+      seats.forEach(s => {
+        const x = Number(s.xCoordinate || 0)
+        const y = Number(s.yCoordinate || 0)
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      })
 
-    // Add padding
-    const padding = 100
-    const width = (maxX - minX) + (padding * 2)
-    const height = (maxY - minY) + (padding * 2)
+      // Add padding
+      const padding = 100
+      const calcWidth = (maxX - minX) + (padding * 2)
+      const calcHeight = (maxY - minY) + (padding * 2)
 
-    // Check if result is valid number
-    if (!isFinite(width) || !isFinite(height)) return { width: 1000, height: 800 }
-    return { width: Math.max(width, 800), height: Math.max(height, 600) }
+      if (isFinite(calcWidth) && isFinite(calcHeight)) {
+        width = Math.max(calcWidth, 800)
+        height = Math.max(calcHeight, 600)
+      }
+    }
+
+    return { width, height }
   }, [seats, hasCoordinates])
 
   useEffect(() => {
