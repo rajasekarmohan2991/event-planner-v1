@@ -316,8 +316,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           ` : ''}
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #E5E7EB;">
-            <p style="color: #6B7280; font-size: 14px;">
-              Please review this registration and allocate a booth to proceed with payment.
+            <p style="color: #1F2937; font-size: 16px; margin-bottom: 20px;">
+              Action Required: Please <strong>Approve</strong> or <strong>Reject</strong> this exhibitor application.
+            </p>
+            <div style="text-align: center; margin-bottom: 20px;">
+              <a href="${process.env.NEXTAUTH_URL}/events/${eventId}/registrations/approvals" 
+                 style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                Review Application
+              </a>
+            </div>
+            <p style="text-align: center; font-size: 14px; color: #6B7280;">
+               Login to Dashboard &gt; Registration &gt; Registration Approval
             </p>
           </div>
         </div>

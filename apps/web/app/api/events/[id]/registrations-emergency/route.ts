@@ -12,11 +12,12 @@ export async function GET(
 
         console.log('[EMERGENCY REGISTRATIONS] Fetching for event:', eventId.toString())
 
-        // Use raw SQL to bypass tenant middleware
+        // Use raw SQL to bypass tenant middleware - include check_in_status
         const registrations = await prisma.$queryRaw`
             SELECT 
                 id, event_id as "eventId", data_json as "dataJson",
-                email, status, type, created_at as "createdAt"
+                email, status, type, created_at as "createdAt",
+                check_in_status as "checkInStatus", check_in_time as "checkInTime"
             FROM registrations
             WHERE event_id = ${eventId}
             ORDER BY created_at DESC
@@ -36,6 +37,9 @@ export async function GET(
                 console.error('Failed to parse dataJson:', e)
             }
 
+            // Determine check-in status from both column and data_json
+            const isCheckedIn = r.checkInStatus === 'CHECKED_IN' || data.checkedIn === true
+            
             return {
                 id: r.id,
                 eventId: r.eventId.toString(),
@@ -47,7 +51,9 @@ export async function GET(
                 jobTitle: data.jobTitle || '',
                 status: r.status,
                 type: r.type,
-                checkedIn: false,
+                checkedIn: isCheckedIn,
+                checkInStatus: isCheckedIn ? 'CHECKED_IN' : 'NOT_CHECKED_IN',
+                checkInTime: r.checkInTime || data.checkedInAt || null,
                 createdAt: r.createdAt.toISOString(),
                 registeredAt: r.createdAt.toISOString()
             }
