@@ -48,6 +48,8 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
   const [eventData, setEventData] = useState<any>(null)
   const [loadingEvent, setLoadingEvent] = useState(true)
   const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
+  const [promoCodes, setPromoCodes] = useState<any[]>([])
+  const [loadingPromos, setLoadingPromos] = useState(true)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -70,6 +72,20 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
       .then(data => setEventData(data))
       .catch(console.error)
       .finally(() => setLoadingEvent(false))
+  }, [params.id])
+
+  // Fetch active promo codes
+  useEffect(() => {
+    setLoadingPromos(true)
+    fetch(`/api/events/${params.id}/promo-codes/active`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.promoCodes && data.promoCodes.length > 0) {
+          setPromoCodes(data.promoCodes)
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingPromos(false))
   }, [params.id])
 
   // Check if event has seats
@@ -158,6 +174,35 @@ export default function RegisterPage({ params }: { params: { id: string } }) {
               <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex gap-3 items-center">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <p className="text-sm font-bold text-green-900">Invite Code Verified! Welcome {inviteData.inviteeName}</p>
+              </div>
+            )}
+
+            {/* Promo Code Banner */}
+            {!loadingPromos && promoCodes.length > 0 && (
+              <div className="bg-gradient-to-r from-rose-600 to-pink-600 rounded-2xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-5 h-5" />
+                      <h3 className="font-black text-lg">Special Offer</h3>
+                    </div>
+                    <p className="text-rose-50 text-sm mb-3">
+                      Use code <span className="font-mono font-bold bg-white/20 px-3 py-1 rounded-lg">{promoCodes[0].code}</span> at checkout for {promoCodes[0].discountType === 'PERCENTAGE' ? `${promoCodes[0].discountValue}% off` : `₹${promoCodes[0].discountValue} off`}!
+                    </p>
+                    {promoCodes[0].description && (
+                      <p className="text-rose-100 text-xs">{promoCodes[0].description}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(promoCodes[0].code)
+                      alert('Promo code copied!')
+                    }}
+                    className="px-6 py-3 bg-white text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all shadow-lg"
+                  >
+                    Copy Code
+                  </button>
+                </div>
               </div>
             )}
 
