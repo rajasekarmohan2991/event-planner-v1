@@ -146,8 +146,24 @@ export async function POST(req: NextRequest) {
 
       // Create user and optional tenant in transaction
       const user = await prisma.$transaction(async (tx) => {
-        const totalUsers = await tx.user.count()
-        const effectiveRole = totalUsers === 0 ? 'SUPER_ADMIN' : role
+        let effectiveRole = role
+        let tenantPlan = 'FREE'
+
+        // Check if this is the first company registration
+        if (companyName && companySlug) {
+          const totalTenants = await tx.tenant.count()
+          if (totalTenants === 0) {
+            effectiveRole = 'SUPER_ADMIN'
+            tenantPlan = 'ENTERPRISE'
+          }
+        } else {
+          // Fallback for user-only registration
+          const totalUsers = await tx.user.count()
+          if (totalUsers === 0) {
+            effectiveRole = 'SUPER_ADMIN'
+          }
+        }
+
         // Create user
         const newUser = await tx.user.create({
           data: {
@@ -163,13 +179,14 @@ export async function POST(req: NextRequest) {
         if (companyName && companySlug) {
           // Determine currency based on country
           const currency = country ? getCurrencyByCountry(country) : 'USD'
-          
+
           const newTenant = await tx.tenant.create({
             data: {
               name: companyName,
               slug: companySlug,
               subdomain: companySlug,
               country: country || null,
+              plan: tenantPlan,
               registrationNumber: registrationNumber || null,
               currency: currency,
               members: {

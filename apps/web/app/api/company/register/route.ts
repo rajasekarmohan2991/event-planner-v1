@@ -103,6 +103,13 @@ export async function POST(req: NextRequest) {
 
     // Create tenant and admin user in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      // Check if this is the first company
+      const totalTenants = await tx.tenant.count()
+      const isFirstCompany = totalTenants === 0
+
+      const tenantPlan = isFirstCompany ? 'ENTERPRISE' : 'FREE'
+      const userRole = isFirstCompany ? 'SUPER_ADMIN' : 'USER'
+
       // Create tenant
       const tenant = await tx.tenant.create({
         data: {
@@ -110,7 +117,7 @@ export async function POST(req: NextRequest) {
           name: companyName,
           subdomain,
           status: 'TRIAL', // Start with trial status
-          plan: 'FREE',
+          plan: tenantPlan,
           trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           billingEmail: companyEmail,
           metadata: {
@@ -131,18 +138,35 @@ export async function POST(req: NextRequest) {
             name: adminName,
             email: adminEmail,
             password: hashedPassword,
-            role: 'USER', // Regular user, not super admin
+            role: userRole,
             currentTenantId: tenant.id
           }
         })
       } else {
+        // Prepare update data
+        const updateData: any = {
+          currentTenantId: tenant.id
+        }
+
+        // If this is the first company and user exists, upgrade them to SUPER_ADMIN
+        if (isFirstCompany) {
+          updateData.role = 'SUPER_ADMIN'
+          adminUser.role = 'SUPER_ADMIN' // Update local object reference
+        }
+
         // User exists but was not allowed to own multiple companies
         // For safety, still ensure currentTenantId is set if no membership exists
         const existingMembership = await tx.tenantMember.findFirst({ where: { userId: adminUser!.id } })
         if (!existingMembership) {
           await tx.user.update({
             where: { id: adminUser!.id },
-            data: { currentTenantId: tenant.id }
+            data: updateData
+          })
+        } else if (isFirstCompany) {
+          // Even if membership exists (which shouldn't happen due to check above), upgrade role if needed
+          await tx.user.update({
+            where: { id: adminUser!.id },
+            data: { role: 'SUPER_ADMIN' }
           })
         }
       }
