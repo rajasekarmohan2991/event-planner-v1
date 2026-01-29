@@ -191,9 +191,14 @@ export default function SubscriptionPlansPage() {
             });
 
             if (res.ok) {
-                // 2. Mock sending payment link/invoice
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate sending email
-                alert(`Plan updated to ${selectedPlanId}!\n\nSuccess: Payment link generated and sent to billing email.`);
+                const data = await res.json();
+                if (data.emailSent) {
+                    alert(`Plan updated to ${selectedPlanId}!\n\nEmail notification sent to the company's billing email.`);
+                } else if (data.emailError) {
+                    alert(`Plan updated to ${selectedPlanId}!\n\nNote: Email notification failed: ${data.emailError}`);
+                } else {
+                    alert(`Plan updated to ${selectedPlanId}!\n\nNote: No billing email configured for this company.`);
+                }
 
                 setManagingCompany(null);
                 fetchCompanies();

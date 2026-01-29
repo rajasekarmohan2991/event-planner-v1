@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { ensureSchema } from '@/lib/ensure-schema'
+import { sendMail } from '@/lib/email/mailer'
 
   // Polyfill for BigInt serialization
   ; (BigInt.prototype as any).toJSON = function () {
@@ -219,18 +220,53 @@ export async function PATCH(
 
     // Fetch updated record to return
     let updatedTenant = null
+    let billingEmail = null
     try {
       const rows = await prisma.$queryRaw<any[]>`SELECT * FROM tenants WHERE id = ${params.id}`
       if (rows && rows.length > 0) {
         updatedTenant = rows[0]
         updatedTenant.id = String(updatedTenant.id)
+        billingEmail = updatedTenant.billing_email || updatedTenant.email_from_address
       }
     } catch (e) { console.log('Fetch after update failed', e) }
+
+    // Send email notification if plan was updated
+    let emailSent = false
+    let emailError = null
+    if (plan !== undefined && billingEmail) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aypheneventplanner.vercel.app'
+        await sendMail({
+          to: billingEmail,
+          subject: `Your Subscription Plan Has Been Updated to ${plan}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4F46E5;">Subscription Plan Updated</h2>
+              <p>Hello,</p>
+              <p>Your subscription plan has been updated to <strong>${plan}</strong>.</p>
+              <p>If you have any questions about your new plan or need assistance, please contact our support team.</p>
+              <div style="margin: 24px 0;">
+                <a href="${baseUrl}/dashboard" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+                  Go to Dashboard
+                </a>
+              </div>
+              <p style="color: #6B7280; font-size: 14px;">Thank you for using Ayphen Event Planner.</p>
+            </div>
+          `
+        })
+        emailSent = true
+      } catch (err: any) {
+        console.error('Failed to send plan update email:', err)
+        emailError = err.message
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Company plan updated successfully',
-      company: updatedTenant
+      company: updatedTenant,
+      emailSent,
+      emailError
     })
   } catch (error: any) {
     console.error('Error updating company:', error)

@@ -8,8 +8,6 @@ import { PageTransition } from '@/components/page-transition'
 import { LoadingSpinner } from '@/components/loading'
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext'
 
-import { AdminHeader } from '@/components/admin/AdminHeader'
-
 export const dynamic = 'force-dynamic'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -50,7 +48,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
-      <AdminHeader />
       {/* Sidebar - fixed positioning */}
       <AdminSidebar />
 

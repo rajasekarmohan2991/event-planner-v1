@@ -30,14 +30,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const displayLocation = location?.city || 'Detecting...'
 
 
-  // Check if we're on the event public page or admin pages (admin has its own header)
+  // Check if we're on the event public page
   const isEventPublicPage = pathname?.match(/^\/events\/\d+\/public$/)
-  const hideGlobalHeader = isEventPublicPage || isAdmin
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hide header completely on event public page and admin pages (admin has its own AdminHeader) */}
-      {!hideGlobalHeader && (
+      {/* Hide header completely on event public page only */}
+      {!isEventPublicPage && (
         <header className="sticky top-0 z-50 border-b bg-white dark:bg-slate-900 shadow-sm">
           {/* Use tight horizontal padding so the logo sits near the absolute corner */}
           <div className="mx-auto w-full px-2 h-16 flex items-center justify-between">
