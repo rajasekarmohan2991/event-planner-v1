@@ -57,6 +57,7 @@ interface CompanySubscription {
     status: string;
     createdAt: string;
     logo?: string | null;
+    billingEmail?: string;
 }
 
 export default function SubscriptionPlansPage() {
@@ -755,6 +756,9 @@ export default function SubscriptionPlansPage() {
                                         Status
                                     </th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Admin Email
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Start Date
                                     </th>
                                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -794,6 +798,9 @@ export default function SubscriptionPlansPage() {
                                                 }`}>
                                                 {company.status}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {company.billingEmail || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(company.createdAt).toLocaleDateString('en-US', {
