@@ -67,8 +67,9 @@ export default async function EventWorkspaceLayout({
           canManage = true
           isReadOnly = false
         } else {
-          // No access to other tenants' events
-          return notFound()
+          // No access to other tenants' events - but allows public page access
+          canManage = false
+          isReadOnly = true
         }
       } else {
         // Staff and other roles - read only for their tenant
@@ -76,7 +77,9 @@ export default async function EventWorkspaceLayout({
           canManage = false
           isReadOnly = true
         } else {
-          return notFound()
+          // Public user or unrelated tenant - allows public page access
+          canManage = false
+          isReadOnly = true
         }
       }
     }

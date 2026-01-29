@@ -961,7 +961,7 @@ export default function RegisterWithSeatsPage() {
                 Print Ticket
               </button>
               <button
-                onClick={() => router.push(`/events/${eventId}`)}
+                onClick={() => router.push(`/events/${eventId}/public`)}
                 className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
               >
                 Back to Event
