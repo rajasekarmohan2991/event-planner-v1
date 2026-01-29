@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ALL_COUNTRIES } from "@/lib/countries";
 
 export default function CompanyRegisterPage() {
   const router = useRouter();
@@ -144,17 +145,11 @@ export default function CompanyRegisterPage() {
               onChange={(e) => setForm({ ...form, country: e.target.value })}
             >
               <option value="">Select country</option>
-              <option value="IN">India</option>
-              <option value="US">United States</option>
-              <option value="UK">United Kingdom</option>
-              <option value="CA">Canada</option>
-              <option value="AU">Australia</option>
-              <option value="SG">Singapore</option>
-              <option value="AE">United Arab Emirates</option>
-              <option value="DE">Germany</option>
-              <option value="FR">France</option>
-              <option value="BR">Brazil</option>
-              <option value="ZA">South Africa</option>
+              {ALL_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
               <option value="OTHER">Other</option>
             </select>
           </div>
