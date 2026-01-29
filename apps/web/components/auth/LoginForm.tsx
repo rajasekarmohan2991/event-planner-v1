@@ -20,7 +20,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { FcGoogle } from 'react-icons/fc'
-import { FaInstagram } from 'react-icons/fa'
+
 import { motion, AnimatePresence } from 'framer-motion'
 
 const MotionButton = motion(Button)
@@ -426,7 +426,7 @@ export function LoginForm() {
               </div>
             </motion.div>
 
-            <motion.div className="grid grid-cols-2 gap-3" variants={itemVariants}>
+            <motion.div className="grid grid-cols-1 gap-3" variants={itemVariants}>
               <Button
                 type="button"
                 variant="outline"
@@ -440,22 +440,6 @@ export function LoginForm() {
                   <>
                     <FcGoogle className="h-4 w-4" />
                     <span>Google</span>
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isLoading || !!socialLoading}
-                onClick={() => handleSocialLogin('instagram')}
-                className="w-full flex items-center justify-center gap-2"
-              >
-                {socialLoading === 'instagram' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <FaInstagram className="h-4 w-4 text-pink-600" />
-                    <span>Instagram</span>
                   </>
                 )}
               </Button>
