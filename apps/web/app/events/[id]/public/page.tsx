@@ -220,7 +220,8 @@ export default function PublicEventPage() {
           </div>
 
           {/* Promo Banner (Static for now) */}
-          {!isEnded && (
+          {/* Promo Banner */}
+          {!isEnded && event.promoCodes && event.promoCodes.length > 0 && (
             <div className="mb-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden group hover:scale-[1.01] transition-transform cursor-default">
               <div className="absolute top-0 right-0 p-10 bg-white/10 rounded-full blur-3xl" />
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -228,11 +229,15 @@ export default function PublicEventPage() {
                   <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
                     <Ticket className="w-5 h-5" /> Special Offer
                   </h3>
-                  <p className="text-indigo-100">Use code <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-white">EARLYBIRD</span> at checkout for 10% off!</p>
+                  <p className="text-indigo-100">
+                    Use code <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-white">{event.promoCodes[0].code}</span> at checkout for {event.promoCodes[0].type === 'PERCENT' ? `${event.promoCodes[0].amount}%` : `₹${event.promoCodes[0].amount}`} off!
+                    {event.promoCodes[0].description && <span className="block text-xs mt-1 opacity-80">{event.promoCodes[0].description}</span>}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText('EARLYBIRD');
+                    navigator.clipboard.writeText(event.promoCodes[0].code);
+                    // Use simple alert or toast if available. Original used alert.
                     alert('Code copied!');
                   }}
                   className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold backdrop-blur-sm transition-colors"

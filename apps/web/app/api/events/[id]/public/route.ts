@@ -42,7 +42,7 @@ export async function GET(
       }
     })
 
-    const [event, registrationCount, sessions] = await Promise.all([
+    const [event, registrationCount, sessions, promoCodes] = await Promise.all([
       eventPromise,
       prisma.registration.count({
         where: {
@@ -56,6 +56,23 @@ export async function GET(
           speakers: { include: { speaker: true } }
         },
         orderBy: { startTime: 'asc' }
+      }),
+      prisma.promoCode.findMany({
+        where: {
+          eventId: idBigInt,
+          isActive: true,
+          AND: [
+            { OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
+            { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] }
+          ]
+        },
+        select: {
+          code: true,
+          type: true,
+          amount: true,
+          description: true
+        },
+        take: 1
       })
     ])
 
@@ -94,7 +111,8 @@ export async function GET(
       registrationCount: registrationCount,
       priceInr: safeEvent.priceInr || 0,
       sessions: (sessions || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
-      speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() }))
+      speakers: (safeEvent.speakers || []).map((s: any) => ({ ...s, id: s.id.toString(), eventId: s.eventId.toString() })),
+      promoCodes: promoCodes || []
     })
 
   } catch (error: any) {
