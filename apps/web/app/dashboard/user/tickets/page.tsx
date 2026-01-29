@@ -207,7 +207,7 @@ export default function MyTicketsPage() {
 
                                             <div className="mt-6 pt-6 border-t border-dashed border-gray-200 flex justify-between items-center text-xs text-gray-400">
                                                 <span>Ref: {ticket.id.slice(-8).toUpperCase()}</span>
-                                                <span>Booked on {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                                <span>Booked on {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}</span>
                                             </div>
                                         </div>
 

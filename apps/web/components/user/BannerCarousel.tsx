@@ -28,6 +28,7 @@ const defaultSlides = [
         description: "Discover concerts, workshops, and conferences happening around you.",
         cta: "Browse Events",
         ctaLink: "/events",
+        detailsLink: "/events",
         bgGradient: "bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900",
         imageGradient: "from-purple-900/90 to-transparent",
         floatingImages: [
@@ -35,7 +36,8 @@ const defaultSlides = [
             { color: "bg-blue-500", position: "right-10 bottom-10", size: "w-72 h-72", blur: "blur-3xl" }
         ],
         accentColor: "text-purple-400",
-        buttonColor: "bg-white text-purple-900 hover:bg-gray-100"
+        buttonColor: "bg-white text-purple-900 hover:bg-gray-100",
+        bannerUrl: undefined
     }
 ]
 
@@ -43,11 +45,11 @@ const defaultSlides = [
 const getGradientForEvent = (category: string = '') => {
     const cat = category.toLowerCase()
     if (cat === 'music' || cat === 'concert') return {
-        bg: "bg-gradient-to-r from-pink-900 via-rose-900 to-red-900",
-        accent: "text-pink-400",
-        btn: "bg-pink-600 hover:bg-pink-700",
-        float1: "bg-pink-500",
-        float2: "bg-rose-500"
+        bg: "bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900",
+        accent: "text-pink-300",
+        btn: "bg-purple-600 hover:bg-purple-700",
+        float1: "bg-purple-500",
+        float2: "bg-pink-500"
     }
     if (cat === 'technology' || cat === 'tech') return {
         bg: "bg-gradient-to-r from-slate-900 via-zinc-900 to-neutral-800",
@@ -86,7 +88,8 @@ export function BannerCarousel({ events = [] }: BannerCarouselProps) {
             subtitle: (event.category || 'EVENT').toUpperCase(),
             description: event.description || `Join us for ${event.name}`,
             cta: "Book Now",
-            ctaLink: `/events/${event.id}`,
+            ctaLink: `/events/${event.id}/register`,
+            detailsLink: `/events/${event.id}/public`,
             bgGradient: theme.bg,
             accentColor: theme.accent,
             buttonColor: theme.btn,
@@ -220,7 +223,7 @@ export function BannerCarousel({ events = [] }: BannerCarouselProps) {
                                     <Ticket className="w-5 h-5" />
                                     {currentSlide.cta}
                                 </Link>
-                                <Link href={currentSlide.ctaLink || '#'} className="px-8 py-3.5 rounded-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-colors backdrop-blur-sm flex items-center gap-2">
+                                <Link href={(currentSlide as any).detailsLink || currentSlide.ctaLink || '#'} className="px-8 py-3.5 rounded-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-colors backdrop-blur-sm flex items-center gap-2">
                                     More Details
                                 </Link>
                             </motion.div>
