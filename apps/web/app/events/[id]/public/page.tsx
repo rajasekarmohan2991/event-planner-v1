@@ -90,11 +90,11 @@ export default function PublicEventPage() {
     }
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#FFFBF0] text-amber-900"><div className="animate-pulse">Loading Event...</div></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50"><div className="animate-pulse text-slate-700 font-semibold">Loading Event...</div></div>
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-[#FFFBF0] flex flex-col items-center justify-center p-4 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex flex-col items-center justify-center p-4 text-center">
         <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-6 animate-in zoom-in duration-300">
           <AlertCircle className="w-10 h-10 text-red-500" />
         </div>
@@ -102,7 +102,7 @@ export default function PublicEventPage() {
         <p className="text-slate-500 max-w-md mx-auto mb-8 text-lg">
           This event may have been cancelled, deleted, or the link is incorrect.
         </p>
-        <Link href="/dashboard/user" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white transition-all bg-amber-600 rounded-xl shadow-lg hover:bg-amber-700 hover:scale-105">
+        <Link href="/dashboard/user" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white transition-all bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl hover:scale-105">
           Go to Events
         </Link>
       </div>
@@ -113,81 +113,81 @@ export default function PublicEventPage() {
   const remainingSpots = Math.max(0, 100 - (event.registrationCount || 0)) // Using 100 as placeholder capacity if not in API yet, fix later
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0]"> {/* Mild Orange Background */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
 
       {/* Header Image */}
       <div className="relative h-[40vh] md:h-[50vh] w-full bg-slate-900 overflow-hidden">
         {event.bannerUrl ? (
-          <img src={event.bannerUrl} alt={event.name} className="w-full h-full object-cover opacity-80" />
+          <img src={event.bannerUrl} alt={event.name} className="w-full h-full object-cover opacity-90" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-amber-500 to-rose-600 opacity-80" />
+          <div className="w-full h-full bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#FFFBF0] via-transparent to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/40" />
 
         {/* Navigation & Share */}
         <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-20">
-          <Link href="/dashboard/user" className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all">
+          <Link href="/dashboard/user" className="w-11 h-11 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-700 hover:bg-white shadow-lg transition-all">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <button onClick={handleShare} className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all">
-            {copied ? <CheckCircle2 className="w-5 h-5 text-green-300" /> : <Share2 className="w-5 h-5" />}
+          <button onClick={handleShare} className="w-11 h-11 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-slate-700 hover:bg-white shadow-lg transition-all">
+            {copied ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5" />}
           </button>
         </div>
 
         {/* Hero Content */}
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-10">
           <div className="max-w-4xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/90 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider rounded-lg">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
               {event.category || 'Event'}
             </div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-3xl md:text-5xl font-black text-slate-900 leading-tight"
+              className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg"
             >
               {event.name}
             </motion.h1>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-slate-700 font-medium text-sm md:text-base">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-amber-600" />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-white font-medium text-sm md:text-base drop-shadow-md">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                <Calendar className="w-5 h-5" />
                 {new Date(event.startsAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-amber-600" />
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                <Clock className="w-5 h-5" />
                 {new Date(event.startsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                 {' - '}
                 {event.endsAt ? new Date(event.endsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
               </div>
-              <div className="flex items-center gap-2 cursor-pointer hover:text-amber-600 transition-colors" onClick={navigateToMap}>
-                <MapPin className="w-5 h-5 text-amber-600" />
-                <span className="underline decoration-dotted block truncate max-w-[200px]">{event.venue || event.city}</span>
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-white/20 transition-all bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg" onClick={navigateToMap}>
+                <MapPin className="w-5 h-5" />
+                <span className="block truncate max-w-[200px]">{event.venue || event.city}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8 relative z-20 -mt-8">
-        <div className="bg-white rounded-[2rem] shadow-xl border border-amber-100 p-6 md:p-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 relative z-20 -mt-12">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-10">
 
           {/* Action Bar */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 border-b border-amber-50 pb-8">
-            <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 border-b border-slate-100 pb-8">
+            <div className="flex items-center gap-6 w-full md:w-auto">
               <div className="flex-1 md:flex-none">
-                <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1">Price</p>
-                <p className="text-3xl font-black text-slate-900">
-                  {event.priceInr ? `₹${event.priceInr.toLocaleString()}` : <span className="text-green-600">Free</span>}
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Price</p>
+                <p className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {event.priceInr ? `₹${event.priceInr.toLocaleString()}` : 'Free'}
                 </p>
               </div>
               {/* Organizer Mini Profile */}
               {event.organizerName && (
-                <div className="hidden md:flex items-center gap-3 pl-6 border-l border-amber-100">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold">
+                <div className="hidden md:flex items-center gap-3 pl-6 border-l border-slate-200">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                     {event.organizerName[0]}
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-bold uppercase">Organizer</p>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Organizer</p>
                     <p className="font-bold text-slate-900">{event.organizerName}</p>
                   </div>
                 </div>
@@ -196,19 +196,19 @@ export default function PublicEventPage() {
 
             <div className="w-full md:w-auto flex flex-col gap-3">
               {isEnded ? (
-                <button disabled className="w-full md:w-60 py-4 rounded-xl bg-slate-100 text-slate-400 font-black text-lg cursor-not-allowed">
+                <button disabled className="w-full md:w-64 py-4 rounded-2xl bg-slate-100 text-slate-400 font-bold text-base cursor-not-allowed">
                   Event Ended
                 </button>
               ) : (
                 <button
                   onClick={() => router.push(`/events/${id}/register`)}
-                  className="w-full md:w-60 py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-lg shadow-xl shadow-orange-200 hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                  className="w-full md:w-64 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-base shadow-xl shadow-indigo-200 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                 >
-                  Book Ticket
                   <Ticket className="w-5 h-5" />
+                  Book Ticket
                 </button>
               )}
-              <p className="text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-1">
+              <p className="text-center text-xs font-semibold text-slate-500 flex items-center justify-center gap-1.5">
                 {isEnded ? 'Registrations closed' : (
                   <>
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -249,17 +249,17 @@ export default function PublicEventPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex items-center gap-8 border-b border-slate-100 mb-8 overflow-x-auto">
+          <div className="flex items-center gap-8 border-b border-slate-200 mb-8 overflow-x-auto">
             {['Overview', 'Agenda', 'FAQ'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab.toLowerCase() as any)}
-                className={`pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors ${activeTab === tab.toLowerCase() ? 'text-amber-600' : 'text-slate-400 hover:text-slate-600'
+                className={`pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors ${activeTab === tab.toLowerCase() ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-700'
                   }`}
               >
                 {tab}
                 {activeTab === tab.toLowerCase() && (
-                  <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500 rounded-t-full" />
+                  <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-full" />
                 )}
               </button>
             ))}
@@ -276,7 +276,7 @@ export default function PublicEventPage() {
                   </div>
                 </div>
 
-                <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 flex flex-col md:flex-row gap-6 items-start">
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-6 border border-slate-200 flex flex-col md:flex-row gap-6 items-start shadow-sm">
                   <img
                     src={`https://api.maptiler.com/maps/streets/static/${event.longitude},${event.latitude},14/400x200.png?key=fXmTWJM642uPLXP4QqHV`}
                     alt="Map"
@@ -288,7 +288,7 @@ export default function PublicEventPage() {
                     <h4 className="font-bold text-slate-900">Venue Location</h4>
                     <p className="text-slate-600 text-sm">{event.venue || 'Venue TBD'}</p>
                     <p className="text-slate-500 text-sm">{event.city}</p>
-                    <button onClick={navigateToMap} className="text-amber-600 text-sm font-bold flex items-center gap-1 hover:underline">
+                    <button onClick={navigateToMap} className="text-indigo-600 text-sm font-bold flex items-center gap-1 hover:underline">
                       Get Directions <MapPin className="w-4 h-4" />
                     </button>
                   </div>
@@ -338,18 +338,18 @@ export default function PublicEventPage() {
                   { q: "Can I get a refund?", a: "Refunds are processed up to 48 hours before the event start time." },
                   { q: "Is food provided?", a: "Light refreshments and beverages will be available throughout the event." }
                 ].map((faq, idx) => (
-                  <div key={idx} className="border border-slate-100 rounded-xl p-5 hover:border-amber-200 transition-colors bg-white">
+                  <div key={idx} className="border border-slate-200 rounded-xl p-5 hover:border-indigo-200 hover:shadow-md transition-all bg-white">
                     <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4 text-amber-500" />
+                      <MessageCircle className="w-4 h-4 text-indigo-500" />
                       {faq.q}
                     </h4>
                     <p className="text-slate-600 text-sm ml-6">{faq.a}</p>
                   </div>
                 ))}
 
-                <div className="mt-8 bg-amber-50 rounded-xl p-6 text-center">
-                  <p className="text-sm font-bold text-amber-800 mb-2">Still have questions?</p>
-                  <div className="flex items-center justify-center gap-4 text-sm text-amber-700">
+                <div className="mt-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 text-center border border-indigo-100">
+                  <p className="text-sm font-bold text-indigo-900 mb-2">Still have questions?</p>
+                  <div className="flex items-center justify-center gap-4 text-sm text-indigo-700">
                     <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> support@eventplanner.com</span>
                     <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> +1 (555) 123-4567</span>
                   </div>
@@ -370,7 +370,7 @@ export default function PublicEventPage() {
           </div>
           <button
             onClick={() => router.push(`/events/${id}/register`)}
-            className="px-8 py-3 bg-amber-600 text-white font-bold rounded-xl shadow-lg"
+            className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
           >
             Book Now
           </button>
