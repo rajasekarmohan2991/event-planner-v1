@@ -155,97 +155,92 @@ export default function UserDashboard() {
           {/* Dynamic Banner Carousel */}
           <BannerCarousel events={trendingEvents} />
 
-          <div className="relative z-20">
-            {/* Search and Filters */}
-            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-rose-100/50 border border-rose-50 p-8 mb-16">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-4 bg-rose-50 rounded-2xl">
-                  <Filter className="w-6 h-6 text-rose-600" />
-                </div>
-                <h2 className="text-3xl font-black text-slate-900">
-                  Find Events
-                </h2>
+          {/* Compact Floating Search Bar */}
+          <div className="relative z-30 -mt-8 px-4 mb-12">
+            <div className="max-w-5xl mx-auto bg-white/90 backdrop-blur-xl border border-white/50 shadow-2xl shadow-rose-500/10 rounded-full p-2 flex flex-col md:flex-row items-center gap-2">
+
+              {/* Search Input */}
+              <div className="flex-[2] w-full md:w-auto relative px-2 hover:bg-slate-50 rounded-full transition-colors group">
+                <Search className="w-5 h-5 text-rose-500 absolute left-4 top-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform opacity-70" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search events, artists, or venues..."
+                  className="w-full pl-12 pr-4 py-3 bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-medium h-full"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Search */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    Search
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Event name..."
-                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all bg-slate-50/50 hover:bg-white text-slate-700 font-medium placeholder:text-slate-400"
-                    />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  </div>
-                </div>
+              <div className="hidden md:block w-px h-8 bg-slate-200"></div>
 
-                {/* City Filter */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    City
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                    <select
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 bg-slate-50/50 hover:bg-white transition-all text-slate-700 font-medium appearance-none cursor-pointer"
-                    >
-                      <option value="all">All Cities</option>
-                      {[...new Set(upcomingEvents.map(e => e.city))].filter(Boolean).map(city => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Price Filter */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    Price
-                  </label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                    <select
-                      value={priceFilter}
-                      onChange={(e) => setPriceFilter(e.target.value)}
-                      className="w-full px-6 py-4 pl-12 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 bg-slate-50/50 hover:bg-white transition-all text-slate-700 font-medium appearance-none cursor-pointer"
-                    >
-                      <option value="all">Any Price</option>
-                      <option value="free">Free Events</option>
-                      <option value="paid">Paid Events</option>
-                    </select>
-                  </div>
+              {/* City Selector */}
+              <div className="flex-1 w-full md:w-auto relative px-2 hover:bg-slate-50 rounded-full transition-colors group">
+                <MapPin className="w-5 h-5 text-rose-500 absolute left-4 top-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform opacity-70" />
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full pl-12 pr-8 py-3 bg-transparent border-none focus:ring-0 text-slate-800 font-medium cursor-pointer appearance-none"
+                >
+                  <option value="all">All Cities</option>
+                  {[...new Set(upcomingEvents.map(e => e.city))].filter(Boolean).map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                <div className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-slate-400"></div>
                 </div>
               </div>
 
-              {/* Results Count */}
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-500">
-                  Found <strong className="text-rose-600">{filteredEvents.length}</strong> events
-                </p>
-                {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedCity('all')
-                      setPriceFilter('all')
-                      setSelectedCategory(null)
-                    }}
-                    className="text-sm text-rose-600 hover:text-rose-700 font-bold bg-rose-50 px-4 py-2 rounded-xl transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                )}
+              <div className="hidden md:block w-px h-8 bg-slate-200"></div>
+
+              {/* Price Filter */}
+              <div className="flex-1 w-full md:w-auto relative px-2 hover:bg-slate-50 rounded-full transition-colors group">
+                <IndianRupee className="w-5 h-5 text-rose-500 absolute left-4 top-1/2 -translate-y-1/2 group-hover:scale-110 transition-transform opacity-70" />
+                <select
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  className="w-full pl-12 pr-8 py-3 bg-transparent border-none focus:ring-0 text-slate-800 font-medium cursor-pointer appearance-none"
+                >
+                  <option value="all">Any Price</option>
+                  <option value="free">Free</option>
+                  <option value="paid">Paid</option>
+                </select>
+                <div className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-slate-400"></div>
+                </div>
               </div>
+
+              {/* Action Button */}
+              <button
+                onClick={() => {
+                  document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full md:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-full px-8 py-3 font-bold shadow-lg shadow-rose-200 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Search className="w-4 h-4" />
+                <span className="md:hidden">Search</span>
+              </button>
             </div>
 
+            {/* Active Filters Summary */}
+            {(searchQuery || selectedCity !== 'all' || priceFilter !== 'all') && (
+              <div className="text-center mt-3 animate-in fade-in slide-in-from-top-2">
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedCity('all')
+                    setPriceFilter('all')
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full hover:bg-rose-100 transition-colors"
+                >
+                  Clear Filters ({filteredEvents.length} results)
+                  <span className="ml-1 text-rose-400">×</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="relative z-20">
             {/* Browse by Category */}
             <div className="mb-16">
               <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
@@ -359,6 +354,6 @@ export default function UserDashboard() {
 
         </div>
       </div>
-    </RouteProtection>
+    </RouteProtection >
   )
 }
