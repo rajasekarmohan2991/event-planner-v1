@@ -32,16 +32,16 @@ export async function verifyEmailToken(token: string, email: string, name?: stri
 
         if (!vt) {
             // Check if user is already verified. If so, return success to prevent confusing "Verification Failed" message
-            const existingUser = await prisma.user.findFirst({ 
-                where: { 
-                    email: { equals: normalizedEmail, mode: 'insensitive' } 
-                } 
+            const existingUser = await prisma.user.findFirst({
+                where: {
+                    email: { equals: normalizedEmail, mode: 'insensitive' }
+                }
             })
             if (existingUser?.emailVerified) {
                 console.log('✅ User already verified:', normalizedEmail)
                 return { success: true, userId: String(existingUser.id), message: 'Already verified' }
             }
-            
+
             // If user exists but not verified, auto-verify them (they clicked the link, they own the email)
             if (existingUser && !existingUser.emailVerified) {
                 console.log('🔧 Auto-verifying user who clicked verification link:', normalizedEmail)
@@ -51,7 +51,7 @@ export async function verifyEmailToken(token: string, email: string, name?: stri
                 })
                 return { success: true, userId: String(existingUser.id), message: 'Verified' }
             }
-            
+
             console.log('❌ Invalid or already used token for:', normalizedEmail)
             return { success: false, error: 'Invalid or already used token' }
         }
@@ -70,10 +70,10 @@ export async function verifyEmailToken(token: string, email: string, name?: stri
         const user = await prisma.$transaction(async (tx) => {
             // 1. Update/Create User
             const u = await tx.user.upsert({
-                where: { email },
+                where: { email: normalizedEmail },
                 create: {
-                    email,
-                    name: name || email.split('@')[0],
+                    email: normalizedEmail,
+                    name: name || normalizedEmail.split('@')[0],
                     role: 'USER',
                     emailVerified: verifiedAt,
                 },

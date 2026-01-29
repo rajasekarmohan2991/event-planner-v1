@@ -187,8 +187,11 @@ export async function POST(req: NextRequest) {
               subdomain: companySlug,
               country: country || null,
               plan: tenantPlan,
-              registrationNumber: registrationNumber || null,
               currency: currency,
+              metadata: {
+                registrationNumber: registrationNumber || null,
+                country: country || null
+              },
               members: {
                 create: {
                   userId: newUser.id,
@@ -271,6 +274,17 @@ export async function POST(req: NextRequest) {
         { status: 201 }
       )
     } catch (err: any) {
+      console.error('Registration failed:', err)
+
+      // Handle Prisma Unique Constraint Violation
+      if (err.code === 'P2002') {
+        const target = err.meta?.target || 'Field'
+        return NextResponse.json(
+          { message: `${target} already exists. Please try a different value.` },
+          { status: 409 }
+        )
+      }
+
       const msg = err?.message || 'Registration failed'
       return NextResponse.json({ message: msg }, { status: 500 })
     }
