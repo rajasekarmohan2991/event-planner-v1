@@ -157,11 +157,8 @@ export async function POST(req: NextRequest) {
             tenantPlan = 'ENTERPRISE'
           }
         } else {
-          // Fallback for user-only registration
-          const totalUsers = await tx.user.count()
-          if (totalUsers === 0) {
-            effectiveRole = 'SUPER_ADMIN'
-          }
+          // Individual registration accounts are always USER
+          effectiveRole = 'USER'
         }
 
         // Create user
