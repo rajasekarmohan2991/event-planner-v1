@@ -350,15 +350,13 @@ export const authOptions: NextAuthOptions = {
             // Create new user from OAuth profile
             const email = user.email!.toLowerCase()
             const newUser = await prisma.$transaction(async (tx) => {
-              const total = await tx.user.count()
-              const bootstrapRole = total === 0 ? 'SUPER_ADMIN' : 'USER'
               return tx.user.create({
                 data: {
                   email,
                   name: user.name || '',
                   image: user.image,
                   emailVerified: new Date(),
-                  role: bootstrapRole,
+                  role: 'USER', // Always start as USER. Super Admin is assigned via Company Registration.
                 }
               })
             })
@@ -387,12 +385,6 @@ export const authOptions: NextAuthOptions = {
             } catch (accountError) {
               console.error(`❌ Failed to create account record:`, accountError)
             }
-
-            try {
-              if (newUser.role === 'SUPER_ADMIN') {
-                await ensureSuperAdminTenantForUser(newUser.id)
-              }
-            } catch (e) { }
 
             console.log(`✅ Created new user from ${account.provider}: ${user.email}`)
           }
@@ -425,7 +417,10 @@ export const authOptions: NextAuthOptions = {
               }
               console.log(`✅ JWT: Loaded user from DB - ${dbUser.email} (ID: ${dbUser.id})`)
             } else {
-              console.error('❌ JWT: User not found in DB after signIn callback')
+              console.error('❌ JWT: User not found in DB after signIn callback. Invalidating token.')
+              // If user is not found in DB (e.g. deleted), we must not return a valid token.
+              // Returning null here might break types, but clearing the id/email effectively invalidates it.
+              return {} as any
             }
           }
         } catch (error) {
