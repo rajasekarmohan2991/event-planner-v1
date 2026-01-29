@@ -232,22 +232,10 @@ export const authOptions: NextAuthOptions = {
 
           console.log('✅ [AUTH] Login successful for:', user.email)
 
-          // Temporarily bypass email verification for production
-          // TODO: Re-enable email verification after fixing email delivery
+          // Enforce email verification
           if (!user.emailVerified) {
-            console.warn('⚠️ [AUTH] Email not verified, but allowing login (temporary bypass)')
-            // Auto-verify on login for now
-            try {
-              await prisma.$executeRaw`
-                UPDATE users 
-                SET email_verified = NOW() 
-                WHERE id = ${user.id}
-              `
-              user.emailVerified = new Date()
-              console.log('✅ [AUTH] Auto-verified user on login')
-            } catch (verifyError) {
-              console.error('❌ [AUTH] Failed to auto-verify:', verifyError)
-            }
+            console.warn('⚠️ [AUTH] Email not verified. Denying login.')
+            throw new Error('Please verify your email before logging in.')
           }
 
           if ((user as any).role === 'SUPER_ADMIN') {
