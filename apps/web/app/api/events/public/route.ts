@@ -27,6 +27,11 @@ export async function GET(req: NextRequest) {
       whereClause.status = 'PUBLISHED'
     }
 
+    // Filter out events that have already ended
+    whereClause.endsAt = {
+      gte: new Date() // Only show events that haven't ended yet
+    }
+
     if (city && city !== 'all') {
       whereClause.city = {
         equals: city,
