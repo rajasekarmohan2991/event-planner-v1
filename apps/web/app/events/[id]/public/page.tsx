@@ -113,16 +113,17 @@ export default function PublicEventPage() {
   const remainingSpots = Math.max(0, 100 - (event.registrationCount || 0)) // Using 100 as placeholder capacity if not in API yet, fix later
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-slate-50">
 
-      {/* Header Image */}
+      {/* Header Image - Clean without text */}
       <div className="relative h-[40vh] md:h-[50vh] w-full bg-slate-900 overflow-hidden">
         {event.bannerUrl ? (
-          <img src={event.bannerUrl} alt={event.name} className="w-full h-full object-cover opacity-90" />
+          <img src={event.bannerUrl} alt={event.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/40" />
+        {/* Subtle gradient at bottom for smooth blending */}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-900/50 to-transparent" />
 
         {/* Navigation & Share */}
         <div className="absolute top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-20">
@@ -133,89 +134,103 @@ export default function PublicEventPage() {
             {copied ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5" />}
           </button>
         </div>
-
-        {/* Hero Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-10">
-          <div className="max-w-4xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
-              {event.category || 'Event'}
-            </div>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-lg"
-            >
-              {event.name}
-            </motion.h1>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-white font-medium text-sm md:text-base drop-shadow-md">
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-                <Calendar className="w-5 h-5" />
-                {new Date(event.startsAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-              </div>
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-                <Clock className="w-5 h-5" />
-                {new Date(event.startsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                {' - '}
-                {event.endsAt ? new Date(event.endsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
-              </div>
-              <div className="flex items-center gap-2 cursor-pointer hover:bg-white/20 transition-all bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg" onClick={navigateToMap}>
-                <MapPin className="w-5 h-5" />
-                <span className="block truncate max-w-[200px]">{event.venue || event.city}</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8 relative z-20 -mt-12">
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-10">
-
-          {/* Action Bar */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8 border-b border-slate-100 pb-8">
-            <div className="flex items-center gap-6 w-full md:w-auto">
-              <div className="flex-1 md:flex-none">
-                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Price</p>
-                <p className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {event.priceInr ? `₹${event.priceInr.toLocaleString()}` : 'Free'}
-                </p>
+      {/* Main Content Card - Floating overlap */}
+      <div className="max-w-5xl mx-auto px-4 relative z-10 -mt-20 md:-mt-32 pb-20">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+          
+          {/* Event Header Section */}
+          <div className="p-6 md:p-10 border-b border-slate-100">
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-4 max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-lg border border-indigo-100">
+                    {event.category || 'Event'}
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight">
+                    {event.name}
+                  </h1>
+                </div>
+                
+                {/* Price Tag - Desktop */}
+                <div className="hidden md:block text-right">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Ticket Price</p>
+                  <p className="text-4xl font-black text-slate-900">
+                    {event.priceInr ? `₹${event.priceInr.toLocaleString()}` : <span className="text-green-600">Free</span>}
+                  </p>
+                </div>
               </div>
-              {/* Organizer Mini Profile */}
-              {event.organizerName && (
-                <div className="hidden md:flex items-center gap-3 pl-6 border-l border-slate-200">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                    {event.organizerName[0]}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600">
+                    <Calendar className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Organizer</p>
-                    <p className="font-bold text-slate-900">{event.organizerName}</p>
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-0.5">Date</p>
+                    <p className="font-bold text-slate-900">
+                      {new Date(event.startsAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="w-full md:w-auto flex flex-col gap-3">
-              {isEnded ? (
-                <button disabled className="w-full md:w-64 py-4 rounded-2xl bg-slate-100 text-slate-400 font-bold text-base cursor-not-allowed">
-                  Event Ended
-                </button>
-              ) : (
-                <button
-                  onClick={() => router.push(`/events/${id}/register`)}
-                  className="w-full md:w-64 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-base shadow-xl shadow-indigo-200 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                >
-                  <Ticket className="w-5 h-5" />
-                  Book Ticket
-                </button>
-              )}
-              <p className="text-center text-xs font-semibold text-slate-500 flex items-center justify-center gap-1.5">
-                {isEnded ? 'Registrations closed' : (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    Spots filling fast
-                  </>
+                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-0.5">Time</p>
+                    <p className="font-bold text-slate-900">
+                      {new Date(event.startsAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-indigo-50 hover:border-indigo-100 transition-colors group" onClick={navigateToMap}>
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600 group-hover:text-indigo-700">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-0.5">Location</p>
+                    <p className="font-bold text-slate-900 truncate pr-2 group-hover:text-indigo-700">
+                      {event.venue || event.city}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col md:flex-row gap-4 pt-4">
+                {isEnded ? (
+                  <button disabled className="w-full md:w-auto px-8 py-4 rounded-xl bg-slate-100 text-slate-400 font-bold text-lg cursor-not-allowed flex-1 text-center">
+                    Event Ended
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push(`/events/${id}/register`)}
+                    className="w-full md:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg shadow-xl shadow-indigo-200 hover:shadow-2xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2 flex-1"
+                  >
+                    <Ticket className="w-5 h-5" />
+                    Book Tickets Now
+                  </button>
                 )}
-              </p>
+                
+                {/* Organizer Info */}
+                {event.organizerName && (
+                  <div className="flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-xl">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                      {event.organizerName[0]}
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Organized by</p>
+                      <p className="font-bold text-slate-900 text-sm">{event.organizerName}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
