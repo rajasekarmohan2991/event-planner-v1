@@ -234,77 +234,74 @@ export default function PublicEventPage() {
             </div>
           </div>
 
-          {/* Promo Banner (Static for now) */}
-          {/* Promo Banner */}
+          {/* Promo Banner - Compact */}
           {!isEnded && event.promoCodes && event.promoCodes.length > 0 && (
-            <div className="mb-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden group hover:scale-[1.01] transition-transform cursor-default">
-              <div className="absolute top-0 right-0 p-10 bg-white/10 rounded-full blur-3xl" />
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
-                    <Ticket className="w-5 h-5" /> Special Offer
-                  </h3>
-                  <p className="text-indigo-100">
-                    Use code <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-white">{event.promoCodes[0].code}</span> at checkout for {event.promoCodes[0].type === 'PERCENT' ? `${event.promoCodes[0].amount}%` : `₹${event.promoCodes[0].amount}`} off!
-                    {event.promoCodes[0].description && <span className="block text-xs mt-1 opacity-80">{event.promoCodes[0].description}</span>}
-                  </p>
+            <div className="mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-4 text-white relative overflow-hidden">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Ticket className="w-4 h-4" />
+                  <div>
+                    <p className="text-sm font-semibold">Special Offer</p>
+                    <p className="text-xs text-indigo-100">
+                      Use code <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-white">{event.promoCodes[0].code}</span> for {event.promoCodes[0].type === 'PERCENT' ? `${event.promoCodes[0].amount}%` : `₹${event.promoCodes[0].amount}`} off
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(event.promoCodes[0].code);
-                    // Use simple alert or toast if available. Original used alert.
                     alert('Code copied!');
                   }}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold backdrop-blur-sm transition-colors"
+                  className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold backdrop-blur-sm transition-colors whitespace-nowrap"
                 >
-                  Copy Code
+                  Copy
                 </button>
               </div>
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="flex items-center gap-8 border-b border-slate-200 mb-8 overflow-x-auto">
+          {/* Tabs - Compact */}
+          <div className="flex items-center gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
             {['Overview', 'Agenda', 'FAQ'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab.toLowerCase() as any)}
-                className={`pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors ${activeTab === tab.toLowerCase() ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-700'
+                className={`pb-3 text-sm font-semibold relative transition-colors ${activeTab === tab.toLowerCase() ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'
                   }`}
               >
                 {tab}
                 {activeTab === tab.toLowerCase() && (
-                  <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-full" />
+                  <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />
                 )}
               </button>
             ))}
           </div>
 
-          {/* Content Areas */}
-          <div className="min-h-[300px]">
+          {/* Content Areas - Compact */}
+          <div className="min-h-[200px] px-1">
             {activeTab === 'overview' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">About this Event</h3>
-                  <div className="prose prose-slate prose-amber max-w-none text-slate-600 leading-relaxed">
+                  <h3 className="text-lg font-bold text-slate-900 mb-3">About this Event</h3>
+                  <div className="text-slate-600 leading-relaxed text-sm">
                     {event.description || 'No description provided.'}
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-6 border border-slate-200 flex flex-col md:flex-row gap-6 items-start shadow-sm">
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 flex flex-col md:flex-row gap-5 items-start">
                   <img
-                    src={`https://api.maptiler.com/maps/streets/static/${event.longitude},${event.latitude},14/400x200.png?key=fXmTWJM642uPLXP4QqHV`}
+                    src={`https://api.maptiler.com/maps/streets/static/${event.longitude},${event.latitude},14/300x150.png?key=fXmTWJM642uPLXP4QqHV`}
                     alt="Map"
-                    className="w-full md:w-1/3 h-32 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity bg-slate-200"
-                    onError={(e) => e.currentTarget.src = 'https://placehold.co/400x200?text=Map+Unavailable'}
+                    className="w-full md:w-40 h-24 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity bg-slate-200"
+                    onError={(e) => e.currentTarget.src = 'https://placehold.co/300x150?text=Map'}
                     onClick={navigateToMap}
                   />
-                  <div className="flex-1 space-y-3">
-                    <h4 className="font-bold text-slate-900">Venue Location</h4>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-slate-900 text-sm">Venue Location</h4>
                     <p className="text-slate-600 text-sm">{event.venue || 'Venue TBD'}</p>
-                    <p className="text-slate-500 text-sm">{event.city}</p>
-                    <button onClick={navigateToMap} className="text-indigo-600 text-sm font-bold flex items-center gap-1 hover:underline">
-                      Get Directions <MapPin className="w-4 h-4" />
+                    <p className="text-slate-500 text-xs">{event.city}</p>
+                    <button onClick={navigateToMap} className="text-indigo-600 text-xs font-semibold flex items-center gap-1 hover:underline">
+                      Get Directions <MapPin className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
