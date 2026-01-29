@@ -14,8 +14,6 @@ interface VerifyEmailPageProps {
   }
 }
 
-// Note: Metadata moved to layout.tsx since this is now a client component
-
 import { verifyEmailToken } from '@/lib/email-verification'
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
@@ -29,25 +27,11 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
       />
     )
   }
+
+  let result;
+
   try {
-    const result = await verifyEmailToken(token, email, name)
-
-    if (!result.success) {
-      // Special handling: if verifying an already-verified user, treat it as success
-      if (result.message === 'Already verified') {
-        return redirect('/auth/login?verified=1')
-      }
-
-      return (
-        <VerifyEmailClient
-          status="error"
-          message={result.error || 'Verification failed. Please request a new link.'}
-        />
-      )
-    }
-
-    // Success
-    return redirect('/auth/login?verified=1')
+    result = await verifyEmailToken(token, email, name)
   } catch (error) {
     console.error('Email verification error:', error)
     return (
@@ -75,4 +59,24 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
       </div>
     )
   }
+
+  // Handle redirects OUTSIDE the try/catch block
+
+  if (!result.success) {
+    // Special handling: if verifying an already-verified user, treat it as success
+    if (result.message === 'Already verified') {
+      redirect('/auth/login?verified=1')
+    }
+
+    return (
+      <VerifyEmailClient
+        status="error"
+        message={result.error || 'Verification failed. Please request a new link.'}
+      />
+    )
+  }
+
+  // Success
+  redirect('/auth/login?verified=1')
 }
+
