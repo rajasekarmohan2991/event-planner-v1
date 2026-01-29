@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Base URL defaults to production, override with BASE_URL env
-const baseURL = process.env.BASE_URL || 'https://aypheneventplanner.vercel.app'
+const baseURL = process.env.BASE_URL || 'http://localhost:3001'
 const videoSetting = process.env.PLAYWRIGHT_VIDEO === 'on' ? 'on' : 'retain-on-failure'
 
 export default defineConfig({
@@ -17,8 +17,8 @@ export default defineConfig({
     video: videoSetting as any,
   },
   webServer: {
-    command: 'npm run dev',
-    port: 3000,
+    command: 'npm run dev -- -p 3001',
+    port: 3001,
     reuseExistingServer: true,
     timeout: 120 * 1000, // 2 minutes startup time
   },
