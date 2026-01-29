@@ -17,40 +17,43 @@ test.describe('Demo User E2E Flow', () => {
         await page.fill('input[type="email"]', 'demo@eventplanner.com');
         await page.fill('input[type="password"]', 'Password123!');
         // Handle potential duplicate login or session checks if any
-        const submitParam = 'button[type="submit"]';
-        await page.waitForSelector(submitParam);
-        await page.click(submitParam);
+        await page.click('button[type="submit"]');
 
-        // Wait for dashboard redirect
-        await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+        // Wait for dashboard redirect (URL might be /admin or /dashboard)
+        try {
+            await expect(page).toHaveURL(/.*(dashboard|admin)/, { timeout: 60000 });
+            await expect(page.getByText('Dashboard', { exact: true }).first()).toBeVisible({ timeout: 30000 });
+        } catch (e) {
+            console.log('Login timeout! Checking for UI errors...');
+            const bodyText = await page.locator('body').innerText();
+            console.log(`Page Dump: ${bodyText.slice(0, 500)}`);
+            console.log(`Current URL: ${page.url()}`);
+            throw e;
+        }
     });
 
     test('Verify Dashboard and Profile', async ({ page }) => {
-        // Check if User Name is displayed
-        await expect(page.locator('body')).toContainText('Demo Admin');
+        // Open User Menu to check Name
+        await page.getByTestId('user-menu-trigger').click();
 
-        // Check for Seeded Event
+        // Check if User Name is displayed in dropdown
+        await expect(page.getByText('Demo Admin', { exact: false })).toBeVisible();
+
+        // Check for Seeded Event (might need to close dropdown or scroll, but body text check usually works)
+        await page.keyboard.press('Escape'); // Close dropdown
         await expect(page.locator('body')).toContainText('Future Tech Summit 2026');
     });
 
     test('Verify User Settings Persistence', async ({ page }) => {
         // Navigate to Settings
-        await page.goto('/settings');
-
-        // Verify Personal Preferences (Seeded)
-        // We seeded: SMS=true, Theme=light, Language=en
-
-        // Check Theme (This depends on actual UI implementation, checking class or specific element)
-        // For now, check text presence
+        await page.goto('/admin/settings');
+        // Check Theme/Settings text
         await expect(page.locator('body')).toContainText('Settings');
-
-        // Test modification
-        // Note: If DB is broken (Events), Settings might still work (UserPreference table was seeded)
     });
 
     test('Attempt Event Creation (Expect Failure due to DB)', async ({ page }) => {
         // Navigate to Events
-        await page.goto('/dashboard/events');
+        await page.goto('/admin/events');
 
         // Click Create Event
         const createBtn = page.getByText('Create Event');

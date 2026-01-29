@@ -1,0 +1,46 @@
+
+Running 3 tests using 3 workers
+
+[WebServer] [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[WebServer] 
+[WebServer] [1m[33mwarn[39m[22m - The class `data-[state=closed]:slide-out-to-top-[48%]` is ambiguous and matches multiple utilities.
+[WebServer] [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `data-&lsqb;state=closed&rsqb;:slide-out-to-top-[48%]` to silence this warning.
+[WebServer] 
+[WebServer] [1m[33mwarn[39m[22m - The class `data-[state=open]:slide-in-from-top-[48%]` is ambiguous and matches multiple utilities.
+[WebServer] [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `data-&lsqb;state=open&rsqb;:slide-in-from-top-[48%]` to silence this warning.
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T09:44:18.823Z, accessToken: session_41_1769679857755}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T09:44:18.823Z, accessToken: session_41_1769679857755}
+BROWSER LOG: [Fast Refresh] rebuilding
+BROWSER LOG: [Fast Refresh] rebuilding
+BROWSER LOG: [Fast Refresh] rebuilding

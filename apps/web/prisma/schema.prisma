@@ -1713,7 +1713,7 @@ model Invoice {
   paymentTerms    Int               @default(30) @map("payment_terms") // Days (e.g., 30 for Net 30)
   
   // Recipient Details (Snapshot)
-  recipientType   String            // CUSTOMER, SPONSOR, EXHIBITOR, VENDOR, SPEAKER
+  recipientType   String?           // CUSTOMER, SPONSOR, EXHIBITOR, VENDOR, SPEAKER
   recipientId     String?           @map("recipient_id") 
   recipientName   String            @map("recipient_name")
   recipientEmail  String?           @map("recipient_email")
@@ -2270,4 +2270,24 @@ model SponsorAsset {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("sponsor_assets")
+}
+
+model ActivityLog {
+  id                BigInt   @id @default(autoincrement())
+  userId            BigInt?  @map("user_id")
+  userName          String?  @map("user_name")
+  userEmail         String?  @map("user_email")
+  actionType        String   @map("action_type")
+  actionDescription String   @map("action_description")
+  entityType        String?  @map("entity_type")
+  entityId          BigInt?  @map("entity_id")
+  entityName        String?  @map("entity_name")
+  metadata          Json?
+  ipAddress         String?  @map("ip_address")
+  userAgent         String?  @map("user_agent")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("activity_log")
+  @@index([userId])
+  @@index([entityType, entityId])
 }

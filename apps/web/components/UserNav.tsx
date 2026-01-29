@@ -48,7 +48,7 @@ function UserNav({ user }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full focus:ring-2 focus:ring-white/60 p-0 overflow-hidden">
+        <Button data-testid="user-menu-trigger" variant="ghost" className="relative h-8 w-8 rounded-full focus:ring-2 focus:ring-white/60 p-0 overflow-hidden">
           {currentUser?.image ? (
             <Avatar className="h-8 w-8 ring-2 ring-white/50 border border-white/30 bg-white/10 text-white">
               <AvatarImage src={currentUser.image} alt={currentUser?.name || ''} />

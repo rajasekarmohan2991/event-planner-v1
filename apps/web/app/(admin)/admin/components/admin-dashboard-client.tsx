@@ -47,7 +47,7 @@ export function AdminDashboardClient() {
         const fetchWithTimeout = (url: string, timeout = 25000) => {
           return Promise.race([
             fetch(url),
-            new Promise<Response>((_, reject) => 
+            new Promise<Response>((_, reject) =>
               setTimeout(() => reject(new Error('Request timeout')), timeout)
             )
           ]);
@@ -437,7 +437,7 @@ export function AdminDashboardClient() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-200">Your Events</h2>
-              <Button variant="outline" size="sm" className="rounded-xl border-slate-200 dark:border-slate-700" onClick={() => router.push('/events')}>
+              <Button variant="outline" size="sm" className="rounded-xl border-slate-200 dark:border-slate-700" onClick={() => router.push('/admin/events')}>
                 View All
               </Button>
             </div>
