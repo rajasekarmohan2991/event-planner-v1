@@ -1,0 +1,160 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "Demo Corporation" [ref=e6] [cursor=pointer]:
+            - /url: /admin
+            - img "Demo Corporation" [ref=e9]
+          - button "Detecting..." [ref=e10] [cursor=pointer]:
+            - img [ref=e11]
+            - generic [ref=e13]: Detecting...
+            - img [ref=e14]
+        - generic [ref=e16]:
+          - button "Feed" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+          - button [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+          - button [ref=e28] [cursor=pointer]
+          - button "Toggle theme" [ref=e32] [cursor=pointer]:
+            - img
+            - img
+            - generic [ref=e33]: Toggle theme
+    - main [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - button [active] [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+          - navigation [ref=e41]:
+            - link "Dashboard" [ref=e42] [cursor=pointer]:
+              - /url: /admin
+              - img [ref=e43]
+              - generic [ref=e46]: Dashboard
+            - link "Company" [ref=e47] [cursor=pointer]:
+              - /url: /company
+              - img [ref=e48]
+              - generic [ref=e52]: Company
+            - link "Events" [ref=e53] [cursor=pointer]:
+              - /url: /admin/events
+              - img [ref=e54]
+              - generic [ref=e56]: Events
+            - link "Users" [ref=e57] [cursor=pointer]:
+              - /url: /admin/users
+              - img [ref=e58]
+              - generic [ref=e63]: Users
+            - link "Service Management" [ref=e64] [cursor=pointer]:
+              - /url: /admin/service-management
+              - img [ref=e65]
+              - generic [ref=e69]: Service Management
+            - link "Finance" [ref=e70] [cursor=pointer]:
+              - /url: /admin/invoices
+              - img [ref=e71]
+              - generic [ref=e75]: Finance
+            - link "Tax Settings" [ref=e76] [cursor=pointer]:
+              - /url: /admin/tax-settings
+              - img [ref=e77]
+              - generic [ref=e80]: Tax Settings
+            - link "Digital Signatures" [ref=e81] [cursor=pointer]:
+              - /url: /admin/signatures
+              - img [ref=e82]
+              - generic [ref=e85]: Digital Signatures
+            - link "Settings" [ref=e86] [cursor=pointer]:
+              - /url: /admin/settings
+              - img [ref=e87]
+              - generic [ref=e90]: Settings
+          - button "Sign out" [ref=e92] [cursor=pointer]:
+            - img
+            - generic [ref=e93]: Sign out
+        - main [ref=e94]:
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - generic [ref=e103]: Live Updates
+                  - generic [ref=e104]: "Last updated: 4:18:26 PM"
+                - generic [ref=e105]:
+                  - button "Disable Auto-refresh" [ref=e106] [cursor=pointer]
+                  - button "Refresh" [ref=e107] [cursor=pointer]:
+                    - img
+                    - text: Refresh
+              - generic [ref=e108]:
+                - generic [ref=e109] [cursor=pointer]:
+                  - img "Background" [ref=e111]
+                  - generic [ref=e114]:
+                    - img "Logo" [ref=e116]
+                    - generic [ref=e117]:
+                      - heading "My Company" [level=3] [ref=e118]
+                      - generic [ref=e119]: Demo Corporation
+                      - paragraph [ref=e120]: FREE Plan • demo
+                - generic [ref=e121] [cursor=pointer]:
+                  - generic [ref=e122]:
+                    - heading "Total Events" [level=3] [ref=e123]
+                    - img [ref=e125]
+                  - generic [ref=e127]:
+                    - generic [ref=e128]: "6"
+                    - paragraph [ref=e129]: All events created
+                - generic [ref=e130] [cursor=pointer]:
+                  - generic [ref=e131]:
+                    - heading "Upcoming Events" [level=3] [ref=e132]
+                    - img [ref=e134]
+                  - generic [ref=e136]:
+                    - generic [ref=e137]: "4"
+                    - paragraph [ref=e138]: Events starting soon
+                - generic [ref=e139] [cursor=pointer]:
+                  - generic [ref=e140]:
+                    - heading "RSVP Responses" [level=3] [ref=e141]
+                    - img [ref=e143]
+                  - generic [ref=e145]:
+                    - generic [ref=e146]: "0"
+                    - paragraph [ref=e147]: "Going: 0 • Interest: 0"
+              - generic [ref=e148]:
+                - generic [ref=e149]:
+                  - heading "Platform Insights" [level=3] [ref=e151]:
+                    - img [ref=e152]
+                    - text: Platform Insights
+                  - generic [ref=e154]:
+                    - generic [ref=e155]:
+                      - generic [ref=e156]:
+                        - generic [ref=e158]: ₹0
+                        - generic [ref=e159]: 💰 Total Revenue
+                        - generic [ref=e160]: +18% growth
+                      - generic [ref=e161]:
+                        - generic [ref=e163]: "0"
+                        - generic [ref=e164]: 👥 Total Registrations
+                        - generic [ref=e165]: +22% growth
+                    - generic [ref=e166]:
+                      - generic [ref=e167]:
+                        - heading "Activity Growth" [level=4] [ref=e168]:
+                          - img [ref=e169]
+                          - text: Activity Growth
+                        - application [ref=e174]
+                      - generic [ref=e178]:
+                        - heading "Top Events" [level=4] [ref=e179]:
+                          - img [ref=e180]
+                          - text: Top Events
+                        - application [ref=e189]
+                - generic [ref=e193]:
+                  - heading "🎫 Ticket Sales" [level=3] [ref=e195]
+                  - generic [ref=e197]:
+                    - application [ref=e201]
+                    - generic [ref=e207]:
+                      - generic [ref=e208]: "0"
+                      - generic [ref=e209]: Tickets Sold
+                    - generic [ref=e210]:
+                      - generic [ref=e211]:
+                        - generic [ref=e212]: "0"
+                        - generic [ref=e213]: Male
+                      - generic [ref=e214]:
+                        - generic [ref=e215]: "0"
+                        - generic [ref=e216]: Female
+            - region "Notifications (F8)":
+              - list
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications (F8)":
+    - list
+  - alert [ref=e217]
+```

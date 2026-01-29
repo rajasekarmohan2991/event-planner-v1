@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { UserNav } from './UserNav'
+import UserNav from '@/components/UserNav'
 import NotificationBell from '@/components/NotificationBell'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,20 +15,20 @@ import {
 
 export function AdminHeader() {
   return (
-    <header className="border-b">
+    <header className="border-b fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-950 h-16">
       <div className="flex h-16 items-center px-4">
         <nav className="flex items-center space-x-4 lg:space-x-6">
           <Link href="/admin" className="text-sm font-medium transition-colors hover:text-primary">
             Dashboard
           </Link>
-          <Link 
-            href="/admin/events" 
+          <Link
+            href="/admin/events"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             Events
           </Link>
-          <Link 
-            href="/admin/users" 
+          <Link
+            href="/admin/users"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             Users
@@ -36,7 +36,7 @@ export function AdminHeader() {
         </nav>
         <div className="ml-auto flex items-center space-x-4">
           <NotificationBell />
-          
+
           <UserNav />
         </div>
       </div>

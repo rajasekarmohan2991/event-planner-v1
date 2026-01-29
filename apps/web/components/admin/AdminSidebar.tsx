@@ -127,7 +127,7 @@ const getNavigation = (userRole?: string, pathname?: string) => {
     // Add Service Management for company admins (their own vendors/sponsors/exhibitors)
     baseNavigation.push({ name: 'Service Management', href: '/admin/service-management', icon: Package })
     // Add Finance for company admins
-    baseNavigation.push({ name: 'Finance', href: '/admin/invoices', icon: Wallet })
+    baseNavigation.push({ name: 'Finance', href: '/admin/finance', icon: Wallet })
     // Add Tax Settings (read-only view for company)
     baseNavigation.push({ name: 'Tax Settings', href: '/admin/tax-settings', icon: Receipt })
     // Add Digital Signatures for company admins

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { FileText, ShoppingCart, Truck, Receipt, Wallet, CreditCard } from "lucide-react";
 
-export default function SuperAdminFinanceDashboard() {
+export default function FinanceDashboard() {
     const modules = [
         {
             title: "Invoices",
-            description: "Manage system invoices and receivables.",
+            description: "Manage customer invoices and receivables.",
             icon: FileText,
             href: "/admin/invoices",
             color: "text-blue-600",
@@ -15,7 +15,7 @@ export default function SuperAdminFinanceDashboard() {
         },
         {
             title: "Sales Orders",
-            description: "Manage sales orders.",
+            description: "Manage customer orders and bookings.",
             icon: ShoppingCart,
             href: "/admin/finance/sales-orders",
             color: "text-indigo-600",
@@ -23,7 +23,7 @@ export default function SuperAdminFinanceDashboard() {
         },
         {
             title: "Purchase Orders",
-            description: "Manage purchase orders.",
+            description: "Manage vendor orders and procurement.",
             icon: Truck,
             href: "/admin/finance/purchase-orders",
             color: "text-orange-600",
@@ -31,7 +31,7 @@ export default function SuperAdminFinanceDashboard() {
         },
         {
             title: "Bills",
-            description: "Manage bills and payables.",
+            description: "Manage vendor bills and payables.",
             icon: Receipt,
             href: "/admin/finance/bills",
             color: "text-red-600",
@@ -39,7 +39,7 @@ export default function SuperAdminFinanceDashboard() {
         },
         {
             title: "Payouts",
-            description: "Manage payouts.",
+            description: "Manage payments to vendors and partners.",
             icon: Wallet,
             href: "/admin/payments",
             color: "text-green-600",
@@ -57,7 +57,7 @@ export default function SuperAdminFinanceDashboard() {
 
     return (
         <div className="p-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Finance Overview (Super Admin)</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Finance Overview</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {modules.map((item) => (
                     <Link

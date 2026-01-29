@@ -187,6 +187,9 @@ model Tenant {
   events          Event[]
   taxStructures   TaxStructure[]
   invoices        Invoice[]
+  salesOrders     SalesOrder[]
+  purchaseOrders  PurchaseOrder[]
+  bills           Bill[]
   payouts         Payout[]
   charges         Charge[]
   credits         Credit[]
@@ -1334,6 +1337,9 @@ model Event {
   speakers           Speaker[]
   floorPlans         FloorPlan[]
   invoices           Invoice[]
+  salesOrders        SalesOrder[]
+  purchaseOrders     PurchaseOrder[]
+  bills              Bill[]
   payouts            Payout[]
   charges            Charge[]
   credits            Credit[]
@@ -1744,6 +1750,7 @@ model Invoice {
   items           InvoiceLineItem[]
   payments        Payment[]
   receipts        Receipt[]
+  salesOrders     SalesOrder[]
 
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
@@ -1824,6 +1831,8 @@ model Payout {
   id              String   @id @default(cuid())
   tenantId        String   @map("tenant_id")
   eventId         BigInt?  @map("event_id")
+  billId          String?  @map("bill_id")
+  bill            Bill?    @relation(fields: [billId], references: [id])
   
   // Recipient Details
   recipientType   String   // VENDOR, SPONSOR, EXHIBITOR, SPEAKER, STAFF
@@ -2061,6 +2070,8 @@ model Vendor {
   
   services        VendorService[]
   bookings        VendorBooking[]
+  purchaseOrders  PurchaseOrder[]
+  bills           Bill[]
   
   @@index([tenantId])
   @@index([category])
@@ -2290,4 +2301,175 @@ model ActivityLog {
   @@map("activity_log")
   @@index([userId])
   @@index([entityType, entityId])
+}
+
+// ==============================
+// Extended Finance Module (Sales, Purchase, Bills)
+// ==============================
+
+model SalesOrder {
+  id              String            @id @default(cuid())
+  tenantId        String            @map("tenant_id")
+  eventId         BigInt?           @map("event_id")
+  number          String            // SO-2026-001
+
+  date            DateTime
+  validUntil      DateTime?         @map("valid_until")
+
+  // Customer Details
+  customerType    String?           // USER, SPONSOR, EXHIBITOR
+  customerId      String?           @map("customer_id")
+  customerName    String            @map("customer_name")
+  customerEmail   String?           @map("customer_email")
+
+  currency        String            @default("USD")
+  status          String            @default("DRAFT") // DRAFT, SENT, CONFIRMED, CANCELLED
+
+  subtotal        Float             @default(0)
+  taxTotal        Float             @default(0) @map("tax_total")
+  discountTotal   Float             @default(0) @map("discount_total")
+  grandTotal      Float             @default(0) @map("grand_total")
+
+  notes           String?
+  terms           String?
+
+  items           SalesOrderItem[]
+  invoiceId       String?           @map("invoice_id")
+  invoice         Invoice?          @relation(fields: [invoiceId], references: [id])
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  event           Event?            @relation(fields: [eventId], references: [id])
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@unique([tenantId, number])
+  @@index([eventId])
+  @@map("sales_orders")
+}
+
+model SalesOrderItem {
+  id            String      @id @default(cuid())
+  salesOrderId  String      @map("sales_order_id")
+  salesOrder    SalesOrder  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  description   String
+  quantity      Int         @default(1)
+  unitPrice     Float       @map("unit_price")
+  taxRate       Float       @default(0) @map("tax_rate")
+  taxAmount     Float       @default(0) @map("tax_amount")
+  discount      Float       @default(0)
+  total         Float
+
+  @@map("sales_order_items")
+}
+
+model PurchaseOrder {
+  id              String            @id @default(cuid())
+  tenantId        String            @map("tenant_id")
+  eventId         BigInt?           @map("event_id")
+  number          String            // PO-2026-001
+
+  date            DateTime
+  deliveryDate    DateTime?         @map("delivery_date")
+
+  // Vendor Details
+  vendorId        String?           @map("vendor_id")
+  vendorName      String            @map("vendor_name")
+  vendorEmail     String?           @map("vendor_email")
+  vendorAddress   String?           @map("vendor_address")
+
+  currency        String            @default("USD")
+  status          String            @default("DRAFT") // DRAFT, SENT, APPROVED, REJECTED, COMPLETED
+
+  subtotal        Float             @default(0)
+  taxTotal        Float             @default(0) @map("tax_total")
+  grandTotal      Float             @default(0) @map("grand_total")
+
+  notes           String?
+  terms           String?
+
+  items           PurchaseOrderItem[]
+  bills           Bill[]
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  event           Event?            @relation(fields: [eventId], references: [id])
+  vendor          Vendor?           @relation(fields: [vendorId], references: [id])
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@unique([tenantId, number])
+  @@index([eventId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  description     String
+  quantity        Int           @default(1)
+  unitPrice       Float         @map("unit_price")
+  total           Float
+
+  @@map("purchase_order_items")
+}
+
+model Bill {
+  id              String            @id @default(cuid())
+  tenantId        String            @map("tenant_id")
+  eventId         BigInt?           @map("event_id")
+  number          String            // BILL-2026-001
+  vendorInvoiceNumber String?       @map("vendor_invoice_number")
+
+  date            DateTime
+  dueDate         DateTime          @map("due_date")
+
+  // Link to PO
+  purchaseOrderId String?           @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+
+  // Vendor Details
+  vendorId        String?           @map("vendor_id")
+  vendorName      String            @map("vendor_name")
+
+  currency        String            @default("USD")
+  status          String            @default("DRAFT") // DRAFT, APPROVED, PAID, PARTIAL, OVERDUE
+
+  amount          Float
+  taxAmount       Float             @default(0) @map("tax_amount")
+  totalAmount     Float             @map("total_amount")
+  amountPaid      Float             @default(0) @map("amount_paid")
+
+  notes           String?
+  attachmentUrl   String?           @map("attachment_url")
+
+  items           BillItem[]
+  payouts         Payout[]
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  event           Event?            @relation(fields: [eventId], references: [id])
+  vendor          Vendor?           @relation(fields: [vendorId], references: [id])
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@unique([tenantId, number])
+  @@index([eventId])
+  @@map("bills")
+}
+
+model BillItem {
+  id          String   @id @default(cuid())
+  billId      String   @map("bill_id")
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float    @map("unit_price")
+  total       Float
+
+  @@map("bill_items")
 }

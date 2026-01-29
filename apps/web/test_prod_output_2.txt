@@ -1,0 +1,341 @@
+
+Running 3 tests using 3 workers
+
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:52.742Z, accessToken: session_41_1769683611723}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:53.215Z, accessToken: session_41_1769683612211}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:52.742Z, accessToken: session_41_1769683611723}
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:53.408Z, accessToken: session_41_1769683612434}
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:53.215Z, accessToken: session_41_1769683612211}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:46:53.408Z, accessToken: session_41_1769683612434}
+BROWSER LOG: Failed to fetch RSC payload for https://aypheneventplanner.vercel.app/admin. Falling back to browser navigation. TypeError: Failed to fetch
+    at s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:45560)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:59111
+    at Object.u [as task] (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:31932)
+    at c.s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:32637)
+    at c.enqueue (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:32062)
+    at s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:59074)
+    at i (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:58614)
+    at b (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:63346)
+    at f (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:75047)
+    at Object.action (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:2:7102)
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Failed to load notifications: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:9249
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to fetch RSC payload for https://aypheneventplanner.vercel.app/admin. Falling back to browser navigation. TypeError: Failed to fetch
+    at s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:45560)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:59111
+    at Object.u [as task] (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:31932)
+    at c.s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:32637)
+    at c.enqueue (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:32062)
+    at s (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:59074)
+    at i (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:58614)
+    at b (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:63346)
+    at f (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:1:75047)
+    at Object.action (https://aypheneventplanner.vercel.app/_next/static/chunks/2117-97cad941a7f50997.js:2:7102)
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to load notifications: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:9249
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Company settings fetch failed: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5341)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: Analytics fetch failed: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5234)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: Failed to load notifications: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:9249
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+BROWSER LOG: Error fetching dashboard data: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5200)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: Failed to save sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:36208
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85323)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86268)
+    at or (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85207)
+    at ol (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85303)
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Company settings fetch failed: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5341)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: Analytics fetch failed: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5234)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/layout-1943c9af816a4644.js:1:35983
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+BROWSER LOG: Error fetching dashboard data: TypeError: Failed to fetch
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5061)
+    at t (https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5200)
+    at https://aypheneventplanner.vercel.app/_next/static/chunks/app/(admin)/admin/page-c9db65dd9d0ca375.js:1:5851
+    at aW (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:73244)
+    at oe (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:84685)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85827)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:85814)
+    at e (https://aypheneventplanner.vercel.app/_next/static/chunks/fd9d1056-87e2b9905b4171a0.js:1:86113)
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 🔄 Fetching events from /api/events...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+  ✓  1 [chromium] › tests/demo-flow.spec.ts:58:5 › Demo User E2E Flow › Verify User Settings Persistence (16.8s)
+  ✓  2 [chromium] › tests/demo-flow.spec.ts:65:5 › Demo User E2E Flow › Attempt Event Creation (Expect Failure due to DB) (16.9s)
+  ✘  3 [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile (26.6s)
+
+
+  1) [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile ─
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Profile')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByText('Profile')[22m
+
+
+      47 |         // Check if User Name is displayed in dropdown
+      48 |         // Check if Menu Content is displayed (Profile link is definitely there)
+    > 49 |         await expect(page.getByText('Profile', { exact: false })).toBeVisible();
+         |                                                                   ^
+      50 |         // Also check for email if possible
+      51 |         await expect(page.getByText('demo@eventplanner.com', { exact: false })).toBeVisible();
+      52 |
+        at /Users/rajasekar/Event Planner V1/apps/web/tests/demo-flow.spec.ts:49:67
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/demo-flow-Demo-User-E2E-Flow-Verify-Dashboard-and-Profile-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/demo-flow-Demo-User-E2E-Flow-Verify-Dashboard-and-Profile-chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile ──
+  2 passed (28.2s)
