@@ -44,6 +44,11 @@ export default withAuth(
           return true
         }
 
+        // Always allow legal pages (terms, privacy)
+        if (path.startsWith('/terms') || path.startsWith('/privacy')) {
+          return true
+        }
+
         // Require token for all other pages
         return !!token
       },
