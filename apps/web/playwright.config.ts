@@ -16,6 +16,12 @@ export default defineConfig({
     trace: 'retry-with-trace',
     video: videoSetting as any,
   },
+  webServer: {
+    command: 'npm run dev',
+    port: 3000,
+    reuseExistingServer: true,
+    timeout: 120 * 1000, // 2 minutes startup time
+  },
   projects: [
     {
       name: 'chromium',
