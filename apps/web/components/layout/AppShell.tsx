@@ -105,6 +105,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <footer className="border-t py-6">
           <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} Ayphen. All rights reserved.
+            <div className="mt-2 space-x-4">
+              <Link href="/terms" className="hover:underline" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="hover:underline" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </Link>
+            </div>
           </div>
         </footer>
       )}
