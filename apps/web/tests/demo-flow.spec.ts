@@ -3,6 +3,15 @@ import { test, expect } from '@playwright/test';
 test.describe('Demo User E2E Flow', () => {
 
     test.beforeEach(async ({ page }) => {
+        // Debugging
+        page.on('console', msg => console.log(`BROWSER LOG: ${msg.text()}`));
+        page.on('pageerror', err => console.log(`BROWSER ERROR: ${err}`));
+        page.on('response', response => {
+            if (response.status() >= 400) {
+                console.log(`HTTP ${response.status()} ${response.url()}`);
+            }
+        });
+
         // Login before each test
         await page.goto('/auth/login');
         await page.fill('input[type="email"]', 'demo@eventplanner.com');
@@ -20,8 +29,8 @@ test.describe('Demo User E2E Flow', () => {
         // Check if User Name is displayed
         await expect(page.locator('body')).toContainText('Demo Admin');
 
-        // Check if Tenant context is correct (optional, depends on UI)
-        // await expect(page.locator('body')).toContainText('Demo Corporation');
+        // Check for Seeded Event
+        await expect(page.locator('body')).toContainText('Future Tech Summit 2026');
     });
 
     test('Verify User Settings Persistence', async ({ page }) => {

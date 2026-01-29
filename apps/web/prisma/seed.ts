@@ -68,48 +68,67 @@ async function main() {
       expectedAttendees: 5000,
       bannerUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80',
 
-      // Create Speakers
-      speakers: {
-        create: [
-          {
-            name: 'Dr. Sarah Connor',
-            title: 'Chief Scientist, Skynet',
-            bio: 'Leading researcher in autonomous systems and neural networks.',
-            photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
-            email: 'sarah@skynet.ai',
-            tenantId: tenant.id
-          },
-          {
-            name: 'James Bond',
-            title: 'Security Consultant',
-            bio: 'Expert in cyber-security and high-stakes negotiation.',
-            photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200',
-            email: 'james@mi6.gov.uk',
-            tenantId: tenant.id
-          }
-        ]
-      },
 
-      // Create Sponsors
-      sponsors: {
-        create: [
-          {
-            name: 'CyberDyne Systems',
-            logo: 'https://ui-avatars.com/api/?name=CyberDyne&background=0D8ABC&color=fff',
-            tier: 'Platinum',
-            website: 'https://cyberdyne.com',
-            description: 'Building a better future.'
-          },
-          {
-            name: 'Acme Corp',
-            logo: 'https://ui-avatars.com/api/?name=Acme&background=random',
-            tier: 'Gold',
-            description: 'Everything you need.'
-          }
-        ]
-      }
     }
   })
+
+  // 4a. Create Speakers
+  console.log('Creating Speakers...')
+  try {
+    await prisma.speaker.createMany({
+      data: [
+        {
+          name: 'Dr. Sarah Connor',
+          title: 'Chief Scientist, Skynet',
+          bio: 'Leading researcher in autonomous systems and neural networks.',
+          photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
+          email: 'sarah@skynet.ai',
+          tenantId: tenant.id,
+          // eventId: event.id // Speaker model needs to support eventId relation or simple field?
+          // Check Schema: Model Speaker in Step 5897 has NO eventId field listed in 990-1000?
+          // Wait, Original Schema (Step 5582 view) likely had Relation.
+          // If I reverted Schema, it HAS `eventId`.
+          // But does DB have `eventId` in Speaker table?
+          // If DB missing eventId, this will fail.
+        },
+        {
+          name: 'James Bond',
+          title: 'Security Consultant',
+          bio: 'Expert in cyber-security and high-stakes negotiation.',
+          photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200',
+          email: 'james@mi6.gov.uk',
+          tenantId: tenant.id
+          // eventId: event.id
+        }
+      ]
+    })
+  } catch (e) { console.log('⚠️ Failed to seed Speakers:', e.message) }
+
+  // 4b. Create Sponsors
+  console.log('Creating Sponsors...')
+  try {
+    await prisma.sponsor.createMany({
+      data: [
+        {
+          name: 'CyberDyne Systems',
+          logo: 'https://ui-avatars.com/api/?name=CyberDyne&background=0D8ABC&color=fff',
+          tier: 'Platinum',
+          website: 'https://cyberdyne.com',
+          description: 'Building a better future.',
+          eventId: event.id
+          // Sponsor model has eventId (Step 5910: 1444 eventId BigInt)
+        },
+        {
+          name: 'Acme Corp',
+          logo: 'https://ui-avatars.com/api/?name=Acme&background=random',
+          tier: 'Gold',
+          description: 'Everything you need.',
+          eventId: event.id
+        }
+      ]
+    })
+  } catch (e) { console.log('⚠️ Failed to seed Sponsors:', e.message) }
+
 
   // 5. Promo Codes
   console.log('Creating Promo Codes...')
