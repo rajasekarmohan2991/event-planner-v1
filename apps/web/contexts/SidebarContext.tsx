@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 
 interface SidebarContextType {
   isCollapsed: boolean
-  toggleSidebar: () => void
+  setIsCollapsed: (collapsed: boolean) => void
   isMobileOpen: boolean
   setIsMobileOpen: (open: boolean) => void
 }

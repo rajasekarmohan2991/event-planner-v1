@@ -463,463 +463,366 @@ export default function CompanyDetailsPage() {
     );
   }
 
-  // For other companies, show original view without duplicate sidebar
+  // For other companies, show modernized view
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
-              <Badge variant={company.status === 'ACTIVE' ? 'default' : 'destructive'} className={company.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}>
-                {company.status || 'ACTIVE'}
-              </Badge>
-            </div>
-            <p className="text-gray-600 mt-1">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail}</p>
+    <div className="p-8 bg-gray-50/50 min-h-screen font-sans">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{company.name}</h1>
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-700 uppercase tracking-wide">
+              {company.plan || 'STARTER'}
+            </span>
+            <span className={`px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wide ${company.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+              {company.status || 'ACTIVE'}
+            </span>
           </div>
+        </div>
 
-          {/* Top-right actions removed per design feedback */}
+        <Button
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 rounded-xl px-6 py-2.5 h-auto transition-all transform hover:-translate-y-0.5"
+          onClick={() => router.push(`/super-admin/companies/${company.id}/users`)}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>Invite Team Member</span>
+          </div>
+        </Button>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Total Events - Purple Theme */}
+        <div className="bg-purple-50/50 p-6 rounded-2xl border border-purple-100 flex items-center justify-between group hover:shadow-lg hover:shadow-purple-100 transition-all duration-300">
+          <div>
+            <div className="flex items-center gap-2 mb-1 text-purple-600">
+              <Calendar className="w-5 h-5" />
+              <span className="text-sm font-semibold">Total Events</span>
+            </div>
+            <div className="text-4xl font-extrabold text-gray-900 mt-2">{company.events.length}</div>
+            <div className="text-purple-400 text-xs font-medium mt-1 group-hover:text-purple-600 transition-colors">All events created</div>
+          </div>
+          <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
+            <Calendar className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Team Members - Green Theme */}
+        <div className="bg-green-50/50 p-6 rounded-2xl border border-green-100 flex items-center justify-between group hover:shadow-lg hover:shadow-green-100 transition-all duration-300">
+          <div>
+            <div className="flex items-center gap-2 mb-1 text-green-600">
+              <Users className="w-5 h-5" />
+              <span className="text-sm font-semibold">Team Members</span>
+            </div>
+            <div className="text-4xl font-extrabold text-gray-900 mt-2">{company.members.length}</div>
+            <div className="text-green-500 text-xs font-medium mt-1 group-hover:text-green-600 transition-colors">Active team size</div>
+          </div>
+          <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+            <Users className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Total Registrations - Blue Theme */}
+        <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex items-center justify-between group hover:shadow-lg hover:shadow-blue-100 transition-all duration-300">
+          <div>
+            <div className="flex items-center gap-2 mb-1 text-blue-600">
+              <Settings className="w-5 h-5" />
+              <span className="text-sm font-semibold">Total Registrations</span>
+            </div>
+            <div className="text-4xl font-extrabold text-gray-900 mt-2">
+              {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
+            </div>
+            <div className="text-blue-400 text-xs font-medium mt-1 group-hover:text-blue-600 transition-colors">All registrations</div>
+          </div>
+          <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+            <Settings className="w-6 h-6" />
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="space-y-8">
-        {/* Stats Cards - Subtle Modern Style */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/** Safety: derive safe denominators to avoid NaN/Infinity on first render or missing plan limits */}
-          {(() => {
-            (company as any)._safeMaxEvents = Number.isFinite(company.maxEvents as any) && (company.maxEvents as any) > 0 ? (company.maxEvents as any) : 1
-            (company as any)._safeMaxUsers = Number.isFinite(company.maxUsers as any) && (company.maxUsers as any) > 0 ? (company.maxUsers as any) : 1
-            return null
-          })()}
-          {/* Total Events Card */}
-          {/* Total Events Card */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-blue-100 h-full hover:shadow-md transition-all duration-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{company.events.length}</div>
-                <div className="text-blue-700 text-sm font-medium">Total Events</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Team Members Card */}
-          {/* Team Members Card */}
-          <div className="bg-gradient-to-br from-teal-50 to-emerald-50 p-6 rounded-xl shadow-sm border border-teal-100 h-full hover:shadow-md transition-all duration-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
-                <Users className="h-6 w-6 text-teal-600" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{company.members.length}</div>
-                <div className="text-teal-700 text-sm font-medium">Team Members</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Registrations Card */}
-          {/* Total Registrations Card */}
-          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-6 rounded-xl shadow-sm border border-purple-100 h-full hover:shadow-md transition-all duration-200">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/60 rounded-lg shadow-sm">
-                <Ticket className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">
-                  {company.events.reduce((sum, event) => sum + event._count.registrations, 0)}
-                </div>
-                <div className="text-purple-700 text-sm font-medium">Total Registrations</div>
-              </div>
-            </div>
-          </div>
+      {/* Events List Section */}
+      <div className="bg-white rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 overflow-hidden">
+        <div className="p-8 flex items-center justify-between border-b border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Your Events</h2>
+          <Button variant="ghost" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium">
+            View All
+          </Button>
         </div>
 
-        {/* Subscription & Billing Details - Enhanced Aesthetic */}
-        <div className="rounded-2xl overflow-hidden mb-8 shadow-md ring-1 ring-black/5 bg-gradient-to-br from-slate-50 via-white to-indigo-50">
-          {/* Header with gradient accent */}
-          <div className="px-6 py-5 flex flex-wrap justify-between items-center gap-4 bg-gradient-to-r from-violet-50 to-indigo-50 border-b border-indigo-100/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg shadow-sm">
-                <Ticket className="h-5 w-5 text-white drop-shadow" />
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-indigo-50/30">
+                <th className="text-left py-5 px-8 text-sm font-semibold text-indigo-900/70">Event Name</th>
+                <th className="text-left py-5 px-6 text-sm font-semibold text-indigo-900/70">Date</th>
+                <th className="text-left py-5 px-6 text-sm font-semibold text-indigo-900/70">Location</th>
+                <th className="text-right py-5 px-6 text-sm font-semibold text-indigo-900/70">Price</th>
+                <th className="text-center py-5 px-6 text-sm font-semibold text-indigo-900/70">Registrations</th>
+                <th className="text-left py-5 px-6 text-sm font-semibold text-indigo-900/70">Tickets Remaining</th>
+                <th className="text-right py-5 px-8 text-sm font-semibold text-indigo-900/70">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {company.events.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center">
+                        <Calendar className="h-6 w-6 text-gray-300" />
+                      </div>
+                      <p>No events found for this company.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                company.events.map((event) => {
+                  const capacity = event.capacity || 0;
+                  const registrations = event._count?.registrations || 0;
+                  const ticketsRemaining = Math.max(0, capacity - registrations);
+                  const isSoldOut = capacity > 0 && ticketsRemaining === 0;
+
+                  return (
+                    <tr key={event.id} className="group hover:bg-gray-50/50 transition-colors">
+                      <td className="py-5 px-8">
+                        <span className="font-semibold text-gray-900 block">{event.name}</span>
+                      </td>
+                      <td className="py-5 px-6">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{new Date(event.start_date).toLocaleDateString()}</span>
+                          {event.end_date && (
+                            <span className="text-xs text-gray-500 mt-0.5">to {new Date(event.end_date).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-5 px-6 text-gray-600 text-sm max-w-xs truncate">
+                        {event.location || 'Online'}
+                        {capacity > 0 && <span className="text-gray-400 ml-1">(Capacity: {capacity})</span>}
+                      </td>
+                      <td className="py-5 px-6 text-right font-medium text-gray-900">
+                        {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
+                      </td>
+                      <td className="py-5 px-6 text-center">
+                        <div className="inline-flex items-center gap-2 text-gray-600">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium">{registrations} / {capacity > 0 ? capacity : '∞'}</span>
+                        </div>
+                      </td>
+                      <td className="py-5 px-6">
+                        <span className={`font-medium ${isSoldOut ? 'text-red-600' : 'text-gray-900'}`}>
+                          {capacity > 0 ? ticketsRemaining : 'Unlimited'}
+                        </span>
+                      </td>
+                      <td className="py-5 px-8 text-right">
+                        {event.status === 'PUBLISHED' || event.status === 'LIVE' ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-500 text-white shadow-sm shadow-rose-200">
+                            PUBLISHED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                            {event.status}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <Trash2 className="h-6 w-6 text-red-600" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Subscription & Limits</h2>
+              <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete <strong>{company.name}</strong>?
+              This will permanently delete:
+            </p>
+
+            <ul className="mb-6 space-y-2 text-sm text-gray-700">
+              <li className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-red-500" />
+                {company.events.length} event{company.events.length !== 1 ? 's' : ''}
+              </li>
+              <li className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-red-500" />
+                {company.members.length} team member{company.members.length !== 1 ? 's' : ''}
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-red-500" />
+                All associated data and settings
+              </li>
+            </ul>
+
+            <p className="text-red-600 font-semibold mb-6">
+              This action cannot be undone!
+            </p>
+
+            <div className="flex gap-3">
               <button
-                onClick={() => router.push(`/super-admin/companies/${company.id}/subscription`)}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
               >
-                Change Plan
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCompany}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete Company
+                  </>
+                )}
               </button>
             </div>
           </div>
-
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Plan Usage Limits */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-5 ring-1 ring-white/60 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-700 mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                Plan Usage Limits
-              </h3>
-              <div className="space-y-5">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">Events Created</span>
-                    <span className="text-gray-500 font-mono">{company.events.length} / {company.maxEvents}</span>
-                  </div>
-                  <div className="h-2.5 w-full bg-indigo-100/60 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (company.events.length / (company as any)._safeMaxEvents) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">Team Members</span>
-                    <span className="text-gray-500 font-mono">{company.members.length} / {company.maxUsers ?? '∞'}</span>
-                  </div>
-                  <div className="h-2.5 w-full bg-fuchsia-100/60 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-fuchsia-500 to-purple-600 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (company.members.length / (company as any)._safeMaxUsers) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">Storage (MB)</span>
-                    <span className="text-gray-500 font-mono">0 / {company.maxStorage}</span>
-                  </div>
-                  <div className="h-2.5 w-full bg-slate-200/70 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500"
-                      style={{ width: `0%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Information */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-5 ring-1 ring-white/60 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-700 mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                Billing Information
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
-                  <span className="text-gray-600">Status</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${company.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {company.status}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
-                  <span className="text-gray-600">Billing Email</span>
-                  <span className="font-medium text-gray-900 text-sm">{company.billingEmail?.match(/<(.+)>/)?.[1] || company.billingEmail?.replace(/^[^<]*<|>$/g, '') || company.billingEmail || 'Not set'}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-100/70">
-                  <span className="text-gray-600">Base Currency</span>
-                  <button
-                    onClick={() => setShowCurrencyModal(true)}
-                    className="flex items-center gap-2 font-medium text-violet-600 hover:text-violet-700 transition-colors"
-                  >
-                    <span className="text-lg">{currencies.find(c => c.code === companyCurrency)?.symbol || '$'}</span>
-                    {companyCurrency}
-                    <Edit2 className="h-3 w-3" />
-                  </button>
-                </div>
-                {company.trialEndsAt && (
-                  <div className="flex justify-between items-center text-sm py-3 border-b border-gray-100/70">
-                    <span className="text-gray-600">Trial Ends</span>
-                    <span className="font-medium">{new Date(company.trialEndsAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-                {company.subscriptionEndsAt && (
-                  <div className="flex justify-between items-center text-sm py-3">
-                    <span className="text-gray-600">Renews On</span>
-                    <span className="font-medium">{new Date(company.subscriptionEndsAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
+      )}
 
-        {/* Events List */}
-        <div id="events" className="bg-white rounded-lg shadow border overflow-hidden">
-          <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-            <h2 className="text-xl font-semibold">Events</h2>
-            <Badge variant="secondary" className="ml-2">
-              {company.events.length} Total
-            </Badge>
-          </div>
-          <div className="p-0">
-            {company.events.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No events created yet</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-bold text-gray-900">Event Name</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-center">Date</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-center">Location</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-center">Price</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-center">Registrations</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-center">Tickets Remaining</TableHead>
-                    <TableHead className="font-bold text-gray-900 text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {company.events.map((event) => {
-                    const capacity = event.capacity || 0;
-                    const registrations = event._count?.registrations || 0;
-                    const ticketsRemaining = Math.max(0, capacity - registrations);
-
-                    return (
-                      <TableRow key={event.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">
-                          {event.name}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex flex-col text-sm items-center">
-                            <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                            {event.end_date && (
-                              <span className="text-gray-500 text-xs">
-                                to {new Date(event.end_date).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">{event.location || 'Online'}</TableCell>
-                        <TableCell className="text-center">
-                          {(event.priceInr ?? 0) > 0 ? `₹${event.priceInr}` : 'Free'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span>{registrations} / {capacity > 0 ? capacity : '∞'}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className={ticketsRemaining < 10 && capacity > 0 ? "text-red-600 font-medium" : ""}>
-                            {capacity > 0 ? ticketsRemaining : 'Unlimited'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={
-                            event.status === 'LIVE' || event.status === 'PUBLISHED' ? 'default' :
-                              event.status === 'DRAFT' ? 'secondary' : 'outline'
-                          }>
-                            {event.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-red-100 rounded-full">
-                  <Trash2 className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Delete Company</h3>
-              </div>
-
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete <strong>{company.name}</strong>?
-                This will permanently delete:
-              </p>
-
-              <ul className="mb-6 space-y-2 text-sm text-gray-700">
-                <li className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-red-500" />
-                  {company.events.length} event{company.events.length !== 1 ? 's' : ''}
-                </li>
-                <li className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-red-500" />
-                  {company.members.length} team member{company.members.length !== 1 ? 's' : ''}
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-red-500" />
-                  All associated data and settings
-                </li>
-              </ul>
-
-              <p className="text-red-600 font-semibold mb-6">
-                This action cannot be undone!
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deleting}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteCompany}
-                  disabled={deleting}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {deleting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4" />
-                      Delete Company
-                    </>
-                  )}
-                </button>
-              </div>
+      {/* Currency Change Modal */}
+      {showCurrencyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b">
+              <h3 className="text-xl font-semibold text-gray-900">Change Base Currency</h3>
+              <p className="text-sm text-gray-500 mt-1">This will update the base currency for {company?.name}</p>
             </div>
-          </div>
-        )}
-
-        {/* Currency Change Modal */}
-        {showCurrencyModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="p-6 border-b">
-                <h3 className="text-xl font-semibold text-gray-900">Change Base Currency</h3>
-                <p className="text-sm text-gray-500 mt-1">This will update the base currency for {company?.name}</p>
-              </div>
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Currency
-                </label>
-                <select
-                  value={selectedCurrency}
-                  onChange={(e) => setSelectedCurrency(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  {currencies.map(curr => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.code} - {curr.name} ({curr.symbol})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-2">
-                  This will affect all financial calculations and displays for this company.
-                </p>
-              </div>
-              <div className="p-6 border-t bg-gray-50 flex gap-3">
-                <button
-                  onClick={() => setShowCurrencyModal(false)}
-                  disabled={savingCurrency}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveCurrency}
-                  disabled={savingCurrency}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {savingCurrency ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <DollarSign className="h-4 w-4" />
-                      Update Currency
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Currency
+              </label>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              >
+                {currencies.map(curr => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.code} - {curr.name} ({curr.symbol})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                This will affect all financial calculations and displays for this company.
+              </p>
             </div>
-          </div>
-        )}
-
-        {/* Disable/Enable Confirmation Modal */}
-        {showDisableConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`p-3 rounded-full ${company.status === 'ACTIVE' ? 'bg-amber-100' : 'bg-green-100'}`}>
-                  {company.status === 'ACTIVE' ? (
-                    <Ban className="h-6 w-6 text-amber-600" />
-                  ) : (
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                  )}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  {company.status === 'ACTIVE' ? 'Disable' : 'Enable'} Company
-                </h3>
-              </div>
-
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to {company.status === 'ACTIVE' ? 'disable' : 'enable'} <strong>{company.name}</strong>?
-                {company.status === 'ACTIVE' ? (
-                  <span className="block mt-2 text-amber-600">
-                    Disabled companies cannot create events or access their dashboard.
-                  </span>
+            <div className="p-6 border-t bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setShowCurrencyModal(false)}
+                disabled={savingCurrency}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveCurrency}
+                disabled={savingCurrency}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {savingCurrency ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
                 ) : (
-                  <span className="block mt-2 text-green-600">
-                    This will restore full access to the company dashboard and features.
-                  </span>
+                  <>
+                    <DollarSign className="h-4 w-4" />
+                    Update Currency
+                  </>
                 )}
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDisableConfirm(false)}
-                  disabled={toggling}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleToggleStatus}
-                  disabled={toggling}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${company.status === 'ACTIVE'
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-green-500 hover:bg-green-600'
-                    }`}
-                >
-                  {toggling ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : company.status === 'ACTIVE' ? (
-                    <>
-                      <Ban className="h-4 w-4" />
-                      Disable Company
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      Enable Company
-                    </>
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Disable/Enable Confirmation Modal */}
+      {showDisableConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-3 rounded-full ${company.status === 'ACTIVE' ? 'bg-amber-100' : 'bg-green-100'}`}>
+                {company.status === 'ACTIVE' ? (
+                  <Ban className="h-6 w-6 text-amber-600" />
+                ) : (
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                {company.status === 'ACTIVE' ? 'Disable' : 'Enable'} Company
+              </h3>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to {company.status === 'ACTIVE' ? 'disable' : 'enable'} <strong>{company.name}</strong>?
+              {company.status === 'ACTIVE' ? (
+                <span className="block mt-2 text-amber-600">
+                  Disabled companies cannot create events or access their dashboard.
+                </span>
+              ) : (
+                <span className="block mt-2 text-green-600">
+                  This will restore full access to the company dashboard and features.
+                </span>
+              )}
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDisableConfirm(false)}
+                disabled={toggling}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleToggleStatus}
+                disabled={toggling}
+                className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${company.status === 'ACTIVE'
+                  ? 'bg-amber-500 hover:bg-amber-600'
+                  : 'bg-green-500 hover:bg-green-600'
+                  }`}
+              >
+                {toggling ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : company.status === 'ACTIVE' ? (
+                  <>
+                    <Ban className="h-4 w-4" />
+                    Disable Company
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Enable Company
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

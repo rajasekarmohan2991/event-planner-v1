@@ -145,7 +145,7 @@ export function AdminSidebar() {
   const { isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen } = useSidebar()
   const [mounted, setMounted] = useState(false)
 
-  const navigation = getNavigation((session?.user as any)?.role, pathname)
+  const navigation = getNavigation((session?.user as any)?.role, pathname || undefined)
 
   // Only show the sidebar toggle on mobile after hydration
   useEffect(() => {
@@ -178,7 +178,7 @@ export function AdminSidebar() {
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          'hidden lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:z-[40] lg:flex lg:flex-col',
+          'hidden lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:z-[40] lg:flex lg:flex-col',
           'bg-white dark:bg-slate-900',
           'border-r border-slate-200 dark:border-slate-800',
           'transition-all duration-300 ease-in-out',
@@ -197,7 +197,14 @@ export function AdminSidebar() {
           )}
         </button>
         <div className="flex flex-col flex-grow pt-6 pb-4 overflow-y-auto">
-          {/* Logo removed from Desktop Sidebar as it is now in Header */}
+          <div className={cn(
+            "flex items-center flex-shrink-0 px-6 mb-6",
+            isCollapsed ? "justify-center px-0" : "justify-start"
+          )}>
+            <Link href="/admin" className="flex items-center gap-2">
+              <BrandLogo variant="light" className={isCollapsed ? "scale-75 origin-left" : ""} />
+            </Link>
+          </div>
 
           <nav className="mt-2 flex-1 px-3 space-y-1">
             {navigation.map((item) => {

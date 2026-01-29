@@ -33,6 +33,9 @@
     "ui:add": "npx shadcn-ui add",
     "ui:diff": "npx shadcn-ui diff"
   },
+  "prisma": {
+    "seed": "tsx scripts/seed-test-event.ts"
+  },
   "dependencies": {
     "@auth/prisma-adapter": "1.6.0",
     "@google/generative-ai": "^0.21.0",

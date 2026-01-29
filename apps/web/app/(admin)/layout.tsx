@@ -52,9 +52,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       <AdminSidebar />
 
       {/* Main Content - dynamically adjusts to sidebar width */}
-      <main className={`flex-1 transition-all duration-300 min-h-[calc(100vh-4rem)] pt-16 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+      <main className={`flex-1 transition-all duration-300 min-h-screen ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}>
-        <div className="min-h-[calc(100vh-4rem)]">
+        <div className="min-h-screen">
           <PageTransition>
             <div className="p-4 lg:p-6 xl:p-8 max-w-full">
               {children}
