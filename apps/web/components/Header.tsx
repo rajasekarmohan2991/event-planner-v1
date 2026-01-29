@@ -200,32 +200,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 text-sm">
-          <div className="relative flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 p-1">
-            {tabs.map((t) => {
-              const active = pathname ? (t.href === '/' ? pathname === '/' : pathname.startsWith(t.href)) : false
-              return (
-                <Link
-                  key={t.href}
-                  href={t.href}
-                  className={`relative z-10 rounded-full px-4 py-1.5 font-medium transition-colors ${active ? 'text-violet-700 dark:text-violet-300' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                >
-                  {t.label}
-                  {active && (
-                    <motion.span
-                      layoutId="tab-pill"
-                      className="absolute inset-0 -z-10 rounded-full bg-white dark:bg-slate-700 shadow-sm"
-                      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                    />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </nav>
-      </div>
 
       {/* Mobile search and location */}
       <div className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 md:hidden">
