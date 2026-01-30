@@ -74,22 +74,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const token = crypto.randomBytes(32).toString('hex')
 
         // Explicitly ensure table exists (Double check)
-        await prisma.$executeRawUnsafe(`
-          CREATE TABLE IF NOT EXISTS event_team_invitations (
-            id BIGSERIAL PRIMARY KEY,
-            event_id BIGINT NOT NULL,
-            tenant_id TEXT,
-            email TEXT NOT NULL,
-            role TEXT DEFAULT 'STAFF',
-            token TEXT,
-            invited_by BIGINT,
-            status TEXT DEFAULT 'PENDING',
-            expires_at TIMESTAMP WITH TIME ZONE,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            UNIQUE(event_id, email)
-          );
-        `)
+        try {
+          await prisma.$executeRaw`
+            CREATE TABLE IF NOT EXISTS event_team_invitations (
+              id BIGSERIAL PRIMARY KEY,
+              event_id BIGINT NOT NULL,
+              tenant_id TEXT,
+              email TEXT NOT NULL,
+              role TEXT DEFAULT 'STAFF',
+              token TEXT,
+              invited_by BIGINT,
+              status TEXT DEFAULT 'PENDING',
+              expires_at TIMESTAMP WITH TIME ZONE,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              UNIQUE(event_id, email)
+            );
+          `
+          console.log(`[TEAM INVITE] Table check completed`)
+        } catch (tableError: any) {
+          console.warn(`[TEAM INVITE] Table creation warning (may already exist):`, tableError.message)
+          // Continue anyway - table might already exist
+        }
 
         // Create or update invitation
         console.log(`[TEAM INVITE] Inserting invitation for ${email}...`)
@@ -98,36 +104,44 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const safeTenantId = tenantId || null
 
         // Handle user ID - might be string or number
-        const invitedById = session.user.id ? BigInt(session.user.id) : null
+        let invitedById: bigint | null = null
+        try {
+          if (session.user.id) {
+            invitedById = BigInt(session.user.id)
+          }
+        } catch (e) {
+          console.warn(`[TEAM INVITE] Could not convert user ID to BigInt:`, session.user.id)
+        }
 
         console.log(`[TEAM INVITE] User ID: ${session.user.id}, Converted: ${invitedById}`)
 
         try {
-          await prisma.$executeRawUnsafe(`
+          await prisma.$executeRaw`
             INSERT INTO event_team_invitations 
             (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
             VALUES (
-              $1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '7 days'
+              ${eventId}, 
+              ${safeTenantId}, 
+              ${email}, 
+              ${dbRole}, 
+              ${token}, 
+              ${invitedById},
+              'PENDING',
+              NOW() + INTERVAL '7 days'
             )
             ON CONFLICT (event_id, email) 
             DO UPDATE SET 
-              role = $4, 
-              token = $5, 
-              status = $7,
+              role = ${dbRole}, 
+              token = ${token}, 
+              status = 'PENDING',
               updated_at = NOW(),
               expires_at = NOW() + INTERVAL '7 days'
-          `,
-            eventId,
-            safeTenantId,
-            email,
-            dbRole,
-            token,
-            invitedById,
-            'PENDING'
-          )
+          `
           console.log(`[TEAM INVITE] Database insert COMPLETED for ${email}`)
         } catch (dbError: any) {
           console.error(`[TEAM INVITE] Database error for ${email}:`, dbError)
+          console.error(`[TEAM INVITE] Error code:`, dbError.code)
+          console.error(`[TEAM INVITE] Error message:`, dbError.message)
           throw new Error(`Database error: ${dbError.message}`)
         }
 
