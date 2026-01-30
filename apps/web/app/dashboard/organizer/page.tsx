@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, Users, FileText, Plus, BarChart3, Mail, Settings } from 'lucide-react'
+import { Calendar, Users, FileText, Plus, BarChart3, Mail, Settings, TrendingUp, Zap, Activity, Eye, Radio } from 'lucide-react'
 import Link from 'next/link'
 import { RouteProtection } from '@/components/RoleBasedNavigation'
 
@@ -19,7 +19,7 @@ interface Event {
 
 interface DashboardStats {
   totalEvents: number
-  activeEvents: number
+  liveEvents: number
   totalRegistrations: number
   upcomingEvents: number
 }
@@ -29,24 +29,17 @@ export default function OrganizerDashboard() {
   const [myEvents, setMyEvents] = useState<Event[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalEvents: 0,
-    activeEvents: 0,
+    liveEvents: 0,
     totalRegistrations: 0,
     upcomingEvents: 0
   })
   const [loading, setLoading] = useState(true)
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [followerCount, setFollowerCount] = useState(1234)
-
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing)
-    setFollowerCount(prev => isFollowing ? prev - 1 : prev + 1)
-  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         // Fetch organizer's events with live statistics
-        const eventsRes = await fetch('/api/events?status=LIVE&includeStats=true', {
+        const eventsRes = await fetch('/api/events?includeStats=true', {
           credentials: 'include',
           cache: 'no-store'
         })
@@ -62,7 +55,7 @@ export default function OrganizerDashboard() {
 
           setStats({
             totalEvents: events.length,
-            activeEvents: events.filter((e: Event) => e.status === 'LIVE').length,
+            liveEvents: events.filter((e: Event) => e.status === 'LIVE').length,
             totalRegistrations,
             upcomingEvents: events.filter((e: Event) => new Date(e.startsAt) > now).length
           })
@@ -93,225 +86,257 @@ export default function OrganizerDashboard() {
   }, [session])
 
   if (loading) {
-    return <div className="p-6">Loading your organizer dashboard...</div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <RouteProtection requiredRoles={['ORGANIZER']}>
-      <div className="p-6 space-y-6">
-        {/* Company Profile Header with Follow Button */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {(session as any)?.user?.companyName || (session as any)?.user?.name}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+          {/* Header Section */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">
+                  Welcome back, <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{(session as any)?.user?.name?.split(' ')[0]}</span>! 👋
                 </h1>
-                <button
-                  onClick={handleFollow}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isFollowing
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                    }`}
-                >
-                  <Users className="w-4 h-4" />
-                  {isFollowing ? 'Following' : 'Follow'}
-                </button>
+                <p className="text-slate-600 font-medium">Here's what's happening with your events today.</p>
               </div>
-              <p className="text-gray-600 mb-4">
-                Welcome back! Manage your events and engage with attendees.
-              </p>
-
-              {/* Company Stats */}
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold text-gray-900">{followerCount.toLocaleString()}</span>
-                  <span className="text-gray-600">Followers</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold text-gray-900">{stats.totalEvents}</span>
-                  <span className="text-gray-600">Events Hosted</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold text-gray-900">
-                    {new Date().getFullYear() - 2020}
-                  </span>
-                  <span className="text-gray-600">Years in Business</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-lg border border-blue-100/50 p-6 hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Events</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-white to-green-50/30 rounded-lg border border-green-100/50 p-6 hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Events</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeEvents}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-white to-purple-50/30 rounded-lg border border-purple-100/50 p-6 hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Registrations</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalRegistrations}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-white to-orange-50/30 rounded-lg border border-orange-100/50 p-6 hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Upcoming</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.upcomingEvents}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Events */}
-        <div className="bg-white rounded-lg border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Events</h2>
-            <div className="flex gap-2">
               <Link
                 href="/events/new"
-                className="inline-flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105 transition-all duration-200"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 Create Event
               </Link>
-              <Link
-                href="/events/my"
-                className="text-sm text-purple-600 hover:text-purple-800 px-3 py-2"
-              >
-                View all
-              </Link>
             </div>
           </div>
 
-          {myEvents.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-2">No events created yet</p>
-              <p className="text-sm text-gray-500 mb-4">Start by creating your first event</p>
-              <Link
-                href="/events/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-              >
-                <Plus className="w-4 h-4" />
-                Create Your First Event
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {myEvents.slice(0, 5).map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-purple-300 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-gray-900">{event.name}</h3>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${event.status === 'LIVE'
-                        ? 'bg-green-100 text-green-800'
-                        : event.status === 'DRAFT'
-                          ? 'bg-gray-100 text-gray-800'
-                          : 'bg-blue-100 text-blue-800'
-                        }`}>
-                        {event.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{event.venue}, {event.city}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{new Date(event.startsAt).toLocaleDateString()}</span>
-                      <span>{event.registrationCount || 0} registrations</span>
-                    </div>
+          {/* Stats Cards - Modern Glassmorphism Design */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+            {/* Live Events Card */}
+            <div className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-purple-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full blur-2xl"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg shadow-purple-500/30">
+                    <Radio className="w-6 h-6 text-white" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/events/${event.id}/registrations`}
-                      className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
-                      title="View Registrations"
-                    >
-                      <Users className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href={`/events/${event.id}/analytics`}
-                      className="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50"
-                      title="View Analytics"
-                    >
-                      <BarChart3 className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href={`/events/${event.id}/communicate`}
-                      className="p-2 text-gray-400 hover:text-purple-600 rounded-lg hover:bg-purple-50"
-                      title="Send Communications"
-                    >
-                      <Mail className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href={`/events/${event.id}/manage`}
-                      className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50"
-                      title="Manage Event"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Link>
+                  <div className="flex items-center gap-1 text-emerald-500">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-bold">LIVE</span>
                   </div>
                 </div>
-              ))}
+                <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Live Events</h3>
+                <p className="text-4xl font-black text-slate-900 mb-1">{stats.liveEvents}</p>
+                <p className="text-xs text-slate-500 font-medium">Currently active</p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Tips for Organizers */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Tips for Success</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-1 bg-purple-100 rounded">
-                <Calendar className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Plan Ahead</p>
-                <p className="text-sm text-gray-600">Create events well in advance to maximize registrations</p>
+            {/* Team Members Card */}
+            <div className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-emerald-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full blur-2xl"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/30">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Team Members</h3>
+                <p className="text-4xl font-black text-slate-900 mb-1">1</p>
+                <p className="text-xs text-slate-500 font-medium">Active team size</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="p-1 bg-purple-100 rounded">
-                <Mail className="w-4 h-4 text-purple-600" />
+
+            {/* Total Registrations Card */}
+            <div className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-blue-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full blur-2xl"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg shadow-blue-500/30">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Total Registrations</h3>
+                <p className="text-4xl font-black text-slate-900 mb-1">{stats.totalRegistrations}</p>
+                <p className="text-xs text-slate-500 font-medium">All registrations</p>
               </div>
-              <div>
-                <p className="font-medium text-gray-900">Engage Attendees</p>
-                <p className="text-sm text-gray-600">Send regular updates and reminders to keep attendees engaged</p>
+            </div>
+
+            {/* Upcoming Events Card */}
+            <div className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-orange-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full blur-2xl"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg shadow-orange-500/30">
+                    <Calendar className="w-6 h-6 text-white" />
+                  </div>
+                  <Zap className="w-5 h-5 text-orange-500" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Upcoming</h3>
+                <p className="text-4xl font-black text-slate-900 mb-1">{stats.upcomingEvents}</p>
+                <p className="text-xs text-slate-500 font-medium">Scheduled events</p>
               </div>
             </div>
           </div>
+
+          {/* Your Events Section */}
+          <div className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-3xl p-8 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 mb-1">Your Events</h2>
+                <p className="text-slate-600 text-sm font-medium">Manage and track your events</p>
+              </div>
+              <Link
+                href="/events/my"
+                className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-bold text-sm transition-colors"
+              >
+                View All
+                <Eye className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {myEvents.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Calendar className="w-12 h-12 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No events created yet</h3>
+                <p className="text-slate-600 mb-6 max-w-md mx-auto">Start by creating your first event and watch your audience grow!</p>
+                <Link
+                  href="/events/new"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105 transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Your First Event
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myEvents.slice(0, 5).map((event) => (
+                  <div key={event.id} className="group relative overflow-hidden bg-gradient-to-r from-slate-50 to-white border border-slate-200 rounded-2xl p-6 hover:border-purple-300 hover:shadow-lg transition-all duration-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="font-bold text-slate-900 text-lg truncate">{event.name}</h3>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full ${event.status === 'LIVE'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : event.status === 'DRAFT'
+                                ? 'bg-slate-100 text-slate-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                            {event.status === 'LIVE' && <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>}
+                            {event.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3 font-medium">{event.venue}, {event.city}</p>
+                        <div className="flex items-center gap-6 text-sm">
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Calendar className="w-4 h-4" />
+                            <span className="font-medium">{new Date(event.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Users className="w-4 h-4" />
+                            <span className="font-medium">{event.registrationCount || 0} attendees</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/events/${event.id}/registrations`}
+                          className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                          title="View Registrations"
+                        >
+                          <Users className="w-5 h-5" />
+                        </Link>
+                        <Link
+                          href={`/events/${event.id}/analytics`}
+                          className="p-3 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                          title="View Analytics"
+                        >
+                          <BarChart3 className="w-5 h-5" />
+                        </Link>
+                        <Link
+                          href={`/events/${event.id}/communicate`}
+                          className="p-3 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all"
+                          title="Send Communications"
+                        >
+                          <Mail className="w-5 h-5" />
+                        </Link>
+                        <Link
+                          href={`/events/${event.id}/manage`}
+                          className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                          title="Manage Event"
+                        >
+                          <Settings className="w-5 h-5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Featured App Highlights */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <h2 className="text-lg font-black text-slate-900">Featured App Highlights</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Link href="/events/my" className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-6 hover:border-purple-300 hover:shadow-xl transition-all duration-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg shadow-purple-500/30">
+                    <Calendar className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                    ACTIVE
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Events</h3>
+                <p className="text-sm text-slate-600 font-medium">Manage events, tickets, and registrations</p>
+              </Link>
+
+              <Link href="/dashboard/organizer/analytics" className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-6 hover:border-purple-300 hover:shadow-xl transition-all duration-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg shadow-blue-500/30">
+                    <BarChart3 className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                    ACTIVE
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Analytics</h3>
+                <p className="text-sm text-slate-600 font-medium">Track performance and insights</p>
+              </Link>
+
+              <Link href="/dashboard/organizer/team" className="group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-6 hover:border-purple-300 hover:shadow-xl transition-all duration-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/30">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                    ACTIVE
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Team</h3>
+                <p className="text-sm text-slate-600 font-medium">Collaborate with your team members</p>
+              </Link>
+            </div>
+          </div>
+
         </div>
       </div>
     </RouteProtection>
