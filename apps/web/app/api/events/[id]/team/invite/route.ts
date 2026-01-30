@@ -97,28 +97,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         // Ensure tenantId is null if undefined
         const safeTenantId = tenantId || null
 
-        await prisma.$executeRaw`
-          INSERT INTO event_team_invitations 
-          (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
-          VALUES (
-            ${eventId}, 
-            ${safeTenantId}, 
-            ${email}, 
-            ${dbRole}, 
-            ${token}, 
-            ${session.user.id},
-            'PENDING',
-            NOW() + INTERVAL '7 days'
+        // Handle user ID - might be string or number
+        const invitedById = session.user.id ? BigInt(session.user.id) : null
+
+        console.log(`[TEAM INVITE] User ID: ${session.user.id}, Converted: ${invitedById}`)
+
+        try {
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO event_team_invitations 
+            (event_id, tenant_id, email, role, token, invited_by, status, expires_at)
+            VALUES (
+              $1, $2, $3, $4, $5, $6, $7, NOW() + INTERVAL '7 days'
+            )
+            ON CONFLICT (event_id, email) 
+            DO UPDATE SET 
+              role = $4, 
+              token = $5, 
+              status = $7,
+              updated_at = NOW(),
+              expires_at = NOW() + INTERVAL '7 days'
+          `,
+            eventId,
+            safeTenantId,
+            email,
+            dbRole,
+            token,
+            invitedById,
+            'PENDING'
           )
-          ON CONFLICT (event_id, email) 
-          DO UPDATE SET 
-            role = ${dbRole}, 
-            token = ${token}, 
-            status = 'PENDING',
-            updated_at = NOW(),
-            expires_at = NOW() + INTERVAL '7 days'
-        `
-        console.log(`[TEAM INVITE] Database insert COMPLETED for ${email}`)
+          console.log(`[TEAM INVITE] Database insert COMPLETED for ${email}`)
+        } catch (dbError: any) {
+          console.error(`[TEAM INVITE] Database error for ${email}:`, dbError)
+          throw new Error(`Database error: ${dbError.message}`)
+        }
 
         // Send invitation email with approve/reject links
         const approveUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/${eventId.toString()}/team/approve?token=${token}`
