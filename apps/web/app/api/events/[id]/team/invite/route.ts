@@ -152,10 +152,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         console.log(`[TEAM INVITE] Sending email to ${email}...`)
         console.log(`[TEAM INVITE] Approve URL: ${approveUrl}`)
         console.log(`[TEAM INVITE] Reject URL: ${rejectUrl}`)
-        await sendEmail({
-          to: email,
-          subject: `You're invited to collaborate on an event`,
-          html: `
+
+        try {
+          const emailResult = await sendEmail({
+            to: email,
+            subject: `You're invited to collaborate on an event`,
+            html: `
             <!DOCTYPE html>
             <html>
             <head>
@@ -203,11 +205,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             </body>
             </html>
           `
-        }).then(() => {
+          })
+
           console.log(`[TEAM INVITE] Email sent successfully to ${email}`)
-        }).catch(e => {
-          console.error(`[TEAM INVITE] Email failed for ${email}:`, e)
-        })
+          console.log(`[TEAM INVITE] Email result:`, emailResult)
+        } catch (emailError: any) {
+          console.error(`[TEAM INVITE] Email failed for ${email}:`, emailError)
+          console.error(`[TEAM INVITE] Email error details:`, {
+            message: emailError.message,
+            code: emailError.code,
+            stack: emailError.stack
+          })
+          // Don't throw - we still want to mark as invited in DB
+          // But log the error clearly
+        }
 
         results.push({ email, status: 'invited', token })
         console.log(`[TEAM INVITE] Successfully invited ${email}`)
