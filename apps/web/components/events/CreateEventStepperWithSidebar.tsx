@@ -86,7 +86,7 @@ export function CreateEventStepperWithSidebar() {
         priceInr: data.generalPrice || data.price || 0,
         // Temporary truncation until database migration is applied
         description: (aiOverview || data.description || 'Event description').substring(0, 250),
-        bannerUrl: (data.bannerImage && !data.bannerImage.startsWith('data:')) ? data.bannerImage : undefined,
+        bannerUrl: data.imageUrl || data.bannerImage || undefined,
         category: (data.category ? String(data.category).toUpperCase() : 'CONFERENCE'),
         eventMode: (data.eventMode ? String(data.eventMode).toUpperCase() : 'IN_PERSON'),
         budgetInr: data.budget ? Number(data.budget) : undefined,
