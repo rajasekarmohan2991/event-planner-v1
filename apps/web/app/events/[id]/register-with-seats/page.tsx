@@ -496,7 +496,7 @@ export default function RegisterWithSeatsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Progress Steps */}
-        <div className="mb-8">
+        <div className="mb-8 print:hidden">
           <div className="flex items-center justify-center gap-2">
             {[1, 2, 3, 4].map(num => (
               <div key={num} className="flex items-center">
@@ -930,7 +930,7 @@ export default function RegisterWithSeatsPage() {
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center print:hidden">
               <button
                 onClick={() => window.print()}
                 className="px-6 py-3 border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50"
