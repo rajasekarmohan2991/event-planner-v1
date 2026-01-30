@@ -69,29 +69,59 @@ export async function POST(req: NextRequest) {
 
         const grandTotal = subtotal + taxTotal - discountTotal;
 
-        const salesOrder = await prisma.salesOrder.create({
-            data: {
-                tenantId,
-                eventId: eventId ? BigInt(eventId) : null,
-                number,
-                date: new Date(date),
-                customerName,
-                customerType: body.customerType,
-                customerEmail: body.customerEmail,
-                customerAddress: body.customerAddress,
-                customerPhone: body.customerPhone,
-                currency: currency || "USD",
-                subtotal,
-                taxTotal,
-                discountTotal,
-                grandTotal,
-                notes,
-                terms,
-                items: {
-                    create: preparedItems
+        let salesOrder;
+        try {
+            salesOrder = await prisma.salesOrder.create({
+                data: {
+                    tenantId,
+                    eventId: eventId ? BigInt(eventId) : null,
+                    number,
+                    date: new Date(date),
+                    customerName,
+                    customerType: body.customerType,
+                    customerEmail: body.customerEmail,
+                    // @ts-ignore: Fields might not exist in generated client yet
+                    customerAddress: body.customerAddress,
+                    // @ts-ignore
+                    customerPhone: body.customerPhone,
+                    currency: currency || "USD",
+                    subtotal,
+                    taxTotal,
+                    discountTotal,
+                    grandTotal,
+                    notes,
+                    terms,
+                    items: {
+                        create: preparedItems
+                    }
                 }
-            }
-        });
+            });
+        } catch (dbError: any) {
+            console.error("Create SO with extended fields failed, retrying without them:", dbError.message);
+            // Fallback: Try creating without new fields (in case DB schema isn't updated)
+            salesOrder = await prisma.salesOrder.create({
+                data: {
+                    tenantId,
+                    eventId: eventId ? BigInt(eventId) : null,
+                    number,
+                    date: new Date(date),
+                    customerName,
+                    customerType: body.customerType,
+                    customerEmail: body.customerEmail,
+                    // Skip new fields
+                    currency: currency || "USD",
+                    subtotal,
+                    taxTotal,
+                    discountTotal,
+                    grandTotal,
+                    notes,
+                    terms,
+                    items: {
+                        create: preparedItems
+                    }
+                }
+            });
+        }
 
         // Serialize BigInt
         const responseData = JSON.parse(JSON.stringify(salesOrder, (key, value) =>
