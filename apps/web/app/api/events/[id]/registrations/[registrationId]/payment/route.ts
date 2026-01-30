@@ -144,7 +144,7 @@ export async function POST(
               <div class="qr-section">
                 <h3>📱 Your QR Code for Check-in</h3>
                 <p>Show this QR code at the event entrance:</p>
-                <img src="${qrCodeDataURL}" alt="QR Code" width="200" height="200" style="display: block; margin: 0 auto;" />
+                <img src="cid:qrcode@eventplanner" alt="QR Code" width="200" height="200" style="display: block; margin: 0 auto;" />
                 <a href="${checkInUrl}" class="button">Open Check-in Link</a>
               </div>
               
@@ -166,7 +166,7 @@ export async function POST(
         </html>
       `
 
-      // Send email (fire and forget)
+      // Send email logic with attachment
       fetch(`${process.env.NEXTAUTH_URL}/api/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,7 +174,14 @@ export async function POST(
           to: registration.dataJson?.email,
           subject: `Payment Confirmed - ${eventData?.name || 'Event Registration'}`,
           html: emailHtml,
-          text: `Payment confirmed for ${eventData?.name || 'Event'}. Registration ID: #${registration.id}. Check-in URL: ${checkInUrl}`
+          text: `Payment confirmed for ${eventData?.name || 'Event'}. Registration ID: #${registration.id}. Check-in URL: ${checkInUrl}`,
+          attachments: [
+            {
+              filename: 'qrcode.png',
+              path: qrCodeDataURL,
+              cid: 'qrcode@eventplanner'
+            }
+          ]
         })
       }).catch(err => console.error('Email send error:', err))
     } catch (emailError) {

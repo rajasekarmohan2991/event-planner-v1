@@ -6,6 +6,7 @@ export interface EmailOptions {
   subject: string
   html: string
   text?: string
+  attachments?: any[]
 }
 
 type SmtpConfig = {
@@ -129,6 +130,7 @@ export async function sendEmail(options: EmailOptions) {
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: options.attachments,
     })
 
     console.log('✅ [EMAIL] Email sent successfully (Primary):', info.messageId)
