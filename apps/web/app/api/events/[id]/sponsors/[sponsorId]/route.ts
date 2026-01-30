@@ -77,24 +77,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
 
     console.log(`[SPONSOR UPDATE] Sponsor updated successfully`)
 
-    // Also update/create in vendors table if it exists
+    // Also update/create in event_vendors table if it exists
     try {
-      console.log(`[SPONSOR UPDATE] Syncing to vendors table...`)
+      console.log(`[SPONSOR UPDATE] Syncing to event_vendors table...`)
       await prisma.$queryRawUnsafe(`
-        INSERT INTO vendors (
-          id, event_id, name, email, phone, contact_person, 
-          logo_url, website, notes, created_at, updated_at
+        INSERT INTO event_vendors (
+          id, event_id, name, contact_email, contact_phone, contact_name, 
+          created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, NOW(), NOW()
         )
         ON CONFLICT (id) 
         DO UPDATE SET 
           name = $3,
-          email = $4,
-          phone = $5,
-          contact_person = $6,
-          logo_url = $7,
-          website = $8,
+          contact_email = $4,
+          contact_phone = $5,
+          contact_name = $6,
           updated_at = NOW()
       `,
         sponsorId,
@@ -102,14 +100,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
         raw.name,
         contactData.email,
         contactData.phone,
-        contactData.contactPerson,
-        raw.logoUrl || null,
-        raw.website || null,
-        raw.notes || null
+        contactData.contactPerson
       )
-      console.log(`[SPONSOR UPDATE] Synced to vendors table`)
+      console.log(`[SPONSOR UPDATE] Synced to event_vendors table`)
     } catch (vendorError: any) {
-      console.warn(`[SPONSOR UPDATE] Failed to sync to vendors:`, vendorError.message)
+      console.warn(`[SPONSOR UPDATE] Failed to sync to event_vendors:`, vendorError.message)
     }
 
     // Also update/create in exhibitors table if it exists
@@ -178,12 +173,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ message: 'Sponsor not found' }, { status: 404 })
     }
 
-    // Also delete from vendors table
+    // Also delete from event_vendors table
     try {
-      await prisma.$queryRawUnsafe(`DELETE FROM vendors WHERE id = $1`, sponsorId)
-      console.log(`[SPONSOR DELETE] Deleted from vendors table`)
+      await prisma.$queryRawUnsafe(`DELETE FROM event_vendors WHERE id = $1`, sponsorId)
+      console.log(`[SPONSOR DELETE] Deleted from event_vendors table`)
     } catch (e) {
-      console.warn(`[SPONSOR DELETE] Failed to delete from vendors:`, e)
+      console.warn(`[SPONSOR DELETE] Failed to delete from event_vendors:`, e)
     }
 
     // Also delete from exhibitors table

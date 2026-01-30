@@ -137,15 +137,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         console.log(`[QUICK ADD] Created sponsor with ID: ${sponsorId}`)
 
-        // Also create in vendors table
+        // Also create in event_vendors table
         try {
-            console.log(`[QUICK ADD] Creating vendor entry...`)
+            console.log(`[QUICK ADD] Creating event_vendor entry...`)
             await prisma.$queryRawUnsafe(`
-        INSERT INTO vendors (
-          id, event_id, name, email, phone, contact_person,
-          logo_url, website, notes, created_at, updated_at
+        INSERT INTO event_vendors (
+          id, event_id, name, contact_email, contact_phone, contact_name,
+          created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, NOW(), NOW()
         )
         ON CONFLICT (id) DO NOTHING
       `,
@@ -154,14 +154,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
                 name,
                 email,
                 phone || null,
-                contactPerson || null,
-                null, // logo_url
-                null, // website
-                notes || null
+                contactPerson || null
             )
-            console.log(`[QUICK ADD] Created vendor entry`)
+            console.log(`[QUICK ADD] Created event_vendor entry`)
         } catch (vendorError: any) {
-            console.warn(`[QUICK ADD] Failed to create vendor:`, vendorError.message)
+            console.warn(`[QUICK ADD] Failed to create event_vendor:`, vendorError.message)
         }
 
         // Also create in exhibitors table
