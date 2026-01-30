@@ -135,10 +135,66 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         const sponsorId = result[0].id
 
+        console.log(`[QUICK ADD] Created sponsor with ID: ${sponsorId}`)
+
+        // Also create in vendors table
+        try {
+            console.log(`[QUICK ADD] Creating vendor entry...`)
+            await prisma.$queryRawUnsafe(`
+        INSERT INTO vendors (
+          id, event_id, name, email, phone, contact_person,
+          logo_url, website, notes, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+        )
+        ON CONFLICT (id) DO NOTHING
+      `,
+                sponsorId,
+                eventId,
+                name,
+                email,
+                phone || null,
+                contactPerson || null,
+                null, // logo_url
+                null, // website
+                notes || null
+            )
+            console.log(`[QUICK ADD] Created vendor entry`)
+        } catch (vendorError: any) {
+            console.warn(`[QUICK ADD] Failed to create vendor:`, vendorError.message)
+        }
+
+        // Also create in exhibitors table
+        try {
+            console.log(`[QUICK ADD] Creating exhibitor entry...`)
+            await prisma.$queryRawUnsafe(`
+        INSERT INTO exhibitors (
+          id, event_id, company_name, email, phone, contact_person,
+          logo_url, website, description, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+        )
+        ON CONFLICT (id) DO NOTHING
+      `,
+                sponsorId,
+                eventId,
+                name,
+                email,
+                phone || null,
+                contactPerson || null,
+                null, // logo_url
+                null, // website
+                notes || null
+            )
+            console.log(`[QUICK ADD] Created exhibitor entry`)
+        } catch (exhibitorError: any) {
+            console.warn(`[QUICK ADD] Failed to create exhibitor:`, exhibitorError.message)
+        }
+
         return NextResponse.json({
             success: true,
             id: sponsorId,
-            message: 'Sponsor added successfully. You can edit full details anytime.',
+            message: 'Added successfully to Sponsors, Vendors, and Exhibitors. You can edit full details anytime.',
             preset: {
                 tier: preset.tier,
                 amount: paymentData.amount,
