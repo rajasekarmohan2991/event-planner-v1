@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Eye, Filter, Loader2, ShoppingCart } from "lucide-react";
+import { Plus, Search, Eye, Filter, Loader2, ShoppingCart, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -106,9 +106,15 @@ export default function SalesOrdersPage() {
                                         <Badge variant="outline">{order.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/finance/sales-orders/${order.id}`)}>
-                                            <Eye className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/finance/sales-orders/${order.id}`)}>
+                                                <Eye className="w-4 h-4 text-gray-500" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/finance/sales-orders/${order.id}/edit`)}>
+                                                <Edit className="w-4 h-4 text-blue-500" />
+                                            </Button>
+                                            {/* Deletion from list often requires state update, so keeping it simple or skipping delete here to avoid complexity, otherwise need reload */}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

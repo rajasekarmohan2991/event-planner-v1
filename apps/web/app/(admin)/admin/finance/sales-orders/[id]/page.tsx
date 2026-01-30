@@ -31,11 +31,27 @@ export default function SalesOrderDetailPage() {
         window.print();
     };
 
+    const handleDelete = async () => {
+        if (!confirm("Are you sure you want to delete this order?")) return;
+        try {
+            const res = await fetch(`/api/finance/sales-orders/${params.id}`, { method: 'DELETE' });
+            if (res.ok) router.push('/admin/finance/sales-orders');
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6 print:p-0 print:max-w-none">
             <div className="flex items-center justify-between print:hidden">
                 <BackButton fallbackUrl="/admin/finance/sales-orders" />
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push(`/admin/finance/sales-orders/${order.id}/edit`)}>
+                        Edit
+                    </Button>
+                    <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={handleDelete}>
+                        Delete
+                    </Button>
                     <Button variant="outline" onClick={handlePrint}>
                         <Printer className="w-4 h-4 mr-2" />
                         Print
