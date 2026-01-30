@@ -37,8 +37,6 @@ export default function RegisterWithSeatsPage() {
     lastName: '',
     email: '',
     phone: '',
-    company: '',
-    jobTitle: '',
     gender: '',
     emergencyContact: '',
     parking: '',
@@ -385,8 +383,6 @@ export default function RegisterWithSeatsPage() {
             firstName: formData.firstName,
             lastName: formData.lastName,
             phone: formData.phone,
-            company: formData.company,
-            jobTitle: formData.jobTitle,
             gender: formData.gender,
             emergencyContact: formData.emergencyContact,
             parking: formData.parking,
@@ -718,26 +714,7 @@ export default function RegisterWithSeatsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Company</label>
-                  <input
-                    type="text"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Job Title</label>
-                  <input
-                    type="text"
-                    value={formData.jobTitle}
-                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                </div>
-              </div>
+
 
               {/* Promo Code Section */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">

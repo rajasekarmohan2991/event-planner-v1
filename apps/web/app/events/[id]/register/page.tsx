@@ -426,8 +426,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData, eventData }: any) 
     lastName: "",
     email: inviteData?.email || "",
     phone: "",
-    company: "",
-    jobTitle: ""
+
   })
   const [loading, setLoading] = useState(false)
 
@@ -472,10 +471,7 @@ function VipRegistrationForm({ eventId, hasSeats, inviteData, eventData }: any) 
       </div>
       <Input label="VIP Email Address" type="email" required value={formData.email} onChange={(v: string) => setFormData({ ...formData, email: v })} />
       <Input label="Mobile Phone" type="tel" value={formData.phone} onChange={(v: string) => setFormData({ ...formData, phone: v })} />
-      <div className="grid md:grid-cols-2 gap-4">
-        <Input label="Company Name" value={formData.company} onChange={(v: string) => setFormData({ ...formData, company: v })} />
-        <Input label="Job Title" value={formData.jobTitle} onChange={(v: string) => setFormData({ ...formData, jobTitle: v })} />
-      </div>
+
 
       <button
         type="submit"
