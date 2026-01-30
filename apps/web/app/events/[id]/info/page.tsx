@@ -8,6 +8,7 @@ import ManageTabs from '@/components/events/ManageTabs'
 import AvatarIcon from '@/components/ui/AvatarIcon'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import { EventTermsAndManager } from '@/components/events/EventTermsAndManager'
+import { EventImageUpload } from '@/components/events/event-image-upload'
 
 export default function EventInfoPage({ params }: { params: { id: string } }) {
   const { status, data } = useSession()
@@ -362,8 +363,19 @@ export default function EventInfoPage({ params }: { params: { id: string } }) {
               <option value="VIRTUAL">Virtual</option>
               <option value="HYBRID">Hybrid</option>
             </select>
-            <label className="block text-xs text-slate-500">Banner URL</label>
-            <input className="w-full rounded-md border px-3 py-2 text-sm" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} />
+            <label className="block text-xs text-slate-500">Banner Image</label>
+            <div className="space-y-3">
+              <EventImageUpload onImageUploaded={(url: string) => setBannerUrl(url)} />
+              <div className="relative">
+                <input
+                  className="w-full rounded-md border px-3 py-2 text-sm pl-8 text-slate-500"
+                  value={bannerUrl}
+                  onChange={e => setBannerUrl(e.target.value)}
+                  placeholder="Or paste an image URL..."
+                />
+                <div className="absolute left-2.5 top-2.5 text-slate-400">🔗</div>
+              </div>
+            </div>
             <label className="block text-xs text-slate-500">Budget (INR)</label>
             <input type="number" className="w-full rounded-md border px-3 py-2 text-sm" value={budgetInr} onChange={e => setBudgetInr(e.target.value)} placeholder="e.g. 6000" />
             <label className="block text-xs text-slate-500">Expected Attendees</label>
