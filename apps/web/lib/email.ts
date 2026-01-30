@@ -86,7 +86,21 @@ async function sendViaSendGrid(options: EmailOptions): Promise<{ success: boolea
 export async function sendEmail(options: EmailOptions) {
   // 1. Try Primary Transporter (Twilio/SMTP)
   try {
-    console.log('📧 Attempting to send email to:', options.to)
+    console.log('📧 [EMAIL] Attempting to send email to:', options.to)
+    console.log('📧 [EMAIL] Subject:', options.subject)
+
+    // Check environment variables
+    console.log('📧 [EMAIL] Environment check:', {
+      hasEmailServerHost: !!process.env.EMAIL_SERVER_HOST,
+      hasEmailServerUser: !!process.env.EMAIL_SERVER_USER,
+      hasEmailServerPassword: !!process.env.EMAIL_SERVER_PASSWORD,
+      hasSmtpHost: !!process.env.SMTP_HOST,
+      hasSmtpUser: !!process.env.SMTP_USER,
+      hasSmtpPassword: !!process.env.SMTP_PASSWORD,
+      hasSendGridKey: !!process.env.SENDGRID_API_KEY,
+      emailServerHost: process.env.EMAIL_SERVER_HOST,
+      smtpHost: process.env.SMTP_HOST
+    })
 
     // ... Existing logic ...
     const transporter = await createTransporter()
@@ -94,6 +108,12 @@ export async function sendEmail(options: EmailOptions) {
     // Check if we are using Ethereal (Test)
     const isEthereal = transporter.transporter.name === 'ethereal.email' ||
       (transporter.options && (transporter.options as any).host === 'smtp.ethereal.email')
+
+    if (isEthereal) {
+      console.warn('⚠️ [EMAIL] Using Ethereal test account - emails will NOT be sent to real addresses!')
+    } else {
+      console.log('✅ [EMAIL] Using real SMTP configuration')
+    }
 
     // If no real SMTP is configured and NO SendGrid key, we rely on Ethereal.
     // But if SendGrid is available, and we are falling back to Ethereal, maybe we should try SendGrid FIRST?
@@ -111,20 +131,27 @@ export async function sendEmail(options: EmailOptions) {
       html: options.html,
     })
 
-    console.log('✅ Email sent successfully (Primary):', info.messageId)
+    console.log('✅ [EMAIL] Email sent successfully (Primary):', info.messageId)
     const preview = nodemailer.getTestMessageUrl(info)
     if (preview) {
-      console.log('⚠️ WARNING: Using Ethereal test account - emails are NOT sent to real addresses!')
-      console.log('📧 Preview URL:', preview)
-      console.log('⚠️ To send real emails, configure SMTP or SendGrid in environment variables')
+      console.log('⚠️ [EMAIL] WARNING: Using Ethereal test account - emails are NOT sent to real addresses!')
+      console.log('📧 [EMAIL] Preview URL:', preview)
+      console.log('⚠️ [EMAIL] To send real emails, configure SMTP or SendGrid in environment variables')
+    } else {
+      console.log('✅ [EMAIL] Real email sent successfully!')
     }
     return { success: true, messageId: info.messageId, preview }
 
-  } catch (primaryError) {
-    console.error('❌ Primary Email failed:', primaryError)
+  } catch (primaryError: any) {
+    console.error('❌ [EMAIL] Primary Email failed:', primaryError)
+    console.error('❌ [EMAIL] Error details:', {
+      message: primaryError.message,
+      code: primaryError.code,
+      command: primaryError.command
+    })
 
     // 2. Try Backup (SendGrid)
-    console.log('⚠️ Primary failed, attempting backup...')
+    console.log('⚠️ [EMAIL] Primary failed, attempting SendGrid backup...')
     return await sendViaSendGrid(options)
   }
 }
