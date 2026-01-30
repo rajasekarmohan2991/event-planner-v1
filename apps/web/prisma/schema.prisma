@@ -2321,6 +2321,8 @@ model SalesOrder {
   customerId      String?           @map("customer_id")
   customerName    String            @map("customer_name")
   customerEmail   String?           @map("customer_email")
+  customerAddress String?           @map("customer_address")
+  customerPhone   String?           @map("customer_phone")
 
   currency        String            @default("USD")
   status          String            @default("DRAFT") // DRAFT, SENT, CONFIRMED, CANCELLED

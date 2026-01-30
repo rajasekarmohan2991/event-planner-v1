@@ -106,7 +106,7 @@ export default function SalesOrdersPage() {
                                         <Badge variant="outline">{order.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm">
+                                        <Button variant="ghost" size="sm" onClick={() => router.push(`/admin/finance/sales-orders/${order.id}`)}>
                                             <Eye className="w-4 h-4" />
                                         </Button>
                                     </TableCell>

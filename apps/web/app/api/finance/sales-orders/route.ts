@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
                 customerName,
                 customerType: body.customerType,
                 customerEmail: body.customerEmail,
+                customerAddress: body.customerAddress,
+                customerPhone: body.customerPhone,
                 currency: currency || "USD",
                 subtotal,
                 taxTotal,

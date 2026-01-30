@@ -11,6 +11,9 @@ export default function CreateSalesOrderPage() {
     const [loading, setLoading] = useState(false);
     const [customerName, setCustomerName] = useState("");
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [customerEmail, setCustomerEmail] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [customerAddress, setCustomerAddress] = useState("");
     const [items, setItems] = useState([{ description: "", quantity: 1, unitPrice: 0 }]);
 
     async function handleSubmit(e: React.FormEvent) {
@@ -20,7 +23,7 @@ export default function CreateSalesOrderPage() {
             const res = await fetch("/api/finance/sales-orders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ customerName, date, items })
+                body: JSON.stringify({ customerName, date, items, customerEmail, customerPhone, customerAddress })
             });
             if (res.ok) router.push("/admin/finance/sales-orders");
         } catch (error) {
@@ -45,10 +48,28 @@ export default function CreateSalesOrderPage() {
                         <label className="block text-sm font-medium mb-1">Date</label>
                         <input type="date" required className="w-full border rounded p-2" value={date} onChange={e => setDate(e.target.value)} />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Customer Email</label>
+                        <input type="email" className="w-full border rounded p-2" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Customer Phone</label>
+                        <input type="tel" className="w-full border rounded p-2" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium mb-1">Customer Address</label>
+                        <textarea className="w-full border rounded p-2" rows={2} value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} />
+                    </div>
                 </div>
 
                 <div className="space-y-3">
                     <h3 className="font-semibold">Items</h3>
+                    <div className="flex gap-3 text-sm font-medium text-gray-500 mb-2">
+                        <div className="flex-1">Description</div>
+                        <div className="w-20">Qty</div>
+                        <div className="w-32">Rate</div>
+                        <div className="w-10"></div>
+                    </div>
                     {items.map((item, idx) => (
                         <div key={idx} className="flex gap-3">
                             <input type="text" placeholder="Description" className="flex-1 border rounded p-2" value={item.description} onChange={e => { const n = [...items]; n[idx].description = e.target.value; setItems(n); }} />
