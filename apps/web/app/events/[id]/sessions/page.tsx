@@ -142,18 +142,42 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
 
   const load = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
+      console.log(`🔍 [SESSIONS PAGE] Fetching sessions for event ID: ${params?.id}`);
+
       const res = await fetch(`/api/events/${params?.id}/sessions`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to load sessions');
+
+      console.log(`📡 [SESSIONS PAGE] Response status: ${res.status} ${res.statusText}`);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`❌ [SESSIONS PAGE] API error:`, errorText);
+        throw new Error('Failed to load sessions');
+      }
+
       const data = await res.json();
+      console.log(`📦 [SESSIONS PAGE] Raw API response:`, data);
+
       // API returns { sessions: [...] }, extract the sessions array
       const sessionsArray = data.sessions || data;
+      console.log(`📋 [SESSIONS PAGE] Extracted sessions array:`, sessionsArray);
+      console.log(`📊 [SESSIONS PAGE] Sessions count: ${sessionsArray?.length || 0}`);
+
+      if (sessionsArray && sessionsArray.length > 0) {
+        console.log(`✅ [SESSIONS PAGE] Session titles:`, sessionsArray.map((s: any) => s.title));
+      } else {
+        console.warn(`⚠️ [SESSIONS PAGE] No sessions found in response`);
+      }
+
       setItems(Array.isArray(sessionsArray) ? sessionsArray : []);
+
       // Load speakers for attach UI
+      console.log(`🎤 [SESSIONS PAGE] Fetching speakers...`);
       const sp = await fetch(`/api/events/${params.id}/speakers?page=0&size=100`, { credentials: 'include' })
       if (sp.ok) {
         const sdata = await sp.json()
         const sc = Array.isArray(sdata?.content) ? sdata.content : []
+        console.log(`✅ [SESSIONS PAGE] Loaded ${sc.length} speakers`);
         setSpeakers(sc.map((s: any) => ({
           id: s.id,
           name: s.name,
@@ -164,6 +188,7 @@ export default function EventSessionsPage({ params }: { params: { id: string } }
         })))
       }
     } catch (e: any) {
+      console.error(`❌ [SESSIONS PAGE] Error loading sessions:`, e);
       setError(e?.message || 'Failed to load sessions')
     } finally {
       setLoading(false)
