@@ -144,10 +144,7 @@ export async function POST(
               <div class="qr-section">
                 <h3>📱 Your QR Code for Check-in</h3>
                 <p>Show this QR code at the event entrance:</p>
-                <div style="font-family: monospace; background: #f3f4f6; padding: 10px; margin: 10px 0; word-break: break-all; font-size: 10px;">
-                  ${qrCodeDataURL}
-                </div>
-                <p><small>QR Code: ${qrCodeDataURL.substring(0, 50)}...</small></p>
+                <img src="${qrCodeDataURL}" alt="QR Code" width="200" height="200" style="display: block; margin: 0 auto;" />
                 <a href="${checkInUrl}" class="button">Open Check-in Link</a>
               </div>
               
