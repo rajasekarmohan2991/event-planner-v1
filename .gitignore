@@ -1,0 +1,6 @@
+
+apps/api-java/target/
+
+.env
+.env.local
+apps/web/.env.local

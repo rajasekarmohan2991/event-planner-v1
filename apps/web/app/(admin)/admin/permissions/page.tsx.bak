@@ -1,0 +1,275 @@
+"use client"
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { 
+  Shield, 
+  Users, 
+  Settings, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Check, 
+  X,
+  Eye,
+  UserPlus,
+  Key
+} from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
+
+type Role = {
+  id: string
+  name: string
+  description: string
+  isSystem: boolean
+  permissions: string[]
+  createdAt: string
+}
+type PermissionCategory = {
+  permissions: Record<string, string>
+export default function PermissionsManagementPage() {
+  const { data: session } = useSession()
+  const [roles, setRoles] = useState<Role[]>([])
+  const [availablePermissions, setAvailablePermissions] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [showCreateRole, setShowCreateRole] = useState(false)
+  const [newRole, setNewRole] = useState({ name: '', description: '', permissions: [] as string[] })
+  useEffect(() => {
+    loadPermissions()
+  }, [])
+  const loadPermissions = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/permissions')
+      if (!res.ok) throw new Error('Failed to load permissions')
+      const data = await res.json()
+      setRoles(data.roles || [])
+      setAvailablePermissions(data.availablePermissions || {})
+    } catch (error) {
+      console.error('Error loading permissions:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  const updateRolePermissions = async (roleId: string, permissions: string[]) => {
+      const res = await fetch('/api/admin/permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'assign_permissions',
+          roleId,
+          permissions
+        })
+      })
+      
+      if (!res.ok) throw new Error('Failed to update permissions')
+      await loadPermissions()
+      setEditingRole(null)
+    } catch (error: any) {
+      alert(error.message || 'Failed to update permissions')
+  const createRole = async () => {
+          action: 'create_role',
+          newRoleName: newRole.name,
+          newRoleDescription: newRole.description
+      if (!res.ok) throw new Error('Failed to create role')
+      const result = await res.json()
+      // Assign permissions to new role
+      if (newRole.permissions.length > 0) {
+        await updateRolePermissions(result.role.id, newRole.permissions)
+      }
+      setShowCreateRole(false)
+      setNewRole({ name: '', description: '', permissions: [] })
+      alert(error.message || 'Failed to create role')
+  const deleteRole = async (roleId: string) => {
+    if (!confirm('Are you sure you want to delete this role? This action cannot be undone.')) return
+    
+          action: 'delete_role',
+          roleId
+      if (!res.ok) throw new Error('Failed to delete role')
+      alert(error.message || 'Failed to delete role')
+  // Group permissions by category
+  const permissionCategories: PermissionCategory[] = [
+    {
+      name: 'User Management',
+      permissions: Object.fromEntries(
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('users.'))
+      )
+    },
+      name: 'Event Management', 
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('events.'))
+      name: 'Role Management',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('roles.'))
+      name: 'Analytics & Reports',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('analytics.'))
+      name: 'Payment Management',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('payments.'))
+      name: 'Communication',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('communication.'))
+      name: 'System Settings',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('system.'))
+      name: 'Design & Branding',
+        Object.entries(availablePermissions).filter(([key]) => key.startsWith('design.'))
+  ]
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-8">Loading permissions...</div>
+      </div>
+    )
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Key className="h-6 w-6" />
+            Permissions Management
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage roles and their permissions dynamically
+          </p>
+        </div>
+        
+        <button
+          onClick={() => setShowCreateRole(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          <Plus className="h-4 w-4" />
+          Create Role
+        </button>
+      {/* Roles Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {roles.map((role) => (
+          <Card key={role.id} className="border-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <Shield className="h-5 w-5 text-indigo-700" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{role.name}</CardTitle>
+                    <p className="text-sm text-gray-500">{role.description}</p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {role.isSystem ? (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                      System
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setEditingRole(role)}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                        onClick={() => deleteRole(role.id)}
+                        className="p-1 text-red-400 hover:text-red-600"
+                        <Trash2 className="h-4 w-4" />
+                    </>
+                  )}
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Permissions</span>
+                  <span className="text-xs text-gray-500">{role.permissions.length} assigned</span>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {permissionCategories.map(category => {
+                    const categoryPerms = Object.keys(category.permissions).filter(p => 
+                      role.permissions.includes(p)
+                    )
+                    
+                    if (categoryPerms.length === 0) return null
+                    return (
+                      <div key={category.name} className="text-xs">
+                        <div className="font-medium text-gray-700">{category.name}:</div>
+                        <div className="ml-2 text-gray-600">
+                          {categoryPerms.map(perm => (
+                            <div key={perm} className="flex items-center gap-1">
+                              <Check className="h-3 w-3 text-green-600" />
+                              {category.permissions[perm]}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                  })}
+            </CardContent>
+          </Card>
+        ))}
+      {/* Edit Role Modal */}
+      {editingRole && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">Edit Permissions: {editingRole.name}</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              {permissionCategories.map(category => (
+                <div key={category.name} className="space-y-2">
+                  <h3 className="font-medium text-gray-900">{category.name}</h3>
+                  <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto">
+                    {Object.entries(category.permissions).map(([key, label]) => (
+                      <label key={key} className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={editingRole.permissions.includes(key)}
+                          onChange={(e) => {
+                            const updatedPermissions = e.target.checked
+                              ? [...editingRole.permissions, key]
+                              : editingRole.permissions.filter(p => p !== key)
+                            setEditingRole({...editingRole, permissions: updatedPermissions})
+                          }}
+                          className="mt-0.5"
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+              ))}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setEditingRole(null)}
+                className="flex-1 px-4 py-2 border rounded-md text-sm hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+                onClick={() => updateRolePermissions(editingRole.id, editingRole.permissions)}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700"
+                Save Permissions
+          </div>
+      )}
+      {/* Create Role Modal */}
+      {showCreateRole && (
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Create New Role</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Role Name</label>
+                <input
+                  type="text"
+                  value={newRole.name}
+                  onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  placeholder="e.g. Content Manager"
+                />
+              
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={newRole.description}
+                  onChange={(e) => setNewRole({...newRole, description: e.target.value})}
+                  rows={3}
+                  placeholder="Describe what this role can do"
+                onClick={() => setShowCreateRole(false)}
+                onClick={createRole}
+                disabled={!newRole.name || !newRole.description}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50"
+                Create Role
+    </div>
+  )

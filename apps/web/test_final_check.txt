@@ -1,0 +1,261 @@
+
+Running 3 tests using 3 workers
+
+[WebServer] [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[WebServer] 
+[WebServer] [1m[33mwarn[39m[22m - The class `data-[state=closed]:slide-out-to-top-[48%]` is ambiguous and matches multiple utilities.
+[WebServer] [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `data-&lsqb;state=closed&rsqb;:slide-out-to-top-[48%]` to silence this warning.
+[WebServer] 
+[WebServer] [1m[33mwarn[39m[22m - The class `data-[state=open]:slide-in-from-top-[48%]` is ambiguous and matches multiple utilities.
+[WebServer] [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `data-&lsqb;state=open&rsqb;:slide-in-from-top-[48%]` to silence this warning.
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: 📍 [LOCATION] Starting location detection...
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: ❌ [LOCATION] Position error: GeolocationPositionError
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: unauthenticated
+BROWSER LOG: [LoginClient] Session data: null
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:34:25.376Z, accessToken: session_41_1769682863332}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:34:25.376Z, accessToken: session_41_1769682863332}
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:34:25.842Z, accessToken: session_41_1769682863344}
+BROWSER LOG: [LoginClient] User authenticated, redirecting...
+BROWSER LOG: [LoginClient] Redirecting to: /admin
+BROWSER LOG: [LoginClient] Session status: authenticated
+BROWSER LOG: [LoginClient] Session data: {user: Object, expires: 2026-02-28T10:34:25.842Z, accessToken: session_41_1769682863344}
+BROWSER LOG: [Fast Refresh] rebuilding
+BROWSER LOG: [Fast Refresh] rebuilding
+BROWSER LOG: [Fast Refresh] rebuilding
+Login timeout! Checking for UI errors...
+Page Dump: EVENT PLANNER
+Welcome
+
+Ticketing & Check-in made simple.
+Create beautiful events, sell tickets, track RSVPs, and manage check-ins in one modern dashboard.
+
+© 2026 Ayphen. All rights reserved.
+Current URL: http://localhost:3001/auth/login
+Login timeout! Checking for UI errors...
+Login timeout! Checking for UI errors...
+  ✘  3 [chromium] › tests/demo-flow.spec.ts:62:5 › Demo User E2E Flow › Attempt Event Creation (Expect Failure due to DB) (1.2m)
+BROWSER LOG: [Fast Refresh] done in 46437ms
+BROWSER LOG: [Fast Refresh] done in 46437ms
+BROWSER LOG: Could not fetch company logo, using default
+BROWSER LOG: Failed to fetch RSC payload for http://localhost:3001/dashboard. Falling back to browser navigation. TypeError: Failed to fetch
+    at fetchServerResponse (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/fetch-server-response.js:58:27)
+    at fastRefreshReducerImpl (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/reducers/fast-refresh-reducer.js:33:67)
+    at clientReducer (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/router-reducer.js:41:67)
+    at Object.action (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:150:55)
+    at runAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:56:38)
+    at runRemainingActions (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:30:13)
+    at handleResult (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:66:9)
+BROWSER LOG: Failed to load sidebar state: TypeError: Failed to fetch
+    at eval (webpack-internal:///(app-pages-browser)/./contexts/SidebarContext.tsx:26:13)
+    at commitHookEffectListMount (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:21102:23)
+    at commitHookPassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23154:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23259:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23256:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23237:7)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:23370:9)
+BROWSER LOG: Failed to fetch RSC payload for http://localhost:3001/dashboard. Falling back to browser navigation. TypeError: Failed to fetch
+    at fetchServerResponse (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/fetch-server-response.js:58:27)
+    at fastRefreshReducerImpl (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/reducers/fast-refresh-reducer.js:33:67)
+    at clientReducer (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/router-reducer/router-reducer.js:41:67)
+    at Object.action (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:150:55)
+    at runAction (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:56:38)
+    at runRemainingActions (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:30:13)
+    at handleResult (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/router/action-queue.js:66:9)
+BROWSER LOG: Could not fetch company logo, using default
+Page Dump: EVENT PLANNER
+Detecting...
+Dashboard
+Events
+Users
+Dashboard
+Company
+Events
+Users
+Service Management
+Finance
+Tax Settings
+Digital Signatures
+Settings
+Sign out
+Current URL: http://localhost:3001/admin
+Page Dump: EVENT PLANNER
+Detecting...
+Dashboard
+Events
+Users
+Dashboard
+Company
+Events
+Users
+Service Management
+Finance
+Tax Settings
+Digital Signatures
+Settings
+Sign out
+Current URL: http://localhost:3001/admin
+  ✘  1 [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile (1.3m)
+  ✘  2 [chromium] › tests/demo-flow.spec.ts:55:5 › Demo User E2E Flow › Verify User Settings Persistence (1.3m)
+
+
+  1) [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile ─
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/.*(dashboard|admin)/[39m
+    Received string:  [31m"http://localhost:3001/auth/login"[39m
+    Timeout: 60000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 60000ms[22m
+    [2m    17 × unexpected value "http://localhost:3001/auth/login"[22m
+    [2m    - waiting for" http://localhost:3001/admin" navigation to finish...[22m
+
+
+      23 |         // Wait for dashboard redirect (URL might be /admin or /dashboard)
+      24 |         try {
+    > 25 |             await expect(page).toHaveURL(/.*(dashboard|admin)/, { timeout: 60000 });
+         |                                ^
+      26 |             // Wait for Dashboard text OR user menu trigger
+      27 |             await Promise.race([
+      28 |                 expect(page.getByText('Dashboard', { exact: true }).first()).toBeVisible({ timeout: 60000 }),
+        at /Users/rajasekar/Event Planner V1/apps/web/tests/demo-flow.spec.ts:25:32
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/demo-flow-Demo-User-E2E-Flow-Verify-Dashboard-and-Profile-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/demo-flow-Demo-User-E2E-Flow-Verify-Dashboard-and-Profile-chromium/error-context.md
+
+  2) [chromium] › tests/demo-flow.spec.ts:55:5 › Demo User E2E Flow › Verify User Settings Persistence 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/.*(dashboard|admin)/[39m
+    Received string:  [31m"http://localhost:3001/auth/login"[39m
+    Timeout: 60000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 60000ms[22m
+    [2m    17 × unexpected value "http://localhost:3001/auth/login"[22m
+    [2m    - waiting for" http://localhost:3001/admin" navigation to finish...[22m
+
+
+      23 |         // Wait for dashboard redirect (URL might be /admin or /dashboard)
+      24 |         try {
+    > 25 |             await expect(page).toHaveURL(/.*(dashboard|admin)/, { timeout: 60000 });
+         |                                ^
+      26 |             // Wait for Dashboard text OR user menu trigger
+      27 |             await Promise.race([
+      28 |                 expect(page.getByText('Dashboard', { exact: true }).first()).toBeVisible({ timeout: 60000 }),
+        at /Users/rajasekar/Event Planner V1/apps/web/tests/demo-flow.spec.ts:25:32
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/demo-flow-Demo-User-E2E-Fl-f6594-y-User-Settings-Persistence-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/demo-flow-Demo-User-E2E-Fl-f6594-y-User-Settings-Persistence-chromium/error-context.md
+
+  3) [chromium] › tests/demo-flow.spec.ts:62:5 › Demo User E2E Flow › Attempt Event Creation (Expect Failure due to DB) 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/.*(dashboard|admin)/[39m
+    Received string:  [31m"http://localhost:3001/auth/login"[39m
+    Timeout: 60000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 60000ms[22m
+    [2m    59 × unexpected value "http://localhost:3001/auth/login"[22m
+
+
+      23 |         // Wait for dashboard redirect (URL might be /admin or /dashboard)
+      24 |         try {
+    > 25 |             await expect(page).toHaveURL(/.*(dashboard|admin)/, { timeout: 60000 });
+         |                                ^
+      26 |             // Wait for Dashboard text OR user menu trigger
+      27 |             await Promise.race([
+      28 |                 expect(page.getByText('Dashboard', { exact: true }).first()).toBeVisible({ timeout: 60000 }),
+        at /Users/rajasekar/Event Planner V1/apps/web/tests/demo-flow.spec.ts:25:32
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/demo-flow-Demo-User-E2E-Fl-816f7-n-Expect-Failure-due-to-DB--chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/demo-flow-Demo-User-E2E-Fl-816f7-n-Expect-Failure-due-to-DB--chromium/error-context.md
+
+  3 failed
+    [chromium] › tests/demo-flow.spec.ts:40:5 › Demo User E2E Flow › Verify Dashboard and Profile ──
+    [chromium] › tests/demo-flow.spec.ts:55:5 › Demo User E2E Flow › Verify User Settings Persistence 
+    [chromium] › tests/demo-flow.spec.ts:62:5 › Demo User E2E Flow › Attempt Event Creation (Expect Failure due to DB) 

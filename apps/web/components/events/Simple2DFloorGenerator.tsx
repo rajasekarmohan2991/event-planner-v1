@@ -1,0 +1,535 @@
+"use client"
+
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Grid, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { cn } from '@/lib/utils'
+
+interface Simple2DFloorGeneratorProps {
+  eventId: string
+  onSuccess?: () => void
+}
+
+type EventType = 'CONFERENCE' | 'WEDDING' | 'THEATRE' | 'CONCERT' | 'BANQUET'
+type TableType = 'ROUND' | 'RECTANGLE' | 'SQUARE' | 'ROWS'
+
+const floorPlanSchema = z.object({
+  eventType: z.enum(['CONFERENCE', 'WEDDING', 'THEATRE', 'CONCERT', 'BANQUET']),
+  tableType: z.enum(['ROUND', 'RECTANGLE', 'SQUARE', 'ROWS']),
+  vipSeats: z.coerce.number().min(0).max(500),
+  premiumSeats: z.coerce.number().min(0).max(500),
+  generalSeats: z.coerce.number().min(0).max(500),
+  vipPrice: z.coerce.number().min(0),
+  premiumPrice: z.coerce.number().min(0),
+  generalPrice: z.coerce.number().min(0),
+}).refine((data) => (data.vipSeats + data.premiumSeats + data.generalSeats) > 0, {
+  message: "Please allocate at least one seat",
+  path: ["vipSeats"], // Show error on vipSeats or generic
+}).refine((data) => (data.vipSeats + data.premiumSeats + data.generalSeats) <= 1000, {
+  message: "Total seats cannot exceed 1000",
+  path: ["vipSeats"],
+})
+
+type FloorPlanFormValues = z.infer<typeof floorPlanSchema>
+
+export default function Simple2DFloorGenerator({ eventId, onSuccess }: Simple2DFloorGeneratorProps) {
+  const [generating, setGenerating] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  const form = useForm<FloorPlanFormValues>({
+    resolver: zodResolver(floorPlanSchema),
+    defaultValues: {
+      eventType: 'CONFERENCE',
+      tableType: 'ROWS',
+      vipSeats: 0,
+      premiumSeats: 0,
+      generalSeats: 0,
+      vipPrice: 1500,
+      premiumPrice: 800,
+      generalPrice: 500,
+    },
+  })
+
+  // Watch values for calculations
+  const values = form.watch()
+  const { eventType, tableType, vipSeats, premiumSeats, generalSeats, vipPrice, premiumPrice, generalPrice } = values
+
+  const totalSeats = (vipSeats || 0) + (premiumSeats || 0) + (generalSeats || 0)
+  const totalRevenue = ((vipSeats || 0) * (vipPrice || 0)) + ((premiumSeats || 0) * (premiumPrice || 0)) + ((generalSeats || 0) * (generalPrice || 0))
+
+  const handleGenerate = async (data: FloorPlanFormValues) => {
+    try {
+      setGenerating(true)
+      setMessage(null)
+
+      console.log('[FloorPlanner] Starting generation with data:', data)
+
+      // Logic from original component
+      const getSeatsPerRow = () => {
+        if (data.tableType === 'ROUND') return 8
+        if (data.tableType === 'RECTANGLE') return 10
+        if (data.tableType === 'SQUARE') return 4
+
+        if (data.eventType === 'THEATRE' || data.eventType === 'CONCERT') return 15
+        if (data.eventType === 'WEDDING' || data.eventType === 'BANQUET') return 8
+        return 10 // CONFERENCE default
+      }
+
+      const config = {
+        seatsPerRow: getSeatsPerRow(),
+        layout: data.tableType === 'ROWS' ? 'rows' : 'tables',
+        tableType: data.tableType
+      }
+
+      console.log('[FloorPlanner] Configuration:', config)
+
+      const canvasWidth = 1200
+      const centerX = canvasWidth / 2
+      const startY = 250 // Leave room for stage
+      let currentY = startY
+
+      const sections = []
+
+      // Helper to generate centered rows
+      const generateSection = (
+        name: string,
+        type: string,
+        count: number,
+        price: number,
+        color: string
+      ) => {
+        if (!count || count <= 0) return null
+
+        const rowsCount = Math.ceil(count / config.seatsPerRow)
+        const rows = []
+
+        for (let i = 0; i < rowsCount; i++) {
+          const rowNumber = i + 1
+          const remainingSeats = count - (i * config.seatsPerRow)
+          const seatsInRow = Math.min(config.seatsPerRow, remainingSeats)
+
+          // Calculate centering
+          // Assuming 40px width per seat + 10px margin = 50px total
+          const rowWidth = seatsInRow * 50
+          const xOffset = centerX - (rowWidth / 2)
+
+          rows.push({
+            number: `${type.charAt(0)}${rowNumber}`,
+            label: `${name} Row ${rowNumber}`,
+            count: seatsInRow,
+            xOffset: xOffset,
+            yOffset: currentY,
+          })
+
+          currentY += 50 // Move down for next row
+        }
+
+        currentY += 80 // Add gap after section
+
+        return {
+          name,
+          type,
+          basePrice: price,
+          rows: rows,
+          seatsPerRow: config.seatsPerRow,
+          totalSeats: count,
+          color,
+          layout: config.layout
+        }
+      }
+
+      if (data.vipSeats > 0) {
+        sections.push(generateSection('VIP', 'VIP', data.vipSeats, data.vipPrice, '#9333ea'))
+      }
+      if (data.premiumSeats > 0) {
+        sections.push(generateSection('PREMIUM', 'PREMIUM', data.premiumSeats, data.premiumPrice, '#3b82f6'))
+      }
+      if (data.generalSeats > 0) {
+        sections.push(generateSection('GENERAL', 'GENERAL', data.generalSeats, data.generalPrice, '#10b981'))
+      }
+
+      const validSections = sections.filter(Boolean) as any[]
+
+      // Add static shapes for Stage and Doors
+      // Note: The seat generator API might ignore these, but if the visualizer reads the raw JSON from DB, it will show them.
+      const shapes = [
+        {
+          id: 'stage-1',
+          type: 'rect',
+          label: 'STAGE',
+          x: centerX - 150, // Centered (300w)
+          y: 50,
+          width: 300,
+          height: 120,
+          fill: '#e2e8f0',
+          stroke: '#64748b'
+        },
+        {
+          id: 'entry-1',
+          type: 'rect',
+          label: 'ENTRY',
+          x: 50,
+          y: currentY + 50,
+          width: 100,
+          height: 60,
+          fill: '#dcfce7',
+          stroke: '#16a34a'
+        },
+        {
+          id: 'exit-1',
+          type: 'rect',
+          label: 'EXIT',
+          x: canvasWidth - 150,
+          y: currentY + 50,
+          width: 100,
+          height: 60,
+          fill: '#fee2e2',
+          stroke: '#dc2626'
+        }
+      ]
+
+      console.log('[FloorPlanner] Sections created:', validSections.length)
+
+      const floorPlan = {
+        name: '2D Floor Plan',
+        totalSeats: (data.vipSeats + data.premiumSeats + data.generalSeats),
+        sections: validSections,
+        shapes: shapes // Include shapes in payload
+      }
+
+      console.log('[FloorPlanner] Floor plan payload:', JSON.stringify(floorPlan, null, 2))
+
+      const apiUrl = `/api/events/${eventId}/seats/generate`
+      console.log('[FloorPlanner] Sending POST to:', apiUrl)
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ floorPlan })
+      })
+
+      console.log('[FloorPlanner] Response status:', res.status, res.statusText)
+
+      const resData = await res.json()
+      console.log('[FloorPlanner] Response data:', resData)
+
+      if (!res.ok) {
+        console.error('[FloorPlanner] API Error:', resData)
+        throw new Error(resData.error || `Server returned ${res.status}: ${res.statusText}`)
+      }
+
+      console.log('[FloorPlanner] ✅ Success!')
+      setMessage({
+        type: 'success',
+        text: `✅ ${resData.message || `Generated ${floorPlan.totalSeats} seats successfully!`}`
+      })
+
+      if (onSuccess) {
+        setTimeout(onSuccess, 1500)
+      }
+    } catch (error: any) {
+      console.error('[FloorPlanner] ❌ Error:', error)
+      console.error('[FloorPlanner] Error stack:', error.stack)
+      setMessage({
+        type: 'error',
+        text: `❌ ${error.message || 'Failed to generate floor plan'}`
+      })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // Helper calculation for display
+  const getLayoutDescription = (type: EventType, table: TableType) => {
+    if (table === 'ROUND') return '8 seats per round table';
+    if (table === 'RECTANGLE') return '10 seats per rectangle table';
+    if (table === 'SQUARE') return '4 seats per square table';
+    if (type === 'THEATRE' || type === 'CONCERT') return '15 seats per row';
+    return '10 seats per row';
+  }
+
+  const getSeatsCountDesc = (seats: number, type: EventType, table: TableType) => {
+    if (seats <= 0) return 'No seats';
+    if (table === 'ROUND') return `${Math.ceil(seats / 8)} round tables × 8 seats`;
+    if (table === 'RECTANGLE') return `${Math.ceil(seats / 10)} rectangle tables × 10 seats`;
+    if (table === 'SQUARE') return `${Math.ceil(seats / 4)} square tables × 4 seats`;
+    if (type === 'THEATRE' || type === 'CONCERT') return `${Math.ceil(seats / 15)} rows × 15 seats`;
+    return `${Math.ceil(seats / 10)} rows × 10 seats`;
+  }
+
+  return (
+    <div className="bg-white rounded-lg border p-6 space-y-6 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Grid className="h-5 w-5 text-indigo-600" />
+        <h3 className="text-lg font-semibold">2D Floor Plan Generator</h3>
+      </div>
+
+      <p className="text-sm text-gray-600">
+        Allocate seats dynamically for each ticket class. The system will automatically arrange them based on event type.
+      </p>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-6">
+          {/* Event Type Selection */}
+          <FormField
+            control={form.control}
+            name="eventType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Event Type</FormLabel>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { val: 'CONFERENCE', icon: '🎤', label: 'Conference' },
+                    { val: 'THEATRE', icon: '🎭', label: 'Theatre' },
+                    { val: 'WEDDING', icon: '💒', label: 'Wedding' },
+                    { val: 'CONCERT', icon: '🎸', label: 'Concert' },
+                    { val: 'BANQUET', icon: '🍽️', label: 'Banquet' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => field.onChange(opt.val)}
+                      className={cn(
+                        "p-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center",
+                        field.value === opt.val
+                          ? "border-indigo-600 bg-indigo-50 text-indigo-900"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <div className="text-xl mb-1">{opt.icon}</div>
+                      <div className="font-medium text-xs">{opt.label}</div>
+                    </button>
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Table Type Selection */}
+          <FormField
+            control={form.control}
+            name="tableType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Seating Arrangement</FormLabel>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { val: 'ROWS', icon: '📐', label: 'Rows', sub: 'Theater style', color: 'green' },
+                    { val: 'ROUND', icon: '⭕', label: 'Round', sub: '8 per table', color: 'green' },
+                    { val: 'RECTANGLE', icon: '▭', label: 'Rectangle', sub: '10 per table', color: 'green' },
+                    { val: 'SQUARE', icon: '◻️', label: 'Square', sub: '4 per table', color: 'green' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => field.onChange(opt.val)}
+                      className={cn(
+                        "p-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center",
+                        field.value === opt.val
+                          ? `border-${opt.color}-600 bg-${opt.color}-50 text-${opt.color}-900`
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <div className="text-xl mb-1">{opt.icon}</div>
+                      <div className="font-medium text-xs">{opt.label}</div>
+                      <div className="text-[10px] text-gray-600 mt-0.5">{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* VIP Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <FormField
+              control={form.control}
+              name="vipSeats"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-purple-900">👑 VIP Seats</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} max={500} {...field} className="border-purple-300 focus-visible:ring-purple-500" placeholder="e.g., 25" />
+                  </FormControl>
+                  <FormDescription className="text-purple-700 text-xs">
+                    {getSeatsCountDesc(field.value || 0, eventType as EventType, tableType as TableType)}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="vipPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-purple-900">Price per VIP Seat (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} step={100} {...field} className="border-purple-300 focus-visible:ring-purple-500" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Premium Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <FormField
+              control={form.control}
+              name="premiumSeats"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-blue-900">⭐ Premium Seats</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} max={500} {...field} className="border-blue-300 focus-visible:ring-blue-500" placeholder="e.g., 100" />
+                  </FormControl>
+                  <FormDescription className="text-blue-700 text-xs">
+                    {getSeatsCountDesc(field.value || 0, eventType as EventType, tableType as TableType)}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="premiumPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-blue-900">Price per Premium Seat (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} step={100} {...field} className="border-blue-300 focus-visible:ring-blue-500" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* General Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <FormField
+              control={form.control}
+              name="generalSeats"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-green-900">🎫 General Seats</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} max={500} {...field} className="border-green-300 focus-visible:ring-green-500" placeholder="e.g., 200" />
+                  </FormControl>
+                  <FormDescription className="text-green-700 text-xs">
+                    {getSeatsCountDesc(field.value || 0, eventType as EventType, tableType as TableType)}
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="generalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-green-900">Price per General Seat (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={0} step={100} {...field} className="border-green-300 focus-visible:ring-green-500" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Summary */}
+          <div className="bg-slate-50 rounded-md p-4 border border-slate-200">
+            <div className="text-sm font-medium text-slate-700 mb-2">Floor Plan Summary:</div>
+            <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
+              <div>Total Seats: <span className="font-semibold text-slate-900">{totalSeats}</span></div>
+              <div>Total Revenue Potential: <span className="font-semibold text-green-600">₹{totalRevenue.toLocaleString()}</span></div>
+              <div>VIP: <span className="font-semibold text-purple-600">{vipSeats} seats</span></div>
+              <div>Premium: <span className="font-semibold text-blue-600">{premiumSeats} seats</span></div>
+              <div>General: <span className="font-semibold text-green-600">{generalSeats} seats</span></div>
+              <div>Layout: <span className="font-semibold">{getLayoutDescription(eventType as EventType, tableType as TableType)}</span></div>
+            </div>
+          </div>
+
+          {/* Message */}
+          {message && (
+            <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className={message.type === 'success' ? "border-green-200 bg-green-50 text-green-800" : ""}>
+              <AlertDescription>{message.text}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Generate Button */}
+          <Button
+            type="submit"
+            disabled={generating}
+            className="w-full h-12 text-base font-medium bg-indigo-600 hover:bg-indigo-700"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Floor Plan...
+              </>
+            ) : (
+              <>
+                <Grid className="mr-2 h-5 w-5" />
+                Generate 2D Floor Plan ({totalSeats} seats)
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-slate-500 text-center">
+            ⚠️ This will replace any existing floor plan for this event
+          </p>
+        </form>
+      </Form>
+
+      {/* Debug Panel (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <details className="mt-4 p-4 bg-gray-50 rounded border">
+          <summary className="cursor-pointer font-medium text-sm text-gray-700">
+            🔧 Debug Information
+          </summary>
+          <div className="mt-2 space-y-2 text-xs">
+            <div>
+              <strong>Event ID:</strong> {eventId}
+            </div>
+            <div>
+              <strong>Total Seats:</strong> {totalSeats}
+            </div>
+            <div>
+              <strong>Form Values:</strong>
+              <pre className="mt-1 p-2 bg-white rounded text-xs overflow-auto">
+                {JSON.stringify(values, null, 2)}
+              </pre>
+            </div>
+            <div className="pt-2">
+              <a
+                href={`/api/events/${eventId}/seats/test`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                🧪 Test Seat Generation API
+              </a>
+            </div>
+            <div className="text-gray-600 text-xs pt-2">
+              💡 Check browser console for detailed logs
+            </div>
+          </div>
+        </details>
+      )}
+    </div>
+  )
+}

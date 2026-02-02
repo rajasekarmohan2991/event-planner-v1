@@ -1,0 +1,85 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
+import { UserRole } from '@/types/user'
+
+// Define routes that don't require authentication
+const publicRoutes = [
+  '/auth',          // make ALL auth pages public
+  '/_next',
+  '/favicon.ico',
+  '/images',
+  '/animations'
+]
+
+// Define role-based route access
+const roleBasedRoutes: Record<string, UserRole[]> = {
+  '/admin': [UserRole.ADMIN],
+  '/organizer': [UserRole.ORGANIZER, UserRole.ADMIN],
+  '/dashboard/roles/admin': [UserRole.ADMIN],
+  '/dashboard/roles/organizer': [UserRole.ORGANIZER, UserRole.ADMIN],
+  '/dashboard/roles/user': [UserRole.USER, UserRole.ORGANIZER, UserRole.ADMIN],
+  '/dashboard': [UserRole.USER, UserRole.ORGANIZER, UserRole.ADMIN],
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Allow static files and API routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/animations')
+  ) {
+    return NextResponse.next()
+  }
+
+  // Check if the route is public (any path under /auth is considered public)
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  if (isPublicRoute) return NextResponse.next()
+
+  // Determine if this path requires auth (restrict to explicitly protected prefixes)
+  const protectedPrefixes = Object.keys(roleBasedRoutes)
+  const requiresAuth = protectedPrefixes.some(prefix => pathname.startsWith(prefix))
+
+  if (requiresAuth) {
+    // Get the token only for protected routes
+    const token = await getToken({ req: request })
+    if (!token) {
+      const loginUrl = new URL('/auth/login', request.url)
+      loginUrl.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  // Check role-based access
+  for (const [route, allowedRoles] of Object.entries(roleBasedRoutes)) {
+    if (pathname.startsWith(route)) {
+      const token = await getToken({ req: request })
+      const userRole = token?.role as UserRole
+      if (!allowedRoles.includes(userRole)) {
+        return NextResponse.redirect(new URL('/auth/unauthorized', request.url))
+      }
+      break
+    }
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|public/).*)',
+  ],
+}

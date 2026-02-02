@@ -1,0 +1,6 @@
+# Force Vercel to regenerate Prisma Client
+# This file's modification timestamp will invalidate the cache
+
+SCHEMA_VERSION=v2-string-status
+LAST_UPDATED=2025-12-24T13:15:00+05:30
+CRITICAL_CHANGE=FloorPlan.status changed from enum to String type

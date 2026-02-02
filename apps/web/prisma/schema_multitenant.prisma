@@ -1,0 +1,427 @@
+// Enhanced Multi-Tenant Schema
+// This file contains the complete multi-tenant architecture
+// To apply: Backup current schema, then replace schema.prisma with this file
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-1.0.x", "debian-openssl-1.1.x", "linux-musl-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================
+// ENUMS
+// ==============================
+
+enum SystemRole {
+  SUPER_ADMIN  // Can manage all tenants
+  USER         // Regular user
+}
+
+enum TenantRole {
+  OWNER        // Full control, billing, delete tenant
+  ADMIN        // Manage users, settings, all events
+  MANAGER      // Create/manage events, view reports
+  MEMBER       // Create events, limited access
+  VIEWER       // Read-only access
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// ==============================
+// AUTHENTICATION
+// ==============================
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            BigInt
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        BigInt?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       BigInt
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                BigInt              @id @default(autoincrement())
+  name              String
+  email             String              @unique
+  emailVerified     DateTime?           @map("email_verified")
+  password          String?             @map("password_hash")
+  role              SystemRole          @default(USER)
+  image             String?
+  selectedCity      String?             @map("selected_city")
+  currentTenantId   String?             // Active tenant context
+  
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  memberships       TenantMember[]
+  
+  organizerProfile  OrganizerProfile?
+  individualKYC     IndividualVerification?
+  
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("VerificationToken")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// ==============================
+// MULTI-TENANCY CORE
+// ==============================
+
+model Tenant {
+  id              String          @id @default(cuid())
+  slug            String          @unique  // URL-safe identifier
+  name            String          // Display name
+  domain          String?         @unique  // Custom domain (optional)
+  subdomain       String          @unique  // company1
+  
+  // Branding
+  logo            String?
+  primaryColor    String?         @default("#3B82F6")
+  secondaryColor  String?         @default("#10B981")
+  faviconUrl      String?
+  
+  // Settings
+  timezone        String          @default("UTC")
+  currency        String          @default("USD")
+  dateFormat      String          @default("MM/DD/YYYY")
+  locale          String          @default("en")
+  
+  // Subscription & Billing
+  plan            SubscriptionPlan @default(FREE)
+  status          TenantStatus     @default(TRIAL)
+  billingEmail    String?
+  maxEvents       Int             @default(10)
+  maxUsers        Int             @default(5)
+  maxStorage      Int             @default(1024) // MB
+  
+  // Trial & Subscription
+  trialEndsAt     DateTime?
+  subscriptionStartedAt DateTime?
+  subscriptionEndsAt    DateTime?
+  
+  // Email Configuration
+  emailFromName   String?
+  emailFromAddress String?
+  emailReplyTo    String?
+  smtpHost        String?
+  smtpPort        Int?
+  smtpUser        String?
+  smtpPassword    String?         // Encrypted
+  
+  // Feature Flags
+  features        Json?           // { "customBranding": true, "whiteLabel": false, "apiAccess": true }
+  
+  // Metadata
+  metadata        Json?           // Additional custom data
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?       // Soft delete
+  
+  // Relations
+  members         TenantMember[]
+  events          Event[]
+  customFields    CustomField[]
+  lookups         TenantLookup[]
+  settings        TenantSetting[]
+  
+  @@index([status])
+  @@index([plan])
+  @@index([subdomain])
+}
+
+model TenantMember {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    BigInt
+  role      TenantRole @default(MEMBER)
+  
+  // Permissions
+  permissions Json?   // Custom permissions per user
+  
+  // Status
+  status    String   @default("ACTIVE") // ACTIVE, INVITED, SUSPENDED
+  invitedBy BigInt?
+  invitedAt DateTime?
+  joinedAt  DateTime?
+  lastAccessAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId, role])
+  @@index([tenantId, status])
+}
+
+model TenantSetting {
+  id        String   @id @default(cuid())
+  tenantId  String
+  category  String   // "general", "email", "notifications", "billing"
+  key       String
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, category, key])
+  @@index([tenantId, category])
+}
+
+// ==============================
+// LOOKUPS: GLOBAL VS TENANT-SPECIFIC
+// ==============================
+
+// Global Lookups (System-wide, read-only for tenants)
+model GlobalLookup {
+  id          String   @id @default(cuid())
+  category    String   // "EVENT_TYPE", "INDUSTRY", "COUNTRY", "TIMEZONE"
+  code        String
+  label       String
+  description String?
+  metadata    Json?    // Additional data
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([category, code])
+  @@index([category, active])
+}
+
+// Tenant-Specific Lookups (Customizable per tenant)
+model TenantLookup {
+  id          String   @id @default(cuid())
+  tenantId    String
+  category    String   // "CUSTOM_STATUS", "CUSTOM_TAG", "DEPARTMENT"
+  code        String
+  label       String
+  description String?
+  color       String?  // For UI display
+  icon        String?
+  metadata    Json?
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, category, code])
+  @@index([tenantId, category, active])
+}
+
+// ==============================
+// TENANT-SCOPED MODELS
+// ==============================
+
+// Note: All models below MUST have tenantId for data isolation
+
+model Event {
+  id          String   @id @default(cuid())
+  tenantId    String   // REQUIRED - tenant isolation
+  
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      String
+  
+  // Add tenant relation
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // ... keep all existing Event fields and relations
+  
+  @@index([tenantId, status])
+  @@index([tenantId, startDate])
+}
+
+model CustomField {
+  id          String   @id @default(cuid())
+  tenantId    String   // REQUIRED
+  eventId     String?  // Optional - can be event-specific or tenant-wide
+  
+  key         String
+  label       String
+  type        String   // text, number, select, date, etc.
+  required    Boolean  @default(false)
+  options     Json?    // For select/radio types
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, eventId, key])
+  @@index([tenantId])
+  @@index([eventId])
+}
+
+// ==============================
+// VERIFICATION & KYC
+// ==============================
+
+model OrganizerProfile {
+  id                  String    @id @default(cuid())
+  userId              BigInt    @unique
+  organizationName    String?
+  organizationType    String?
+  website             String?
+  phone               String?
+  address             String?
+  city                String?
+  state               String?
+  country             String?
+  zipCode             String?
+  taxId               String?
+  verificationStatus  String    @default("PENDING")
+  verifiedAt          DateTime?
+  documents           Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IndividualVerification {
+  id                  String    @id @default(cuid())
+  userId              BigInt    @unique
+  firstName           String?
+  lastName            String?
+  dateOfBirth         DateTime?
+  phone               String?
+  address             String?
+  city                String?
+  state               String?
+  country             String?
+  zipCode             String?
+  idType              String?
+  idNumber            String?
+  verificationStatus  String    @default("PENDING")
+  verifiedAt          DateTime?
+  documents           Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==============================
+// AUDIT & ACTIVITY LOGS
+// ==============================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String?  // Null for system-wide actions
+  userId      BigInt?
+  action      String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity      String   // Event, User, Tenant, etc.
+  entityId    String?
+  changes     Json?    // Before/after values
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}
+
+// ==============================
+// BILLING & USAGE TRACKING
+// ==============================
+
+model UsageMetric {
+  id          String   @id @default(cuid())
+  tenantId    String
+  metric      String   // "events_created", "users_active", "storage_used"
+  value       Int
+  period      String   // "2024-01", "2024-01-15"
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([tenantId, metric, period])
+  @@index([tenantId, metric])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  status      String   // DRAFT, SENT, PAID, OVERDUE, CANCELLED
+  dueDate     DateTime
+  paidAt      DateTime?
+  items       Json     // Line items
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+}

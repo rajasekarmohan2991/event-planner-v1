@@ -1,0 +1,31 @@
+name: Deploy Database Changes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/prisma/**'
+
+jobs:
+  deploy-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: cd apps/web && npm install
+
+      - name: Apply Database Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # DIRECT_URL: ${{ secrets.DIRECT_URL }} # Uncomment if using connection pooling
+        run: |
+          cd apps/web
+          npx prisma migrate deploy

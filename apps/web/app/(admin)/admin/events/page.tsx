@@ -1,0 +1,352 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Calendar, MapPin, Users, Edit, Trash2, Plus, Eye, Ticket, Search } from 'lucide-react'
+import dynamicImport from 'next/dynamic'
+import BackButton from '@/components/ui/back-button'
+
+const LottieAnimation = dynamicImport(() => import('@/components/animations/LottieAnimation').then(mod => mod.LottieAnimation), { ssr: false })
+
+type Event = {
+    id: string
+    name: string
+    description: string
+    startDate: string
+    endDate: string
+    location: string
+    status: string
+    capacity: number
+    registrationCount?: number
+    bannerImage?: string
+}
+
+export default function EventsPage() {
+    const router = useRouter()
+    const [events, setEvents] = useState<Event[]>([])
+    const [loading, setLoading] = useState(true)
+    const [filter, setFilter] = useState<'all' | 'upcoming' | 'past' | 'draft'>('all')
+    const [searchQuery, setSearchQuery] = useState('')
+
+    const loadEvents = async () => {
+        try {
+            setLoading(true)
+            console.log('🔄 Fetching events from /api/events...')
+
+            const res = await fetch('/api/events', { cache: 'no-store' })
+
+            console.log('📡 API Response Status:', res.status, res.statusText)
+
+            if (res.ok) {
+                const data = await res.json()
+                console.log('📦 API Response Data:', data)
+                console.log(`✅ Loaded ${data.events?.length || 0} events`)
+
+                setEvents(data.events || [])
+
+                if (!data.events || data.events.length === 0) {
+                    console.warn('⚠️  No events returned from API')
+                    console.warn('💡 Check server logs for role/permission issues')
+                }
+            } else {
+                const errorText = await res.text()
+                console.error('❌ API Error Response:', errorText)
+            }
+        } catch (error) {
+            console.error('❌ Error loading events:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        loadEvents()
+    }, [])
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return
+
+        try {
+            console.log(`🗑️ Deleting event ${id}...`)
+            const res = await fetch(`/api/events/${id}`, { method: 'DELETE' })
+
+            console.log(`📡 Delete response status: ${res.status}`)
+
+            if (res.ok) {
+                alert('✅ Event deleted successfully!')
+                loadEvents()
+            } else {
+                // Try to get error message from response
+                let errorMessage = 'Failed to delete event'
+                try {
+                    const errorData = await res.json()
+                    console.error('❌ Delete error:', errorData)
+                    errorMessage = errorData.message || errorData.error || errorMessage
+
+                    // Show detailed error if available
+                    if (errorData.hint) {
+                        errorMessage += `\n\n${errorData.hint}`
+                    }
+                } catch (e) {
+                    // If response is not JSON, try to get text
+                    const errorText = await res.text()
+                    console.error('❌ Delete error (text):', errorText)
+                    if (errorText) errorMessage = errorText
+                }
+
+                alert(`❌ ${errorMessage}`)
+            }
+        } catch (error: any) {
+            console.error('❌ Error deleting event:', error)
+            alert(`❌ Error deleting event: ${error.message || 'Unknown error'}`)
+        }
+    }
+
+    const filteredEvents = events.filter(event => {
+        // Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            const matchName = event.name.toLowerCase().includes(query)
+            const matchLoc = event.location?.toLowerCase().includes(query)
+            const matchDesc = event.description?.toLowerCase().includes(query)
+            const matchStatus = event.status?.toLowerCase().includes(query)
+            if (!matchName && !matchLoc && !matchDesc && !matchStatus) return false
+        }
+
+        // Tab Filter
+        if (filter === 'all') return true
+        if (filter === 'draft') return event.status === 'DRAFT'
+        if (filter === 'upcoming') {
+            const startDate = new Date(event.startDate)
+            return startDate > new Date() && event.status !== 'DRAFT'
+        }
+        if (filter === 'past') {
+            const endDate = new Date(event.endDate)
+            return endDate < new Date()
+        }
+        return true
+    })
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <div className="w-32 h-32">
+                    <LottieAnimation
+                        animationUrl="/animations/loading.json"
+                        loop={true}
+                        autoplay={true}
+                    />
+                </div>
+                <p className="text-gray-600 mt-4">Loading events...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6">
+            <div className="mb-4">
+                <BackButton fallbackUrl="/admin" />
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 shrink-0">
+                        <LottieAnimation
+                            animationUrl="/animations/success.json"
+                            loop={true}
+                            autoplay={true}
+                        />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold">Events Management</h1>
+                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold shadow-sm border border-indigo-200">
+                                {filteredEvents.length} Total
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    {/* Search Input */}
+                    <div className="relative flex-1 md:w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm shadow-sm transition-all duration-200"
+                            placeholder="Search events..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <button
+                        onClick={() => router.push('/admin/events/create')}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Event
+                    </button>
+                </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex gap-2 mb-6 border-b overflow-x-auto">
+                {(['all', 'upcoming', 'past', 'draft'] as const).map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setFilter(tab)}
+                        className={`px-4 py-2 font-medium capitalize whitespace-nowrap ${filter === tab
+                            ? 'border-b-2 border-indigo-600 text-indigo-600'
+                            : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+
+            {/* Events List */}
+            {loading ? (
+                <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading events...</p>
+                </div>
+            ) : filteredEvents.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    {searchQuery ? (
+                        <>
+                            <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+                            <p className="text-gray-600 mb-4">No events match your search query.</p>
+                        </>
+                    ) : (
+                        <>
+                            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+                            <p className="text-gray-600 mb-4">
+                                {filter === 'all'
+                                    ? 'Create your first event to get started'
+                                    : `No ${filter} events at the moment`
+                                }
+                            </p>
+                        </>
+                    )}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredEvents.map((event) => (
+                        <div
+                            key={event.id}
+                            onClick={() => router.push(`/events/${event.id}`)}
+                            className="bg-white border rounded-lg overflow-hidden hover:shadow-xl hover:border-indigo-400 transition-all cursor-pointer flex flex-col"
+                        >
+                            {/* Banner Image */}
+                            {event.bannerImage && (
+                                <div className="w-full h-48 bg-gray-200 overflow-hidden">
+                                    <img
+                                        src={event.bannerImage}
+                                        alt={event.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = '/placeholder-event.jpg'
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Card Header */}
+                            <div className="p-6 flex-1">
+                                <div className="flex items-start justify-between mb-3">
+                                    <h3 className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
+                                        {event.name}
+                                    </h3>
+                                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${event.status === 'DRAFT' ? 'bg-gray-100 text-gray-700' :
+                                        event.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                                            event.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                        {event.status}
+                                    </span>
+                                </div>
+
+                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                                    {event.description || 'new events to be listed'}
+                                </p>
+
+                                {/* Event Details */}
+                                <div className="space-y-2 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                                        <span className="truncate">
+                                            {event.startDate && event.startDate !== 'Invalid Date'
+                                                ? new Date(event.startDate).toLocaleDateString()
+                                                : 'Invalid Date'} - {event.endDate && event.endDate !== 'Invalid Date'
+                                                    ? new Date(event.endDate).toLocaleDateString()
+                                                    : 'Invalid Date'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                                        <span className="truncate">{event.location || 'No location'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4 flex-shrink-0" />
+                                        <span>{event.registrationCount || 0} / {event.capacity || 0} registered</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Ticket className="w-4 h-4 flex-shrink-0" />
+                                        <span>
+                                            {Math.max(0, (event.capacity || 0) - (event.registrationCount || 0))} tickets remaining
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bottom Actions Bar */}
+                            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+                                <span className="font-semibold text-lg text-indigo-600">
+                                    {(event as any).priceInr ? `₹${(event as any).priceInr}` : 'Free'}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push(`/events/${event.id}`)
+                                        }}
+                                        className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                        title="View Event"
+                                    >
+                                        <Eye className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push(`/events/${event.id}/info`)
+                                        }}
+                                        className="p-2 text-blue-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                        title="Edit Event"
+                                    >
+                                        <Edit className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDelete(event.id)
+                                        }}
+                                        className="p-2 text-red-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                        title="Delete Event"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}

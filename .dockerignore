@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+.DS_Store
+
+# Environment files (keep these out of Docker images)
+.env
+.env.local
+.env.example
+
+# Build artifacts - be specific, no wildcards
+apps/api-java/target
+apps/web/.next
+apps/web/node_modules
+apps/feed-server/node_modules
+
+# Vercel
+.vercel
+
+# Documentation
+README.md
+DEPLOYMENT_GUIDE.md
+DEPLOYMENT_REVIEW.md
+LOOKUP_MANAGEMENT_GUIDE.md
+LOOKUP_SYSTEM_IMPLEMENTATION_SUMMARY.md

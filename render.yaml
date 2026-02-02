@@ -1,0 +1,46 @@
+services:
+  # Java Backend API
+  - type: web
+    name: event-planner-api
+    runtime: java
+    buildCommand: cd apps/api-java && mvn clean package -DskipTests
+    startCommand: cd apps/api-java && java -jar target/*.jar
+    region: singapore
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JDBC_DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: PORT
+        value: 8080
+
+  # Optional: Next.js Frontend (if deploying to Render instead of Vercel)
+  # - type: web
+  #   name: event-planner-web
+  #   env: node
+  #   buildCommand: cd apps/web && npm install && npm run build
+  #   startCommand: cd apps/web && npm start
+  #   envVars:
+  #     - key: DATABASE_URL
+  #       sync: false
+  #     - key: NEXTAUTH_SECRET
+  #       sync: false
+  #     - key: NEXTAUTH_URL
+  #       sync: false

@@ -1,0 +1,321 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { 
+  CreditCard, 
+  TrendingUp, 
+  Users, 
+  DollarSign, 
+  Calendar,
+  Gift,
+  BarChart3,
+  PieChart
+} from 'lucide-react'
+
+type PaymentAnalytics = {
+  summary: {
+    total_payments: number
+    total_revenue: number
+    avg_payment: number
+    successful_payments: number
+    failed_payments: number
+    vip_registrations: number
+    general_registrations: number
+  }
+  paymentMethods: Array<{
+    payment_method: string
+    count: number
+    revenue: number
+  }>
+  dailyRevenue: Array<{
+    date: string
+    registrations: number
+    revenue: number
+  }>
+  topEvents: Array<{
+    event_id: number
+    event_name: string
+    revenue: number
+    registrations: number
+  }>
+  promoUsage: Array<{
+    promo_code: string
+    usage_count: number
+    revenue_with_promo: number
+  }>
+  period: number
+}
+
+export default function AdminPaymentsPage() {
+  const { data: session } = useSession()
+  const [analytics, setAnalytics] = useState<PaymentAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('30')
+  const [selectedEvent, setSelectedEvent] = useState('')
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({ period })
+      if (selectedEvent) params.append('eventId', selectedEvent)
+      
+      const res = await fetch(`/api/admin/analytics/payments?${params}`)
+      if (!res.ok) throw new Error('Failed to load analytics')
+      const data = await res.json()
+      setAnalytics(data)
+    } catch (error) {
+      console.error('Error loading analytics:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAnalytics()
+  }, [period, selectedEvent])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  if (loading && !analytics) {
+    return (
+      <div className="p-6">
+         <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+             {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+             ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const summary = analytics?.summary || {
+    total_payments: 0,
+    total_revenue: 0,
+    avg_payment: 0,
+    successful_payments: 0,
+    failed_payments: 0,
+    vip_registrations: 0,
+    general_registrations: 0
+  }
+
+  const successRate = summary.total_payments > 0 
+    ? ((summary.successful_payments / summary.total_payments) * 100).toFixed(1)
+    : '0'
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <CreditCard className="h-6 w-6" />
+            Payment Analytics
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Revenue tracking and payment insights
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <select 
+            value={period} 
+            onChange={(e) => setPeriod(e.target.value)}
+            className="border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(summary.total_revenue || 0)}</div>
+            <p className="text-xs text-muted-foreground">
+              From {summary.total_payments || 0} payments
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{successRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {summary.successful_payments || 0} successful, {summary.failed_payments || 0} failed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Payment</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(summary.avg_payment || 0)}</div>
+            <p className="text-xs text-muted-foreground">
+              Per registration
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">VIP vs General</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summary.vip_registrations || 0} / {summary.general_registrations || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              VIP / General registrations
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Payment Methods */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChart className="h-5 w-5" />
+              Payment Methods
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {analytics?.paymentMethods?.map((method, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+                    <span className="text-sm capitalize">{method.payment_method || 'Unknown'}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{formatCurrency(method.revenue)}</div>
+                    <div className="text-xs text-gray-500">{method.count} payments</div>
+                  </div>
+                </div>
+              ))}
+              {!analytics?.paymentMethods?.length && (
+                <div className="text-sm text-gray-500 text-center py-4">No payment data available</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Daily Revenue Trend */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Daily Revenue (Last 7 days)
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {analytics?.dailyRevenue?.slice(0, 7).map((day, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                            <span className="text-sm">{formatDate(day.date)}</span>
+                            <div className="text-right">
+                                <div className="text-sm font-medium">{formatCurrency(day.revenue)}</div>
+                                <div className="text-xs text-gray-500">{day.registrations} reg.</div>
+                            </div>
+                        </div>
+                    ))}
+                    {!analytics?.dailyRevenue?.length && (
+                        <div className="text-sm text-gray-500 text-center py-4">No daily data available</div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Events and Promo Usage */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Top Events by Revenue */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Top Events by Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {analytics?.topEvents?.map((event, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium">{event.event_name || `Event #${event.event_id}`}</div>
+                                <div className="text-xs text-gray-500">{event.registrations} registrations</div>
+                            </div>
+                            <div className="text-sm font-medium">{formatCurrency(event.revenue)}</div>
+                        </div>
+                    ))}
+                    {!analytics?.topEvents?.length && (
+                        <div className="text-sm text-gray-500 text-center py-4">No event data available</div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+
+        {/* Promo Code Usage */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Gift className="h-5 w-5" />
+                    Promo Code Usage
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {analytics?.promoUsage?.map((promo, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-medium font-mono">{promo.promo_code}</div>
+                                <div className="text-xs text-gray-500">{promo.usage_count} uses</div>
+                            </div>
+                            <div className="text-sm font-medium">{formatCurrency(promo.revenue_with_promo)}</div>
+                        </div>
+                    ))}
+                    {!analytics?.promoUsage?.length && (
+                        <div className="text-sm text-gray-500 text-center py-4">No promo codes used</div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
