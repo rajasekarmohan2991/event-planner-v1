@@ -2473,3 +2473,64 @@ model BillItem {
 
   @@map("bill_items")
 }
+
+// ==============================
+// Document Templates
+// ==============================
+
+enum TemplateType {
+  VENDOR
+  SPONSOR
+  EXHIBITOR
+}
+
+enum DocumentType {
+  TERMS
+  DISCLAIMER
+  CONTRACT
+}
+
+model DocumentTemplate {
+  id            String        @id @default(cuid())
+  templateType  TemplateType  @map("template_type")
+  documentName  String        @map("document_name")
+  documentType  DocumentType  @map("document_type")
+  content       String        @db.Text
+  version       Int           @default(1)
+  isActive      Boolean       @default(true) @map("is_active")
+  tenantId      String?       @map("tenant_id")
+  createdBy     BigInt?       @map("created_by")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@map("document_templates")
+}
+
+// ==============================
+// Subscription Plans
+// ==============================
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  description   String?
+  price         Decimal        @db.Decimal(10, 2)
+  currency      String         @default("USD")
+  billingPeriod BillingPeriod  @default(MONTHLY) @map("billing_period")
+  maxEvents     Int?           @map("max_events")
+  maxUsers      Int?           @map("max_users")
+  maxAttendees  Int?           @map("max_attendees")
+  features      Json           @default("[]")
+  isActive      Boolean        @default(true) @map("is_active")
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("subscription_plans")
+}
