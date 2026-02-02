@@ -1,6 +1,5 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -26,16 +25,18 @@ export function LoadingSpinner({
   const spinner = (
     <div className={cn('flex flex-col items-center justify-center gap-4', className)}>
       <div className={cn('relative', sizeClasses[size])}>
-        <Image
-          src="/loading-logo.png"
-          alt="Loading"
-          fill
-          className="object-contain mix-blend-multiply"
-          priority
-        />
+        {/* Pulse Ring Loader */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 opacity-20 animate-ping"></div>
+        <div className="absolute inset-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 opacity-40 animate-pulse"></div>
+        <div className="absolute inset-2 rounded-full bg-gradient-to-r from-pink-600 to-purple-700 flex items-center justify-center shadow-xl">
+          <svg className="w-1/2 h-1/2 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
       </div>
       {text && (
-        <p className="text-base font-medium text-rose-600">
+        <p className="text-base font-medium text-gray-700">
           {text}
         </p>
       )}

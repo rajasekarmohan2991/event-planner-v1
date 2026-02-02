@@ -20,11 +20,11 @@ const inter = Inter({
 
 // Metadata configuration
 export const metadata: Metadata = {
-  title: 'Ayphen',
+  title: 'EventPlanner - Premium Event Management',
   description: 'Plan and manage your events with ease',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'Ayphen',
+    title: 'EventPlanner - Premium Event Management',
     description: 'Plan and manage your events with ease',
     type: 'website',
     locale: 'en_US',
