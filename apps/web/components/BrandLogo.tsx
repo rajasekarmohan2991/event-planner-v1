@@ -63,30 +63,51 @@ export function BrandLogo({
     )
   }
 
-  // Default text logo (replacing Ayphen logo)
+  // Modern geometric logo
   return (
-    <div className={cn("flex flex-col items-start relative", className)}>
-      <div className="flex items-center gap-2">
-        <div className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center",
-          isDark ? "bg-primary-500" : "bg-primary-600"
+    <div className={cn("flex items-center gap-3", className)}>
+      {/* Modern Geometric Logo Icon */}
+      <div className="relative">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Outer hexagon */}
+          <path d="M20 2L35 11V29L20 38L5 29V11L20 2Z"
+            stroke="url(#gradient1)"
+            strokeWidth="2"
+            fill="url(#gradient2)"
+            className="drop-shadow-lg" />
+          {/* Inner star/spark */}
+          <path d="M20 12L23 18H29L24 22L26 28L20 24L14 28L16 22L11 18H17L20 12Z"
+            fill="white"
+            className="opacity-90" />
+          <defs>
+            <linearGradient id="gradient1" x1="5" y1="2" x2="35" y2="38" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#EC4899" />
+              <stop offset="1" stopColor="#8B5CF6" />
+            </linearGradient>
+            <linearGradient id="gradient2" x1="5" y1="2" x2="35" y2="38" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#EC4899" stopOpacity="0.2" />
+              <stop offset="1" stopColor="#8B5CF6" stopOpacity="0.1" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      {/* Modern Typography */}
+      <div className="flex flex-col">
+        <span className={cn(
+          "text-xl font-bold tracking-tight bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent",
+          isDark && "from-pink-400 to-purple-400"
         )}>
-          <span className="text-white font-bold text-xl">E</span>
-        </div>
-        <div className="flex flex-col">
+          EventPlanner
+        </span>
+        {showSubtitle && (
           <span className={cn(
-            "text-lg font-bold leading-none",
-            isDark ? "text-white" : "text-slate-900"
-          )}>
-            Event
-          </span>
-          <span className={cn(
-            "text-sm font-medium leading-none",
+            "text-[0.6rem] font-medium tracking-widest uppercase",
             isDark ? "text-slate-400" : "text-slate-500"
           )}>
-            Planner
+            Premium Events
           </span>
-        </div>
+        )}
       </div>
     </div>
   )
