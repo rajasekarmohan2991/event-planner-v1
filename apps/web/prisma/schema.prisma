@@ -2510,43 +2510,6 @@ model DocumentTemplate {
 // Subscription Plans
 // ==============================
 
-
-// ==============================
-// Document Templates
-// ==============================
-
-enum TemplateType {
-  VENDOR
-  SPONSOR
-  EXHIBITOR
-}
-
-enum DocumentType {
-  TERMS
-  DISCLAIMER
-  CONTRACT
-}
-
-model DocumentTemplate {
-  id            String        @id @default(cuid())
-  templateType  TemplateType  @map("template_type")
-  documentName  String        @map("document_name")
-  documentType  DocumentType  @map("document_type")
-  content       String        @db.Text
-  version       Int           @default(1)
-  isActive      Boolean       @default(true) @map("is_active")
-  tenantId      String?       @map("tenant_id")
-  createdBy     BigInt?       @map("created_by")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  @@map("document_templates")
-}
-
-// ==============================
-// Subscription Plans
-// ==============================
-
 enum BillingPeriod {
   MONTHLY
   YEARLY
