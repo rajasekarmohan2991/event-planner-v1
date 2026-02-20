@@ -1,5 +1,10 @@
 {
-    "buildCommand": "rm -rf .next node_modules/.prisma && prisma generate && next build",
-    "installCommand": "npm install",
-    "framework": null
+    "version": 2,
+    "framework": "nextjs",
+    "buildCommand": "cd apps/web && NEXT_TELEMETRY_DISABLED=1 npx prisma generate --schema=./prisma/schema.prisma && NEXT_TELEMETRY_DISABLED=1 next build",
+    "installCommand": "cd apps/web && npm install --legacy-peer-deps --no-audit --no-fund",
+    "outputDirectory": "apps/web/.next",
+    "regions": [
+        "bom1"
+    ]
 }
